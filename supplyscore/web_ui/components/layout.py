@@ -86,8 +86,13 @@ MSG_WARN_STYLE = {"color": COLORS["warn"], "marginTop": "10px", "fontSize": "14p
 MSG_ALERT_STYLE = {"color": COLORS["alert"], "marginTop": "10px", "fontSize": "14px"}
 
 
-def navbar() -> html.Div:
-    """Barre de navigation principale (les 4 pages de l'application)."""
+def navbar(right: html.Div | None = None) -> html.Div:
+    """Barre de navigation principale (les 4 pages de l'application).
+
+    Args:
+        right: composant optionnel ancré à droite de la barre (ex. le
+            sélecteur d'opérateur global).
+    """
     link_style = {
         "color": "#dfe9f0",
         "textDecoration": "none",
@@ -95,24 +100,27 @@ def navbar() -> html.Div:
         "borderRadius": "5px",
         "fontSize": "15px",
     }
+    children: list = [
+        html.Span(
+            "SupplyScore",
+            style={
+                "fontWeight": "700",
+                "fontSize": "18px",
+                "color": "#fff",
+                "marginRight": "28px",
+            },
+        ),
+        dcc.Link("Projets", href="/", style=link_style),
+        dcc.Link("Questionnaire", href="/questionnaire", style=link_style),
+        dcc.Link("Dashboard", href="/dashboard", style=link_style),
+        dcc.Link("Simulation", href="/simulation", style=link_style),
+    ]
+    if right is not None:
+        children.append(html.Div(right, style={"marginLeft": "auto"}))
     return html.Div(
         [
             html.Div(
-                [
-                    html.Span(
-                        "SupplyScore",
-                        style={
-                            "fontWeight": "700",
-                            "fontSize": "18px",
-                            "color": "#fff",
-                            "marginRight": "28px",
-                        },
-                    ),
-                    dcc.Link("Projets", href="/", style=link_style),
-                    dcc.Link("Questionnaire", href="/questionnaire", style=link_style),
-                    dcc.Link("Dashboard", href="/dashboard", style=link_style),
-                    dcc.Link("Simulation", href="/simulation", style=link_style),
-                ],
+                children,
                 style={
                     "maxWidth": "1100px",
                     "margin": "0 auto",

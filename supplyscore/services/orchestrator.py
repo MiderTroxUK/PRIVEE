@@ -10,11 +10,15 @@ Pipeline complet pour un projet à la date t :
 
 from __future__ import annotations
 
+import threading
+from collections import OrderedDict
 from pathlib import Path
+from types import TracebackType
 
 import numpy as np
 
 from supplyscore.core import AdequationEngine, UrModel, compute_ud, run_ahp, ud_smoothed
+from supplyscore.core.clock import Clock, GameClock, SystemClock
 from supplyscore.data import ClientDatabase, RandomSupplyChainGenerator, RegistryDatabase
 from supplyscore.domain.models import (
     AHPAssessment,
@@ -26,9 +30,17 @@ from supplyscore.domain.models import (
 )
 from supplyscore.graph import GraphRepository, InMemoryGraphRepository, PropagationEngine
 
+#: nombre maximal de ClientDatabase gardées ouvertes simultanément (cache LRU).
+_CLIENT_CACHE_SIZE = 64
+
 
 class SupplyScoreService:
-    """Façade unique consommée par l'UI et les scripts."""
+    """Façade unique consommée par l'UI et les scripts.
+
+    Thread-safety : le serveur Dash sert chaque requête dans un thread
+    distinct ; les méthodes publiques mutantes prennent donc ``self._lock``
+    (RLock réentrant — les méthodes peuvent s'appeler entre elles).
+    """
 
     def __init__(
         self,
@@ -37,6 +49,7 @@ class SupplyScoreService:
         ur_model: UrModel | None = None,
         adequation: AdequationEngine | None = None,
         rho_smoothing: float = 0.3,
+        clock: Clock | None = None,
     ):
         """Initialise la façade et ses dépendances (bases, graphe, modèles).
 
@@ -46,6 +59,9 @@ class SupplyScoreService:
             ur_model: modèle d'urgence réelle (défaut : ``UrModel()``).
             adequation: moteur d'adéquation (défaut : ``AdequationEngine()``).
             rho_smoothing: coefficient de lissage EMA du Ud_local.
+            clock: horloge par défaut (mode « réel ») ; chaque projet peut
+                la remplacer par une :class:`GameClock` via
+                :meth:`set_clock_mode` (mode « jeu », serious game).
         """
         self.db_dir = Path(db_dir)
         self.db_dir.mkdir(parents=True, exist_ok=True)
@@ -55,15 +71,52 @@ class SupplyScoreService:
         self.adequation = adequation if adequation is not None else AdequationEngine()
         self.propagation = PropagationEngine(self.repo)
         self.rho = rho_smoothing
-        self._client_dbs: dict[str, ClientDatabase] = {}
+        self.clock: Clock = clock if clock is not None else SystemClock()
+        self._client_dbs: OrderedDict[str, ClientDatabase] = OrderedDict()
+        self._lock = threading.RLock()
+
+    # --- cycle de vie -----------------------------------------------------------
+
+    def close(self) -> None:
+        """Ferme le registre et toutes les bases client encore ouvertes."""
+        with self._lock:
+            for db in self._client_dbs.values():
+                db.close()
+            self._client_dbs.clear()
+            self.registry.close()
+
+    def __enter__(self) -> SupplyScoreService:
+        """Entre dans le context manager (retourne la façade elle-même)."""
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: TracebackType | None,
+    ) -> None:
+        """Sort du context manager en fermant toutes les bases."""
+        self.close()
 
     # --- accès bases client --------------------------------------------------
 
     def client_db(self, node_id: str) -> ClientDatabase:
-        """Retourne (en la créant au besoin) la base SQLite dédiée au nœud."""
-        if node_id not in self._client_dbs:
-            self._client_dbs[node_id] = ClientDatabase(self.db_dir, node_id)
-        return self._client_dbs[node_id]
+        """Retourne (en la créant au besoin) la base SQLite dédiée au nœud.
+
+        Le cache est un LRU borné à ``_CLIENT_CACHE_SIZE`` entrées : la base la
+        plus anciennement utilisée est fermée puis évincée au-delà de la borne.
+        """
+        with self._lock:
+            db = self._client_dbs.get(node_id)
+            if db is not None:
+                self._client_dbs.move_to_end(node_id)
+                return db
+            db = ClientDatabase(self.db_dir, node_id)
+            self._client_dbs[node_id] = db
+            if len(self._client_dbs) > _CLIENT_CACHE_SIZE:
+                _, evicted = self._client_dbs.popitem(last=False)
+                evicted.close()
+            return db
 
     # --- gestion projet / graphe ----------------------------------------------
 
@@ -71,13 +124,14 @@ class SupplyScoreService:
         self, project: Project, nodes: list[SupplyNode], arcs: list[SupplyArc]
     ) -> None:
         """Persiste le projet, ses nœuds et ses arcs, et alimente le graphe."""
-        self.registry.save_project(project)
-        for n in nodes:
-            self.registry.save_node(n)
-            self.repo.add_node(n)
-        for a in arcs:
-            self.registry.save_arc(a)
-            self.repo.add_arc(a)
+        with self._lock:
+            self.registry.save_project(project)
+            for n in nodes:
+                self.registry.save_node(n)
+                self.repo.add_node(n)
+            for a in arcs:
+                self.registry.save_arc(a)
+                self.repo.add_arc(a)
 
     def load_graph_from_registry(self) -> None:
         """Recharge le graphe en mémoire depuis la base registre (au démarrage)."""
@@ -95,32 +149,109 @@ class SupplyScoreService:
         beta: float = 0.5,
     ) -> None:
         """Ajoute un client/fournisseur de rang quelconque, relié à ses clients aval."""
-        self.registry.save_node(node)
-        self.repo.add_node(node)
-        for target in supplies_to or []:
-            arc = SupplyArc(source_id=node.id, target_id=target, gamma=gamma, beta=beta)
-            self.registry.save_arc(arc)
-            self.repo.add_arc(arc)
+        with self._lock:
+            self.registry.save_node(node)
+            self.repo.add_node(node)
+            for target in supplies_to or []:
+                arc = SupplyArc(source_id=node.id, target_id=target, gamma=gamma, beta=beta)
+                self.registry.save_arc(arc)
+                self.repo.add_arc(arc)
 
     def set_status(self, node_id: str, status: TaskStatus) -> dict[str, UrgencyState]:
-        """Tâche finie/abandonnée : persiste, repropage et retourne le nouvel état global."""
-        self.registry.set_node_status(node_id, status)
-        self.propagation.apply_status(node_id, status)
-        return self.evaluate_all(persist=True)
+        """Tâche finie/abandonnée : pose le statut puis réévalue UNE fois le réseau.
+
+        Le statut est persisté dans le registre ET posé sur le nœud du graphe ;
+        ``evaluate_all(persist=True)`` (appelé une seule fois) se charge ensuite
+        des règles de statut et de la propagation.
+        """
+        with self._lock:
+            status = TaskStatus(status)
+            self.registry.set_node_status(node_id, status)
+            node = self.repo.get_node(node_id)
+            if node is not None:
+                node.status = status
+                self.repo.update_node(node)
+            return self.evaluate_all(persist=True)
+
+    # --- horloge bimodale par projet ---------------------------------------------
+
+    def clock_for(self, project_id: str) -> Clock:
+        """Horloge effective du projet : GameClock si mode « jeu », sinon l'horloge réelle."""
+        raw = self.registry.get_setting(project_id, "clock")
+        if isinstance(raw, dict) and raw.get("mode") == "game":
+            return GameClock(
+                start_ts=float(raw["start_ts"]),
+                weeks_elapsed=int(raw.get("weeks_elapsed", 0)),
+            )
+        return self.clock
+
+    def clock_mode(self, project_id: str) -> str:
+        """Mode d'horloge du projet : ``"game"`` ou ``"real"`` (défaut)."""
+        raw = self.registry.get_setting(project_id, "clock")
+        if isinstance(raw, dict) and raw.get("mode") == "game":
+            return "game"
+        return "real"
+
+    def set_clock_mode(self, project_id: str, mode: str) -> None:
+        """Bascule l'horloge du projet entre temps réel et temps de jeu.
+
+        En mode « jeu », l'origine est posée à l'instant de la bascule et les
+        semaines écoulées repartent de zéro (sauf si le projet était déjà en
+        mode jeu : son avancement est conservé).
+        """
+        with self._lock:
+            if mode not in ("real", "game"):
+                raise ValueError(f"mode d'horloge inconnu : {mode!r} (attendu 'real' ou 'game')")
+            if mode == "real":
+                self.registry.set_setting(project_id, "clock", {"mode": "real"})
+                return
+            raw = self.registry.get_setting(project_id, "clock")
+            if isinstance(raw, dict) and raw.get("mode") == "game":
+                return  # déjà en mode jeu : on conserve l'avancement
+            self.registry.set_setting(
+                project_id,
+                "clock",
+                {"mode": "game", "start_ts": self.clock.now(), "weeks_elapsed": 0},
+            )
+
+    def advance_week(self, project_id: str, n: int = 1) -> dict[str, UrgencyState]:
+        """Avance le temps de jeu de ``n`` semaine(s) puis réévalue tout le réseau.
+
+        Réservé aux projets en mode « jeu » (ValueError sinon).
+        """
+        with self._lock:
+            raw = self.registry.get_setting(project_id, "clock")
+            if not (isinstance(raw, dict) and raw.get("mode") == "game"):
+                raise ValueError(
+                    "Le projet n'est pas en mode « jeu » : "
+                    "basculer l'horloge avec set_clock_mode(project_id, 'game') d'abord."
+                )
+            game = GameClock(
+                start_ts=float(raw["start_ts"]),
+                weeks_elapsed=int(raw.get("weeks_elapsed", 0)),
+            )
+            game.advance_weeks(n)
+            self.registry.set_setting(
+                project_id,
+                "clock",
+                {"mode": "game", "start_ts": game.start_ts, "weeks_elapsed": game.weeks_elapsed},
+            )
+            return self.evaluate_all(persist=True)
 
     # --- questionnaire AHP -----------------------------------------------------
 
     def submit_assessment(self, assessment: AHPAssessment) -> int:
         """Enregistre un questionnaire hebdo et met à jour le Ud_local lissé du nœud."""
-        db = self.client_db(assessment.node_id)
-        rowid = db.save_assessment(assessment)
-        node = self.repo.get_node(assessment.node_id)
-        if node is not None:
-            prev = node.urgency.ud_local
-            node.urgency.ud_local = ud_smoothed(prev, assessment.ud, self.rho)
-            self.repo.update_node(node)
-            self.registry.save_node(node)
-        return rowid
+        with self._lock:
+            db = self.client_db(assessment.node_id)
+            rowid = db.save_assessment(assessment)
+            node = self.repo.get_node(assessment.node_id)
+            if node is not None:
+                prev = node.urgency.ud_local
+                node.urgency.ud_local = ud_smoothed(prev, assessment.ud, self.rho)
+                self.repo.update_node(node)
+                self.registry.save_node(node)
+            return rowid
 
     @staticmethod
     def build_assessment(
@@ -150,34 +281,40 @@ class SupplyScoreService:
     # --- pipeline d'évaluation ---------------------------------------------------
 
     def refresh_ur_local(self, t: float = 0.0) -> None:
-        """Recalcule Ur_local de chaque nœud actif depuis ses KPIs."""
+        """Recalcule Ur_local de chaque nœud depuis ses KPIs.
+
+        Les règles de statut (DONE → 0, ABANDONED → 1) sont appliquées par
+        ``UrModel.ur_local`` via ``core.status_rules`` — source de vérité unique.
+        """
         for node in self.repo.nodes():
-            if node.status == TaskStatus.DONE:
-                node.urgency.ur_local = 0.0
-            elif node.status == TaskStatus.ABANDONED:
-                node.urgency.ur_local = 1.0
-            else:
-                node.urgency.ur_local = self.ur_model.ur_local(t, node.kpis)
+            node.urgency.ur_local = self.ur_model.ur_local(t, node.kpis, status=node.status)
             self.repo.update_node(node)
 
     def evaluate_all(self, t: float = 0.0, persist: bool = False) -> dict[str, UrgencyState]:
-        """Pipeline complet : Ur_local -> propagation -> adéquation (-> persistance)."""
-        self.refresh_ur_local(t=t)
-        states = self.propagation.propagate_all()
-        for node_id, state in states.items():
-            ud = state.ud if state.ud is not None else 0.0
-            ur = state.ur if state.ur is not None else 0.0
-            evaluated = self.adequation.evaluate(ud, ur)
-            state.adequation = evaluated.adequation
-            state.false_urgency = evaluated.false_urgency
-            state.hidden_risk = evaluated.hidden_risk
-            node = self.repo.get_node(node_id)
-            if node is not None:
-                node.urgency = state
-                self.repo.update_node(node)
-            if persist:
-                self.client_db(node_id).save_urgency_state(node_id, state)
-        return states
+        """Pipeline complet : Ur_local -> propagation -> adéquation (-> persistance).
+
+        Avec ``persist=True``, chaque état est journalisé dans la base du
+        client ET l'état courant est figé dans le registre (table
+        ``node_urgency``) pour survivre à un redémarrage.
+        """
+        with self._lock:
+            self.refresh_ur_local(t=t)
+            states = self.propagation.propagate_all()
+            for node_id, state in states.items():
+                ud = state.ud if state.ud is not None else 0.0
+                ur = state.ur if state.ur is not None else 0.0
+                evaluated = self.adequation.evaluate(ud, ur)
+                state.adequation = evaluated.adequation
+                state.false_urgency = evaluated.false_urgency
+                state.hidden_risk = evaluated.hidden_risk
+                node = self.repo.get_node(node_id)
+                if node is not None:
+                    node.urgency = state
+                    self.repo.update_node(node)
+                if persist:
+                    self.registry.save_urgency(node_id, state)
+                    self.client_db(node_id).save_urgency_state(node_id, state)
+            return states
 
     def simulate_shock(self, node_id: str, new_ur_local: float) -> dict[str, float]:
         """Scénario catastrophe what-if : retourne les ΔUr propagés sans rien persister."""
@@ -190,11 +327,12 @@ class SupplyScoreService:
 
         Données de TEST uniquement — jamais en production.
         """
-        gen = RandomSupplyChainGenerator(seed=seed)
-        project, nodes, arcs = gen.generate(n_ranks=n_ranks)
-        self.create_project(project, nodes, arcs)
-        for node in nodes:
-            assessment = gen.generate_assessment(node.id, project.id)
-            self.submit_assessment(assessment)
-        self.evaluate_all(persist=True)
-        return project
+        with self._lock:
+            gen = RandomSupplyChainGenerator(seed=seed)
+            project, nodes, arcs = gen.generate(n_ranks=n_ranks)
+            self.create_project(project, nodes, arcs)
+            for node in nodes:
+                assessment = gen.generate_assessment(node.id, project.id)
+                self.submit_assessment(assessment)
+            self.evaluate_all(persist=True)
+            return project

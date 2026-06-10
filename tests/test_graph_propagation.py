@@ -157,17 +157,40 @@ def test_done_node_has_null_local_contribution() -> None:
     assert repo.get_node("B").urgency.ur_local == pytest.approx(UR_LOCAL["B"])
 
 
-def test_apply_status_persists_and_repropagates() -> None:
+def test_apply_status_sets_status_without_propagating() -> None:
+    # Nouveau contrat : apply_status pose le statut, la propagation est explicite.
+    repo = make_chain()
+    engine = PropagationEngine(repo)
+    engine.propagate_all()
+    ur_before = {nid: repo.get_node(nid).urgency.ur for nid in ("A", "B", "C")}
+
+    engine.apply_status("C", TaskStatus.ABANDONED)
+
+    assert repo.get_node("C").status is TaskStatus.ABANDONED
+    # Aucune propagation tant que propagate_all n'est pas rappelé.
+    for node_id, ur in ur_before.items():
+        assert repo.get_node(node_id).urgency.ur == pytest.approx(ur, abs=APPROX)
+
+
+def test_apply_status_then_propagate_all_repropagates() -> None:
     repo = make_chain()
     engine = PropagationEngine(repo)
     engine.propagate_all()
     ur_a_before = repo.get_node("A").urgency.ur
 
-    states = engine.apply_status("C", TaskStatus.ABANDONED)
+    engine.apply_status("C", TaskStatus.ABANDONED)
+    states = engine.propagate_all()
 
+    # Résultat final identique à l'ancienne sémantique (apply_status propagateur).
     assert repo.get_node("C").status is TaskStatus.ABANDONED
     assert states["C"].ur == pytest.approx(1.0, abs=APPROX)
     assert repo.get_node("A").urgency.ur > ur_a_before
+
+
+def test_apply_status_unknown_node_raises() -> None:
+    repo = make_chain()
+    with pytest.raises(KeyError):
+        PropagationEngine(repo).apply_status("fantome", TaskStatus.DONE)
 
 
 # --- Choc what-if ------------------------------------------------------------------

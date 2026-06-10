@@ -11,6 +11,7 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass, field
 
+from supplyscore.core.status_rules import effective_ur_local
 from supplyscore.domain.models import KPIBundle, TaskStatus
 
 #: Noms des blocs d'urgence, dans l'ordre d'agrégation.
@@ -361,8 +362,9 @@ class UrModel:
         ur = 1 − Π_m (1 − u_m)^ω_m sur les blocs non-None de poids ω_m > 0 :
         un seul bloc saturé (u_m = 1) suffit à rendre le nœud urgent.
 
-        Règles de statut : une tâche DONE n'est plus urgente (0.0) ; une
-        tâche ABANDONED est une urgence maximale pour l'aval (1.0).
+        Les règles de statut (DONE → 0.0, ABANDONED → 1.0) sont déléguées à
+        :func:`supplyscore.core.status_rules.effective_ur_local`, source de
+        vérité unique.
 
         Args:
             t: date courante (heures depuis t0 projet).
@@ -372,10 +374,6 @@ class UrModel:
         Returns:
             Urgence locale dans [0, 1] ; 0.0 si tous les blocs sont None.
         """
-        if status == TaskStatus.DONE:
-            return 0.0
-        if status == TaskStatus.ABANDONED:
-            return 1.0
         product = 1.0
         any_block = False
         for name, u in self.blocks(t, kpis).items():
@@ -386,6 +384,5 @@ class UrModel:
                 continue
             any_block = True
             product *= (1.0 - _clip01(u)) ** w
-        if not any_block:
-            return 0.0
-        return _clip01(1.0 - product)
+        aggregated = _clip01(1.0 - product) if any_block else 0.0
+        return effective_ur_local(status, aggregated)

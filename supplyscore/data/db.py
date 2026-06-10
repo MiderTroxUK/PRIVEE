@@ -14,10 +14,12 @@ from __future__ import annotations
 import dataclasses
 import json
 import sqlite3
+import threading
 from pathlib import Path
 from types import TracebackType
-from typing import Any
+from typing import Any, Literal, Self
 
+from supplyscore.data.migrations import apply_migrations
 from supplyscore.domain.models import (
     AHPAssessment,
     CO2KPIs,
@@ -60,11 +62,19 @@ def kpis_to_json(kpis: KPIBundle) -> str:
 
 
 def kpis_from_json(payload: str | None) -> KPIBundle:
-    """Reconstruit un :class:`KPIBundle` depuis son JSON (tolère None/vide)."""
+    """Reconstruit un :class:`KPIBundle` depuis son JSON (tolère None/vide).
+
+    Robuste à l'évolution de schéma : les clés inconnues d'un bloc (champs
+    ajoutés par une version plus récente, ou retirés depuis) sont ignorées.
+    """
     if not payload:
         return KPIBundle()
     raw: dict[str, Any] = json.loads(payload)
-    blocks = {name: cls(**raw.get(name, {})) for name, cls in _KPI_BLOCK_TYPES.items()}
+    blocks: dict[str, Any] = {}
+    for name, cls in _KPI_BLOCK_TYPES.items():
+        block_raw: dict[str, Any] = raw.get(name, {})
+        known = {f.name for f in dataclasses.fields(cls)}
+        blocks[name] = cls(**{k: v for k, v in block_raw.items() if k in known})
     return KPIBundle(**blocks)
 
 
@@ -92,23 +102,33 @@ def _comparisons_from_json(payload: str | None) -> dict[tuple[int, int], float]:
 
 
 class _SQLiteDatabase:
-    """Connexion SQLite avec WAL, context manager et helpers communs."""
+    """Connexion SQLite avec WAL, migrations, verrou et context manager.
+
+    La connexion est ouverte avec ``check_same_thread=False`` : le serveur web
+    sert chaque requête dans un thread distinct. En contrepartie, CHAQUE
+    méthode publique (lecture comme écriture) doit prendre ``self._lock``
+    (un :class:`threading.RLock` par instance, donc réentrant).
+    """
+
+    #: famille de migrations à appliquer (surclassé : "registry" ou "client").
+    MIGRATION_KIND: Literal["registry", "client"]
 
     def __init__(self, db_path: Path) -> None:
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
-        self._conn = sqlite3.connect(str(self.db_path))
+        self._lock = threading.RLock()
+        self._conn = sqlite3.connect(str(self.db_path), check_same_thread=False)
         self._conn.row_factory = sqlite3.Row
         self._conn.execute("PRAGMA journal_mode=WAL")
-        self._conn.execute("PRAGMA foreign_keys=ON")
-        self._create_schema()
-
-    # -- schéma (surclassé) --
-    def _create_schema(self) -> None:  # pragma: no cover - abstrait
-        raise NotImplementedError
+        self.schema_version = apply_migrations(self._conn, self.MIGRATION_KIND)
+        # Les contraintes FK du schéma (v2) restent vérifiables à la demande via
+        # PRAGMA foreign_key_check, mais leur APPLICATION est laissée désactivée
+        # sur la connexion : les appelants historiques insèrent "enfant avant
+        # parent" (nœud avant son projet, arc avant ses nœuds).
+        self._conn.execute("PRAGMA foreign_keys=OFF")
 
     # -- context manager --
-    def __enter__(self) -> _SQLiteDatabase:
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(
@@ -120,10 +140,13 @@ class _SQLiteDatabase:
         self.close()
 
     def close(self) -> None:
-        if self._conn is not None:
-            self._conn.commit()
-            self._conn.close()
-            self._conn = None  # type: ignore[assignment]
+        """Commit, checkpoint WAL (purge des fichiers -wal/-shm) puis fermeture."""
+        with self._lock:
+            if self._conn is not None:
+                self._conn.commit()
+                self._conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+                self._conn.close()
+                self._conn = None  # type: ignore[assignment]
 
 
 # --- Registre global -----------------------------------------------------------
@@ -137,61 +160,17 @@ class RegistryDatabase(_SQLiteDatabase):
     """
 
     FILENAME = "registry.sqlite"
+    MIGRATION_KIND: Literal["registry", "client"] = "registry"
 
     def __init__(self, db_dir: Path) -> None:
         """Ouvre (ou crée) le fichier ``registry.sqlite`` dans ``db_dir``."""
         super().__init__(Path(db_dir) / self.FILENAME)
 
-    def _create_schema(self) -> None:
-        with self._conn:
-            self._conn.execute(
-                """
-                CREATE TABLE IF NOT EXISTS projects (
-                    id TEXT PRIMARY KEY,
-                    name TEXT NOT NULL,
-                    owner_node_id TEXT NOT NULL,
-                    description TEXT NOT NULL DEFAULT '',
-                    created_at REAL NOT NULL
-                )
-                """
-            )
-            self._conn.execute(
-                """
-                CREATE TABLE IF NOT EXISTS nodes (
-                    id TEXT PRIMARY KEY,
-                    name TEXT NOT NULL,
-                    label TEXT NOT NULL,
-                    kind TEXT NOT NULL,
-                    rank INTEGER NOT NULL,
-                    project_id TEXT,
-                    location TEXT,
-                    latitude REAL,
-                    longitude REAL,
-                    status TEXT NOT NULL,
-                    kpis_json TEXT NOT NULL
-                )
-                """
-            )
-            self._conn.execute(
-                """
-                CREATE TABLE IF NOT EXISTS arcs (
-                    source_id TEXT NOT NULL,
-                    target_id TEXT NOT NULL,
-                    label TEXT NOT NULL,
-                    gamma REAL NOT NULL,
-                    beta REAL NOT NULL,
-                    delta REAL NOT NULL,
-                    kpis_json TEXT NOT NULL,
-                    PRIMARY KEY (source_id, target_id)
-                )
-                """
-            )
-
     # -- projets --
 
     def save_project(self, project: Project) -> None:
         """Insère ou met à jour le projet (upsert sur son id)."""
-        with self._conn:
+        with self._lock, self._conn:
             self._conn.execute(
                 """
                 INSERT INTO projects (id, name, owner_node_id, description, created_at)
@@ -213,13 +192,17 @@ class RegistryDatabase(_SQLiteDatabase):
 
     def get_project(self, project_id: str) -> Project | None:
         """Retourne le projet ou None s'il est inconnu."""
-        row = self._conn.execute("SELECT * FROM projects WHERE id = ?", (project_id,)).fetchone()
-        return self._row_to_project(row) if row else None
+        with self._lock:
+            row = self._conn.execute(
+                "SELECT * FROM projects WHERE id = ?", (project_id,)
+            ).fetchone()
+            return self._row_to_project(row) if row else None
 
     def list_projects(self) -> list[Project]:
         """Liste tous les projets, ordonnés par date de création."""
-        rows = self._conn.execute("SELECT * FROM projects ORDER BY created_at").fetchall()
-        return [self._row_to_project(row) for row in rows]
+        with self._lock:
+            rows = self._conn.execute("SELECT * FROM projects ORDER BY created_at").fetchall()
+            return [self._row_to_project(row) for row in rows]
 
     @staticmethod
     def _row_to_project(row: sqlite3.Row) -> Project:
@@ -234,8 +217,8 @@ class RegistryDatabase(_SQLiteDatabase):
     # -- nœuds --
 
     def save_node(self, node: SupplyNode) -> None:
-        """Insère ou met à jour le nœud (upsert sur son id)."""
-        with self._conn:
+        """Insère ou met à jour le nœud ET son état d'urgence (upsert sur son id)."""
+        with self._lock, self._conn:
             self._conn.execute(
                 """
                 INSERT INTO nodes (id, name, label, kind, rank, project_id,
@@ -267,42 +250,45 @@ class RegistryDatabase(_SQLiteDatabase):
                     kpis_to_json(node.kpis),
                 ),
             )
+            self._upsert_urgency(node.id, node.urgency)
 
     def get_node(self, node_id: str) -> SupplyNode | None:
-        """Retourne le nœud ou None s'il est inconnu."""
-        row = self._conn.execute("SELECT * FROM nodes WHERE id = ?", (node_id,)).fetchone()
-        return self._row_to_node(row) if row else None
+        """Retourne le nœud (urgence incluse) ou None s'il est inconnu."""
+        with self._lock:
+            row = self._conn.execute("SELECT * FROM nodes WHERE id = ?", (node_id,)).fetchone()
+            return self._row_to_node(row) if row else None
 
     def list_nodes(self, project_id: str | None = None) -> list[SupplyNode]:
         """Liste les nœuds (filtrés par projet si ``project_id`` est fourni)."""
-        if project_id is None:
-            rows = self._conn.execute("SELECT * FROM nodes ORDER BY rank, id").fetchall()
-        else:
-            rows = self._conn.execute(
-                "SELECT * FROM nodes WHERE project_id = ? ORDER BY rank, id",
-                (project_id,),
-            ).fetchall()
-        return [self._row_to_node(row) for row in rows]
+        with self._lock:
+            if project_id is None:
+                rows = self._conn.execute("SELECT * FROM nodes ORDER BY rank, id").fetchall()
+            else:
+                rows = self._conn.execute(
+                    "SELECT * FROM nodes WHERE project_id = ? ORDER BY rank, id",
+                    (project_id,),
+                ).fetchall()
+            return [self._row_to_node(row) for row in rows]
 
     def delete_node(self, node_id: str) -> None:
-        """Supprime un nœud ET tous les arcs qui le touchent."""
-        with self._conn:
+        """Supprime un nœud, son état d'urgence ET tous les arcs qui le touchent."""
+        with self._lock, self._conn:
             self._conn.execute(
                 "DELETE FROM arcs WHERE source_id = ? OR target_id = ?",
                 (node_id, node_id),
             )
+            self._conn.execute("DELETE FROM node_urgency WHERE node_id = ?", (node_id,))
             self._conn.execute("DELETE FROM nodes WHERE id = ?", (node_id,))
 
     def set_node_status(self, node_id: str, status: TaskStatus | str) -> None:
         """Met à jour le statut du nœud (valide la valeur via :class:`TaskStatus`)."""
-        with self._conn:
+        with self._lock, self._conn:
             self._conn.execute(
                 "UPDATE nodes SET status = ? WHERE id = ?",
                 (str(TaskStatus(status)), node_id),
             )
 
-    @staticmethod
-    def _row_to_node(row: sqlite3.Row) -> SupplyNode:
+    def _row_to_node(self, row: sqlite3.Row) -> SupplyNode:
         return SupplyNode(
             id=row["id"],
             name=row["name"],
@@ -315,13 +301,95 @@ class RegistryDatabase(_SQLiteDatabase):
             longitude=row["longitude"],
             status=TaskStatus(row["status"]),
             kpis=kpis_from_json(row["kpis_json"]),
+            urgency=self._load_urgency(row["id"]),
         )
+
+    # -- état d'urgence courant --
+
+    def save_urgency(self, node_id: str, state: UrgencyState) -> None:
+        """Insère ou met à jour l'état d'urgence courant du nœud (table node_urgency)."""
+        with self._lock, self._conn:
+            self._upsert_urgency(node_id, state)
+
+    def _upsert_urgency(self, node_id: str, state: UrgencyState) -> None:
+        """Upsert SQL de node_urgency (appelant responsable du verrou/transaction)."""
+        self._conn.execute(
+            """
+            INSERT INTO node_urgency (node_id, ud_local, ur_local, ud, ur,
+                                      adequation, false_urgency, hidden_risk, timestamp)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(node_id) DO UPDATE SET
+                ud_local = excluded.ud_local,
+                ur_local = excluded.ur_local,
+                ud = excluded.ud,
+                ur = excluded.ur,
+                adequation = excluded.adequation,
+                false_urgency = excluded.false_urgency,
+                hidden_risk = excluded.hidden_risk,
+                timestamp = excluded.timestamp
+            """,
+            (
+                node_id,
+                state.ud_local,
+                state.ur_local,
+                state.ud,
+                state.ur,
+                state.adequation,
+                state.false_urgency,
+                state.hidden_risk,
+                state.timestamp,
+            ),
+        )
+
+    def _load_urgency(self, node_id: str) -> UrgencyState:
+        """Restaure l'UrgencyState du nœud (UrgencyState() vierge si absent)."""
+        row = self._conn.execute(
+            "SELECT * FROM node_urgency WHERE node_id = ?", (node_id,)
+        ).fetchone()
+        if row is None:
+            return UrgencyState()
+        state = UrgencyState(
+            ud_local=row["ud_local"],
+            ur_local=row["ur_local"],
+            ud=row["ud"],
+            ur=row["ur"],
+            adequation=row["adequation"],
+            false_urgency=row["false_urgency"],
+            hidden_risk=row["hidden_risk"],
+        )
+        if row["timestamp"] is not None:
+            state.timestamp = row["timestamp"]
+        return state
+
+    # -- réglages par projet --
+
+    def set_setting(self, project_id: str, key: str, value: Any) -> None:
+        """Pose (ou remplace) un réglage du projet, sérialisé en JSON."""
+        with self._lock, self._conn:
+            self._conn.execute(
+                """
+                INSERT INTO project_settings (project_id, key, value_json)
+                VALUES (?, ?, ?)
+                ON CONFLICT(project_id, key) DO UPDATE SET
+                    value_json = excluded.value_json
+                """,
+                (project_id, key, json.dumps(value, sort_keys=True)),
+            )
+
+    def get_setting(self, project_id: str, key: str) -> Any | None:
+        """Retourne la valeur du réglage (désérialisée du JSON) ou None si absent."""
+        with self._lock:
+            row = self._conn.execute(
+                "SELECT value_json FROM project_settings WHERE project_id = ? AND key = ?",
+                (project_id, key),
+            ).fetchone()
+            return json.loads(row["value_json"]) if row else None
 
     # -- arcs --
 
     def save_arc(self, arc: SupplyArc) -> None:
         """Insère ou met à jour l'arc (upsert sur (source_id, target_id))."""
-        with self._conn:
+        with self._lock, self._conn:
             self._conn.execute(
                 """
                 INSERT INTO arcs (source_id, target_id, label, gamma, beta, delta, kpis_json)
@@ -346,20 +414,22 @@ class RegistryDatabase(_SQLiteDatabase):
 
     def get_arc(self, source_id: str, target_id: str) -> SupplyArc | None:
         """Retourne l'arc source -> target ou None s'il est inconnu."""
-        row = self._conn.execute(
-            "SELECT * FROM arcs WHERE source_id = ? AND target_id = ?",
-            (source_id, target_id),
-        ).fetchone()
-        return self._row_to_arc(row) if row else None
+        with self._lock:
+            row = self._conn.execute(
+                "SELECT * FROM arcs WHERE source_id = ? AND target_id = ?",
+                (source_id, target_id),
+            ).fetchone()
+            return self._row_to_arc(row) if row else None
 
     def list_arcs(self) -> list[SupplyArc]:
         """Liste tous les arcs, ordonnés par (source_id, target_id)."""
-        rows = self._conn.execute("SELECT * FROM arcs ORDER BY source_id, target_id").fetchall()
-        return [self._row_to_arc(row) for row in rows]
+        with self._lock:
+            rows = self._conn.execute("SELECT * FROM arcs ORDER BY source_id, target_id").fetchall()
+            return [self._row_to_arc(row) for row in rows]
 
     def delete_arc(self, source_id: str, target_id: str) -> None:
         """Supprime l'arc source -> target (silencieux s'il est absent)."""
-        with self._conn:
+        with self._lock, self._conn:
             self._conn.execute(
                 "DELETE FROM arcs WHERE source_id = ? AND target_id = ?",
                 (source_id, target_id),
@@ -388,63 +458,18 @@ class ClientDatabase(_SQLiteDatabase):
     KPI et la série temporelle des états d'urgence du nœud.
     """
 
+    MIGRATION_KIND: Literal["registry", "client"] = "client"
+
     def __init__(self, db_dir: Path, client_id: str) -> None:
         """Ouvre (ou crée) le fichier ``<client_id>.sqlite`` dans ``db_dir``."""
         self.client_id = client_id
         super().__init__(Path(db_dir) / f"{client_id}.sqlite")
 
-    def _create_schema(self) -> None:
-        with self._conn:
-            self._conn.execute(
-                """
-                CREATE TABLE IF NOT EXISTS assessments (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    node_id TEXT NOT NULL,
-                    project_id TEXT NOT NULL,
-                    operator_id TEXT NOT NULL,
-                    comparisons_json TEXT NOT NULL,
-                    criteria_scores_json TEXT NOT NULL,
-                    weights_json TEXT NOT NULL,
-                    consistency_ratio REAL NOT NULL,
-                    is_consistent INTEGER NOT NULL,
-                    ud REAL NOT NULL,
-                    notes TEXT NOT NULL DEFAULT '',
-                    timestamp REAL NOT NULL
-                )
-                """
-            )
-            self._conn.execute(
-                """
-                CREATE TABLE IF NOT EXISTS kpi_snapshots (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    node_id TEXT NOT NULL,
-                    kpis_json TEXT NOT NULL,
-                    timestamp REAL NOT NULL
-                )
-                """
-            )
-            self._conn.execute(
-                """
-                CREATE TABLE IF NOT EXISTS urgency_history (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    node_id TEXT NOT NULL,
-                    ud_local REAL,
-                    ur_local REAL,
-                    ud REAL,
-                    ur REAL,
-                    adequation REAL,
-                    false_urgency REAL,
-                    hidden_risk REAL,
-                    timestamp REAL NOT NULL
-                )
-                """
-            )
-
     # -- évaluations AHP --
 
     def save_assessment(self, assessment: AHPAssessment) -> int:
         """Insère l'évaluation AHP et retourne son rowid."""
-        with self._conn:
+        with self._lock, self._conn:
             cursor = self._conn.execute(
                 """
                 INSERT INTO assessments (node_id, project_id, operator_id,
@@ -473,25 +498,27 @@ class ClientDatabase(_SQLiteDatabase):
 
     def latest_assessment(self, node_id: str) -> AHPAssessment | None:
         """Retourne l'évaluation la plus récente du nœud, ou None."""
-        row = self._conn.execute(
-            """
-            SELECT * FROM assessments WHERE node_id = ?
-            ORDER BY timestamp DESC, id DESC LIMIT 1
-            """,
-            (node_id,),
-        ).fetchone()
-        return self._row_to_assessment(row) if row else None
+        with self._lock:
+            row = self._conn.execute(
+                """
+                SELECT * FROM assessments WHERE node_id = ?
+                ORDER BY timestamp DESC, id DESC LIMIT 1
+                """,
+                (node_id,),
+            ).fetchone()
+            return self._row_to_assessment(row) if row else None
 
     def list_assessments(self, node_id: str) -> list[AHPAssessment]:
         """Liste les évaluations du nœud, par timestamp croissant."""
-        rows = self._conn.execute(
-            """
-            SELECT * FROM assessments WHERE node_id = ?
-            ORDER BY timestamp, id
-            """,
-            (node_id,),
-        ).fetchall()
-        return [self._row_to_assessment(row) for row in rows]
+        with self._lock:
+            rows = self._conn.execute(
+                """
+                SELECT * FROM assessments WHERE node_id = ?
+                ORDER BY timestamp, id
+                """,
+                (node_id,),
+            ).fetchall()
+            return [self._row_to_assessment(row) for row in rows]
 
     @staticmethod
     def _row_to_assessment(row: sqlite3.Row) -> AHPAssessment:
@@ -518,7 +545,7 @@ class ClientDatabase(_SQLiteDatabase):
         import time as _time
 
         ts = _time.time() if timestamp is None else timestamp
-        with self._conn:
+        with self._lock, self._conn:
             cursor = self._conn.execute(
                 """
                 INSERT INTO kpi_snapshots (node_id, kpis_json, timestamp)
@@ -534,7 +561,7 @@ class ClientDatabase(_SQLiteDatabase):
 
     def save_urgency_state(self, node_id: str, state: UrgencyState) -> int:
         """Insère un état d'urgence dans l'historique et retourne son rowid."""
-        with self._conn:
+        with self._lock, self._conn:
             cursor = self._conn.execute(
                 """
                 INSERT INTO urgency_history (node_id, ud_local, ur_local, ud, ur,
@@ -560,13 +587,14 @@ class ClientDatabase(_SQLiteDatabase):
 
     def urgency_series(self, node_id: str) -> list[UrgencyState]:
         """Série temporelle des états d'urgence, ordonnée par timestamp croissant."""
-        rows = self._conn.execute(
-            """
-            SELECT * FROM urgency_history WHERE node_id = ?
-            ORDER BY timestamp, id
-            """,
-            (node_id,),
-        ).fetchall()
+        with self._lock:
+            rows = self._conn.execute(
+                """
+                SELECT * FROM urgency_history WHERE node_id = ?
+                ORDER BY timestamp, id
+                """,
+                (node_id,),
+            ).fetchall()
         return [
             UrgencyState(
                 ud_local=row["ud_local"],

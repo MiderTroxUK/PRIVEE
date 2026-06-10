@@ -305,7 +305,7 @@ class RandomSupplyChainGenerator:
         project_id: str,
         operator_id: str = "sim",
         urgency_bias: float = 0.5,
-        n_criteria: int = 5,
+        n_criteria: int = 4,
         notes: str = "",
     ) -> AHPAssessment:
         """Questionnaire AHP simulé COHÉRENT (CR < 0.10 garanti).
@@ -317,6 +317,9 @@ class RandomSupplyChainGenerator:
 
         ``urgency_bias`` dans [0, 1] décale les scores critères : 0 -> scores
         proches de 1 (pas urgent), 1 -> proches de 9 (très urgent).
+
+        Le défaut ``n_criteria=4`` est aligné sur les 4 critères de l'UI du
+        questionnaire (``CRITERIA`` de :mod:`supplyscore.core.ahp`).
         """
         rng = self._rng
         n = n_criteria

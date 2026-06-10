@@ -13,6 +13,7 @@ from dash import Input, Output, dcc, html
 
 from supplyscore.services import SupplyScoreService
 from supplyscore.web_ui import set_service
+from supplyscore.web_ui.components import operator
 from supplyscore.web_ui.components.layout import COLORS, FONT_FAMILY, PAGE_STYLE, navbar
 from supplyscore.web_ui.pages import dashboard, projects, questionnaire, simulation
 
@@ -67,9 +68,10 @@ def create_app(
     )
     app.layout = html.Div(
         [
-            navbar(),
+            navbar(right=operator.operator_selector()),
             dcc.Location(id="url"),
             dcc.Store(id="store-project", storage_type="session"),
+            dcc.Store(id="store-operator", storage_type="session"),
             html.Div(id="page-content"),
         ],
         style={
@@ -80,6 +82,7 @@ def create_app(
     )
 
     app.callback(Output("page-content", "children"), Input("url", "pathname"))(route_callback)
+    operator.register_callbacks(app)
     for page in (projects, questionnaire, dashboard, simulation):
         page.register_callbacks(app)
     return app

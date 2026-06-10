@@ -157,6 +157,20 @@ class TestGenerateAssessment:
         high = [gen.generate_assessment("n", "p", urgency_bias=0.9).ud for _ in range(30)]
         assert sum(low) / len(low) < sum(high) / len(high)
 
+    def test_default_is_four_criteria_aligned_with_ui(self):
+        """Le défaut (4 critères) est aligné sur CRITERIA de l'UI questionnaire."""
+        a = RandomSupplyChainGenerator(seed=11).generate_assessment("n1", "p1")
+        assert len(a.criteria_scores) == 4
+        assert len(a.weights) == 4
+        assert len(a.comparisons) == 6
+        assert set(a.comparisons) == {(i, j) for i in range(4) for j in range(i + 1, 4)}
+
+    def test_explicit_n_criteria_still_supported(self):
+        a = RandomSupplyChainGenerator(seed=11).generate_assessment("n1", "p1", n_criteria=5)
+        assert len(a.criteria_scores) == 5
+        assert len(a.weights) == 5
+        assert len(a.comparisons) == 10
+
     def test_structure(self):
         a = RandomSupplyChainGenerator(seed=3).generate_assessment("n1", "p1", operator_id="op-x")
         n = len(a.weights)

@@ -11,6 +11,7 @@ import uuid
 from dash import Input, Output, State, dash_table, dcc, html, no_update
 from dash.exceptions import PreventUpdate
 
+from supplyscore.core.clock import iso_week
 from supplyscore.domain.models import Project, SupplyNode, TaskStatus
 from supplyscore.web_ui import get_service
 from supplyscore.web_ui.components.layout import (
@@ -227,6 +228,40 @@ def layout() -> html.Div:
                 ),
             ),
             card(
+                "Horloge du projet",
+                [
+                    labelled(
+                        "Mode",
+                        dcc.Dropdown(
+                            id="clock-mode-dd",
+                            options=[
+                                {"label": "Temps réel", "value": "real"},
+                                {"label": "Temps de jeu (serious game)", "value": "game"},
+                            ],
+                            placeholder="Choisir un mode…",
+                        ),
+                        width="260px",
+                    ),
+                    html.Div(
+                        [
+                            html.Button(
+                                "Appliquer le mode", id="clock-mode-btn", style=BUTTON_STYLE
+                            ),
+                            html.Button(
+                                "Avancer d'une semaine",
+                                id="clock-advance-btn",
+                                style={**BUTTON_STYLE, "marginLeft": "10px"},
+                            ),
+                        ]
+                    ),
+                    html.Div(id="clock-msg"),
+                ],
+                subtitle=(
+                    "En mode jeu, « Avancer d'une semaine » fait progresser le temps simulé "
+                    "du projet (l'animateur pilote les tours du serious game)."
+                ),
+            ),
+            card(
                 "Nœuds du projet actif",
                 [
                     dash_table.DataTable(  # type: ignore[attr-defined]
@@ -378,6 +413,44 @@ def set_status_callback(n_clicks, node_id, status_value, refresh):
     return msg, (refresh or 0) + 1
 
 
+def set_clock_mode_callback(n_clicks, project_data, mode, refresh):
+    """Bascule l'horloge du projet actif entre temps réel et temps de jeu."""
+    if not n_clicks:
+        raise PreventUpdate
+    service = get_service()
+    pid = (project_data or {}).get("project_id")
+    if not pid:
+        return html.Span("Sélectionnez d'abord un projet.", style=MSG_ALERT_STYLE), no_update
+    if mode not in ("real", "game"):
+        return html.Span("Choisissez un mode d'horloge.", style=MSG_ALERT_STYLE), no_update
+    service.set_clock_mode(pid, mode)
+    label = "temps réel" if mode == "real" else "temps de jeu"
+    week = iso_week(service.clock_for(pid).now())
+    msg = html.Span(f"Horloge du projet : {label} — semaine courante {week}.", style=MSG_OK_STYLE)
+    return msg, (refresh or 0) + 1
+
+
+def advance_week_callback(n_clicks, project_data, refresh):
+    """Avance le temps de jeu d'une semaine puis réévalue tout le réseau."""
+    if not n_clicks:
+        raise PreventUpdate
+    service = get_service()
+    pid = (project_data or {}).get("project_id")
+    if not pid:
+        return html.Span("Sélectionnez d'abord un projet.", style=MSG_ALERT_STYLE), no_update
+    try:
+        service.advance_week(pid)
+    except ValueError as exc:
+        return html.Span(str(exc), style=MSG_ALERT_STYLE), no_update
+    week = iso_week(service.clock_for(pid).now())
+    msg = html.Span(
+        f"Semaine avancée : le projet est maintenant en {week} "
+        "(scores réévalués sur tout le graphe).",
+        style=MSG_OK_STYLE,
+    )
+    return msg, (refresh or 0) + 1
+
+
 def update_view_callback(project_data, refresh):
     """Rafraîchit dropdowns et tableau après chaque action ou changement de projet."""
     service = get_service()
@@ -469,6 +542,25 @@ def register_callbacks(app) -> None:
         State("store-refresh", "data"),
         prevent_initial_call=True,
     )(set_status_callback)
+
+    app.callback(
+        Output("clock-msg", "children"),
+        Output("store-refresh", "data", allow_duplicate=True),
+        Input("clock-mode-btn", "n_clicks"),
+        State("store-project", "data"),
+        State("clock-mode-dd", "value"),
+        State("store-refresh", "data"),
+        prevent_initial_call=True,
+    )(set_clock_mode_callback)
+
+    app.callback(
+        Output("clock-msg", "children", allow_duplicate=True),
+        Output("store-refresh", "data", allow_duplicate=True),
+        Input("clock-advance-btn", "n_clicks"),
+        State("store-project", "data"),
+        State("store-refresh", "data"),
+        prevent_initial_call=True,
+    )(advance_week_callback)
 
     app.callback(
         Output("proj-dd", "options"),

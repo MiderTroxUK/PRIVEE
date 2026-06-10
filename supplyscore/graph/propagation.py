@@ -12,18 +12,20 @@ PROPAGÉES (ud, ur) :
   vers le client final (rang 0) :
       Ur_i = 1 - (1 - Ur_loc_i) * Π_{j ∈ Pred(i)} (1 - β_ji · Ur_j)
 
-Règles de statut appliquées AVANT la propagation montante :
-- TaskStatus.DONE      -> Ur_loc effectif forcé à 0.0 (contribution nulle) ;
-- TaskStatus.ABANDONED -> Ur_loc effectif forcé à 1.0.
+Les règles de statut (DONE -> Ur_loc effectif 0.0, ABANDONED -> 1.0) sont
+appliquées AVANT la propagation montante en déléguant à la source de vérité
+unique :mod:`supplyscore.core.status_rules`.
 
 Toutes les valeurs propagées sont clipées dans [0, 1]. Ce module ne calcule
-PAS l'adéquation (rôle de core/adequation) et n'importe rien de supplyscore.core.
+PAS l'adéquation (rôle de core/adequation) ; côté core, il n'importe que les
+règles de statut unifiées (supplyscore.core.status_rules).
 """
 
 from __future__ import annotations
 
 import time
 
+from supplyscore.core.status_rules import effective_ud_local, effective_ur_local
 from supplyscore.domain.models import TaskStatus, UrgencyState
 from supplyscore.graph.repository import GraphRepository
 
@@ -47,7 +49,7 @@ class PropagationEngine:
         for node_id in reversed(self._repo.topological_order()):
             node = self._repo.get_node(node_id)
             assert node is not None  # id issu de topological_order() du même dépôt
-            ud_loc = node.urgency.ud_local if node.urgency.ud_local is not None else 0.0
+            ud_loc = effective_ud_local(node.status, node.urgency.ud_local)
             attenuation = 1.0
             for client in self._repo.successors(node_id):
                 arc = self._repo.get_arc(node_id, client.id)
@@ -57,15 +59,12 @@ class PropagationEngine:
         return ud
 
     def _effective_ur_local(self, node_id: str, overrides: dict[str, float]) -> float:
+        """Ur_local effectif d'un nœud : override what-if sinon règle de statut."""
         if node_id in overrides:
             return overrides[node_id]
         node = self._repo.get_node(node_id)
         assert node is not None  # id issu de topological_order() du même dépôt
-        if node.status is TaskStatus.DONE:
-            return 0.0
-        if node.status is TaskStatus.ABANDONED:
-            return 1.0
-        return node.urgency.ur_local if node.urgency.ur_local is not None else 0.0
+        return effective_ur_local(node.status, node.urgency.ur_local)
 
     def _compute_ur(self, overrides: dict[str, float] | None = None) -> dict[str, float]:
         """Ur propagé, calculé du rang N vers le rang 0 (ordre topologique)."""
@@ -130,11 +129,22 @@ class PropagationEngine:
         shocked = self._compute_ur(overrides={node_id: _clip01(new_ur_local)})
         return {nid: shocked[nid] - baseline[nid] for nid in baseline}
 
-    def apply_status(self, node_id: str, status: TaskStatus) -> dict[str, UrgencyState]:
-        """Persiste le nouveau statut du nœud puis recalcule toute la propagation."""
+    def apply_status(self, node_id: str, status: TaskStatus) -> None:
+        """Pose le statut sur le nœud SANS propager.
+
+        La méthode persiste uniquement le nouveau statut ; appeler
+        :meth:`propagate_all` (ou ``evaluate_all`` côté orchestrateur,
+        unique point de propagation) ensuite pour recalculer Ud/Ur.
+
+        Args:
+            node_id: identifiant du nœud.
+            status: nouveau statut à persister.
+
+        Raises:
+            KeyError: si ``node_id`` est inconnu du dépôt.
+        """
         node = self._repo.get_node(node_id)
         if node is None:
             raise KeyError(f"Nœud inconnu : {node_id!r}")
         node.status = status
         self._repo.update_node(node)
-        return self.propagate_all()
