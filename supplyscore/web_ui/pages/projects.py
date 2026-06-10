@@ -13,6 +13,7 @@ from dash.exceptions import PreventUpdate
 
 from supplyscore.core.clock import iso_week
 from supplyscore.domain.models import Project, SupplyNode, TaskStatus
+from supplyscore.services.onboarding import OnboardingService
 from supplyscore.services.weekly import CycleHebdomadaire, EtatHebdo
 from supplyscore.web_ui import get_service
 from supplyscore.web_ui.components.badges import style_hebdo_conditionnel, texte_hebdo
@@ -46,9 +47,11 @@ _TABLE_COLUMNS = [
     {"name": "Label", "id": "Label"},
     {"name": "Statut", "id": "Statut"},
     {"name": "Hebdo", "id": "Hebdo"},
+    {"name": "Complétude", "id": "Complétude"},
     {"name": "Ud", "id": "Ud", "type": "numeric"},
     {"name": "Ur", "id": "Ur", "type": "numeric"},
     {"name": "A", "id": "A", "type": "numeric"},
+    {"name": "Fiche", "id": "Fiche", "presentation": "markdown"},
 ]
 
 _TABLE_STYLE_CELL = {
@@ -483,19 +486,24 @@ def update_view_callback(project_data, refresh):
             style={"color": COLORS["muted"]},
         )
     opts = node_options(nodes)
-    rows = [
-        {
-            "Nom": n.name,
-            "Rang": n.rank,
-            "Label": n.label,
-            "Statut": STATUS_FR.get(n.status, str(n.status)),
-            "Hebdo": _hebdo_texte(etats.get(n.id)),
-            "Ud": _r3(n.urgency.ud),
-            "Ur": _r3(n.urgency.ur),
-            "A": _r3(n.urgency.adequation),
-        }
-        for n in sorted(nodes, key=lambda n: (n.rank, n.name))
-    ]
+    onboarding_service = OnboardingService(service)
+    rows = []
+    for n in sorted(nodes, key=lambda n: (n.rank, n.name)):
+        done, total = onboarding_service.completeness(n.id)
+        rows.append(
+            {
+                "Nom": n.name,
+                "Rang": n.rank,
+                "Label": n.label,
+                "Statut": STATUS_FR.get(n.status, str(n.status)),
+                "Hebdo": _hebdo_texte(etats.get(n.id)),
+                "Complétude": "Complet" if done >= total else f"{done}/{total} sections",
+                "Ud": _r3(n.urgency.ud),
+                "Ur": _r3(n.urgency.ur),
+                "A": _r3(n.urgency.adequation),
+                "Fiche": f"[Ouvrir](/node/{n.id})",
+            }
+        )
     return project_opts, opts, opts, rows, active
 
 

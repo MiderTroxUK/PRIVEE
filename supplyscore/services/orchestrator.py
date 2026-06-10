@@ -338,6 +338,12 @@ class SupplyScoreService:
         """
         times = self._project_times() if t is None else None
         for node in self.repo.nodes():
+            if node.onboarding_state == "draft":
+                # Nœud en cours d'onboarding : contribution neutre au pipeline
+                # tant que le wizard n'est pas terminé.
+                node.urgency.ur_local = 0.0
+                self.repo.update_node(node)
+                continue
             milestones = None
             t_h, t0 = (t if t is not None else 0.0), 0.0
             if times is not None:

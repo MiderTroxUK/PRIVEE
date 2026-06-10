@@ -15,11 +15,20 @@ from supplyscore.services import SupplyScoreService
 from supplyscore.web_ui import set_service
 from supplyscore.web_ui.components import operator
 from supplyscore.web_ui.components.layout import COLORS, FONT_FAMILY, PAGE_STYLE, navbar
-from supplyscore.web_ui.pages import dashboard, projects, questionnaire, simulation
+from supplyscore.web_ui.pages import (
+    dashboard,
+    node_detail,
+    onboarding,
+    projects,
+    questionnaire,
+    simulation,
+)
 
 
 def route_callback(pathname: str | None):
     """Routage : retourne le layout de la page correspondant à l'URL.
+
+    Routes statiques + route paramétrée ``/node/<id>`` (fiche nœud 360°).
 
     Args:
         pathname: chemin courant de ``dcc.Location`` (ex. "/dashboard").
@@ -27,13 +36,18 @@ def route_callback(pathname: str | None):
     Returns:
         L'arbre de composants de la page demandée, ou un message 404.
     """
+    path = pathname or "/"
+    if path.startswith("/node/"):
+        node_id = path[len("/node/") :].strip("/")
+        return node_detail.layout(node_id)
     routes = {
         "/": projects.layout,
         "/questionnaire": questionnaire.layout,
         "/dashboard": dashboard.layout,
         "/simulation": simulation.layout,
+        "/onboarding": onboarding.layout,
     }
-    builder = routes.get(pathname or "/")
+    builder = routes.get(path)
     if builder is None:
         return html.Div(
             html.P("Page inconnue (404) — utilisez la barre de navigation."),
@@ -83,6 +97,6 @@ def create_app(
 
     app.callback(Output("page-content", "children"), Input("url", "pathname"))(route_callback)
     operator.register_callbacks(app)
-    for page in (projects, questionnaire, dashboard, simulation):
+    for page in (projects, questionnaire, dashboard, simulation, onboarding, node_detail):
         page.register_callbacks(app)
     return app
