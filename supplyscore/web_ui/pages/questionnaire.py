@@ -19,8 +19,11 @@ from supplyscore.core import (
     run_ahp,
     score_6_to_9,
 )
+from supplyscore.core.clock import iso_week
 from supplyscore.services import SupplyScoreService
+from supplyscore.services.weekly import CycleHebdomadaire
 from supplyscore.web_ui import get_service
+from supplyscore.web_ui.components.badges import texte_hebdo
 from supplyscore.web_ui.components.figures import ahp_weights_figure, empty_figure
 from supplyscore.web_ui.components.layout import (
     BUTTON_STYLE,
@@ -293,21 +296,37 @@ def _scores_from_inputs(values, ids) -> list[float]:
 
 
 def project_info_callback(project_data):
-    """Affiche le projet actif et restreint le dropdown nœud à ses nœuds."""
+    """Affiche le projet actif (avec sa semaine courante) et restreint le dropdown nœud.
+
+    Avec un projet sélectionné, le bandeau mentionne la semaine ISO courante
+    selon l'horloge du projet (« Semaine 2026-S24 ») et chaque option du
+    dropdown porte le statut hebdo du nœud — « À jour », « En retard (n sem.) »
+    ou « Manquant » — calculé en UN appel à
+    :meth:`CycleHebdomadaire.synthese`.
+    """
     service = get_service()
     pid = (project_data or {}).get("project_id")
     if pid:
         nodes = [n for n in service.repo.nodes() if n.project_id == pid]
         name = (project_data or {}).get("name", pid)
+        semaine = iso_week(service.clock_for(pid).now())
         info = html.Span(
-            f"Projet actif : « {name} ».", style={"color": COLORS["primary"], "fontWeight": "600"}
+            f"Projet actif : « {name} » — Semaine {semaine}.",
+            style={"color": COLORS["primary"], "fontWeight": "600"},
         )
-    else:
-        nodes = service.repo.nodes()
-        info = html.Span(
-            "Aucun projet sélectionné — tous les nœuds du graphe sont listés.",
-            style={"color": COLORS["muted"]},
-        )
+        etats = CycleHebdomadaire(service).synthese(pid)
+        options = []
+        for option in node_options(nodes):
+            etat = etats.get(option["value"])
+            if etat is not None:
+                option["label"] += f" — {texte_hebdo(etat.statut, etat.semaines_de_retard)}"
+            options.append(option)
+        return info, options
+    nodes = service.repo.nodes()
+    info = html.Span(
+        "Aucun projet sélectionné — tous les nœuds du graphe sont listés.",
+        style={"color": COLORS["muted"]},
+    )
     return info, node_options(nodes)
 
 
@@ -430,9 +449,11 @@ def save_assessment_callback(
     updated = len(entries)
     service.evaluate_all(persist=True)
 
+    # submit_assessment a renseigné assessment.iso_week (horloge du projet).
     return html.Span(
         f"Évaluation enregistrée pour « {node.name} » "
-        f"(Ud = {assessment.ud:.3f}, {updated} KPI mis à jour). "
+        f"(Ud = {assessment.ud:.3f}, {updated} KPI mis à jour) "
+        f"— semaine {assessment.iso_week}. "
         "Pensez à re-remplir le questionnaire chaque semaine.",
         style=MSG_OK_STYLE,
     )

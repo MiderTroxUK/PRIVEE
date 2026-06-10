@@ -18,7 +18,7 @@ from types import TracebackType
 import numpy as np
 
 from supplyscore.core import AdequationEngine, UrModel, compute_ud, run_ahp, ud_smoothed
-from supplyscore.core.clock import Clock, GameClock, SystemClock, project_hours
+from supplyscore.core.clock import Clock, GameClock, SystemClock, iso_week, project_hours
 from supplyscore.data import ClientDatabase, RandomSupplyChainGenerator, RegistryDatabase
 from supplyscore.domain.milestones import MilestoneStatus, derive_node_status
 from supplyscore.domain.models import (
@@ -262,8 +262,18 @@ class SupplyScoreService:
     # --- questionnaire AHP -----------------------------------------------------
 
     def submit_assessment(self, assessment: AHPAssessment) -> int:
-        """Enregistre un questionnaire hebdo et met à jour le Ud_local lissé du nœud."""
+        """Enregistre un questionnaire hebdo et met à jour le Ud_local lissé du nœud.
+
+        Si ``assessment.iso_week`` est vide, la semaine ISO est posée depuis
+        l'horloge du projet (``clock_for``) quand ``project_id`` est renseigné,
+        sinon depuis l'horloge par défaut du service.
+        """
         with self._lock:
+            if not assessment.iso_week:
+                clock = (
+                    self.clock_for(assessment.project_id) if assessment.project_id else self.clock
+                )
+                assessment.iso_week = iso_week(clock.now())
             db = self.client_db(assessment.node_id)
             rowid = db.save_assessment(assessment)
             node = self.repo.get_node(assessment.node_id)

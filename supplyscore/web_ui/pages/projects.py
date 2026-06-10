@@ -13,7 +13,9 @@ from dash.exceptions import PreventUpdate
 
 from supplyscore.core.clock import iso_week
 from supplyscore.domain.models import Project, SupplyNode, TaskStatus
+from supplyscore.services.weekly import CycleHebdomadaire, EtatHebdo
 from supplyscore.web_ui import get_service
+from supplyscore.web_ui.components.badges import style_hebdo_conditionnel, texte_hebdo
 from supplyscore.web_ui.components.layout import (
     BUTTON_STYLE,
     COLORS,
@@ -43,6 +45,7 @@ _TABLE_COLUMNS = [
     {"name": "Rang", "id": "Rang", "type": "numeric"},
     {"name": "Label", "id": "Label"},
     {"name": "Statut", "id": "Statut"},
+    {"name": "Hebdo", "id": "Hebdo"},
     {"name": "Ud", "id": "Ud", "type": "numeric"},
     {"name": "Ur", "id": "Ur", "type": "numeric"},
     {"name": "A", "id": "A", "type": "numeric"},
@@ -65,6 +68,11 @@ _TABLE_STYLE_HEADER = {
 def _r3(value: float | None) -> float | None:
     """Arrondit à 3 décimales en tolérant None."""
     return None if value is None else round(value, 3)
+
+
+def _hebdo_texte(etat: EtatHebdo | None) -> str:
+    """Texte de la cellule « Hebdo » d'un nœud (« — » si état inconnu)."""
+    return "—" if etat is None else texte_hebdo(etat.statut, etat.semaines_de_retard)
 
 
 def layout() -> html.Div:
@@ -271,6 +279,7 @@ def layout() -> html.Div:
                         sort_action="native",
                         style_cell=_TABLE_STYLE_CELL,
                         style_header=_TABLE_STYLE_HEADER,
+                        style_data_conditional=style_hebdo_conditionnel("Hebdo"),
                         style_as_list_view=True,
                     )
                 ],
@@ -452,15 +461,19 @@ def advance_week_callback(n_clicks, project_data, refresh):
 
 
 def update_view_callback(project_data, refresh):
-    """Rafraîchit dropdowns et tableau après chaque action ou changement de projet."""
+    """Rafraîchit dropdowns, tableau (statuts hebdo inclus) et bandeau du projet actif."""
     service = get_service()
     project_opts = [{"label": p.name, "value": p.id} for p in service.registry.list_projects()]
     pid = (project_data or {}).get("project_id")
+    etats: dict[str, EtatHebdo] = {}
     if pid:
         nodes = [n for n in service.repo.nodes() if n.project_id == pid]
+        etats = CycleHebdomadaire(service).synthese(pid)
         name = (project_data or {}).get("name", pid)
+        week = iso_week(service.clock_for(pid).now())
+        mode = "temps de jeu" if service.clock_mode(pid) == "game" else "temps réel"
         active = html.Span(
-            f"Projet actif : « {name} » ({len(nodes)} nœud(s)).",
+            f"Projet actif : « {name} » ({len(nodes)} nœud(s)) — semaine {week} [{mode}].",
             style={"color": COLORS["primary"], "fontWeight": "600"},
         )
     else:
@@ -476,6 +489,7 @@ def update_view_callback(project_data, refresh):
             "Rang": n.rank,
             "Label": n.label,
             "Statut": STATUS_FR.get(n.status, str(n.status)),
+            "Hebdo": _hebdo_texte(etats.get(n.id)),
             "Ud": _r3(n.urgency.ud),
             "Ur": _r3(n.urgency.ur),
             "A": _r3(n.urgency.adequation),

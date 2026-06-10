@@ -8,7 +8,9 @@ from __future__ import annotations
 
 from dash import Input, Output, dash_table, dcc, html
 
+from supplyscore.services.weekly import CycleHebdomadaire, EtatHebdo, StatutHebdo
 from supplyscore.web_ui import get_service
+from supplyscore.web_ui.components.badges import style_hebdo_conditionnel, texte_hebdo
 from supplyscore.web_ui.components.figures import (
     dashboard_dag_figure,
     empty_figure,
@@ -32,8 +34,10 @@ _TABLE_COLUMNS = [
     {"name": "Nom", "id": "Nom"},
     {"name": "Rang", "id": "Rang", "type": "numeric"},
     {"name": "Statut", "id": "Statut"},
+    {"name": "Hebdo", "id": "Hebdo"},
 ] + [{"name": c, "id": c, "type": "numeric"} for c in _VALUE_COLUMNS]
 
+#: Règles existantes (A < 40 fond rouge, H > 0.3 texte rouge) PUIS règles hebdo.
 _TABLE_CONDITIONAL = [
     {"if": {"filter_query": "{A} < 40"}, "backgroundColor": "#fdecea"},
     {
@@ -41,6 +45,7 @@ _TABLE_CONDITIONAL = [
         "color": COLORS["alert"],
         "fontWeight": "700",
     },
+    *style_hebdo_conditionnel("Hebdo"),
 ]
 
 _TABLE_STYLE_CELL = {
@@ -62,12 +67,17 @@ def _r3(value: float | None) -> float | None:
     return None if value is None else round(value, 3)
 
 
-def _stat_card(value: str, label_text: str) -> html.Div:
+def _stat_card(value: str, label_text: str, color: str | None = None) -> html.Div:
     """Petite carte KPI (valeur en gros, libellé dessous)."""
     return html.Div(
         [
             html.Div(
-                value, style={"fontSize": "20px", "fontWeight": "700", "color": COLORS["primary"]}
+                value,
+                style={
+                    "fontSize": "20px",
+                    "fontWeight": "700",
+                    "color": color or COLORS["primary"],
+                },
             ),
             html.Div(label_text, style={"fontSize": "12px", "color": COLORS["muted"]}),
         ],
@@ -75,8 +85,21 @@ def _stat_card(value: str, label_text: str) -> html.Div:
     )
 
 
-def _kpi_summary(nodes) -> list[html.Div]:
-    """Cartes KPI du haut de page : effectif, A moyen/pire, risques H et F."""
+def _coverage_card(coverage: tuple[int, int] | None) -> html.Div:
+    """Carte « Questionnaires à jour : x/y » — vert si x == y, orange sinon.
+
+    Sans projet sélectionné (``coverage`` à None), la carte affiche « — »
+    en gris : aucune couverture calculable sans horloge de projet.
+    """
+    if coverage is None:
+        return _stat_card("—", "Questionnaires à jour", color=COLORS["muted"])
+    a_jour, total = coverage
+    hue = COLORS["ok"] if a_jour == total else COLORS["warn"]
+    return _stat_card(f"{a_jour}/{total}", "Questionnaires à jour", color=hue)
+
+
+def _kpi_summary(nodes, coverage: tuple[int, int] | None = None) -> list[html.Div]:
+    """Cartes KPI du haut de page : couverture hebdo, effectif, A, risques H et F."""
     a_known = [(n.urgency.adequation, n.name) for n in nodes if n.urgency.adequation is not None]
     if a_known:
         mean_a = f"{sum(v for v, _ in a_known) / len(a_known):.1f}"
@@ -87,6 +110,7 @@ def _kpi_summary(nodes) -> list[html.Div]:
     hidden = sum(1 for n in nodes if (n.urgency.hidden_risk or 0.0) > 0.1)
     false_u = sum(1 for n in nodes if (n.urgency.false_urgency or 0.0) > 0.1)
     return [
+        _coverage_card(coverage),
         _stat_card(str(len(nodes)), "Nœuds"),
         _stat_card(mean_a, "A moyen du projet"),
         _stat_card(worst, "Pire adéquation A"),
@@ -141,7 +165,10 @@ def layout() -> html.Div:
                         style_as_list_view=True,
                     )
                 ],
-                subtitle="Fond rouge clair : A < 40 · H en rouge : H > 0.3.",
+                subtitle=(
+                    "Fond rouge clair : A < 40 · H en rouge : H > 0.3 · "
+                    "Hebdo coloré selon le statut (A/F/H « — » si questionnaire manquant)."
+                ),
             ),
             card(
                 "Évolution temporelle",
@@ -167,11 +194,36 @@ def layout() -> html.Div:
 # --- Callbacks (fonctions nommées, testables sans serveur) -----------------------
 
 
+def _table_row(n, etat: EtatHebdo | None) -> dict:
+    """Ligne du tableau détaillé pour un nœud, statut hebdo inclus.
+
+    Sans état hebdo (aucun projet sélectionné), la colonne Hebdo affiche « — ».
+    Pour un nœud MANQUANT, A/F/H affichent « — » : l'adéquation calculée
+    contre un Ud inexistant est trompeuse (H artificiellement alarmant).
+    """
+    manquant = etat is not None and etat.statut is StatutHebdo.MANQUANT
+    return {
+        "Nom": n.name,
+        "Rang": n.rank,
+        "Statut": STATUS_FR.get(n.status, str(n.status)),
+        "Hebdo": texte_hebdo(etat.statut, etat.semaines_de_retard) if etat is not None else "—",
+        "Ud_loc": _r3(n.urgency.ud_local),
+        "Ur_loc": _r3(n.urgency.ur_local),
+        "Ud": _r3(n.urgency.ud),
+        "Ur": _r3(n.urgency.ur),
+        "A": "—" if manquant else _r3(n.urgency.adequation),
+        "F": "—" if manquant else _r3(n.urgency.false_urgency),
+        "H": "—" if manquant else _r3(n.urgency.hidden_risk),
+    }
+
+
 def update_dashboard_callback(project_data, n_clicks):
     """Met à jour cartes KPI, DAG, tableau et options d'historique.
 
     Si le déclencheur est le bouton « Recalculer maintenant », le pipeline
-    complet est relancé et persisté avant le rafraîchissement.
+    complet est relancé et persisté avant le rafraîchissement. Les états
+    hebdo du projet sont construits en UNE passe (``synthese``), jamais
+    nœud par nœud (N requêtes sinon).
     """
     service = get_service()
     try:  # ctx indisponible hors requête Dash (appel direct en test)
@@ -187,23 +239,18 @@ def update_dashboard_callback(project_data, n_clicks):
     ids = {n.id for n in nodes}
     arcs = [a for a in service.repo.arcs() if a.source_id in ids and a.target_id in ids]
 
-    rows = [
-        {
-            "Nom": n.name,
-            "Rang": n.rank,
-            "Statut": STATUS_FR.get(n.status, str(n.status)),
-            "Ud_loc": _r3(n.urgency.ud_local),
-            "Ur_loc": _r3(n.urgency.ur_local),
-            "Ud": _r3(n.urgency.ud),
-            "Ur": _r3(n.urgency.ur),
-            "A": _r3(n.urgency.adequation),
-            "F": _r3(n.urgency.false_urgency),
-            "H": _r3(n.urgency.hidden_risk),
-        }
-        for n in sorted(nodes, key=lambda n: (n.rank, n.name))
-    ]
+    pid = (project_data or {}).get("project_id")
+    if pid:
+        cycle = CycleHebdomadaire(service)
+        etats = cycle.synthese(pid)
+        coverage: tuple[int, int] | None = cycle.couverture(pid)
+    else:  # aucun projet sélectionné : pas d'horloge de projet, pas d'états hebdo
+        etats = {}
+        coverage = None
+
+    rows = [_table_row(n, etats.get(n.id)) for n in sorted(nodes, key=lambda n: (n.rank, n.name))]
     return (
-        _kpi_summary(nodes),
+        _kpi_summary(nodes, coverage),
         dashboard_dag_figure(nodes, arcs),
         rows,
         node_options(nodes),

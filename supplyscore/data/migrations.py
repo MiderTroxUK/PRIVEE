@@ -20,6 +20,8 @@ import sqlite3
 from collections.abc import Callable
 from typing import Literal
 
+from supplyscore.core.clock import iso_week
+
 MigrationFn = Callable[[sqlite3.Connection], None]
 
 # --- Migrations du registre global ----------------------------------------------
@@ -464,6 +466,51 @@ def _client_v3(conn: sqlite3.Connection) -> None:
         raise
 
 
+def _client_v4(conn: sqlite3.Connection) -> None:
+    """v4 client : semaine ISO matérialisée sur les évaluations et l'historique d'urgence.
+
+    Ajoute la colonne ``iso_week`` (libellé « AAAA-Sxx ») aux tables
+    ``assessments`` et ``urgency_history``, backfille chaque ligne existante en
+    Python via :func:`supplyscore.core.clock.iso_week` appliquée à son
+    ``timestamp`` (heure locale), puis pose les index ``idx_assessments_week``
+    et ``idx_urgency_week`` qui servent le cycle hebdomadaire
+    (:mod:`supplyscore.services.weekly`).
+
+    L'``ALTER TABLE ... ADD COLUMN`` n'est pas rejouable : la rejouabilité est
+    garantie par le garde ``user_version`` du framework, et l'atomicité par la
+    transaction explicite (``BEGIN IMMEDIATE`` ... commit) — une interruption
+    laisse la base en v3, rejouable proprement.
+    """
+    conn.commit()  # garantit qu'aucune transaction n'est ouverte
+    conn.execute("BEGIN IMMEDIATE")
+    try:
+        # a. colonne iso_week + backfill Python (semaine ISO du timestamp).
+        conn.execute("ALTER TABLE assessments ADD COLUMN iso_week TEXT NOT NULL DEFAULT ''")
+        rows = conn.execute("SELECT id, timestamp FROM assessments").fetchall()
+        conn.executemany(
+            "UPDATE assessments SET iso_week = ? WHERE id = ?",
+            [(iso_week(row[1]), row[0]) for row in rows],
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_assessments_week ON assessments(node_id, iso_week)"
+        )
+        # b. idem pour l'historique d'urgence.
+        conn.execute("ALTER TABLE urgency_history ADD COLUMN iso_week TEXT NOT NULL DEFAULT ''")
+        rows = conn.execute("SELECT id, timestamp FROM urgency_history").fetchall()
+        conn.executemany(
+            "UPDATE urgency_history SET iso_week = ? WHERE id = ?",
+            [(iso_week(row[1]), row[0]) for row in rows],
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_urgency_week ON urgency_history(node_id, iso_week)"
+        )
+        conn.execute("PRAGMA user_version = 4")
+        conn.commit()
+    except BaseException:
+        conn.rollback()
+        raise
+
+
 # --- Registres de migrations ---------------------------------------------------------
 
 _REGISTRY_MIGRATIONS: list[tuple[int, MigrationFn]] = [
@@ -477,6 +524,7 @@ _CLIENT_MIGRATIONS: list[tuple[int, MigrationFn]] = [
     (1, _client_v1),
     (2, _client_v2),
     (3, _client_v3),
+    (4, _client_v4),
 ]
 
 _MIGRATIONS_BY_KIND: dict[str, list[tuple[int, MigrationFn]]] = {

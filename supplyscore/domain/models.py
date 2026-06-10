@@ -255,3 +255,4 @@ class AHPAssessment:
     ud: float  # [0, 1]
     notes: str = ""
     timestamp: float = field(default_factory=_time.time)
+    iso_week: str = ""  # semaine ISO « AAAA-Sxx » de l'évaluation ("" = à calculer)

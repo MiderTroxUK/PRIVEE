@@ -20,6 +20,7 @@ from pathlib import Path
 from types import TracebackType
 from typing import Any, Literal, Self
 
+from supplyscore.core.clock import iso_week as _ts_iso_week
 from supplyscore.data.migrations import apply_migrations
 from supplyscore.domain.milestones import Milestone, MilestoneStatus
 from supplyscore.domain.models import (
@@ -750,12 +751,18 @@ class ClientDatabase(_SQLiteDatabase):
     def save_assessment(self, assessment: AHPAssessment, replaces_id: int | None = None) -> int:
         """Insère l'évaluation AHP et retourne son rowid.
 
+        Garde-fou : si ``assessment.iso_week`` est vide, la semaine ISO est
+        calculée depuis ``assessment.timestamp`` et POSÉE sur l'objet avant
+        persistance (l'objet reflète alors exactement la ligne écrite).
+
         Args:
             assessment: évaluation AHP à persister.
             replaces_id: id de l'évaluation que celle-ci corrige (NULL =
                 évaluation originale). L'évaluation référencée est alors
                 exclue de :meth:`latest_assessment`.
         """
+        if not assessment.iso_week:
+            assessment.iso_week = _ts_iso_week(assessment.timestamp)
         with self._lock, self._conn:
             cursor = self._conn.execute(
                 """
@@ -763,8 +770,8 @@ class ClientDatabase(_SQLiteDatabase):
                                          comparisons_json, criteria_scores_json,
                                          weights_json, consistency_ratio,
                                          is_consistent, ud, notes, timestamp,
-                                         replaces_id)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                         replaces_id, iso_week)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     assessment.node_id,
@@ -779,6 +786,7 @@ class ClientDatabase(_SQLiteDatabase):
                     assessment.notes,
                     assessment.timestamp,
                     replaces_id,
+                    assessment.iso_week,
                 ),
             )
             rowid = cursor.lastrowid
@@ -850,7 +858,36 @@ class ClientDatabase(_SQLiteDatabase):
             ud=row["ud"],
             notes=row["notes"],
             timestamp=row["timestamp"],
+            iso_week=row["iso_week"],
         )
+
+    def assessment_weeks(self, node_id: str) -> list[str]:
+        """Semaines ISO distinctes ayant au moins une évaluation, les plus récentes d'abord.
+
+        L'ordre DESC est lexicographique sur les libellés « AAAA-Sxx »
+        (zéro-paddés), ce qui coïncide avec l'ordre chronologique. Les lignes
+        sans semaine (``iso_week = ''``, jamais produites par les chemins
+        d'écriture normaux) sont ignorées. Servie par ``idx_assessments_week``.
+        """
+        with self._lock:
+            rows = self._conn.execute(
+                """
+                SELECT DISTINCT iso_week FROM assessments
+                WHERE node_id = ? AND iso_week != ''
+                ORDER BY iso_week DESC
+                """,
+                (node_id,),
+            ).fetchall()
+            return [row["iso_week"] for row in rows]
+
+    def last_assessment_week(self, node_id: str) -> str | None:
+        """Semaine ISO de la dernière évaluation du nœud, ou None si aucune.
+
+        « Dernière » au sens du libellé « AAAA-Sxx » maximal (équivalent à la
+        semaine de l'évaluation la plus récente).
+        """
+        weeks = self.assessment_weeks(node_id)
+        return weeks[0] if weeks else None
 
     # -- snapshots KPI --
 
@@ -895,14 +932,18 @@ class ClientDatabase(_SQLiteDatabase):
     # -- historique d'urgence --
 
     def save_urgency_state(self, node_id: str, state: UrgencyState) -> int:
-        """Insère un état d'urgence dans l'historique et retourne son rowid."""
+        """Insère un état d'urgence dans l'historique et retourne son rowid.
+
+        La semaine ISO (« AAAA-Sxx ») est calculée depuis ``state.timestamp``
+        et persistée dans la colonne ``iso_week``.
+        """
         with self._lock, self._conn:
             cursor = self._conn.execute(
                 """
                 INSERT INTO urgency_history (node_id, ud_local, ur_local, ud, ur,
                                              adequation, false_urgency, hidden_risk,
-                                             timestamp)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                             timestamp, iso_week)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     node_id,
@@ -914,6 +955,7 @@ class ClientDatabase(_SQLiteDatabase):
                     state.false_urgency,
                     state.hidden_risk,
                     state.timestamp,
+                    _ts_iso_week(state.timestamp),
                 ),
             )
             rowid = cursor.lastrowid
