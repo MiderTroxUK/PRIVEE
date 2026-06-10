@@ -301,6 +301,46 @@ def _registry_v3(conn: sqlite3.Connection) -> None:
         raise
 
 
+def _create_audit_log(conn: sqlite3.Connection) -> None:
+    """Crée la table ``audit_log`` et ses index (DDL partagé registre/client).
+
+    Journal d'audit générique : une ligne par changement de champ d'une entité
+    (``old_value``/``new_value`` sérialisées en texte), horodatée et rattachée
+    à une semaine ISO. Idempotent (``IF NOT EXISTS`` partout) ; l'appelant est
+    responsable de la transaction.
+    """
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS audit_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            entity_type TEXT NOT NULL,
+            entity_id TEXT NOT NULL,
+            field TEXT NOT NULL,
+            old_value TEXT,
+            new_value TEXT,
+            source TEXT NOT NULL,
+            operator_id TEXT NOT NULL DEFAULT '',
+            iso_week TEXT NOT NULL,
+            timestamp REAL NOT NULL
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_audit_entity
+        ON audit_log(entity_type, entity_id, field, timestamp)
+        """
+    )
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_audit_week ON audit_log(iso_week)")
+
+
+def _registry_v4(conn: sqlite3.Connection) -> None:
+    """v4 registre : journal d'audit (``audit_log`` et ses index), idempotent."""
+    with conn:
+        _create_audit_log(conn)
+        conn.execute("PRAGMA user_version = 4")
+
+
 # --- Migrations des bases client ---------------------------------------------------
 
 
@@ -390,17 +430,53 @@ def _client_v2(conn: sqlite3.Connection) -> None:
         conn.execute("PRAGMA user_version = 2")
 
 
+def _client_v3(conn: sqlite3.Connection) -> None:
+    """v3 client : journal d'audit, index temporel des snapshots, corrections d'évaluations.
+
+    Ajouts : table ``audit_log`` (même contenu que côté registre, v4), index
+    ``idx_kpi_snap_node_ts`` pour les lectures temporelles (``kpis_at``) et
+    colonne ``assessments.replaces_id`` (NULL = évaluation originale, sinon id
+    de l'évaluation que cette ligne corrige).
+
+    L'``ALTER TABLE ... ADD COLUMN`` n'est pas rejouable : la rejouabilité est
+    garantie par le garde ``user_version`` du framework, et l'atomicité par la
+    transaction explicite (``BEGIN IMMEDIATE`` ... commit) — une interruption
+    laisse la base en v2, rejouable proprement.
+    """
+    conn.commit()  # garantit qu'aucune transaction n'est ouverte
+    conn.execute("BEGIN IMMEDIATE")
+    try:
+        # a. journal d'audit partagé avec le registre.
+        _create_audit_log(conn)
+        # b. index de lecture temporelle des snapshots KPI (kpis_at).
+        conn.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_kpi_snap_node_ts
+            ON kpi_snapshots(node_id, timestamp)
+            """
+        )
+        # c. chaînage des corrections d'évaluations (NULL = originale).
+        conn.execute("ALTER TABLE assessments ADD COLUMN replaces_id INTEGER")
+        conn.execute("PRAGMA user_version = 3")
+        conn.commit()
+    except BaseException:
+        conn.rollback()
+        raise
+
+
 # --- Registres de migrations ---------------------------------------------------------
 
 _REGISTRY_MIGRATIONS: list[tuple[int, MigrationFn]] = [
     (1, _registry_v1),
     (2, _registry_v2),
     (3, _registry_v3),
+    (4, _registry_v4),
 ]
 
 _CLIENT_MIGRATIONS: list[tuple[int, MigrationFn]] = [
     (1, _client_v1),
     (2, _client_v2),
+    (3, _client_v3),
 ]
 
 _MIGRATIONS_BY_KIND: dict[str, list[tuple[int, MigrationFn]]] = {

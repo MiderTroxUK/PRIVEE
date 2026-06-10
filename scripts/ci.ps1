@@ -79,6 +79,39 @@ try {
         )
     }
 
+    # Lot 3.3 — contrôle des écritures directes : toute écriture métier passe par
+    # MutationService. Les motifs .save_node( / .save_arc( sont interdits dans
+    # supplyscore\web_ui\ et run_app.py (périmètre limité pour l'instant :
+    # orchestrator.py garde le droit d'écrire tant que l'intégration E3.I n'a
+    # pas rebranché ses appels).
+    Write-Host ""
+    Write-Host "=== contrôle des écritures directes (MutationService) ===" -ForegroundColor Cyan
+    $ScanFiles = @()
+    $WebUiDir = Join-Path $RepoRoot "supplyscore\web_ui"
+    if (Test-Path $WebUiDir) {
+        $ScanFiles += @(Get-ChildItem -Path $WebUiDir -Recurse -Filter "*.py" |
+                Select-Object -ExpandProperty FullName)
+    }
+    $RunAppFile = Join-Path $RepoRoot "run_app.py"
+    if (Test-Path $RunAppFile) {
+        $ScanFiles += $RunAppFile
+    }
+    $DirectWrites = @()
+    if ($ScanFiles.Count -gt 0) {
+        $DirectWrites = @(Select-String -Path $ScanFiles -Pattern '\.save_node\(', '\.save_arc\(')
+    }
+    if ($DirectWrites.Count -gt 0) {
+        Write-Host "Écritures directes interdites (passer par MutationService) :" -ForegroundColor Red
+        foreach ($Hit in $DirectWrites) {
+            $RelativePath = $Hit.Path.Substring($RepoRoot.Length + 1)
+            Write-Host ("  {0}:{1} : {2}" -f $RelativePath, $Hit.LineNumber, $Hit.Line.Trim()) -ForegroundColor Red
+        }
+        Write-Host ""
+        Write-Host "ÉCHEC : étape « contrôle des écritures directes » ($($DirectWrites.Count) occurrence(s)). Pipeline interrompu." -ForegroundColor Red
+        exit 1
+    }
+    Write-Host "OK : contrôle des écritures directes" -ForegroundColor Green
+
     Invoke-Step -Name "pytest (+ couverture)" -Exe $Python -StepArgs @(
         "-m", "pytest", "tests",
         "--cov=supplyscore", "--cov-report=term", "--cov-report=xml"

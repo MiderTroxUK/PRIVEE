@@ -131,6 +131,26 @@ class _SQLiteDatabase:
         # parent" (nœud avant son projet, arc avant ses nœuds).
         self._conn.execute("PRAGMA foreign_keys=OFF")
 
+    # -- accès partagés (couches data) --
+
+    @property
+    def conn(self) -> sqlite3.Connection:
+        """Connexion SQLite de l'instance — réservé aux couches data (AuditTrail).
+
+        Permet à un ``AuditTrail`` externe de journaliser dans la MÊME base que
+        l'instance, en se plaçant sous le MÊME verrou (voir :attr:`lock`).
+        """
+        return self._conn
+
+    @property
+    def lock(self) -> threading.RLock:
+        """Verrou réentrant de l'instance — réservé aux couches data (AuditTrail).
+
+        Toute utilisation de :attr:`conn` hors de cette classe doit se faire
+        sous ce verrou (``with db.lock: ...``), comme les méthodes publiques.
+        """
+        return self._lock
+
     # -- context manager --
     def __enter__(self) -> Self:
         return self
@@ -727,16 +747,24 @@ class ClientDatabase(_SQLiteDatabase):
 
     # -- évaluations AHP --
 
-    def save_assessment(self, assessment: AHPAssessment) -> int:
-        """Insère l'évaluation AHP et retourne son rowid."""
+    def save_assessment(self, assessment: AHPAssessment, replaces_id: int | None = None) -> int:
+        """Insère l'évaluation AHP et retourne son rowid.
+
+        Args:
+            assessment: évaluation AHP à persister.
+            replaces_id: id de l'évaluation que celle-ci corrige (NULL =
+                évaluation originale). L'évaluation référencée est alors
+                exclue de :meth:`latest_assessment`.
+        """
         with self._lock, self._conn:
             cursor = self._conn.execute(
                 """
                 INSERT INTO assessments (node_id, project_id, operator_id,
                                          comparisons_json, criteria_scores_json,
                                          weights_json, consistency_ratio,
-                                         is_consistent, ud, notes, timestamp)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                         is_consistent, ud, notes, timestamp,
+                                         replaces_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     assessment.node_id,
@@ -750,6 +778,7 @@ class ClientDatabase(_SQLiteDatabase):
                     assessment.ud,
                     assessment.notes,
                     assessment.timestamp,
+                    replaces_id,
                 ),
             )
             rowid = cursor.lastrowid
@@ -757,27 +786,54 @@ class ClientDatabase(_SQLiteDatabase):
             return int(rowid)
 
     def latest_assessment(self, node_id: str) -> AHPAssessment | None:
-        """Retourne l'évaluation la plus récente du nœud, ou None."""
+        """Retourne l'évaluation EFFECTIVE la plus récente du nœud, ou None.
+
+        Les évaluations remplacées par une correction (id référencé par le
+        ``replaces_id`` d'une autre ligne) sont exclues, même si leur
+        timestamp est plus récent que celui de la correction.
+        """
         with self._lock:
             row = self._conn.execute(
                 """
-                SELECT * FROM assessments WHERE node_id = ?
+                SELECT * FROM assessments
+                WHERE node_id = ?
+                  AND id NOT IN (SELECT replaces_id FROM assessments
+                                 WHERE replaces_id IS NOT NULL)
                 ORDER BY timestamp DESC, id DESC LIMIT 1
                 """,
                 (node_id,),
             ).fetchone()
             return self._row_to_assessment(row) if row else None
 
-    def list_assessments(self, node_id: str) -> list[AHPAssessment]:
-        """Liste les évaluations du nœud, par timestamp croissant."""
+    def list_assessments(self, node_id: str, include_replaced: bool = True) -> list[AHPAssessment]:
+        """Liste les évaluations du nœud, par timestamp croissant.
+
+        Args:
+            node_id: identifiant du nœud.
+            include_replaced: si True (défaut), l'historique COMPLET est
+                retourné (évaluations remplacées comprises) ; si False, les
+                évaluations remplacées par une correction sont exclues.
+        """
         with self._lock:
-            rows = self._conn.execute(
-                """
-                SELECT * FROM assessments WHERE node_id = ?
-                ORDER BY timestamp, id
-                """,
-                (node_id,),
-            ).fetchall()
+            if include_replaced:
+                rows = self._conn.execute(
+                    """
+                    SELECT * FROM assessments WHERE node_id = ?
+                    ORDER BY timestamp, id
+                    """,
+                    (node_id,),
+                ).fetchall()
+            else:
+                rows = self._conn.execute(
+                    """
+                    SELECT * FROM assessments
+                    WHERE node_id = ?
+                      AND id NOT IN (SELECT replaces_id FROM assessments
+                                     WHERE replaces_id IS NOT NULL)
+                    ORDER BY timestamp, id
+                    """,
+                    (node_id,),
+                ).fetchall()
             return [self._row_to_assessment(row) for row in rows]
 
     @staticmethod
@@ -816,6 +872,25 @@ class ClientDatabase(_SQLiteDatabase):
             rowid = cursor.lastrowid
             assert rowid is not None  # INSERT abouti : lastrowid est défini
             return int(rowid)
+
+    def kpis_at(self, node_id: str, t: float) -> KPIBundle | None:
+        """Retourne les KPI du nœud tels qu'ils étaient à l'instant ``t``.
+
+        Lecture temporelle : dernier snapshot de ``kpi_snapshots`` dont le
+        timestamp est <= ``t`` (borne incluse), désérialisé en
+        :class:`KPIBundle`. None si aucun snapshot n'existait encore à ``t``.
+        Servie par l'index ``idx_kpi_snap_node_ts``.
+        """
+        with self._lock:
+            row = self._conn.execute(
+                """
+                SELECT kpis_json FROM kpi_snapshots
+                WHERE node_id = ? AND timestamp <= ?
+                ORDER BY timestamp DESC, id DESC LIMIT 1
+                """,
+                (node_id, t),
+            ).fetchone()
+            return kpis_from_json(row["kpis_json"]) if row else None
 
     # -- historique d'urgence --
 

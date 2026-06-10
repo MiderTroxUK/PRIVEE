@@ -414,20 +414,20 @@ def save_assessment_callback(
 
     service.submit_assessment(assessment)
 
-    # KPIs : seuls les champs renseignés écrasent les valeurs du nœud.
-    node = service.repo.get_node(node_id)
-    if node is None:
-        return html.Span("Nœud introuvable dans le graphe.", style=MSG_ALERT_STYLE)
-    updated = 0
+    # KPIs : seuls les champs renseignés écrasent les valeurs du nœud —
+    # via MutationService (diff + validation + audit, source "weekly").
+    changes: dict[str, float | None] = {}
     for value, id_ in zip(kpi_values, kpi_ids, strict=True):
         if value is None or value == "":
             continue
-        block, field = id_["index"].split(".", 1)
-        setattr(getattr(node.kpis, block), field, float(value))
-        updated += 1
-    service.registry.save_node(node)
-    service.repo.update_node(node)
-    service.client_db(node_id).save_kpi_snapshot(node_id, node.kpis)
+        changes[id_["index"]] = float(value)
+    try:
+        entries = service.mutations.update_kpis(
+            node_id, changes, source="weekly", operator_id=str(operator_id).strip()
+        )
+    except ValueError as exc:
+        return html.Span(f"KPIs refusés : {exc}", style=MSG_ALERT_STYLE)
+    updated = len(entries)
     service.evaluate_all(persist=True)
 
     return html.Span(

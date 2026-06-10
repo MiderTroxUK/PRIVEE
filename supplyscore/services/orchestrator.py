@@ -30,6 +30,7 @@ from supplyscore.domain.models import (
     UrgencyState,
 )
 from supplyscore.graph import GraphRepository, InMemoryGraphRepository, PropagationEngine
+from supplyscore.services.mutations import MutationService
 
 #: nombre maximal de ClientDatabase gardées ouvertes simultanément (cache LRU).
 _CLIENT_CACHE_SIZE = 64
@@ -75,6 +76,12 @@ class SupplyScoreService:
         self.clock: Clock = clock if clock is not None else SystemClock()
         self._client_dbs: OrderedDict[str, ClientDatabase] = OrderedDict()
         self._lock = threading.RLock()
+        self.mutations = MutationService(
+            registry=self.registry,
+            client_db_factory=self.client_db,
+            clock=self.clock,
+            repo=self.repo,
+        )
 
     # --- cycle de vie -----------------------------------------------------------
 
