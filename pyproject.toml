@@ -1,0 +1,25 @@
+[project]
+name = "supplyscore"
+version = "0.1.0"
+description = "Score d'alignement entre besoin déclaré (Ud) et réalité opérationnelle (Ur) sur une supply chain multi-rangs"
+requires-python = ">=3.12"
+dependencies = [
+    "numpy>=1.26",
+    "networkx>=3.2",
+    "dash>=2.16",
+    "plotly>=5.20",
+]
+
+[project.optional-dependencies]
+neo4j = ["neo4j>=5.20"]
+dev = ["pytest>=8.0"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["supplyscore*"]
