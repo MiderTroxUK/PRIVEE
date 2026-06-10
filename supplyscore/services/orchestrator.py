@@ -12,8 +12,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from supplyscore.core import AdequationEngine, UrModel, run_ahp, compute_ud, ud_smoothed
-from supplyscore.data import ClientDatabase, RegistryDatabase, RandomSupplyChainGenerator
+import numpy as np
+
+from supplyscore.core import AdequationEngine, UrModel, compute_ud, run_ahp, ud_smoothed
+from supplyscore.data import ClientDatabase, RandomSupplyChainGenerator, RegistryDatabase
 from supplyscore.domain.models import (
     AHPAssessment,
     Project,
@@ -36,6 +38,15 @@ class SupplyScoreService:
         adequation: AdequationEngine | None = None,
         rho_smoothing: float = 0.3,
     ):
+        """Initialise la façade et ses dépendances (bases, graphe, modèles).
+
+        Args:
+            db_dir: répertoire racine des bases SQLite.
+            repo: dépôt de graphe (en mémoire par défaut).
+            ur_model: modèle d'urgence réelle (défaut : ``UrModel()``).
+            adequation: moteur d'adéquation (défaut : ``AdequationEngine()``).
+            rho_smoothing: coefficient de lissage EMA du Ud_local.
+        """
         self.db_dir = Path(db_dir)
         self.db_dir.mkdir(parents=True, exist_ok=True)
         self.registry = RegistryDatabase(self.db_dir)
@@ -49,13 +60,17 @@ class SupplyScoreService:
     # --- accès bases client --------------------------------------------------
 
     def client_db(self, node_id: str) -> ClientDatabase:
+        """Retourne (en la créant au besoin) la base SQLite dédiée au nœud."""
         if node_id not in self._client_dbs:
             self._client_dbs[node_id] = ClientDatabase(self.db_dir, node_id)
         return self._client_dbs[node_id]
 
     # --- gestion projet / graphe ----------------------------------------------
 
-    def create_project(self, project: Project, nodes: list[SupplyNode], arcs: list[SupplyArc]) -> None:
+    def create_project(
+        self, project: Project, nodes: list[SupplyNode], arcs: list[SupplyArc]
+    ) -> None:
+        """Persiste le projet, ses nœuds et ses arcs, et alimente le graphe."""
         self.registry.save_project(project)
         for n in nodes:
             self.registry.save_node(n)
@@ -72,8 +87,13 @@ class SupplyScoreService:
         for a in self.registry.list_arcs():
             self.repo.add_arc(a)
 
-    def add_node(self, node: SupplyNode, supplies_to: list[str] | None = None,
-                 gamma: float = 0.5, beta: float = 0.5) -> None:
+    def add_node(
+        self,
+        node: SupplyNode,
+        supplies_to: list[str] | None = None,
+        gamma: float = 0.5,
+        beta: float = 0.5,
+    ) -> None:
         """Ajoute un client/fournisseur de rang quelconque, relié à ses clients aval."""
         self.registry.save_node(node)
         self.repo.add_node(node)
@@ -103,17 +123,28 @@ class SupplyScoreService:
         return rowid
 
     @staticmethod
-    def build_assessment(node_id: str, project_id: str, operator_id: str,
-                         comparisons: dict[tuple[int, int], float],
-                         criteria_scores: list[float], notes: str = "") -> AHPAssessment:
+    def build_assessment(
+        node_id: str,
+        project_id: str,
+        operator_id: str,
+        comparisons: dict[tuple[int, int], float],
+        criteria_scores: list[float],
+        notes: str = "",
+    ) -> AHPAssessment:
         """Construit une évaluation complète depuis les réponses brutes du questionnaire."""
         res = run_ahp(comparisons, n=len(criteria_scores))
-        ud = compute_ud(res.weights, criteria_scores)
+        ud = compute_ud(res.weights, np.asarray(criteria_scores, dtype=float))
         return AHPAssessment(
-            node_id=node_id, project_id=project_id, operator_id=operator_id,
-            comparisons=comparisons, criteria_scores=list(criteria_scores),
-            weights=res.weights.tolist(), consistency_ratio=res.consistency_ratio,
-            is_consistent=res.is_consistent, ud=ud, notes=notes,
+            node_id=node_id,
+            project_id=project_id,
+            operator_id=operator_id,
+            comparisons=comparisons,
+            criteria_scores=list(criteria_scores),
+            weights=res.weights.tolist(),
+            consistency_ratio=res.consistency_ratio,
+            is_consistent=res.is_consistent,
+            ud=ud,
+            notes=notes,
         )
 
     # --- pipeline d'évaluation ---------------------------------------------------

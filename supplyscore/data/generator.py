@@ -36,15 +36,31 @@ _SAATY_SCALE: tuple[float, ...] = tuple(
 
 # Indice aléatoire de Saaty (Random Index) pour le calcul du CR.
 _RANDOM_INDEX: dict[int, float] = {
-    1: 0.0, 2: 0.0, 3: 0.58, 4: 0.90, 5: 1.12,
-    6: 1.24, 7: 1.32, 8: 1.41, 9: 1.45, 10: 1.49,
+    1: 0.0,
+    2: 0.0,
+    3: 0.58,
+    4: 0.90,
+    5: 1.12,
+    6: 1.24,
+    7: 1.32,
+    8: 1.41,
+    9: 1.45,
+    10: 1.49,
 }
 
 _SUPPLIER_LABELS: tuple[str, ...] = ("Factory", "Warehouse", "Workshop", "Supplier")
 
 _PRODUCTS: tuple[str, ...] = (
-    "Steel coil", "Gearbox", "PCB board", "Plastic casing", "Bearing",
-    "Copper wire", "Aluminium sheet", "Sensor module", "Battery pack", "Valve",
+    "Steel coil",
+    "Gearbox",
+    "PCB board",
+    "Plastic casing",
+    "Bearing",
+    "Copper wire",
+    "Aluminium sheet",
+    "Sensor module",
+    "Battery pack",
+    "Valve",
 )
 
 _LOCATIONS: tuple[tuple[str, float, float], ...] = (
@@ -71,6 +87,7 @@ class RandomSupplyChainGenerator:
     """
 
     def __init__(self, seed: int | None = None) -> None:
+        """Initialise le PRNG interne avec ``seed`` (même seed -> même sortie)."""
         self._rng = random.Random(seed)
 
     # -- helpers internes -------------------------------------------------------
@@ -133,8 +150,8 @@ class RandomSupplyChainGenerator:
             fuel_emission_g_km=rng.uniform(50.0, 900.0),
             op_emission_g_h=op_emission,
             energy_mix_g_h=energy_mix,
-            co2_target_g_h=total * rng.uniform(0.5, 0.9),   # target < total
-            co2_max_g_h=total * rng.uniform(1.1, 1.6),      # total < max
+            co2_target_g_h=total * rng.uniform(0.5, 0.9),  # target < total
+            co2_max_g_h=total * rng.uniform(1.1, 1.6),  # total < max
         )
 
         availability = rng.uniform(0.7, 0.99)
@@ -156,8 +173,15 @@ class RandomSupplyChainGenerator:
             political_risk=rng.uniform(0.0, 0.3),
         )
 
-        return KPIBundle(network=network, inventory=inventory, time=time_kpis,
-                         cost=cost, co2=co2, oee=oee, risk=risk)
+        return KPIBundle(
+            network=network,
+            inventory=inventory,
+            time=time_kpis,
+            cost=cost,
+            co2=co2,
+            oee=oee,
+            risk=risk,
+        )
 
     def _arc_kpis(self) -> KPIBundle:
         """KPIs transport pour un arc (vitesse, distance, carburant)."""
@@ -174,8 +198,9 @@ class RandomSupplyChainGenerator:
         kpis.co2.fuel_emission_g_km = rng.uniform(60.0, 1_000.0)
         return kpis
 
-    def _make_node(self, rank: int, index: int, project_id: str,
-                   label: str | None = None) -> SupplyNode:
+    def _make_node(
+        self, rank: int, index: int, project_id: str, label: str | None = None
+    ) -> SupplyNode:
         rng = self._rng
         node_label = label if label is not None else rng.choice(_SUPPLIER_LABELS)
         city, lat, lon = rng.choice(_LOCATIONS)
@@ -230,8 +255,7 @@ class RandomSupplyChainGenerator:
         rng = self._rng
         project_id = self._uuid()
 
-        client = self._make_node(rank=0, index=0, project_id=project_id,
-                                 label="Client")
+        client = self._make_node(rank=0, index=0, project_id=project_id, label="Client")
         project = Project(
             id=project_id,
             name=f"Project {client.location} {rng.randint(1000, 9999)}",
@@ -248,10 +272,10 @@ class RandomSupplyChainGenerator:
             current_rank: list[SupplyNode] = []
             for consumer in previous_rank:
                 n_suppliers = rng.randint(lo, hi)
-                for i in range(n_suppliers):
-                    supplier = self._make_node(rank=rank,
-                                               index=len(current_rank),
-                                               project_id=project_id)
+                for _ in range(n_suppliers):
+                    supplier = self._make_node(
+                        rank=rank, index=len(current_rank), project_id=project_id
+                    )
                     current_rank.append(supplier)
                     arcs.append(self._make_arc(supplier, consumer))
 
@@ -262,8 +286,7 @@ class RandomSupplyChainGenerator:
                 for supplier in current_rank:
                     if rng.random() < 0.20:
                         candidates = [
-                            c for c in previous_rank
-                            if (supplier.id, c.id) not in existing
+                            c for c in previous_rank if (supplier.id, c.id) not in existing
                         ]
                         if candidates:
                             extra_client = rng.choice(candidates)
@@ -311,9 +334,7 @@ class RandomSupplyChainGenerator:
             for i in range(n):
                 for j in range(i + 1, n):
                     ratio = target[i] / target[j]
-                    comparisons[(i, j)] = min(
-                        _SAATY_SCALE, key=lambda s: abs(s - ratio)
-                    )
+                    comparisons[(i, j)] = min(_SAATY_SCALE, key=lambda s: abs(s - ratio))
 
             weights, cr = self._solve_ahp(comparisons, n)
             if cr < 0.10:
@@ -321,12 +342,10 @@ class RandomSupplyChainGenerator:
 
         # Scores critères [1, 9] centrés selon urgency_bias.
         center = 1.0 + 8.0 * min(max(urgency_bias, 0.0), 1.0)
-        criteria_scores = [
-            min(max(rng.gauss(center, 1.2), 1.0), 9.0) for _ in range(n)
-        ]
+        criteria_scores = [min(max(rng.gauss(center, 1.2), 1.0), 9.0) for _ in range(n)]
 
         # Ud = (somme pondérée des scores - 1) / 8, dans [0, 1].
-        weighted = sum(w * s for w, s in zip(weights, criteria_scores))
+        weighted = sum(w * s for w, s in zip(weights, criteria_scores, strict=True))
         ud = (weighted - 1.0) / 8.0
 
         return AHPAssessment(
@@ -343,9 +362,7 @@ class RandomSupplyChainGenerator:
         )
 
     @staticmethod
-    def _solve_ahp(
-        comparisons: dict[tuple[int, int], float], n: int
-    ) -> tuple[list[float], float]:
+    def _solve_ahp(comparisons: dict[tuple[int, int], float], n: int) -> tuple[list[float], float]:
         """Poids AHP (moyenne des lignes normalisées) + ratio de cohérence."""
         # Matrice complète réciproque.
         matrix = [[1.0] * n for _ in range(n)]
@@ -355,10 +372,7 @@ class RandomSupplyChainGenerator:
 
         # Normalisation par colonne puis moyenne par ligne.
         col_sums = [sum(matrix[i][j] for i in range(n)) for j in range(n)]
-        weights = [
-            sum(matrix[i][j] / col_sums[j] for j in range(n)) / n
-            for i in range(n)
-        ]
+        weights = [sum(matrix[i][j] / col_sums[j] for j in range(n)) / n for i in range(n)]
 
         # lambda_max approché : moyenne de (A.w)_i / w_i.
         aw = [sum(matrix[i][j] * weights[j] for j in range(n)) for i in range(n)]

@@ -131,8 +131,9 @@ def card(title: str, children: list, subtitle: str | None = None) -> html.Div:
     header: list = [html.H3(title, style={"margin": "0 0 4px", "fontSize": "17px"})]
     if subtitle:
         header.append(
-            html.P(subtitle, style={"margin": "0 0 12px", "fontSize": "13px",
-                                    "color": COLORS["muted"]})
+            html.P(
+                subtitle, style={"margin": "0 0 12px", "fontSize": "13px", "color": COLORS["muted"]}
+            )
         )
     else:
         header.append(html.Div(style={"marginBottom": "10px"}))
@@ -143,8 +144,13 @@ def labelled(label: str, component, width: str = "220px") -> html.Div:
     """Champ de formulaire : libellé au-dessus du composant."""
     return html.Div(
         [html.Label(label, style=LABEL_STYLE), component],
-        style={"width": width, "marginRight": "16px", "marginBottom": "12px",
-               "display": "inline-block", "verticalAlign": "top"},
+        style={
+            "width": width,
+            "marginRight": "16px",
+            "marginBottom": "12px",
+            "display": "inline-block",
+            "verticalAlign": "top",
+        },
     )
 
 

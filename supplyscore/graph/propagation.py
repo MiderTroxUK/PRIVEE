@@ -36,6 +36,7 @@ class PropagationEngine:
     """Propage Ud (descendant) et Ur (montant) sur un GraphRepository."""
 
     def __init__(self, repo: GraphRepository) -> None:
+        """Initialise le moteur sur le dépôt de graphe ``repo``."""
         self._repo = repo
 
     # --- Calculs purs (sans écriture) -------------------------------------
@@ -45,10 +46,12 @@ class PropagationEngine:
         ud: dict[str, float] = {}
         for node_id in reversed(self._repo.topological_order()):
             node = self._repo.get_node(node_id)
+            assert node is not None  # id issu de topological_order() du même dépôt
             ud_loc = node.urgency.ud_local if node.urgency.ud_local is not None else 0.0
             attenuation = 1.0
             for client in self._repo.successors(node_id):
                 arc = self._repo.get_arc(node_id, client.id)
+                assert arc is not None  # client est un successeur : l'arc existe
                 attenuation *= 1.0 - arc.gamma * ud[client.id]
             ud[node_id] = _clip01(1.0 - (1.0 - ud_loc) * attenuation)
         return ud
@@ -57,6 +60,7 @@ class PropagationEngine:
         if node_id in overrides:
             return overrides[node_id]
         node = self._repo.get_node(node_id)
+        assert node is not None  # id issu de topological_order() du même dépôt
         if node.status is TaskStatus.DONE:
             return 0.0
         if node.status is TaskStatus.ABANDONED:
@@ -72,6 +76,7 @@ class PropagationEngine:
             attenuation = 1.0
             for supplier in self._repo.predecessors(node_id):
                 arc = self._repo.get_arc(supplier.id, node_id)
+                assert arc is not None  # supplier est un prédécesseur : l'arc existe
                 attenuation *= 1.0 - arc.beta * ur[supplier.id]
             ur[node_id] = _clip01(1.0 - (1.0 - ur_loc) * attenuation)
         return ur
@@ -84,6 +89,7 @@ class PropagationEngine:
         now = time.time()
         for node_id, value in ud.items():
             node = self._repo.get_node(node_id)
+            assert node is not None  # id issu de _compute_ud() sur le même dépôt
             node.urgency.ud = value
             node.urgency.timestamp = now
             self._repo.update_node(node)
@@ -95,6 +101,7 @@ class PropagationEngine:
         now = time.time()
         for node_id, value in ur.items():
             node = self._repo.get_node(node_id)
+            assert node is not None  # id issu de _compute_ur() sur le même dépôt
             node.urgency.ur = value
             node.urgency.timestamp = now
             self._repo.update_node(node)

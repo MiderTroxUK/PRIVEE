@@ -45,7 +45,7 @@ class TestGenerateTopology:
 
     def test_ranks_correct_and_node_counts_coherent(self):
         gen = RandomSupplyChainGenerator(seed=7)
-        project, nodes, arcs = gen.generate(n_ranks=4, breadth=(2, 3))
+        _project, nodes, arcs = gen.generate(n_ranks=4, breadth=(2, 3))
 
         by_rank: dict[int, int] = {}
         for n in nodes:
@@ -96,8 +96,7 @@ class TestGenerateKPIs:
             assert k.inventory.current_volume_m3 <= k.inventory.max_volume_m3
             assert k.inventory.current_weight_kg <= k.inventory.max_weight_kg
             # Flow rate proche de la demande (±15 %).
-            assert k.inventory.flow_rate == pytest.approx(
-                k.network.demand, rel=0.15)
+            assert k.inventory.flow_rate == pytest.approx(k.network.demand, rel=0.15)
 
     def test_arc_kpis_and_coefficients(self, chain):
         _, _, arcs = chain
@@ -112,10 +111,8 @@ class TestGenerateKPIs:
 
 class TestReproducibility:
     def test_same_seed_same_output(self):
-        out1 = RandomSupplyChainGenerator(seed=123).generate(n_ranks=3,
-                                                             breadth=(1, 3))
-        out2 = RandomSupplyChainGenerator(seed=123).generate(n_ranks=3,
-                                                             breadth=(1, 3))
+        out1 = RandomSupplyChainGenerator(seed=123).generate(n_ranks=3, breadth=(1, 3))
+        out2 = RandomSupplyChainGenerator(seed=123).generate(n_ranks=3, breadth=(1, 3))
         p1, n1, a1 = out1
         p2, n2, a2 = out2
         assert p1 == p2
@@ -156,15 +153,12 @@ class TestGenerateAssessment:
 
     def test_urgency_bias_shifts_ud(self):
         gen = RandomSupplyChainGenerator(seed=4)
-        low = [gen.generate_assessment("n", "p", urgency_bias=0.1).ud
-               for _ in range(30)]
-        high = [gen.generate_assessment("n", "p", urgency_bias=0.9).ud
-                for _ in range(30)]
+        low = [gen.generate_assessment("n", "p", urgency_bias=0.1).ud for _ in range(30)]
+        high = [gen.generate_assessment("n", "p", urgency_bias=0.9).ud for _ in range(30)]
         assert sum(low) / len(low) < sum(high) / len(high)
 
     def test_structure(self):
-        a = RandomSupplyChainGenerator(seed=3).generate_assessment(
-            "n1", "p1", operator_id="op-x")
+        a = RandomSupplyChainGenerator(seed=3).generate_assessment("n1", "p1", operator_id="op-x")
         n = len(a.weights)
         assert n == len(a.criteria_scores)
         assert len(a.comparisons) == n * (n - 1) // 2

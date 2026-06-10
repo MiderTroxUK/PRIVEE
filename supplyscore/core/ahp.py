@@ -27,8 +27,16 @@ CRITERIA: list[str] = [
 
 #: Indices aléatoires de cohérence (Random Index) de Saaty, par taille de matrice.
 _RI: dict[int, float] = {
-    1: 0.0, 2: 0.0, 3: 0.58, 4: 0.90, 5: 1.12,
-    6: 1.24, 7: 1.32, 8: 1.41, 9: 1.45, 10: 1.49,
+    1: 0.0,
+    2: 0.0,
+    3: 0.58,
+    4: 0.90,
+    5: 1.12,
+    6: 1.24,
+    7: 1.32,
+    8: 1.41,
+    9: 1.45,
+    10: 1.49,
 }
 
 #: Seuil de cohérence de Saaty : CR < 0.10 => jugements exploitables.
@@ -72,7 +80,7 @@ def build_matrix(comparisons: dict[tuple[int, int], float], n: int) -> np.ndarra
     """
     if n < 1:
         raise ValueError(f"Taille de matrice invalide : n={n}")
-    A = np.ones((n, n), dtype=float)
+    A = np.ones((n, n), dtype=float)  # noqa: N806  # convention math : A = matrice
     seen: set[tuple[int, int]] = set()
     for (i, j), v in comparisons.items():
         if not (0 <= i < n and 0 <= j < n):
@@ -85,8 +93,7 @@ def build_matrix(comparisons: dict[tuple[int, int], float], n: int) -> np.ndarra
             continue
         if (j, i) in seen and not np.isclose(A[i, j], v, rtol=1e-6):
             raise ValueError(
-                f"Jugements contradictoires pour la paire ({i}, {j}) : "
-                f"{v} vs réciproque {A[i, j]}"
+                f"Jugements contradictoires pour la paire ({i}, {j}) : {v} vs réciproque {A[i, j]}"
             )
         A[i, j] = v
         A[j, i] = 1.0 / v
@@ -94,7 +101,7 @@ def build_matrix(comparisons: dict[tuple[int, int], float], n: int) -> np.ndarra
     return A
 
 
-def priority_vector(A: np.ndarray) -> np.ndarray:
+def priority_vector(A: np.ndarray) -> np.ndarray:  # noqa: N803  # convention math : A = matrice
     """Vecteur de priorités par normalisation des colonnes puis moyenne des lignes.
 
     Approximation classique du vecteur propre principal : chaque colonne est
@@ -106,14 +113,17 @@ def priority_vector(A: np.ndarray) -> np.ndarray:
     Returns:
         Vecteur de poids normalisé (somme = 1).
     """
-    A = np.asarray(A, dtype=float)
+    A = np.asarray(A, dtype=float)  # noqa: N806  # convention math : A = matrice
     col_sums = A.sum(axis=0)
     normalized = A / col_sums
     w = normalized.mean(axis=1)
     return w / w.sum()
 
 
-def consistency_ratio(A: np.ndarray, w: np.ndarray) -> tuple[float, float, float]:
+def consistency_ratio(
+    A: np.ndarray,  # noqa: N803  # convention math : A = matrice
+    w: np.ndarray,
+) -> tuple[float, float, float]:
     """Calcule (λmax, CI, CR) pour une matrice et son vecteur de priorités.
 
     CI = (λmax - n) / (n - 1) ; CR = CI / RI(n). Pour n <= 2 la matrice
@@ -126,7 +136,7 @@ def consistency_ratio(A: np.ndarray, w: np.ndarray) -> tuple[float, float, float
     Returns:
         Tuple ``(lambda_max, consistency_index, consistency_ratio)``.
     """
-    A = np.asarray(A, dtype=float)
+    A = np.asarray(A, dtype=float)  # noqa: N806  # convention math : A = matrice
     w = np.asarray(w, dtype=float)
     n = A.shape[0]
     lambda_max = float(np.mean((A @ w) / w))
@@ -138,9 +148,7 @@ def consistency_ratio(A: np.ndarray, w: np.ndarray) -> tuple[float, float, float
     return lambda_max, ci, cr
 
 
-def run_ahp(
-    comparisons: dict[tuple[int, int], float], n: int | None = None
-) -> AHPResult:
+def run_ahp(comparisons: dict[tuple[int, int], float], n: int | None = None) -> AHPResult:
     """Exécute l'analyse AHP complète sur un jeu de jugements.
 
     Args:
@@ -157,7 +165,7 @@ def run_ahp(
         if not comparisons:
             raise ValueError("Impossible de déduire n : aucun jugement fourni")
         n = max(max(i, j) for i, j in comparisons) + 1
-    A = build_matrix(comparisons, n)
+    A = build_matrix(comparisons, n)  # noqa: N806  # convention math : A = matrice
     w = priority_vector(A)
     lambda_max, ci, cr = consistency_ratio(A, w)
     return AHPResult(
@@ -188,9 +196,7 @@ def compute_ud(weights: np.ndarray, scores: np.ndarray) -> float:
     w = np.asarray(weights, dtype=float)
     s = np.asarray(scores, dtype=float)
     if w.shape != s.shape:
-        raise ValueError(
-            f"Dimensions incompatibles : weights {w.shape} vs scores {s.shape}"
-        )
+        raise ValueError(f"Dimensions incompatibles : weights {w.shape} vs scores {s.shape}")
     if np.any(s < 1.0) or np.any(s > 9.0):
         raise ValueError(f"Les notes doivent être dans [1, 9], reçu {s.tolist()}")
     w = w / w.sum()

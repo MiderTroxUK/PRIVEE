@@ -114,18 +114,14 @@ def test_gamma_zero_blocks_descending_propagation() -> None:
     repo = make_chain(gamma={("C", "B"): 0.0, ("B", "A"): 0.0})
     PropagationEngine(repo).propagate_all()
     for node_id in ("A", "B", "C"):
-        assert repo.get_node(node_id).urgency.ud == pytest.approx(
-            UD_LOCAL[node_id], abs=APPROX
-        )
+        assert repo.get_node(node_id).urgency.ud == pytest.approx(UD_LOCAL[node_id], abs=APPROX)
 
 
 def test_beta_zero_blocks_ascending_propagation() -> None:
     repo = make_chain(beta={("C", "B"): 0.0, ("B", "A"): 0.0})
     PropagationEngine(repo).propagate_all()
     for node_id in ("A", "B", "C"):
-        assert repo.get_node(node_id).urgency.ur == pytest.approx(
-            UR_LOCAL[node_id], abs=APPROX
-        )
+        assert repo.get_node(node_id).urgency.ur == pytest.approx(UR_LOCAL[node_id], abs=APPROX)
 
 
 # --- Règles de statut -----------------------------------------------------------

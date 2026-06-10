@@ -39,7 +39,12 @@ def _normal_sf(x: float, mu: float, sigma: float) -> float:
     return 0.5 * (1.0 - math.erf(z))
 
 
-def ur_singularity(t: float, tc: float, K: float = 1.0, eps_min: float = 1e-9) -> float:
+def ur_singularity(
+    t: float,
+    tc: float,
+    K: float = 1.0,  # noqa: N803  # convention math : K = gain de divergence
+    eps_min: float = 1e-9,
+) -> float:
     """Urgence temporelle à singularité finie (Sornette & Johansen).
 
     L'urgence diverge de façon hyperbolique à l'approche de l'échéance tc,
@@ -140,9 +145,7 @@ class UrModel:
     beta_cost: tuple[float, float, float] = (0.5, 0.3, 0.2)
     t_ref_h: float = 24.0
     c_ref: float = 1000.0
-    omega: dict[str, float] = field(
-        default_factory=lambda: {name: 1.0 for name in BLOCKS}
-    )
+    omega: dict[str, float] = field(default_factory=lambda: {name: 1.0 for name in BLOCKS})
     eps: float = _EPS
 
     def __post_init__(self) -> None:
@@ -224,7 +227,7 @@ class UrModel:
         total_w = sum(weights)
         if total_w <= 0:
             return None
-        return _clip01(sum(w * u for w, u in zip(weights, terms)) / total_w)
+        return _clip01(sum(w * u for w, u in zip(weights, terms, strict=True)) / total_w)
 
     def u_perf(self, kpis: KPIBundle) -> float | None:
         """Urgence de performance : 1 − OEE (taux de rendement synthétique).
@@ -305,7 +308,7 @@ class UrModel:
         total_w = sum(weights)
         if total_w <= 0:
             return None
-        return _clip01(sum(w * u for w, u in zip(weights, terms)) / total_w)
+        return _clip01(sum(w * u for w, u in zip(weights, terms, strict=True)) / total_w)
 
     def u_co2(self, kpis: KPIBundle) -> float | None:
         """Urgence carbone : dépassement de la cible d'émissions.

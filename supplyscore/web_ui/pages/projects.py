@@ -29,7 +29,12 @@ from supplyscore.web_ui.components.layout import (
 
 #: Labels métier proposés pour un nouveau nœud.
 NODE_LABELS: list[str] = [
-    "Client", "Factory", "Warehouse", "Workshop", "Supplier", "Transport",
+    "Client",
+    "Factory",
+    "Warehouse",
+    "Workshop",
+    "Supplier",
+    "Transport",
 ]
 
 _TABLE_COLUMNS = [
@@ -64,9 +69,7 @@ def _r3(value: float | None) -> float | None:
 def layout() -> html.Div:
     """Construit la page Projets (relit l'état du service à chaque navigation)."""
     service = get_service()
-    project_opts = [
-        {"label": p.name, "value": p.id} for p in service.registry.list_projects()
-    ]
+    project_opts = [{"label": p.name, "value": p.id} for p in service.registry.list_projects()]
     return html.Div(
         [
             dcc.Store(id="store-refresh", data=0),
@@ -77,12 +80,12 @@ def layout() -> html.Div:
                 [
                     labelled(
                         "Projet",
-                        dcc.Dropdown(id="proj-dd", options=project_opts,
-                                     placeholder="Choisir un projet…"),
+                        dcc.Dropdown(
+                            id="proj-dd", options=project_opts, placeholder="Choisir un projet…"
+                        ),
                         width="340px",
                     ),
-                    html.Div(html.Button("Sélectionner", id="proj-select-btn",
-                                         style=BUTTON_STYLE)),
+                    html.Div(html.Button("Sélectionner", id="proj-select-btn", style=BUTTON_STYLE)),
                     html.Div(id="proj-select-msg"),
                 ],
                 subtitle="Le projet sélectionné devient le projet actif de toutes les pages.",
@@ -90,20 +93,24 @@ def layout() -> html.Div:
             card(
                 "Nouveau projet",
                 [
-                    labelled("Nom du projet",
-                             dcc.Input(id="proj-name-input", type="text",
-                                       style=INPUT_STYLE)),
-                    labelled("Description",
-                             dcc.Input(id="proj-desc-input", type="text",
-                                       style=INPUT_STYLE), width="300px"),
-                    labelled("Client final (rang 0)",
-                             dcc.Input(id="proj-client-input", type="text",
-                                       style=INPUT_STYLE)),
-                    labelled("Localisation",
-                             dcc.Input(id="proj-location-input", type="text",
-                                       style=INPUT_STYLE)),
-                    html.Div(html.Button("Créer", id="proj-create-btn",
-                                         style=BUTTON_STYLE)),
+                    labelled(
+                        "Nom du projet",
+                        dcc.Input(id="proj-name-input", type="text", style=INPUT_STYLE),
+                    ),
+                    labelled(
+                        "Description",
+                        dcc.Input(id="proj-desc-input", type="text", style=INPUT_STYLE),
+                        width="300px",
+                    ),
+                    labelled(
+                        "Client final (rang 0)",
+                        dcc.Input(id="proj-client-input", type="text", style=INPUT_STYLE),
+                    ),
+                    labelled(
+                        "Localisation",
+                        dcc.Input(id="proj-location-input", type="text", style=INPUT_STYLE),
+                    ),
+                    html.Div(html.Button("Créer", id="proj-create-btn", style=BUTTON_STYLE)),
                     html.Div(id="proj-create-msg"),
                 ],
                 subtitle="Crée le projet et son nœud client final (rang 0).",
@@ -111,16 +118,27 @@ def layout() -> html.Div:
             card(
                 "Générer une démo (données de TEST aléatoires)",
                 [
-                    labelled("Nombre de rangs (2..5)",
-                             dcc.Input(id="demo-ranks-input", type="number",
-                                       min=2, max=5, step=1, value=3,
-                                       style=INPUT_STYLE), width="180px"),
-                    labelled("Graine aléatoire (seed)",
-                             dcc.Input(id="demo-seed-input", type="number",
-                                       step=1, value=42, style=INPUT_STYLE),
-                             width="180px"),
-                    html.Div(html.Button("Générer la démo", id="demo-btn",
-                                         style=BUTTON_STYLE)),
+                    labelled(
+                        "Nombre de rangs (2..5)",
+                        dcc.Input(
+                            id="demo-ranks-input",
+                            type="number",
+                            min=2,
+                            max=5,
+                            step=1,
+                            value=3,
+                            style=INPUT_STYLE,
+                        ),
+                        width="180px",
+                    ),
+                    labelled(
+                        "Graine aléatoire (seed)",
+                        dcc.Input(
+                            id="demo-seed-input", type="number", step=1, value=42, style=INPUT_STYLE
+                        ),
+                        width="180px",
+                    ),
+                    html.Div(html.Button("Générer la démo", id="demo-btn", style=BUTTON_STYLE)),
                     html.Div(id="demo-msg"),
                 ],
                 subtitle=(
@@ -131,33 +149,53 @@ def layout() -> html.Div:
             card(
                 "Ajouter un client/fournisseur (rang quelconque)",
                 [
-                    labelled("Nom",
-                             dcc.Input(id="add-node-name", type="text",
-                                       style=INPUT_STYLE)),
-                    labelled("Label",
-                             dcc.Dropdown(id="add-node-label",
-                                          options=[{"label": l, "value": l}
-                                                   for l in NODE_LABELS],
-                                          value="Supplier"), width="180px"),
-                    labelled("Alimente quels nœuds (clients aval)",
-                             dcc.Dropdown(id="add-node-targets", options=[],
-                                          multi=True,
-                                          placeholder="Aucun (rang 0)"),
-                             width="380px"),
-                    labelled("γ (dépendance Ud, descendante)",
-                             dcc.Slider(id="add-node-gamma", min=0, max=1,
-                                        step=0.05, value=0.5,
-                                        marks={0: "0", 0.5: "0.5", 1: "1"},
-                                        tooltip={"placement": "bottom"}),
-                             width="280px"),
-                    labelled("β (propagation Ur, montante)",
-                             dcc.Slider(id="add-node-beta", min=0, max=1,
-                                        step=0.05, value=0.5,
-                                        marks={0: "0", 0.5: "0.5", 1: "1"},
-                                        tooltip={"placement": "bottom"}),
-                             width="280px"),
-                    html.Div(html.Button("Ajouter le nœud", id="add-node-btn",
-                                         style=BUTTON_STYLE)),
+                    labelled("Nom", dcc.Input(id="add-node-name", type="text", style=INPUT_STYLE)),
+                    labelled(
+                        "Label",
+                        dcc.Dropdown(
+                            id="add-node-label",
+                            options=[{"label": lbl, "value": lbl} for lbl in NODE_LABELS],
+                            value="Supplier",
+                        ),
+                        width="180px",
+                    ),
+                    labelled(
+                        "Alimente quels nœuds (clients aval)",
+                        dcc.Dropdown(
+                            id="add-node-targets",
+                            options=[],
+                            multi=True,
+                            placeholder="Aucun (rang 0)",
+                        ),
+                        width="380px",
+                    ),
+                    labelled(
+                        "γ (dépendance Ud, descendante)",
+                        dcc.Slider(
+                            id="add-node-gamma",
+                            min=0,
+                            max=1,
+                            step=0.05,
+                            value=0.5,
+                            marks={0: "0", 0.5: "0.5", 1: "1"},
+                            tooltip={"placement": "bottom"},
+                        ),
+                        width="280px",
+                    ),
+                    labelled(
+                        "β (propagation Ur, montante)",
+                        dcc.Slider(
+                            id="add-node-beta",
+                            min=0,
+                            max=1,
+                            step=0.05,
+                            value=0.5,
+                            marks={0: "0", 0.5: "0.5", 1: "1"},
+                            tooltip={"placement": "bottom"},
+                        ),
+                        width="280px",
+                    ),
+                    html.Div(html.Button("Ajouter le nœud", id="add-node-btn", style=BUTTON_STYLE)),
                     html.Div(id="add-node-msg"),
                 ],
                 subtitle="Le rang est déduit des clients aval : 1 + max(rang des cibles).",
@@ -165,26 +203,33 @@ def layout() -> html.Div:
             card(
                 "Statut des tâches",
                 [
-                    labelled("Nœud",
-                             dcc.Dropdown(id="status-node-dd", options=[],
-                                          placeholder="Choisir un nœud…"),
-                             width="340px"),
-                    labelled("Statut",
-                             dcc.Dropdown(id="status-dd",
-                                          options=[{"label": fr, "value": str(s)}
-                                                   for s, fr in STATUS_FR.items()],
-                                          placeholder="Choisir un statut…"),
-                             width="200px"),
-                    html.Div(html.Button("Appliquer", id="status-apply-btn",
-                                         style=BUTTON_STYLE)),
+                    labelled(
+                        "Nœud",
+                        dcc.Dropdown(
+                            id="status-node-dd", options=[], placeholder="Choisir un nœud…"
+                        ),
+                        width="340px",
+                    ),
+                    labelled(
+                        "Statut",
+                        dcc.Dropdown(
+                            id="status-dd",
+                            options=[{"label": fr, "value": str(s)} for s, fr in STATUS_FR.items()],
+                            placeholder="Choisir un statut…",
+                        ),
+                        width="200px",
+                    ),
+                    html.Div(html.Button("Appliquer", id="status-apply-btn", style=BUTTON_STYLE)),
                     html.Div(id="status-msg"),
                 ],
-                subtitle="Marquer une tâche terminée ou abandonnée propage le choc sur tout le graphe.",
+                subtitle=(
+                    "Marquer une tâche terminée ou abandonnée propage le choc sur tout le graphe."
+                ),
             ),
             card(
                 "Nœuds du projet actif",
                 [
-                    dash_table.DataTable(
+                    dash_table.DataTable(  # type: ignore[attr-defined]
                         id="proj-table",
                         columns=_TABLE_COLUMNS,
                         data=[],
@@ -202,18 +247,19 @@ def layout() -> html.Div:
 
 # --- Callbacks (fonctions nommées, testables sans serveur) --------------------
 
+
 def select_project_callback(n_clicks, project_id):
     """Sélectionne un projet existant et l'écrit dans le store de session."""
     if not n_clicks:
         raise PreventUpdate
     service = get_service()
     if not project_id:
-        return no_update, html.Span("Choisissez d'abord un projet dans la liste.",
-                                    style=MSG_ALERT_STYLE)
+        return no_update, html.Span(
+            "Choisissez d'abord un projet dans la liste.", style=MSG_ALERT_STYLE
+        )
     project = service.registry.get_project(project_id)
     if project is None:
-        return no_update, html.Span("Projet introuvable dans le registre.",
-                                    style=MSG_ALERT_STYLE)
+        return no_update, html.Span("Projet introuvable dans le registre.", style=MSG_ALERT_STYLE)
     data = {"project_id": project.id, "name": project.name}
     return data, html.Span(f"Projet actif : « {project.name} ».", style=MSG_OK_STYLE)
 
@@ -224,11 +270,17 @@ def create_project_callback(n_clicks, name, description, client_name, location, 
         raise PreventUpdate
     service = get_service()
     if not name or not str(name).strip():
-        return no_update, html.Span("Le nom du projet est requis.",
-                                    style=MSG_ALERT_STYLE), no_update
+        return (
+            no_update,
+            html.Span("Le nom du projet est requis.", style=MSG_ALERT_STYLE),
+            no_update,
+        )
     if not client_name or not str(client_name).strip():
-        return no_update, html.Span("Le nom du client final (rang 0) est requis.",
-                                    style=MSG_ALERT_STYLE), no_update
+        return (
+            no_update,
+            html.Span("Le nom du client final (rang 0) est requis.", style=MSG_ALERT_STYLE),
+            no_update,
+        )
     project_id = str(uuid.uuid4())
     node = SupplyNode(
         id=str(uuid.uuid4()),
@@ -246,8 +298,7 @@ def create_project_callback(n_clicks, name, description, client_name, location, 
     )
     service.create_project(project, [node], [])
     data = {"project_id": project.id, "name": project.name}
-    msg = html.Span(f"Projet « {project.name} » créé et sélectionné.",
-                    style=MSG_OK_STYLE)
+    msg = html.Span(f"Projet « {project.name} » créé et sélectionné.", style=MSG_OK_STYLE)
     return data, msg, (refresh or 0) + 1
 
 
@@ -275,13 +326,16 @@ def add_node_callback(n_clicks, name, label, targets, gamma, beta, project_data,
     service = get_service()
     project_id = (project_data or {}).get("project_id")
     if not project_id:
-        return html.Span("Sélectionnez d'abord un projet actif.",
-                         style=MSG_ALERT_STYLE), no_update
+        return html.Span("Sélectionnez d'abord un projet actif.", style=MSG_ALERT_STYLE), no_update
     if not name or not str(name).strip():
-        return html.Span("Le nom du nœud est requis.",
-                         style=MSG_ALERT_STYLE), no_update
-    target_ids = [t for t in (targets or []) if service.repo.get_node(t) is not None]
-    ranks = [service.repo.get_node(t).rank for t in target_ids]
+        return html.Span("Le nom du nœud est requis.", style=MSG_ALERT_STYLE), no_update
+    target_ids: list[str] = []
+    ranks: list[int] = []
+    for target_id in targets or []:
+        target_node = service.repo.get_node(target_id)
+        if target_node is not None:
+            target_ids.append(target_id)
+            ranks.append(target_node.rank)
     rank = 1 + max(ranks) if ranks else 0
     node = SupplyNode(
         id=str(uuid.uuid4()),
@@ -311,8 +365,7 @@ def set_status_callback(n_clicks, node_id, status_value, refresh):
         raise PreventUpdate
     service = get_service()
     if not node_id or not status_value:
-        return html.Span("Choisissez un nœud ET un statut.",
-                         style=MSG_ALERT_STYLE), no_update
+        return html.Span("Choisissez un nœud ET un statut.", style=MSG_ALERT_STYLE), no_update
     status = TaskStatus(status_value)
     service.set_status(node_id, status)
     node = service.repo.get_node(node_id)
@@ -328,9 +381,7 @@ def set_status_callback(n_clicks, node_id, status_value, refresh):
 def update_view_callback(project_data, refresh):
     """Rafraîchit dropdowns et tableau après chaque action ou changement de projet."""
     service = get_service()
-    project_opts = [
-        {"label": p.name, "value": p.id} for p in service.registry.list_projects()
-    ]
+    project_opts = [{"label": p.name, "value": p.id} for p in service.registry.list_projects()]
     pid = (project_data or {}).get("project_id")
     if pid:
         nodes = [n for n in service.repo.nodes() if n.project_id == pid]

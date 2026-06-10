@@ -23,24 +23,21 @@ from supplyscore.core.ur_model import (
 )
 
 __all__ = [
-    # AHP — urgence déclarée
-    "CRITERIA",
-    "CONSISTENCY_THRESHOLD",
-    "AHPResult",
-    "build_matrix",
-    "priority_vector",
-    "consistency_ratio",
-    "run_ahp",
-    "compute_ud",
-    "bipolar_to_saaty",
-    "score_6_to_9",
-    "ud_smoothed",
-    # Ur — urgence réelle
     "BLOCKS",
-    "UrModel",
-    "ur_singularity",
-    "ud_hyperbolic",
-    "filtered_error",
-    # Adéquation
+    "CONSISTENCY_THRESHOLD",
+    "CRITERIA",
+    "AHPResult",
     "AdequationEngine",
+    "UrModel",
+    "bipolar_to_saaty",
+    "build_matrix",
+    "compute_ud",
+    "consistency_ratio",
+    "filtered_error",
+    "priority_vector",
+    "run_ahp",
+    "score_6_to_9",
+    "ud_hyperbolic",
+    "ud_smoothed",
+    "ur_singularity",
 ]

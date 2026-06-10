@@ -1,0 +1,35 @@
+# Workflow dormant — activer push/pull_request quand un remote existera.
+# Déclenchement manuel uniquement (workflow_dispatch) tant que le dépôt est local.
+name: CI
+
+on:
+  workflow_dispatch:
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    env:
+      HYPOTHESIS_PROFILE: ci
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+
+      - name: Sync dependencies
+        run: uv sync --dev
+
+      - name: Ruff check
+        run: uv run ruff check supplyscore run_app.py tests
+
+      - name: Ruff format check
+        run: uv run ruff format --check supplyscore run_app.py tests
+
+      - name: Mypy
+        run: uv run mypy supplyscore run_app.py
+
+      - name: Pytest (coverage)
+        run: uv run pytest tests --cov=supplyscore --cov-report=term --cov-report=xml

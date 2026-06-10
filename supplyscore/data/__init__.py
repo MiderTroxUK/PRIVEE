@@ -17,8 +17,8 @@ from supplyscore.data.generator import RandomSupplyChainGenerator
 
 __all__ = [
     "ClientDatabase",
-    "RegistryDatabase",
     "RandomSupplyChainGenerator",
+    "RegistryDatabase",
     "kpis_from_json",
     "kpis_to_json",
 ]

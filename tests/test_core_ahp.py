@@ -18,12 +18,12 @@ from supplyscore.core.ahp import (
 
 class TestBuildMatrix:
     def test_matrice_reciproque(self):
-        A = build_matrix({(0, 1): 3.0, (0, 2): 5.0}, n=3)
-        assert A[0, 1] == 3.0
-        assert A[1, 0] == pytest.approx(1 / 3)
-        assert A[0, 2] == 5.0
-        assert A[2, 0] == pytest.approx(1 / 5)
-        assert np.allclose(np.diag(A), 1.0)
+        a = build_matrix({(0, 1): 3.0, (0, 2): 5.0}, n=3)
+        assert a[0, 1] == 3.0
+        assert a[1, 0] == pytest.approx(1 / 3)
+        assert a[0, 2] == 5.0
+        assert a[2, 0] == pytest.approx(1 / 5)
+        assert np.allclose(np.diag(a), 1.0)
 
     def test_valeur_non_positive_rejetee(self):
         with pytest.raises(ValueError):
@@ -39,10 +39,10 @@ class TestBuildMatrix:
 class TestPriorityAndConsistency:
     def test_matrice_identite_poids_egaux_cr_nul(self):
         """Matrice de jugements neutre (tout à 1) -> poids égaux, CR = 0."""
-        A = np.ones((4, 4))
-        w = priority_vector(A)
+        a = np.ones((4, 4))
+        w = priority_vector(a)
         assert np.allclose(w, 0.25)
-        lambda_max, ci, cr = consistency_ratio(A, w)
+        lambda_max, ci, cr = consistency_ratio(a, w)
         assert lambda_max == pytest.approx(4.0)
         assert ci == pytest.approx(0.0, abs=1e-12)
         assert cr == pytest.approx(0.0, abs=1e-12)
@@ -50,8 +50,12 @@ class TestPriorityAndConsistency:
     def test_jugements_coherents_poids_attendus(self):
         """Matrice parfaitement cohérente w ∝ [8, 4, 2, 1] -> poids exacts."""
         comparisons = {
-            (0, 1): 2.0, (0, 2): 4.0, (0, 3): 8.0,
-            (1, 2): 2.0, (1, 3): 4.0, (2, 3): 2.0,
+            (0, 1): 2.0,
+            (0, 2): 4.0,
+            (0, 3): 8.0,
+            (1, 2): 2.0,
+            (1, 3): 4.0,
+            (2, 3): 2.0,
         }
         result = run_ahp(comparisons, n=4)
         expected = np.array([8, 4, 2, 1]) / 15.0

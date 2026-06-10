@@ -29,6 +29,7 @@ def service(tmp_path):
 
 # --- Application -----------------------------------------------------------------
 
+
 def test_create_app_builds_layout(service):
     app = create_app(service=service)
     assert app.title == "SupplyScore"
@@ -38,6 +39,7 @@ def test_create_app_builds_layout(service):
 
 
 # --- Layouts des 4 pages ------------------------------------------------------------
+
 
 @pytest.mark.parametrize(
     ("page", "expected_id"),
@@ -55,6 +57,7 @@ def test_page_layout_builds(service, page, expected_id):
 
 
 # --- Figures du dashboard avec les données de la démo --------------------------------
+
 
 def test_dashboard_figures_with_demo_data(service):
     nodes = service.repo.nodes()
@@ -74,9 +77,9 @@ def test_dashboard_figures_with_demo_data(service):
 
 # --- Logique de sauvegarde du questionnaire -----------------------------------------
 
+
 def _pair_args():
-    pair_ids = [{"type": "ahp-pair", "index": f"{i}-{j}"}
-                for i, j in questionnaire.PAIRS]
+    pair_ids = [{"type": "ahp-pair", "index": f"{i}-{j}"} for i, j in questionnaire.PAIRS]
     return [0] * len(pair_ids), pair_ids
 
 
@@ -86,9 +89,11 @@ def _score_args():
 
 
 def _kpi_args():
-    kpi_ids = [{"type": "kpi-input", "index": key}
-               for _, fields in questionnaire.KPI_FIELDS
-               for key, _ in fields]
+    kpi_ids = [
+        {"type": "kpi-input", "index": key}
+        for _, fields in questionnaire.KPI_FIELDS
+        for key, _ in fields
+    ]
     return [None] * len(kpi_ids), kpi_ids
 
 
@@ -102,8 +107,17 @@ def test_save_assessment_callback_persists(service):
     kpi_values[0] = 120.0  # premier champ : time.lead_time_h
 
     message = questionnaire.save_assessment_callback(
-        1, {"project_id": node.project_id}, node.id, "test", "",
-        pair_values, pair_ids, score_values, score_ids, kpi_values, kpi_ids,
+        1,
+        {"project_id": node.project_id},
+        node.id,
+        "test",
+        "",
+        pair_values,
+        pair_ids,
+        score_values,
+        score_ids,
+        kpi_values,
+        kpi_ids,
     )
 
     after = service.client_db(node.id).list_assessments(node.id)
@@ -127,8 +141,17 @@ def test_save_assessment_requires_operator(service):
     kpi_values, kpi_ids = _kpi_args()
 
     message = questionnaire.save_assessment_callback(
-        1, {"project_id": node.project_id}, node.id, "", "",
-        pair_values, pair_ids, score_values, score_ids, kpi_values, kpi_ids,
+        1,
+        {"project_id": node.project_id},
+        node.id,
+        "",
+        "",
+        pair_values,
+        pair_ids,
+        score_values,
+        score_ids,
+        kpi_values,
+        kpi_ids,
     )
 
     assert len(service.client_db(node.id).list_assessments(node.id)) == before

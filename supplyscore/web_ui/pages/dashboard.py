@@ -28,17 +28,19 @@ from supplyscore.web_ui.components.layout import (
 
 _VALUE_COLUMNS = ["Ud_loc", "Ur_loc", "Ud", "Ur", "A", "F", "H"]
 
-_TABLE_COLUMNS = (
-    [{"name": "Nom", "id": "Nom"},
-     {"name": "Rang", "id": "Rang", "type": "numeric"},
-     {"name": "Statut", "id": "Statut"}]
-    + [{"name": c, "id": c, "type": "numeric"} for c in _VALUE_COLUMNS]
-)
+_TABLE_COLUMNS = [
+    {"name": "Nom", "id": "Nom"},
+    {"name": "Rang", "id": "Rang", "type": "numeric"},
+    {"name": "Statut", "id": "Statut"},
+] + [{"name": c, "id": c, "type": "numeric"} for c in _VALUE_COLUMNS]
 
 _TABLE_CONDITIONAL = [
     {"if": {"filter_query": "{A} < 40"}, "backgroundColor": "#fdecea"},
-    {"if": {"filter_query": "{H} > 0.3", "column_id": "H"},
-     "color": COLORS["alert"], "fontWeight": "700"},
+    {
+        "if": {"filter_query": "{H} > 0.3", "column_id": "H"},
+        "color": COLORS["alert"],
+        "fontWeight": "700",
+    },
 ]
 
 _TABLE_STYLE_CELL = {
@@ -64,20 +66,18 @@ def _stat_card(value: str, label_text: str) -> html.Div:
     """Petite carte KPI (valeur en gros, libellé dessous)."""
     return html.Div(
         [
-            html.Div(value, style={"fontSize": "20px", "fontWeight": "700",
-                                   "color": COLORS["primary"]}),
-            html.Div(label_text, style={"fontSize": "12px",
-                                        "color": COLORS["muted"]}),
+            html.Div(
+                value, style={"fontSize": "20px", "fontWeight": "700", "color": COLORS["primary"]}
+            ),
+            html.Div(label_text, style={"fontSize": "12px", "color": COLORS["muted"]}),
         ],
-        style={**CARD_STYLE, "flex": "1 1 150px", "marginBottom": "0",
-               "textAlign": "center"},
+        style={**CARD_STYLE, "flex": "1 1 150px", "marginBottom": "0", "textAlign": "center"},
     )
 
 
 def _kpi_summary(nodes) -> list[html.Div]:
     """Cartes KPI du haut de page : effectif, A moyen/pire, risques H et F."""
-    a_known = [(n.urgency.adequation, n.name) for n in nodes
-               if n.urgency.adequation is not None]
+    a_known = [(n.urgency.adequation, n.name) for n in nodes if n.urgency.adequation is not None]
     if a_known:
         mean_a = f"{sum(v for v, _ in a_known) / len(a_known):.1f}"
         worst_val, worst_name = min(a_known, key=lambda pair: pair[0])
@@ -111,13 +111,18 @@ def layout() -> html.Div:
         [
             html.H2("Dashboard", style={"margin": "6px 0 12px"}),
             html.Div(
-                html.Button("Recalculer maintenant", id="dash-recalc-btn",
-                            style=BUTTON_STYLE),
+                html.Button("Recalculer maintenant", id="dash-recalc-btn", style=BUTTON_STYLE),
                 style={"marginBottom": "14px"},
             ),
-            html.Div(id="dash-kpi-cards",
-                     style={"display": "flex", "gap": "14px", "flexWrap": "wrap",
-                            "marginBottom": "18px"}),
+            html.Div(
+                id="dash-kpi-cards",
+                style={
+                    "display": "flex",
+                    "gap": "14px",
+                    "flexWrap": "wrap",
+                    "marginBottom": "18px",
+                },
+            ),
             card(
                 "Chaîne logistique",
                 [dcc.Graph(id="dash-dag", figure=empty_figure("Chargement…"))],
@@ -125,7 +130,7 @@ def layout() -> html.Div:
             card(
                 "Détail des nœuds",
                 [
-                    dash_table.DataTable(
+                    dash_table.DataTable(  # type: ignore[attr-defined]
                         id="dash-table",
                         columns=_TABLE_COLUMNS,
                         data=[],
@@ -143,14 +148,14 @@ def layout() -> html.Div:
                 [
                     labelled(
                         "Nœud",
-                        dcc.Dropdown(id="dash-history-dd", options=[],
-                                     placeholder="Choisir un nœud…"),
+                        dcc.Dropdown(
+                            id="dash-history-dd", options=[], placeholder="Choisir un nœud…"
+                        ),
                         width="380px",
                     ),
                     dcc.Graph(
                         id="dash-history-fig",
-                        figure=empty_figure("Sélectionnez un nœud pour afficher "
-                                            "son historique."),
+                        figure=empty_figure("Sélectionnez un nœud pour afficher son historique."),
                     ),
                 ],
             ),
@@ -161,6 +166,7 @@ def layout() -> html.Div:
 
 # --- Callbacks (fonctions nommées, testables sans serveur) -----------------------
 
+
 def update_dashboard_callback(project_data, n_clicks):
     """Met à jour cartes KPI, DAG, tableau et options d'historique.
 
@@ -170,6 +176,7 @@ def update_dashboard_callback(project_data, n_clicks):
     service = get_service()
     try:  # ctx indisponible hors requête Dash (appel direct en test)
         from dash import ctx
+
         triggered = ctx.triggered_id
     except Exception:
         triggered = None
@@ -178,8 +185,7 @@ def update_dashboard_callback(project_data, n_clicks):
 
     nodes = _scope_nodes(project_data)
     ids = {n.id for n in nodes}
-    arcs = [a for a in service.repo.arcs()
-            if a.source_id in ids and a.target_id in ids]
+    arcs = [a for a in service.repo.arcs() if a.source_id in ids and a.target_id in ids]
 
     rows = [
         {

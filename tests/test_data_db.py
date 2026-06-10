@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import dataclasses
-
 import pytest
 
 from supplyscore.data.db import (
@@ -90,8 +88,9 @@ class TestKPISerialization:
 class TestRegistryDatabase:
     def test_project_round_trip(self, tmp_path):
         with RegistryDatabase(tmp_path) as db:
-            project = Project(id="p1", name="Proj", owner_node_id="n0",
-                              description="desc", created_at=123.5)
+            project = Project(
+                id="p1", name="Proj", owner_node_id="n0", description="desc", created_at=123.5
+            )
             db.save_project(project)
             assert db.get_project("p1") == project
             assert db.list_projects() == [project]
@@ -99,18 +98,36 @@ class TestRegistryDatabase:
 
     def test_node_round_trip_full_and_empty_kpis(self, tmp_path):
         with RegistryDatabase(tmp_path) as db:
-            full = SupplyNode(id="n1", name="Usine", label="Factory",
-                              rank=2, project_id="p1", location="Lyon",
-                              latitude=45.7, longitude=4.8,
-                              status=TaskStatus.ACTIVE, kpis=_full_kpis())
+            full = SupplyNode(
+                id="n1",
+                name="Usine",
+                label="Factory",
+                rank=2,
+                project_id="p1",
+                location="Lyon",
+                latitude=45.7,
+                longitude=4.8,
+                status=TaskStatus.ACTIVE,
+                kpis=_full_kpis(),
+            )
             empty = SupplyNode(id="n2", name="Vide", kpis=KPIBundle())
             db.save_node(full)
             db.save_node(empty)
 
             got_full = db.get_node("n1")
             got_empty = db.get_node("n2")
-            for attr in ("id", "name", "label", "rank", "project_id",
-                         "location", "latitude", "longitude", "status", "kpis"):
+            for attr in (
+                "id",
+                "name",
+                "label",
+                "rank",
+                "project_id",
+                "location",
+                "latitude",
+                "longitude",
+                "status",
+                "kpis",
+            ):
                 assert getattr(got_full, attr) == getattr(full, attr)
             assert got_full.kind is NodeKind.NODE
             assert got_empty.kpis == KPIBundle()
@@ -134,8 +151,15 @@ class TestRegistryDatabase:
 
     def test_arc_round_trip(self, tmp_path):
         with RegistryDatabase(tmp_path) as db:
-            arc = SupplyArc(source_id="s", target_id="t", label="Ship",
-                            gamma=0.4, beta=0.7, delta=1.2, kpis=_full_kpis())
+            arc = SupplyArc(
+                source_id="s",
+                target_id="t",
+                label="Ship",
+                gamma=0.4,
+                beta=0.7,
+                delta=1.2,
+                kpis=_full_kpis(),
+            )
             db.save_arc(arc)
             assert db.get_arc("s", "t") == arc
             assert db.list_arcs() == [arc]
@@ -224,12 +248,26 @@ class TestClientDatabase:
     def test_urgency_series_ordered_by_timestamp(self, tmp_path):
         with ClientDatabase(tmp_path, "client-1") as db:
             states = [
-                UrgencyState(ud_local=0.2, ur_local=0.5, ud=0.3, ur=0.6,
-                             adequation=70.0, false_urgency=0.0,
-                             hidden_risk=0.3, timestamp=300.0),
-                UrgencyState(ud_local=0.8, ur_local=0.1, ud=0.7, ur=0.2,
-                             adequation=50.0, false_urgency=0.5,
-                             hidden_risk=0.0, timestamp=100.0),
+                UrgencyState(
+                    ud_local=0.2,
+                    ur_local=0.5,
+                    ud=0.3,
+                    ur=0.6,
+                    adequation=70.0,
+                    false_urgency=0.0,
+                    hidden_risk=0.3,
+                    timestamp=300.0,
+                ),
+                UrgencyState(
+                    ud_local=0.8,
+                    ur_local=0.1,
+                    ud=0.7,
+                    ur=0.2,
+                    adequation=50.0,
+                    false_urgency=0.5,
+                    hidden_risk=0.0,
+                    timestamp=100.0,
+                ),
                 UrgencyState(timestamp=200.0),  # tous champs None
             ]
             for s in states:
@@ -244,8 +282,10 @@ class TestClientDatabase:
             assert db.urgency_series("autre") == []
 
     def test_two_clients_two_distinct_sqlite_files(self, tmp_path):
-        with ClientDatabase(tmp_path, "client-A") as db_a, \
-                ClientDatabase(tmp_path, "client-B") as db_b:
+        with (
+            ClientDatabase(tmp_path, "client-A") as db_a,
+            ClientDatabase(tmp_path, "client-B") as db_b,
+        ):
             db_a.save_assessment(_assessment(node_id="nA"))
             assert db_a.db_path != db_b.db_path
             # L'évaluation du client A n'existe pas chez B (isolation).

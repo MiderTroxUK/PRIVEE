@@ -35,6 +35,7 @@ _INSTALL_HINT = (
 
 # --- (Dé)sérialisation -------------------------------------------------------
 
+
 def _kpis_to_json(kpis: KPIBundle) -> str:
     return json.dumps(dataclasses.asdict(kpis))
 
@@ -122,10 +123,12 @@ def _arc_from_record(source_id: str, target_id: str, props: dict[str, Any]) -> S
 
 # --- Dépôt --------------------------------------------------------------------
 
+
 class Neo4jGraphRepository(GraphRepository):
     """Persiste le graphe supply chain dans une base Neo4j."""
 
     def __init__(self, uri: str, user: str, password: str, database: str = "neo4j") -> None:
+        """Ouvre le driver Neo4j (import paresseux : dépendance optionnelle)."""
         try:
             from neo4j import GraphDatabase  # import paresseux : dépendance optionnelle
         except ImportError as exc:
@@ -134,12 +137,15 @@ class Neo4jGraphRepository(GraphRepository):
         self._database = database
 
     def close(self) -> None:
+        """Ferme le driver Neo4j."""
         self._driver.close()
 
     def __enter__(self) -> Neo4jGraphRepository:
+        """Entre dans le context manager (retourne le dépôt lui-même)."""
         return self
 
     def __exit__(self, *exc_info: object) -> None:
+        """Ferme le driver à la sortie du context manager."""
         self.close()
 
     def _run(self, query: str, **params: Any) -> list[Any]:
@@ -149,6 +155,7 @@ class Neo4jGraphRepository(GraphRepository):
     # --- Nœuds ----------------------------------------------------------
 
     def add_node(self, node: SupplyNode) -> None:
+        """Ajoute un nœud. Lève ValueError si l'id existe déjà."""
         if self.get_node(node.id) is not None:
             raise ValueError(f"Nœud déjà présent : {node.id!r}")
         self._run(
@@ -158,14 +165,14 @@ class Neo4jGraphRepository(GraphRepository):
         )
 
     def get_node(self, node_id: str) -> SupplyNode | None:
-        records = self._run(
-            "MATCH (n:SupplyNode {id: $id}) RETURN n", id=node_id
-        )
+        """Retourne le nœud ou None s'il est inconnu."""
+        records = self._run("MATCH (n:SupplyNode {id: $id}) RETURN n", id=node_id)
         if not records:
             return None
         return _node_from_props(dict(records[0]["n"]))
 
     def update_node(self, node: SupplyNode) -> None:
+        """Remplace le nœud existant. Lève KeyError si l'id est inconnu."""
         if self.get_node(node.id) is None:
             raise KeyError(f"Nœud inconnu : {node.id!r}")
         self._run(
@@ -175,15 +182,15 @@ class Neo4jGraphRepository(GraphRepository):
         )
 
     def remove_node(self, node_id: str) -> None:
+        """Supprime le nœud et ses arcs incidents. Lève KeyError si inconnu."""
         if self.get_node(node_id) is None:
             raise KeyError(f"Nœud inconnu : {node_id!r}")
-        self._run(
-            "MATCH (n:SupplyNode {id: $id}) DETACH DELETE n", id=node_id
-        )
+        self._run("MATCH (n:SupplyNode {id: $id}) DETACH DELETE n", id=node_id)
 
     # --- Arcs -----------------------------------------------------------
 
     def add_arc(self, arc: SupplyArc) -> None:
+        """Ajoute un arc fournisseur -> client. Lève ValueError si invalide ou cyclique."""
         for node_id in (arc.source_id, arc.target_id):
             if self.get_node(node_id) is None:
                 raise ValueError(f"Nœud inconnu : {node_id!r}")
@@ -210,6 +217,7 @@ class Neo4jGraphRepository(GraphRepository):
         return bool(records and records[0]["has_path"])
 
     def get_arc(self, source_id: str, target_id: str) -> SupplyArc | None:
+        """Retourne l'arc source -> target ou None."""
         records = self._run(
             "MATCH (:SupplyNode {id: $source_id})-[r:SUPPLIES]->(:SupplyNode {id: $target_id}) "
             "RETURN r",
@@ -221,6 +229,7 @@ class Neo4jGraphRepository(GraphRepository):
         return _arc_from_record(source_id, target_id, dict(records[0]["r"]))
 
     def remove_arc(self, source_id: str, target_id: str) -> None:
+        """Supprime l'arc. Lève KeyError s'il est inconnu."""
         if self.get_arc(source_id, target_id) is None:
             raise KeyError(f"Arc inconnu : {source_id!r} -> {target_id!r}")
         self._run(
@@ -233,20 +242,22 @@ class Neo4jGraphRepository(GraphRepository):
     # --- Parcours ---------------------------------------------------------
 
     def nodes(self) -> list[SupplyNode]:
+        """Tous les nœuds du graphe."""
         records = self._run("MATCH (n:SupplyNode) RETURN n")
         return [_node_from_props(dict(rec["n"])) for rec in records]
 
     def arcs(self) -> list[SupplyArc]:
+        """Tous les arcs du graphe."""
         records = self._run(
             "MATCH (s:SupplyNode)-[r:SUPPLIES]->(t:SupplyNode) "
             "RETURN s.id AS source_id, t.id AS target_id, r"
         )
         return [
-            _arc_from_record(rec["source_id"], rec["target_id"], dict(rec["r"]))
-            for rec in records
+            _arc_from_record(rec["source_id"], rec["target_id"], dict(rec["r"])) for rec in records
         ]
 
     def predecessors(self, node_id: str) -> list[SupplyNode]:
+        """Fournisseurs directs : sources des arcs entrants sur node_id."""
         records = self._run(
             "MATCH (p:SupplyNode)-[:SUPPLIES]->(:SupplyNode {id: $id}) RETURN p",
             id=node_id,
@@ -254,6 +265,7 @@ class Neo4jGraphRepository(GraphRepository):
         return [_node_from_props(dict(rec["p"])) for rec in records]
 
     def successors(self, node_id: str) -> list[SupplyNode]:
+        """Clients directs : cibles des arcs sortants de node_id."""
         records = self._run(
             "MATCH (:SupplyNode {id: $id})-[:SUPPLIES]->(s:SupplyNode) RETURN s",
             id=node_id,
@@ -261,6 +273,7 @@ class Neo4jGraphRepository(GraphRepository):
         return [_node_from_props(dict(rec["s"])) for rec in records]
 
     def nodes_by_project(self, project_id: str) -> list[SupplyNode]:
+        """Nœuds rattachés au projet donné."""
         records = self._run(
             "MATCH (n:SupplyNode {project_id: $project_id}) RETURN n",
             project_id=project_id,
@@ -290,4 +303,5 @@ class Neo4jGraphRepository(GraphRepository):
         return order
 
     def clear(self) -> None:
+        """Vide entièrement le graphe."""
         self._run("MATCH (n:SupplyNode) DETACH DELETE n")

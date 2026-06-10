@@ -7,6 +7,7 @@ appelant directement :func:`save_assessment_callback`, sans serveur Dash.
 
 from __future__ import annotations
 
+import numpy as np
 from dash import ALL, MATCH, Input, Output, State, dcc, html
 from dash.exceptions import PreventUpdate
 
@@ -39,43 +40,61 @@ PAIRS: list[tuple[int, int]] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
 #: Champs KPI optionnels saisissables, groupés par bloc d'affichage.
 #: Chaque clé "bloc.champ" pointe un attribut de ``KPIBundle``.
 KPI_FIELDS: list[tuple[str, list[tuple[str, str]]]] = [
-    ("Temps", [
-        ("time.lead_time_h", "Lead time (h)"),
-        ("time.lead_time_std_h", "Écart-type lead time (h)"),
-        ("time.deadline_h", "Échéance / deadline (h)"),
-    ]),
-    ("Inventaire", [
-        ("inventory.max_volume_m3", "Volume max (m³)"),
-        ("inventory.current_volume_m3", "Volume actuel (m³)"),
-        ("inventory.max_weight_kg", "Poids max (kg)"),
-        ("inventory.current_weight_kg", "Poids actuel (kg)"),
-        ("inventory.flow_rate", "Débit (unités/h)"),
-        ("network.demand", "Demande (unités/h)"),
-    ]),
-    ("OEE", [
-        ("oee.availability", "Disponibilité (0..1)"),
-        ("oee.performance", "Performance (0..1)"),
-        ("oee.quality", "Qualité (0..1)"),
-    ]),
-    ("Risque", [
-        ("risk.failure_probability", "Probabilité de défaillance (0..1)"),
-        ("risk.recovery_time_h", "Temps de récupération (h)"),
-        ("risk.severity", "Sévérité (0..1)"),
-        ("risk.env_exposure", "Exposition environnementale (0..1)"),
-        ("risk.political_risk", "Risque politique (0..1)"),
-    ]),
-    ("Coût", [
-        ("cost.nominal_op_cost", "Coût opérationnel nominal"),
-        ("cost.op_cost", "Coût opérationnel courant"),
-        ("cost.tariff", "Tarif (multiplicateur)"),
-        ("cost.storage_cost", "Coût de stockage"),
-    ]),
-    ("CO2", [
-        ("co2.op_emission_g_h", "Émissions opérationnelles (g/h)"),
-        ("co2.energy_mix_g_h", "Mix énergétique (g/h)"),
-        ("co2.co2_target_g_h", "Cible CO₂ (g/h)"),
-        ("co2.co2_max_g_h", "Maximum CO₂ (g/h)"),
-    ]),
+    (
+        "Temps",
+        [
+            ("time.lead_time_h", "Lead time (h)"),
+            ("time.lead_time_std_h", "Écart-type lead time (h)"),
+            ("time.deadline_h", "Échéance / deadline (h)"),
+        ],
+    ),
+    (
+        "Inventaire",
+        [
+            ("inventory.max_volume_m3", "Volume max (m³)"),
+            ("inventory.current_volume_m3", "Volume actuel (m³)"),
+            ("inventory.max_weight_kg", "Poids max (kg)"),
+            ("inventory.current_weight_kg", "Poids actuel (kg)"),
+            ("inventory.flow_rate", "Débit (unités/h)"),
+            ("network.demand", "Demande (unités/h)"),
+        ],
+    ),
+    (
+        "OEE",
+        [
+            ("oee.availability", "Disponibilité (0..1)"),
+            ("oee.performance", "Performance (0..1)"),
+            ("oee.quality", "Qualité (0..1)"),
+        ],
+    ),
+    (
+        "Risque",
+        [
+            ("risk.failure_probability", "Probabilité de défaillance (0..1)"),
+            ("risk.recovery_time_h", "Temps de récupération (h)"),
+            ("risk.severity", "Sévérité (0..1)"),
+            ("risk.env_exposure", "Exposition environnementale (0..1)"),
+            ("risk.political_risk", "Risque politique (0..1)"),
+        ],
+    ),
+    (
+        "Coût",
+        [
+            ("cost.nominal_op_cost", "Coût opérationnel nominal"),
+            ("cost.op_cost", "Coût opérationnel courant"),
+            ("cost.tariff", "Tarif (multiplicateur)"),
+            ("cost.storage_cost", "Coût de stockage"),
+        ],
+    ),
+    (
+        "CO2",
+        [
+            ("co2.op_emission_g_h", "Émissions opérationnelles (g/h)"),
+            ("co2.energy_mix_g_h", "Mix énergétique (g/h)"),
+            ("co2.co2_target_g_h", "Cible CO₂ (g/h)"),
+            ("co2.co2_max_g_h", "Maximum CO₂ (g/h)"),
+        ],
+    ),
 ]
 
 _PAIR_MARKS = {-8: "-8", -4: "-4", 0: "0", 4: "+4", 8: "+8"}
@@ -92,14 +111,17 @@ def _pair_block(i: int, j: int) -> html.Div:
             ),
             dcc.Slider(
                 id={"type": "ahp-pair", "index": key},
-                min=-8, max=8, step=1, value=0, marks=_PAIR_MARKS,
+                min=-8,
+                max=8,
+                step=1,
+                value=0,
+                marks=_PAIR_MARKS,
                 tooltip={"placement": "bottom"},
             ),
             html.Div(
                 "Importance égale",
                 id={"type": "ahp-pair-label", "index": key},
-                style={"fontSize": "13px", "color": COLORS["muted"],
-                       "marginBottom": "16px"},
+                style={"fontSize": "13px", "color": COLORS["muted"], "marginBottom": "16px"},
             ),
         ]
     )
@@ -109,18 +131,20 @@ def _score_block(k: int) -> html.Div:
     """Slider de note 1..6 d'un critère + libellé live (équivalent Saaty)."""
     return html.Div(
         [
-            html.P(CRITERIA[k],
-                   style={"margin": "0 0 2px", "fontSize": "14px",
-                          "fontWeight": "600"}),
+            html.P(
+                CRITERIA[k], style={"margin": "0 0 2px", "fontSize": "14px", "fontWeight": "600"}
+            ),
             dcc.Slider(
                 id={"type": "ahp-score", "index": str(k)},
-                min=1, max=6, step=1, value=3,
+                min=1,
+                max=6,
+                step=1,
+                value=3,
                 marks={v: str(v) for v in range(1, 7)},
             ),
             html.Div(
                 id={"type": "ahp-score-label", "index": str(k)},
-                style={"fontSize": "13px", "color": COLORS["muted"],
-                       "marginBottom": "16px"},
+                style={"fontSize": "13px", "color": COLORS["muted"], "marginBottom": "16px"},
             ),
         ]
     )
@@ -131,8 +155,10 @@ def _kpi_blocks() -> list:
     children: list = []
     for block_title, fields in KPI_FIELDS:
         children.append(
-            html.H4(block_title, style={"margin": "10px 0 6px", "fontSize": "15px",
-                                        "color": COLORS["primary"]})
+            html.H4(
+                block_title,
+                style={"margin": "10px 0 6px", "fontSize": "15px", "color": COLORS["primary"]},
+            )
         )
         children.append(
             html.Div(
@@ -166,21 +192,30 @@ def layout() -> html.Div:
                 [
                     labelled(
                         "Nœud (n'importe quel rang)",
-                        dcc.Dropdown(id="q-node-dd",
-                                     options=node_options(service.repo.nodes()),
-                                     placeholder="Choisir un nœud…"),
+                        dcc.Dropdown(
+                            id="q-node-dd",
+                            options=node_options(service.repo.nodes()),
+                            placeholder="Choisir un nœud…",
+                        ),
                         width="380px",
                     ),
                     labelled(
                         "Identifiant opérateur",
-                        dcc.Input(id="q-operator", type="text",
-                                  placeholder="ex. jdupont", style=INPUT_STYLE),
+                        dcc.Input(
+                            id="q-operator",
+                            type="text",
+                            placeholder="ex. jdupont",
+                            style=INPUT_STYLE,
+                        ),
                     ),
                     labelled(
                         "Notes (optionnel)",
-                        dcc.Input(id="q-notes", type="text",
-                                  placeholder="commentaire libre",
-                                  style=INPUT_STYLE),
+                        dcc.Input(
+                            id="q-notes",
+                            type="text",
+                            placeholder="commentaire libre",
+                            style=INPUT_STYLE,
+                        ),
                         width="320px",
                     ),
                 ],
@@ -201,13 +236,19 @@ def layout() -> html.Div:
             card(
                 "Résultat",
                 [
-                    html.Div(id="q-ud-badge",
-                             style={"fontSize": "26px", "fontWeight": "700",
-                                    "color": COLORS["primary"],
-                                    "marginBottom": "6px"}),
+                    html.Div(
+                        id="q-ud-badge",
+                        style={
+                            "fontSize": "26px",
+                            "fontWeight": "700",
+                            "color": COLORS["primary"],
+                            "marginBottom": "6px",
+                        },
+                    ),
                     html.Div(id="q-cr-msg", style={"marginBottom": "10px"}),
-                    dcc.Graph(id="q-weights-fig",
-                              figure=empty_figure("Réglez les curseurs ci-dessus.")),
+                    dcc.Graph(
+                        id="q-weights-fig", figure=empty_figure("Réglez les curseurs ci-dessus.")
+                    ),
                 ],
                 subtitle="Aperçu en direct — rien n'est enregistré avant validation.",
             ),
@@ -220,8 +261,9 @@ def layout() -> html.Div:
                 ),
             ),
             html.Div(
-                html.Button("Enregistrer l'évaluation hebdomadaire",
-                            id="q-save-btn", style=BUTTON_STYLE),
+                html.Button(
+                    "Enregistrer l'évaluation hebdomadaire", id="q-save-btn", style=BUTTON_STYLE
+                ),
             ),
             html.Div(id="q-save-msg"),
         ],
@@ -231,10 +273,11 @@ def layout() -> html.Div:
 
 # --- Helpers de conversion ------------------------------------------------------
 
+
 def _comparisons_from_inputs(values, ids) -> dict[tuple[int, int], float]:
     """Convertit les curseurs bipolaires en jugements de Saaty {(i, j): v}."""
     comparisons: dict[tuple[int, int], float] = {}
-    for value, id_ in zip(values, ids):
+    for value, id_ in zip(values, ids, strict=True):
         i_str, j_str = id_["index"].split("-", 1)
         comparisons[(int(i_str), int(j_str))] = bipolar_to_saaty(int(value or 0))
     return comparisons
@@ -242,11 +285,12 @@ def _comparisons_from_inputs(values, ids) -> dict[tuple[int, int], float]:
 
 def _scores_from_inputs(values, ids) -> list[float]:
     """Convertit les notes UI [1, 6] en notes Saaty [1, 9], ordonnées par critère."""
-    ordered = sorted(zip(ids, values), key=lambda pair: int(pair[0]["index"]))
+    ordered = sorted(zip(ids, values, strict=True), key=lambda pair: int(pair[0]["index"]))
     return [score_6_to_9(float(v if v is not None else 3)) for _, v in ordered]
 
 
 # --- Callbacks (fonctions nommées, testables sans serveur) ------------------------
+
 
 def project_info_callback(project_data):
     """Affiche le projet actif et restreint le dropdown nœud à ses nœuds."""
@@ -255,8 +299,9 @@ def project_info_callback(project_data):
     if pid:
         nodes = [n for n in service.repo.nodes() if n.project_id == pid]
         name = (project_data or {}).get("name", pid)
-        info = html.Span(f"Projet actif : « {name} ».",
-                         style={"color": COLORS["primary"], "fontWeight": "600"})
+        info = html.Span(
+            f"Projet actif : « {name} ».", style={"color": COLORS["primary"], "fontWeight": "600"}
+        )
     else:
         nodes = service.repo.nodes()
         info = html.Span(
@@ -288,7 +333,7 @@ def preview_callback(pair_values, score_values, pair_ids, score_ids):
     comparisons = _comparisons_from_inputs(pair_values, pair_ids)
     scores = _scores_from_inputs(score_values, score_ids)
     result = run_ahp(comparisons, n=len(CRITERIA))
-    ud = compute_ud(result.weights, scores)
+    ud = compute_ud(result.weights, np.asarray(scores, dtype=float))
     badge = f"Ud = {ud:.3f}"
     cr = result.consistency_ratio
     if cr >= CONSISTENCY_THRESHOLD:
@@ -320,9 +365,19 @@ def prefill_kpis_callback(node_id, kpi_ids):
     return values
 
 
-def save_assessment_callback(n_clicks, project_data, node_id, operator_id, notes,
-                             pair_values, pair_ids, score_values, score_ids,
-                             kpi_values, kpi_ids):
+def save_assessment_callback(
+    n_clicks,
+    project_data,
+    node_id,
+    operator_id,
+    notes,
+    pair_values,
+    pair_ids,
+    score_values,
+    score_ids,
+    kpi_values,
+    kpi_ids,
+):
     """Valide et persiste l'évaluation hebdomadaire (AHP + KPIs renseignés).
 
     Refuse l'enregistrement si le nœud ou l'opérateur manquent, ou si le
@@ -332,11 +387,9 @@ def save_assessment_callback(n_clicks, project_data, node_id, operator_id, notes
         raise PreventUpdate
     service = get_service()
     if not node_id:
-        return html.Span("Sélectionnez un nœud avant d'enregistrer.",
-                         style=MSG_ALERT_STYLE)
+        return html.Span("Sélectionnez un nœud avant d'enregistrer.", style=MSG_ALERT_STYLE)
     if not operator_id or not str(operator_id).strip():
-        return html.Span("L'identifiant opérateur est requis.",
-                         style=MSG_ALERT_STYLE)
+        return html.Span("L'identifiant opérateur est requis.", style=MSG_ALERT_STYLE)
     node = service.repo.get_node(node_id)
     if node is None:
         return html.Span("Nœud introuvable dans le graphe.", style=MSG_ALERT_STYLE)
@@ -363,8 +416,10 @@ def save_assessment_callback(n_clicks, project_data, node_id, operator_id, notes
 
     # KPIs : seuls les champs renseignés écrasent les valeurs du nœud.
     node = service.repo.get_node(node_id)
+    if node is None:
+        return html.Span("Nœud introuvable dans le graphe.", style=MSG_ALERT_STYLE)
     updated = 0
-    for value, id_ in zip(kpi_values, kpi_ids):
+    for value, id_ in zip(kpi_values, kpi_ids, strict=True):
         if value is None or value == "":
             continue
         block, field = id_["index"].split(".", 1)

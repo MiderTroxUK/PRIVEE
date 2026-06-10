@@ -18,7 +18,7 @@ def test_full_pipeline(service):
     assert len(nodes) >= 4  # client final + au moins 3 rangs
 
     states = service.evaluate_all(persist=True)
-    for node_id, state in states.items():
+    for _node_id, state in states.items():
         assert state.ud is not None and 0.0 <= state.ud <= 1.0
         assert state.ur is not None and 0.0 <= state.ur <= 1.0
         assert state.adequation is not None and 0.0 <= state.adequation <= 100.0

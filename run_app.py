@@ -17,18 +17,21 @@ from supplyscore.web_ui.app import create_app
 
 def main() -> None:
     """Analyse les arguments, construit l'application et lance le serveur."""
-    parser = argparse.ArgumentParser(
-        description="Lance l'interface web SupplyScore (Dash)."
+    parser = argparse.ArgumentParser(description="Lance l'interface web SupplyScore (Dash).")
+    parser.add_argument(
+        "--db-dir", default="data_store", help="Répertoire des bases SQLite (défaut : data_store)."
     )
-    parser.add_argument("--db-dir", default="data_store",
-                        help="Répertoire des bases SQLite (défaut : data_store).")
-    parser.add_argument("--demo", action="store_true",
-                        help="Si la base est vide, génère un projet de TEST "
-                             "aléatoire (n_ranks=3, seed=42).")
-    parser.add_argument("--port", type=int, default=8050,
-                        help="Port d'écoute HTTP (défaut : 8050).")
-    parser.add_argument("--debug", action="store_true",
-                        help="Active le mode debug de Dash (rechargement à chaud).")
+    parser.add_argument(
+        "--demo",
+        action="store_true",
+        help="Si la base est vide, génère un projet de TEST aléatoire (n_ranks=3, seed=42).",
+    )
+    parser.add_argument(
+        "--port", type=int, default=8050, help="Port d'écoute HTTP (défaut : 8050)."
+    )
+    parser.add_argument(
+        "--debug", action="store_true", help="Active le mode debug de Dash (rechargement à chaud)."
+    )
     args = parser.parse_args()
 
     app = create_app(db_dir=args.db_dir)

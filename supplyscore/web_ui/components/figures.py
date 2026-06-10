@@ -25,11 +25,17 @@ def empty_figure(message: str) -> go.Figure:
         template=_TEMPLATE,
         xaxis={"visible": False},
         yaxis={"visible": False},
-        annotations=[{
-            "text": message, "xref": "paper", "yref": "paper",
-            "x": 0.5, "y": 0.5, "showarrow": False,
-            "font": {"size": 14, "color": "#6b7a85"},
-        }],
+        annotations=[
+            {
+                "text": message,
+                "xref": "paper",
+                "yref": "paper",
+                "x": 0.5,
+                "y": 0.5,
+                "showarrow": False,
+                "font": {"size": 14, "color": "#6b7a85"},
+            }
+        ],
         margin={"l": 20, "r": 20, "t": 30, "b": 20},
         height=320,
     )
@@ -112,8 +118,7 @@ def dag_figure(
 
     if color_values is None:
         color_values = [
-            n.urgency.adequation if n.urgency.adequation is not None else 50.0
-            for n in ordered
+            n.urgency.adequation if n.urgency.adequation is not None else 50.0 for n in ordered
         ]
     if hover_texts is None:
         hover_texts = [_node_hover(n) for n in ordered]
@@ -134,20 +139,37 @@ def dag_figure(
         x1, y1 = positions[arc.target_id]
         edge_x += [x0, x1, None]
         edge_y += [y0, y1, None]
-        annotations.append({
-            "x": x1, "y": y1, "ax": x0, "ay": y0,
-            "xref": "x", "yref": "y", "axref": "x", "ayref": "y",
-            "showarrow": True, "arrowhead": 2, "arrowsize": 1.1,
-            "arrowwidth": 1.2, "arrowcolor": "#9aa7b0",
-            "standoff": 16, "startstandoff": 12, "opacity": 0.85, "text": "",
-        })
+        annotations.append(
+            {
+                "x": x1,
+                "y": y1,
+                "ax": x0,
+                "ay": y0,
+                "xref": "x",
+                "yref": "y",
+                "axref": "x",
+                "ayref": "y",
+                "showarrow": True,
+                "arrowhead": 2,
+                "arrowsize": 1.1,
+                "arrowwidth": 1.2,
+                "arrowcolor": "#9aa7b0",
+                "standoff": 16,
+                "startstandoff": 12,
+                "opacity": 0.85,
+                "text": "",
+            }
+        )
 
     fig = go.Figure()
     fig.add_trace(
         go.Scatter(
-            x=edge_x, y=edge_y, mode="lines",
+            x=edge_x,
+            y=edge_y,
+            mode="lines",
             line={"width": 1, "color": "#c4ccd2"},
-            hoverinfo="skip", showlegend=False,
+            hoverinfo="skip",
+            showlegend=False,
         )
     )
     fig.add_trace(
@@ -174,11 +196,18 @@ def dag_figure(
         )
     )
     if caption:
-        annotations.append({
-            "text": caption, "xref": "paper", "yref": "paper",
-            "x": 0.0, "y": 1.08, "showarrow": False,
-            "font": {"size": 12, "color": "#6b7a85"}, "align": "left",
-        })
+        annotations.append(
+            {
+                "text": caption,
+                "xref": "paper",
+                "yref": "paper",
+                "x": 0.0,
+                "y": 1.08,
+                "showarrow": False,
+                "font": {"size": 12, "color": "#6b7a85"},
+                "align": "left",
+            }
+        )
     max_rank = max(n.rank for n in ordered)
     fig.update_layout(
         template=_TEMPLATE,
@@ -202,8 +231,12 @@ def dag_figure(
 def dashboard_dag_figure(nodes: list[SupplyNode], arcs: list[SupplyArc]) -> go.Figure:
     """DAG du dashboard : couleur = adéquation A (rouge -> vert), taille = Ur."""
     return dag_figure(
-        nodes, arcs,
-        colorscale="RdYlGn", cmin=0.0, cmax=100.0, colorbar_title="A",
+        nodes,
+        arcs,
+        colorscale="RdYlGn",
+        cmin=0.0,
+        cmax=100.0,
+        colorbar_title="A",
         title="Chaîne logistique — adéquation par nœud",
         caption="Couleur : adéquation A (0 = rouge, 100 = vert) · Taille : urgence réelle Ur",
     )
@@ -217,14 +250,18 @@ def shock_dag_figure(
     values = [deltas.get(n.id, 0.0) for n in ordered]
     bound = max((abs(v) for v in values), default=0.0) or 0.01
     hovers = [
-        f"<b>{n.name}</b><br>Rang : {n.rank}<br>ΔUr : {deltas.get(n.id, 0.0):+.3f}"
-        for n in ordered
+        f"<b>{n.name}</b><br>Rang : {n.rank}<br>ΔUr : {deltas.get(n.id, 0.0):+.3f}" for n in ordered
     ]
     return dag_figure(
-        ordered, arcs,
-        color_values=values, hover_texts=hovers,
+        ordered,
+        arcs,
+        color_values=values,
+        hover_texts=hovers,
         sizes=[18.0] * len(ordered),
-        colorscale="RdBu_r", cmin=-bound, cmax=bound, colorbar_title="ΔUr",
+        colorscale="RdBu_r",
+        cmin=-bound,
+        cmax=bound,
+        colorbar_title="ΔUr",
         title="Propagation du choc sur la chaîne",
         caption="Couleur : variation d'urgence réelle ΔUr (rouge = aggravation)",
     )
@@ -236,20 +273,40 @@ def urgency_history_figure(series: list[UrgencyState], node_name: str) -> go.Fig
         return empty_figure(f"Aucun historique d'urgence pour « {node_name} ».")
     x = [datetime.fromtimestamp(s.timestamp) for s in series]
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=x, y=[s.ud for s in series], name="Ud (déclarée)",
-                             mode="lines+markers", line={"color": "#2c5f7c"}))
-    fig.add_trace(go.Scatter(x=x, y=[s.ur for s in series], name="Ur (réelle)",
-                             mode="lines+markers", line={"color": "#b3261e"}))
-    fig.add_trace(go.Scatter(x=x, y=[s.adequation for s in series], name="A (adéquation)",
-                             mode="lines+markers", yaxis="y2",
-                             line={"color": "#1d7a3e", "dash": "dot"}))
+    fig.add_trace(
+        go.Scatter(
+            x=x,
+            y=[s.ud for s in series],
+            name="Ud (déclarée)",
+            mode="lines+markers",
+            line={"color": "#2c5f7c"},
+        )
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=x,
+            y=[s.ur for s in series],
+            name="Ur (réelle)",
+            mode="lines+markers",
+            line={"color": "#b3261e"},
+        )
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=x,
+            y=[s.adequation for s in series],
+            name="A (adéquation)",
+            mode="lines+markers",
+            yaxis="y2",
+            line={"color": "#1d7a3e", "dash": "dot"},
+        )
+    )
     fig.update_layout(
         template=_TEMPLATE,
         title={"text": f"Évolution temporelle — {node_name}", "font": {"size": 15}},
         xaxis={"title": "Date"},
         yaxis={"title": "Urgence (Ud, Ur)", "range": [0, 1.05]},
-        yaxis2={"title": "Adéquation A", "overlaying": "y", "side": "right",
-                "range": [0, 105]},
+        yaxis2={"title": "Adéquation A", "overlaying": "y", "side": "right", "range": [0, 105]},
         legend={"orientation": "h", "y": -0.25},
         margin={"l": 50, "r": 50, "t": 50, "b": 40},
         height=380,
@@ -267,9 +324,9 @@ def shock_bar_figure(deltas: dict[str, float], names: dict[str, str]) -> go.Figu
     bound = max((abs(v) for v in values), default=0.0) or 0.01
     fig = go.Figure(
         go.Bar(
-            x=labels, y=values,
-            marker={"color": values, "colorscale": "RdBu_r",
-                    "cmin": -bound, "cmax": bound},
+            x=labels,
+            y=values,
+            marker={"color": values, "colorscale": "RdBu_r", "cmin": -bound, "cmax": bound},
             text=[f"{v:+.3f}" for v in values],
             textposition="outside",
         )

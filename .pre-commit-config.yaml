@@ -1,0 +1,18 @@
+# Hooks pre-commit 100 % locaux — aucun dépôt distant, aucun accès réseau.
+# Les exécutables proviennent du venv du projet (.venv), language: system.
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: ruff check --fix
+        entry: .venv/Scripts/ruff.exe check --fix
+        language: system
+        types_or: [python, pyi]
+        require_serial: true
+
+      - id: ruff-format
+        name: ruff format
+        entry: .venv/Scripts/ruff.exe format
+        language: system
+        types_or: [python, pyi]
+        require_serial: true

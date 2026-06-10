@@ -1,5 +1,7 @@
 """Tests du moteur d'adéquation Ud/Ur."""
 
+from itertools import pairwise
+
 import pytest
 
 from supplyscore.core.adequation import AdequationEngine
@@ -63,7 +65,7 @@ class TestAdequationAsym:
     def test_monotonie_en_ecart(self, engine):
         """Plus l'écart grandit, plus le score baisse."""
         scores = [engine.adequation_asym(0.5, 0.5 + d) for d in (0.0, 0.1, 0.3, 0.5)]
-        assert all(b < a for a, b in zip(scores, scores[1:]))
+        assert all(b < a for a, b in pairwise(scores))
 
     def test_ur_tres_en_retard_score_0(self, engine):
         assert engine.adequation_asym(0.0, 2.5) == 0.0
@@ -89,9 +91,7 @@ class TestAdequationAsym:
 
     def test_symetrique_si_lambdas_egaux(self):
         eng = AdequationEngine(lambda_under=1.5, lambda_over=1.5)
-        assert eng.adequation_asym(0.2, 0.8) == pytest.approx(
-            eng.adequation_asym(0.8, 0.2)
-        )
+        assert eng.adequation_asym(0.2, 0.8) == pytest.approx(eng.adequation_asym(0.8, 0.2))
 
 
 class TestEvaluate:

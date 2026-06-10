@@ -13,16 +13,16 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:  # pragma: no cover - uniquement pour les annotations
     from supplyscore.services.orchestrator import SupplyScoreService
 
-_service: "SupplyScoreService | None" = None
+_service: SupplyScoreService | None = None
 
 
-def set_service(service: "SupplyScoreService | None") -> None:
+def set_service(service: SupplyScoreService | None) -> None:
     """Enregistre l'instance de service partagée par les callbacks."""
     global _service
     _service = service
 
 
-def get_service() -> "SupplyScoreService":
+def get_service() -> SupplyScoreService:
     """Retourne le service partagé.
 
     Raises:

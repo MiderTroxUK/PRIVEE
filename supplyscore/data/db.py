@@ -15,6 +15,7 @@ import dataclasses
 import json
 import sqlite3
 from pathlib import Path
+from types import TracebackType
 from typing import Any
 
 from supplyscore.domain.models import (
@@ -63,10 +64,7 @@ def kpis_from_json(payload: str | None) -> KPIBundle:
     if not payload:
         return KPIBundle()
     raw: dict[str, Any] = json.loads(payload)
-    blocks = {
-        name: cls(**raw.get(name, {}))
-        for name, cls in _KPI_BLOCK_TYPES.items()
-    }
+    blocks = {name: cls(**raw.get(name, {})) for name, cls in _KPI_BLOCK_TYPES.items()}
     return KPIBundle(**blocks)
 
 
@@ -92,6 +90,7 @@ def _comparisons_from_json(payload: str | None) -> dict[tuple[int, int], float]:
 
 # --- Base commune --------------------------------------------------------------
 
+
 class _SQLiteDatabase:
     """Connexion SQLite avec WAL, context manager et helpers communs."""
 
@@ -109,10 +108,15 @@ class _SQLiteDatabase:
         raise NotImplementedError
 
     # -- context manager --
-    def __enter__(self) -> "_SQLiteDatabase":
+    def __enter__(self) -> _SQLiteDatabase:
         return self
 
-    def __exit__(self, exc_type, exc, tb) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: TracebackType | None,
+    ) -> None:
         self.close()
 
     def close(self) -> None:
@@ -124,6 +128,7 @@ class _SQLiteDatabase:
 
 # --- Registre global -----------------------------------------------------------
 
+
 class RegistryDatabase(_SQLiteDatabase):
     """Registre global partagé : projets, nœuds et arcs du graphe logistique.
 
@@ -134,6 +139,7 @@ class RegistryDatabase(_SQLiteDatabase):
     FILENAME = "registry.sqlite"
 
     def __init__(self, db_dir: Path) -> None:
+        """Ouvre (ou crée) le fichier ``registry.sqlite`` dans ``db_dir``."""
         super().__init__(Path(db_dir) / self.FILENAME)
 
     def _create_schema(self) -> None:
@@ -184,6 +190,7 @@ class RegistryDatabase(_SQLiteDatabase):
     # -- projets --
 
     def save_project(self, project: Project) -> None:
+        """Insère ou met à jour le projet (upsert sur son id)."""
         with self._conn:
             self._conn.execute(
                 """
@@ -195,20 +202,23 @@ class RegistryDatabase(_SQLiteDatabase):
                     description = excluded.description,
                     created_at = excluded.created_at
                 """,
-                (project.id, project.name, project.owner_node_id,
-                 project.description, project.created_at),
+                (
+                    project.id,
+                    project.name,
+                    project.owner_node_id,
+                    project.description,
+                    project.created_at,
+                ),
             )
 
     def get_project(self, project_id: str) -> Project | None:
-        row = self._conn.execute(
-            "SELECT * FROM projects WHERE id = ?", (project_id,)
-        ).fetchone()
+        """Retourne le projet ou None s'il est inconnu."""
+        row = self._conn.execute("SELECT * FROM projects WHERE id = ?", (project_id,)).fetchone()
         return self._row_to_project(row) if row else None
 
     def list_projects(self) -> list[Project]:
-        rows = self._conn.execute(
-            "SELECT * FROM projects ORDER BY created_at"
-        ).fetchall()
+        """Liste tous les projets, ordonnés par date de création."""
+        rows = self._conn.execute("SELECT * FROM projects ORDER BY created_at").fetchall()
         return [self._row_to_project(row) for row in rows]
 
     @staticmethod
@@ -224,6 +234,7 @@ class RegistryDatabase(_SQLiteDatabase):
     # -- nœuds --
 
     def save_node(self, node: SupplyNode) -> None:
+        """Insère ou met à jour le nœud (upsert sur son id)."""
         with self._conn:
             self._conn.execute(
                 """
@@ -242,22 +253,30 @@ class RegistryDatabase(_SQLiteDatabase):
                     status = excluded.status,
                     kpis_json = excluded.kpis_json
                 """,
-                (node.id, node.name, node.label, str(node.kind), node.rank,
-                 node.project_id, node.location, node.latitude, node.longitude,
-                 str(node.status), kpis_to_json(node.kpis)),
+                (
+                    node.id,
+                    node.name,
+                    node.label,
+                    str(node.kind),
+                    node.rank,
+                    node.project_id,
+                    node.location,
+                    node.latitude,
+                    node.longitude,
+                    str(node.status),
+                    kpis_to_json(node.kpis),
+                ),
             )
 
     def get_node(self, node_id: str) -> SupplyNode | None:
-        row = self._conn.execute(
-            "SELECT * FROM nodes WHERE id = ?", (node_id,)
-        ).fetchone()
+        """Retourne le nœud ou None s'il est inconnu."""
+        row = self._conn.execute("SELECT * FROM nodes WHERE id = ?", (node_id,)).fetchone()
         return self._row_to_node(row) if row else None
 
     def list_nodes(self, project_id: str | None = None) -> list[SupplyNode]:
+        """Liste les nœuds (filtrés par projet si ``project_id`` est fourni)."""
         if project_id is None:
-            rows = self._conn.execute(
-                "SELECT * FROM nodes ORDER BY rank, id"
-            ).fetchall()
+            rows = self._conn.execute("SELECT * FROM nodes ORDER BY rank, id").fetchall()
         else:
             rows = self._conn.execute(
                 "SELECT * FROM nodes WHERE project_id = ? ORDER BY rank, id",
@@ -275,6 +294,7 @@ class RegistryDatabase(_SQLiteDatabase):
             self._conn.execute("DELETE FROM nodes WHERE id = ?", (node_id,))
 
     def set_node_status(self, node_id: str, status: TaskStatus | str) -> None:
+        """Met à jour le statut du nœud (valide la valeur via :class:`TaskStatus`)."""
         with self._conn:
             self._conn.execute(
                 "UPDATE nodes SET status = ? WHERE id = ?",
@@ -300,6 +320,7 @@ class RegistryDatabase(_SQLiteDatabase):
     # -- arcs --
 
     def save_arc(self, arc: SupplyArc) -> None:
+        """Insère ou met à jour l'arc (upsert sur (source_id, target_id))."""
         with self._conn:
             self._conn.execute(
                 """
@@ -312,11 +333,19 @@ class RegistryDatabase(_SQLiteDatabase):
                     delta = excluded.delta,
                     kpis_json = excluded.kpis_json
                 """,
-                (arc.source_id, arc.target_id, arc.label,
-                 arc.gamma, arc.beta, arc.delta, kpis_to_json(arc.kpis)),
+                (
+                    arc.source_id,
+                    arc.target_id,
+                    arc.label,
+                    arc.gamma,
+                    arc.beta,
+                    arc.delta,
+                    kpis_to_json(arc.kpis),
+                ),
             )
 
     def get_arc(self, source_id: str, target_id: str) -> SupplyArc | None:
+        """Retourne l'arc source -> target ou None s'il est inconnu."""
         row = self._conn.execute(
             "SELECT * FROM arcs WHERE source_id = ? AND target_id = ?",
             (source_id, target_id),
@@ -324,12 +353,12 @@ class RegistryDatabase(_SQLiteDatabase):
         return self._row_to_arc(row) if row else None
 
     def list_arcs(self) -> list[SupplyArc]:
-        rows = self._conn.execute(
-            "SELECT * FROM arcs ORDER BY source_id, target_id"
-        ).fetchall()
+        """Liste tous les arcs, ordonnés par (source_id, target_id)."""
+        rows = self._conn.execute("SELECT * FROM arcs ORDER BY source_id, target_id").fetchall()
         return [self._row_to_arc(row) for row in rows]
 
     def delete_arc(self, source_id: str, target_id: str) -> None:
+        """Supprime l'arc source -> target (silencieux s'il est absent)."""
         with self._conn:
             self._conn.execute(
                 "DELETE FROM arcs WHERE source_id = ? AND target_id = ?",
@@ -351,6 +380,7 @@ class RegistryDatabase(_SQLiteDatabase):
 
 # --- Base par client -------------------------------------------------------------
 
+
 class ClientDatabase(_SQLiteDatabase):
     """Base de données privée d'un client (un fichier sqlite par nœud).
 
@@ -359,6 +389,7 @@ class ClientDatabase(_SQLiteDatabase):
     """
 
     def __init__(self, db_dir: Path, client_id: str) -> None:
+        """Ouvre (ou crée) le fichier ``<client_id>.sqlite`` dans ``db_dir``."""
         self.client_id = client_id
         super().__init__(Path(db_dir) / f"{client_id}.sqlite")
 
@@ -412,6 +443,7 @@ class ClientDatabase(_SQLiteDatabase):
     # -- évaluations AHP --
 
     def save_assessment(self, assessment: AHPAssessment) -> int:
+        """Insère l'évaluation AHP et retourne son rowid."""
         with self._conn:
             cursor = self._conn.execute(
                 """
@@ -421,17 +453,26 @@ class ClientDatabase(_SQLiteDatabase):
                                          is_consistent, ud, notes, timestamp)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
-                (assessment.node_id, assessment.project_id, assessment.operator_id,
-                 _comparisons_to_json(assessment.comparisons),
-                 json.dumps(assessment.criteria_scores),
-                 json.dumps(assessment.weights),
-                 assessment.consistency_ratio,
-                 int(assessment.is_consistent),
-                 assessment.ud, assessment.notes, assessment.timestamp),
+                (
+                    assessment.node_id,
+                    assessment.project_id,
+                    assessment.operator_id,
+                    _comparisons_to_json(assessment.comparisons),
+                    json.dumps(assessment.criteria_scores),
+                    json.dumps(assessment.weights),
+                    assessment.consistency_ratio,
+                    int(assessment.is_consistent),
+                    assessment.ud,
+                    assessment.notes,
+                    assessment.timestamp,
+                ),
             )
-            return int(cursor.lastrowid)
+            rowid = cursor.lastrowid
+            assert rowid is not None  # INSERT abouti : lastrowid est défini
+            return int(rowid)
 
     def latest_assessment(self, node_id: str) -> AHPAssessment | None:
+        """Retourne l'évaluation la plus récente du nœud, ou None."""
         row = self._conn.execute(
             """
             SELECT * FROM assessments WHERE node_id = ?
@@ -442,6 +483,7 @@ class ClientDatabase(_SQLiteDatabase):
         return self._row_to_assessment(row) if row else None
 
     def list_assessments(self, node_id: str) -> list[AHPAssessment]:
+        """Liste les évaluations du nœud, par timestamp croissant."""
         rows = self._conn.execute(
             """
             SELECT * FROM assessments WHERE node_id = ?
@@ -469,9 +511,12 @@ class ClientDatabase(_SQLiteDatabase):
 
     # -- snapshots KPI --
 
-    def save_kpi_snapshot(self, node_id: str, kpis: KPIBundle,
-                          timestamp: float | None = None) -> int:
+    def save_kpi_snapshot(
+        self, node_id: str, kpis: KPIBundle, timestamp: float | None = None
+    ) -> int:
+        """Insère un snapshot KPI (timestamp = maintenant si None) et retourne son rowid."""
         import time as _time
+
         ts = _time.time() if timestamp is None else timestamp
         with self._conn:
             cursor = self._conn.execute(
@@ -481,11 +526,14 @@ class ClientDatabase(_SQLiteDatabase):
                 """,
                 (node_id, kpis_to_json(kpis), ts),
             )
-            return int(cursor.lastrowid)
+            rowid = cursor.lastrowid
+            assert rowid is not None  # INSERT abouti : lastrowid est défini
+            return int(rowid)
 
     # -- historique d'urgence --
 
     def save_urgency_state(self, node_id: str, state: UrgencyState) -> int:
+        """Insère un état d'urgence dans l'historique et retourne son rowid."""
         with self._conn:
             cursor = self._conn.execute(
                 """
@@ -494,11 +542,21 @@ class ClientDatabase(_SQLiteDatabase):
                                              timestamp)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
-                (node_id, state.ud_local, state.ur_local, state.ud, state.ur,
-                 state.adequation, state.false_urgency, state.hidden_risk,
-                 state.timestamp),
+                (
+                    node_id,
+                    state.ud_local,
+                    state.ur_local,
+                    state.ud,
+                    state.ur,
+                    state.adequation,
+                    state.false_urgency,
+                    state.hidden_risk,
+                    state.timestamp,
+                ),
             )
-            return int(cursor.lastrowid)
+            rowid = cursor.lastrowid
+            assert rowid is not None  # INSERT abouti : lastrowid est défini
+            return int(rowid)
 
     def urgency_series(self, node_id: str) -> list[UrgencyState]:
         """Série temporelle des états d'urgence, ordonnée par timestamp croissant."""

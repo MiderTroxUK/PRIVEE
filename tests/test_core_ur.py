@@ -1,5 +1,7 @@
 """Tests du modèle d'urgence réelle Ur."""
 
+from itertools import pairwise
+
 import pytest
 
 from supplyscore.core.ur_model import (
@@ -83,8 +85,10 @@ class TestBornes:
         # Stock saturé + déficit de flux massif
         k = KPIBundle(
             inventory=InventoryKPIs(
-                max_volume_m3=100.0, current_volume_m3=100.0,
-                max_weight_kg=50.0, current_weight_kg=50.0,
+                max_volume_m3=100.0,
+                current_volume_m3=100.0,
+                max_weight_kg=50.0,
+                current_weight_kg=50.0,
                 flow_rate=0.0,
             ),
             network=NetworkKPIs(demand=1000.0),
@@ -92,9 +96,7 @@ class TestBornes:
         assert 0.0 <= model.u_cap(k) <= 1.0
         # Stock vide, flux excédentaire -> proche de 0
         k = KPIBundle(
-            inventory=InventoryKPIs(
-                max_volume_m3=100.0, current_volume_m3=0.0, flow_rate=500.0
-            ),
+            inventory=InventoryKPIs(max_volume_m3=100.0, current_volume_m3=0.0, flow_rate=500.0),
             network=NetworkKPIs(demand=10.0),
         )
         assert 0.0 <= model.u_cap(k) <= 1.0
@@ -102,16 +104,18 @@ class TestBornes:
     def test_u_risk_bornes(self, model):
         k = KPIBundle(
             risk=RiskKPIs(
-                failure_probability=1.0, recovery_time_h=1000.0, severity=1.0,
-                env_exposure=0.9, political_risk=0.9,
+                failure_probability=1.0,
+                recovery_time_h=1000.0,
+                severity=1.0,
+                env_exposure=0.9,
+                political_risk=0.9,
             )
         )
         assert 0.0 <= model.u_risk(k) <= 1.0
 
     def test_u_cost_bornes(self, model):
         k = KPIBundle(
-            cost=CostKPIs(op_cost=10_000.0, nominal_op_cost=10.0,
-                          tariff=5.0, storage_cost=99_999.0)
+            cost=CostKPIs(op_cost=10_000.0, nominal_op_cost=10.0, tariff=5.0, storage_cost=99_999.0)
         )
         assert 0.0 <= model.u_cost(k) <= 1.0
         # Coût sous le nominal -> clip à 0
@@ -120,14 +124,10 @@ class TestBornes:
 
     def test_u_co2_bornes(self, model):
         k = KPIBundle(
-            co2=CO2KPIs(op_emission_g_h=10_000.0, co2_target_g_h=100.0,
-                        co2_max_g_h=200.0)
+            co2=CO2KPIs(op_emission_g_h=10_000.0, co2_target_g_h=100.0, co2_max_g_h=200.0)
         )
         assert model.u_co2(k) == 1.0
-        k = KPIBundle(
-            co2=CO2KPIs(op_emission_g_h=50.0, co2_target_g_h=100.0,
-                        co2_max_g_h=200.0)
-        )
+        k = KPIBundle(co2=CO2KPIs(op_emission_g_h=50.0, co2_target_g_h=100.0, co2_max_g_h=200.0))
         assert model.u_co2(k) == 0.0
 
 
@@ -145,8 +145,7 @@ class TestAgregation:
         """Deux blocs à 0.5 -> 1 - 0.5*0.5 = 0.75."""
         k = KPIBundle(
             oee=OEEKPIs(availability=0.5, performance=1.0, quality=1.0),
-            co2=CO2KPIs(op_emission_g_h=150.0, co2_target_g_h=100.0,
-                        co2_max_g_h=200.0),
+            co2=CO2KPIs(op_emission_g_h=150.0, co2_target_g_h=100.0, co2_max_g_h=200.0),
         )
         assert model.ur_local(0.0, k) == pytest.approx(0.75, rel=1e-6)
 
@@ -161,8 +160,7 @@ class TestAgregation:
         k = KPIBundle(
             time=TimeKPIs(deadline_h=1.0, lead_time_h=100.0),
             oee=OEEKPIs(availability=0.1, performance=0.1, quality=0.1),
-            risk=RiskKPIs(failure_probability=1.0, recovery_time_h=100.0,
-                          severity=1.0),
+            risk=RiskKPIs(failure_probability=1.0, recovery_time_h=100.0, severity=1.0),
         )
         assert 0.0 <= model.ur_local(0.0, k) <= 1.0
 
@@ -179,7 +177,7 @@ class TestSingularite:
     def test_monotone_croissante_vers_tc(self):
         ts = [0.0, 2.0, 5.0, 8.0, 9.5, 9.99]
         values = [ur_singularity(t, tc=10.0) for t in ts]
-        assert all(b > a for a, b in zip(values, values[1:]))
+        assert all(b > a for a, b in pairwise(values))
         assert all(0.0 <= v <= 1.0 for v in values)
 
     def test_depasse_1_apres_tc(self):

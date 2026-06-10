@@ -46,43 +46,54 @@ def layout() -> html.Div:
                 [
                     labelled(
                         "Nœud à choquer",
-                        dcc.Dropdown(id="sim-node-dd",
-                                     options=node_options(service.repo.nodes()),
-                                     placeholder="Choisir un nœud…"),
+                        dcc.Dropdown(
+                            id="sim-node-dd",
+                            options=node_options(service.repo.nodes()),
+                            placeholder="Choisir un nœud…",
+                        ),
                         width="380px",
                     ),
                     labelled(
                         "Ur_local simulé",
-                        dcc.Slider(id="sim-ur-slider", min=0, max=1, step=0.05,
-                                   value=1.0,
-                                   marks={0: "0", 0.5: "0.5", 1: "1"},
-                                   tooltip={"placement": "bottom"}),
+                        dcc.Slider(
+                            id="sim-ur-slider",
+                            min=0,
+                            max=1,
+                            step=0.05,
+                            value=1.0,
+                            marks={0: "0", 0.5: "0.5", 1: "1"},
+                            tooltip={"placement": "bottom"},
+                        ),
                         width="320px",
                     ),
                     html.Div(
                         [
-                            html.Button("Défaillance totale (1.0)",
-                                        id="sim-preset-fail",
-                                        style={**BUTTON_SECONDARY_STYLE,
-                                               "marginRight": "10px"}),
-                            html.Button("Retour à la normale (0.0)",
-                                        id="sim-preset-ok",
-                                        style=BUTTON_SECONDARY_STYLE),
+                            html.Button(
+                                "Défaillance totale (1.0)",
+                                id="sim-preset-fail",
+                                style={**BUTTON_SECONDARY_STYLE, "marginRight": "10px"},
+                            ),
+                            html.Button(
+                                "Retour à la normale (0.0)",
+                                id="sim-preset-ok",
+                                style=BUTTON_SECONDARY_STYLE,
+                            ),
                         ],
                         style={"marginBottom": "12px"},
                     ),
-                    html.Div(html.Button("Simuler", id="sim-run-btn",
-                                         style=BUTTON_STYLE)),
+                    html.Div(html.Button("Simuler", id="sim-run-btn", style=BUTTON_STYLE)),
                     html.Div(id="sim-summary"),
                 ],
                 subtitle="Aucune donnée n'est modifiée : la simulation est purement indicative.",
             ),
-            card("Propagation du choc",
-                 [dcc.Graph(id="sim-dag-fig",
-                            figure=empty_figure("Lancez une simulation."))]),
-            card("Impact par nœud",
-                 [dcc.Graph(id="sim-bar-fig",
-                            figure=empty_figure("Lancez une simulation."))]),
+            card(
+                "Propagation du choc",
+                [dcc.Graph(id="sim-dag-fig", figure=empty_figure("Lancez une simulation."))],
+            ),
+            card(
+                "Impact par nœud",
+                [dcc.Graph(id="sim-bar-fig", figure=empty_figure("Lancez une simulation."))],
+            ),
             card(
                 "Appliquer réellement",
                 [
@@ -91,10 +102,14 @@ def layout() -> html.Div:
                         dcc.Dropdown(
                             id="sim-status-dd",
                             options=[
-                                {"label": STATUS_FR[TaskStatus.DONE],
-                                 "value": str(TaskStatus.DONE)},
-                                {"label": STATUS_FR[TaskStatus.ABANDONED],
-                                 "value": str(TaskStatus.ABANDONED)},
+                                {
+                                    "label": STATUS_FR[TaskStatus.DONE],
+                                    "value": str(TaskStatus.DONE),
+                                },
+                                {
+                                    "label": STATUS_FR[TaskStatus.ABANDONED],
+                                    "value": str(TaskStatus.ABANDONED),
+                                },
                             ],
                             placeholder="Choisir un statut…",
                         ),
@@ -127,6 +142,7 @@ def layout() -> html.Div:
 
 # --- Callbacks (fonctions nommées, testables sans serveur) -----------------------
 
+
 def node_options_callback(project_data):
     """Restreint le dropdown aux nœuds du projet actif (tout le graphe sinon)."""
     service = get_service()
@@ -153,10 +169,12 @@ def simulate_callback(n_clicks, node_id, ur_value, project_data):
         raise PreventUpdate
     service = get_service()
     if not node_id:
-        message = html.Span("Sélectionnez d'abord un nœud à choquer.",
-                            style=MSG_ALERT_STYLE)
-        return (empty_figure("Sélectionnez un nœud."),
-                empty_figure("Sélectionnez un nœud."), message)
+        message = html.Span("Sélectionnez d'abord un nœud à choquer.", style=MSG_ALERT_STYLE)
+        return (
+            empty_figure("Sélectionnez un nœud."),
+            empty_figure("Sélectionnez un nœud."),
+            message,
+        )
 
     value = float(ur_value if ur_value is not None else 1.0)
     deltas = service.simulate_shock(node_id, value)
@@ -166,14 +184,12 @@ def simulate_callback(n_clicks, node_id, ur_value, project_data):
     if pid:
         nodes = [n for n in nodes if n.project_id == pid]
     ids = {n.id for n in nodes}
-    arcs = [a for a in service.repo.arcs()
-            if a.source_id in ids and a.target_id in ids]
+    arcs = [a for a in service.repo.arcs() if a.source_id in ids and a.target_id in ids]
     names = {n.id: n.name for n in service.repo.nodes()}
 
     shocked = service.repo.get_node(node_id)
     shocked_name = shocked.name if shocked is not None else node_id
-    impacted = {nid: d for nid, d in deltas.items()
-                if nid != node_id and abs(d) > 1e-9}
+    impacted = {nid: d for nid, d in deltas.items() if nid != node_id and abs(d) > 1e-9}
     if impacted:
         worst = max(impacted, key=lambda nid: abs(impacted[nid]))
         text = (
@@ -182,8 +198,7 @@ def simulate_callback(n_clicks, node_id, ur_value, project_data):
             f"sur « {names.get(worst, worst)} ». Simulation sans persistance."
         )
     else:
-        text = (f"Le choc sur « {shocked_name} » (Ur_local = {value:.2f}) "
-                "n'impacte aucun nœud aval.")
+        text = f"Le choc sur « {shocked_name} » (Ur_local = {value:.2f}) n'impacte aucun nœud aval."
     return (
         shock_dag_figure(nodes, arcs, deltas),
         shock_bar_figure(deltas, names),
@@ -197,8 +212,7 @@ def apply_status_callback(submit_n_clicks, node_id, status_value):
         raise PreventUpdate
     service = get_service()
     if not node_id or not status_value:
-        return html.Span("Choisissez un nœud (carte du haut) ET un statut.",
-                         style=MSG_ALERT_STYLE)
+        return html.Span("Choisissez un nœud (carte du haut) ET un statut.", style=MSG_ALERT_STYLE)
     status = TaskStatus(status_value)
     service.set_status(node_id, status)
     node = service.repo.get_node(node_id)

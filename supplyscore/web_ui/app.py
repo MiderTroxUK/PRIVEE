@@ -79,9 +79,7 @@ def create_app(
         },
     )
 
-    app.callback(Output("page-content", "children"), Input("url", "pathname"))(
-        route_callback
-    )
+    app.callback(Output("page-content", "children"), Input("url", "pathname"))(route_callback)
     for page in (projects, questionnaire, dashboard, simulation):
         page.register_callbacks(app)
     return app

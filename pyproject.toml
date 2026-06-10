@@ -4,18 +4,76 @@ version = "0.1.0"
 description = "Score d'alignement entre besoin déclaré (Ud) et réalité opérationnelle (Ur) sur une supply chain multi-rangs"
 requires-python = ">=3.12"
 dependencies = [
-    "numpy>=1.26",
-    "networkx>=3.2",
-    "dash>=2.16",
-    "plotly>=5.20",
+    "numpy>=2.4,<3",
+    "networkx>=3.6,<4",
+    "dash>=4.2,<5",
+    "plotly>=6.8,<7",
 ]
 
 [project.optional-dependencies]
 neo4j = ["neo4j>=5.20"]
-dev = ["pytest>=8.0"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0,<10",
+    "pytest-cov>=6.0",
+    "hypothesis>=6.100",
+    "ruff>=0.8",
+    "mypy>=1.13",
+    "pre-commit>=4.0",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+exclude = [".venv", "data_store", "data_demo"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "B", "UP", "SIM", "RUF", "D"]
+# Typographie française légitime dans les docstrings/chaînes (pas des fautes de frappe).
+allowed-confusables = ["×", "–", "—", "’", "œ", "→", "⁻", "·", "−", "≤", "≥", "∈", "Σ", "Π", "λ", "α", "β", "γ", "δ", "ρ", "ω", "ε", "φ", "ξ", "μ", "σ", "κ"]
+ignore = [
+    "D203",  # incompatible avec D211
+    "D213",  # incompatible avec D212
+    "D104",  # docstring de package non exigée
+]
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["D"]  # les tests n'exigent pas de docstrings complètes
+
+[tool.mypy]
+python_version = "3.12"
+warn_unused_ignores = true
+warn_redundant_casts = true
+no_implicit_optional = true
+check_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = ["supplyscore.domain.*", "supplyscore.core.*", "supplyscore.graph.*", "supplyscore.data.*", "supplyscore.services.*"]
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+
+[[tool.mypy.overrides]]
+module = ["supplyscore.web_ui.*"]
+ignore_errors = false
+disallow_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = ["dash.*", "plotly.*", "networkx.*", "neo4j.*"]
+ignore_missing_imports = true
+
+[tool.coverage.run]
+source = ["supplyscore"]
+omit = ["supplyscore/graph/neo4j_repo.py"]
+
+[tool.coverage.report]
+# Le seuil bloquant (fail_under = 90) sera activé au Jalon 2 (phase E9).
+precision = 1
 
 [build-system]
 requires = ["setuptools>=68"]
