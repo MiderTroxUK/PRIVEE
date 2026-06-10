@@ -8,7 +8,11 @@ from supplyscore.services import SupplyScoreService
 
 @pytest.fixture
 def service(tmp_path):
-    return SupplyScoreService(db_dir=tmp_path / "store")
+    # Horloge figée : les comparaisons entre deux evaluate_all successifs
+    # doivent être déterministes (pas de dérive du temps réel entre les appels).
+    from supplyscore.core.clock import FixedClock
+
+    return SupplyScoreService(db_dir=tmp_path / "store", clock=FixedClock(1_750_000_000.0))
 
 
 def test_full_pipeline(service):

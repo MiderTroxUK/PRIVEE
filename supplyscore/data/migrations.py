@@ -202,6 +202,105 @@ def _registry_v2(conn: sqlite3.Connection) -> None:
         conn.execute("PRAGMA foreign_keys=ON")
 
 
+def _registry_v3(conn: sqlite3.Connection) -> None:
+    """v3 registre : t0 projet, onboarding, arcs backup, jalons et tags.
+
+    Ajouts : colonne ``projects.t0_ts`` (backfillée sur ``created_at``),
+    ``nodes.onboarding_state``, ``arcs.arc_kind``, tables ``milestones``,
+    ``tag_categories``/``tags``/``node_tags`` et ``onboarding_progress``.
+
+    SQLite ne supporte pas ``ALTER TABLE ... ADD COLUMN IF NOT EXISTS`` : la
+    rejouabilité est garantie par le garde ``user_version`` du framework, et
+    l'atomicité par la transaction explicite (``BEGIN IMMEDIATE`` ... commit) —
+    une interruption laisse la base en v2, rejouable proprement.
+    """
+    conn.commit()  # garantit qu'aucune transaction n'est ouverte
+    conn.execute("BEGIN IMMEDIATE")
+    try:
+        # a. origine temporelle du projet, backfillée sur la date de création.
+        conn.execute("ALTER TABLE projects ADD COLUMN t0_ts REAL")
+        conn.execute("UPDATE projects SET t0_ts = created_at WHERE t0_ts IS NULL")
+        # b. état d'onboarding du nœud ('draft' tant que le wizard n'est pas fini).
+        conn.execute(
+            "ALTER TABLE nodes ADD COLUMN onboarding_state TEXT NOT NULL DEFAULT 'complete'"
+        )
+        # c. nature de l'arc (backup = inerte dans tous les calculs).
+        conn.execute("ALTER TABLE arcs ADD COLUMN arc_kind TEXT NOT NULL DEFAULT 'nominal'")
+        # d. jalons datés du cahier des charges d'un nœud.
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS milestones (
+                id TEXT PRIMARY KEY,
+                node_id TEXT NOT NULL,
+                name TEXT NOT NULL,
+                kind TEXT NOT NULL DEFAULT 'livraison',
+                start_ts REAL NOT NULL,
+                deadline_ts REAL NOT NULL,
+                status TEXT NOT NULL DEFAULT 'active',
+                progress REAL NOT NULL DEFAULT 0.0 CHECK (progress BETWEEN 0 AND 1),
+                position INTEGER NOT NULL,
+                created_at REAL NOT NULL,
+                updated_at REAL NOT NULL,
+                FOREIGN KEY (node_id) REFERENCES nodes(id) ON DELETE CASCADE,
+                CHECK (deadline_ts > start_ts)
+            )
+            """
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_milestones_node ON milestones(node_id, position)"
+        )
+        # e. taxonomie par projet : catégories contrôlées, tags libres, liaisons.
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS tag_categories (
+                id TEXT PRIMARY KEY,
+                project_id TEXT NOT NULL,
+                name TEXT NOT NULL,
+                color TEXT,
+                UNIQUE(project_id, name)
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS tags (
+                id TEXT PRIMARY KEY,
+                project_id TEXT NOT NULL,
+                category_id TEXT REFERENCES tag_categories(id) ON DELETE SET NULL,
+                name TEXT NOT NULL,
+                UNIQUE(project_id, name)
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS node_tags (
+                node_id TEXT NOT NULL REFERENCES nodes(id) ON DELETE CASCADE,
+                tag_id TEXT NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
+                PRIMARY KEY (node_id, tag_id)
+            )
+            """
+        )
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_node_tags_tag ON node_tags(tag_id)")
+        # f. progression du wizard d'onboarding (brouillon JSON par nœud).
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS onboarding_progress (
+                node_id TEXT PRIMARY KEY REFERENCES nodes(id) ON DELETE CASCADE,
+                sections_done_json TEXT NOT NULL,
+                draft_json TEXT NOT NULL DEFAULT '{}',
+                current_step INTEGER NOT NULL DEFAULT 1,
+                updated_at REAL NOT NULL
+            )
+            """
+        )
+        conn.execute("PRAGMA user_version = 3")
+        conn.commit()
+    except BaseException:
+        conn.rollback()
+        raise
+
+
 # --- Migrations des bases client ---------------------------------------------------
 
 
@@ -255,15 +354,53 @@ def _client_v1(conn: sqlite3.Connection) -> None:
         conn.execute("PRAGMA user_version = 1")
 
 
+def _client_v2(conn: sqlite3.Connection) -> None:
+    """v2 client : cahier des charges versionné (spec_sheet) et journal d'événements."""
+    with conn:
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS spec_sheet (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                node_id TEXT NOT NULL,
+                version INTEGER NOT NULL,
+                payload_json TEXT NOT NULL,
+                source TEXT NOT NULL,
+                created_at REAL NOT NULL,
+                UNIQUE(node_id, version)
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS events (
+                id TEXT PRIMARY KEY,
+                node_id TEXT NOT NULL,
+                event_type TEXT NOT NULL,
+                iso_week TEXT NOT NULL,
+                occurred_at REAL NOT NULL,
+                params_json TEXT NOT NULL,
+                impacts_json TEXT NOT NULL,
+                reverted_at REAL,
+                operator_id TEXT NOT NULL,
+                notes TEXT NOT NULL DEFAULT ''
+            )
+            """
+        )
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_events_node_week ON events(node_id, iso_week)")
+        conn.execute("PRAGMA user_version = 2")
+
+
 # --- Registres de migrations ---------------------------------------------------------
 
 _REGISTRY_MIGRATIONS: list[tuple[int, MigrationFn]] = [
     (1, _registry_v1),
     (2, _registry_v2),
+    (3, _registry_v3),
 ]
 
 _CLIENT_MIGRATIONS: list[tuple[int, MigrationFn]] = [
     (1, _client_v1),
+    (2, _client_v2),
 ]
 
 _MIGRATIONS_BY_KIND: dict[str, list[tuple[int, MigrationFn]]] = {

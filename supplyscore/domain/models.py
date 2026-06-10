@@ -174,6 +174,13 @@ class UrgencyState:
 # --- Graphe ------------------------------------------------------------------
 
 
+class ArcKind(StrEnum):
+    """Nature d'un arc : nominal (flux réel) ou backup (secours, purement visuel)."""
+
+    NOMINAL = "nominal"
+    BACKUP = "backup"
+
+
 @dataclass
 class SupplyNode:
     """Nœud du réseau logistique (entrepôt, usine, atelier, client...)."""
@@ -190,6 +197,8 @@ class SupplyNode:
     status: TaskStatus = TaskStatus.ACTIVE
     kpis: KPIBundle = field(default_factory=KPIBundle)
     urgency: UrgencyState = field(default_factory=UrgencyState)
+    tags: list[str] = field(default_factory=list)  # ids de tags (domain.tags)
+    onboarding_state: str = "complete"  # "draft" tant que le wizard n'est pas fini
 
 
 @dataclass
@@ -202,6 +211,7 @@ class SupplyArc:
     gamma: float = 0.5  # intensité de dépendance Ud (descendante)
     beta: float = 0.5  # coefficient de propagation Ur (montante)
     delta: float = 1.0  # criticité pour la propagation de choc
+    kind_arc: ArcKind = ArcKind.NOMINAL  # backup = inerte dans tous les calculs
     kpis: KPIBundle = field(default_factory=KPIBundle)
 
     @property
@@ -222,6 +232,12 @@ class Project:
     owner_node_id: str  # nœud du client qui porte le projet
     description: str = ""
     created_at: float = field(default_factory=_time.time)
+    t0_ts: float | None = None  # origine temporelle du projet (epoch s) ; None -> created_at
+
+    @property
+    def origin_ts(self) -> float:
+        """Origine temporelle effective du projet (t0_ts, sinon created_at)."""
+        return self.t0_ts if self.t0_ts is not None else self.created_at
 
 
 @dataclass

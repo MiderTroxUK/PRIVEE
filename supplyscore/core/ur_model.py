@@ -12,6 +12,7 @@ import math
 from dataclasses import dataclass, field
 
 from supplyscore.core.status_rules import effective_ur_local
+from supplyscore.domain.milestones import Milestone, next_active_milestone, theoretical_progress
 from supplyscore.domain.models import KPIBundle, TaskStatus
 
 #: Noms des blocs d'urgence, dans l'ordre d'agrégation.
@@ -138,6 +139,10 @@ class UrModel:
         beta_cost: poids (surcoût op, tarif, stockage) du bloc coût.
         t_ref_h: horizon de référence (heures) pour la normalisation du risque.
         c_ref: coût de stockage de référence pour la normalisation du coût.
+        kappa_retard: gain κ_retard >= 0 de la pénalité de retard
+            d'avancement (u_time v2, jalon en retard sur son planning).
+        kappa_avance: gain κ_avance >= 0 du bonus d'avance (u_time v2,
+            jalon en avance sur son planning).
         omega: poids d'agrégation ω_m >= 0 par bloc (défaut : tous 1.0).
         eps: garde-fou numérique des divisions.
     """
@@ -146,49 +151,118 @@ class UrModel:
     beta_cost: tuple[float, float, float] = (0.5, 0.3, 0.2)
     t_ref_h: float = 24.0
     c_ref: float = 1000.0
+    kappa_retard: float = 0.5
+    kappa_avance: float = 0.2
     omega: dict[str, float] = field(default_factory=lambda: {name: 1.0 for name in BLOCKS})
     eps: float = _EPS
 
     def __post_init__(self) -> None:
-        """Valide les poids d'agrégation.
+        """Valide les poids d'agrégation et les gains de modulation planning.
 
         Raises:
-            ValueError: si un poids ω_m est négatif ou si un bloc est inconnu.
+            ValueError: si un poids ω_m est négatif, si un bloc est inconnu
+                ou si κ_retard / κ_avance est négatif.
         """
         for name, w in self.omega.items():
             if name not in BLOCKS:
                 raise ValueError(f"Bloc inconnu dans omega : {name!r}")
             if w < 0:
                 raise ValueError(f"Poids omega[{name!r}] négatif : {w}")
+        if self.kappa_retard < 0:
+            raise ValueError(f"kappa_retard doit être >= 0, reçu {self.kappa_retard}")
+        if self.kappa_avance < 0:
+            raise ValueError(f"kappa_avance doit être >= 0, reçu {self.kappa_avance}")
 
     # --- Blocs d'urgence ------------------------------------------------------
 
-    def u_time(self, t: float, kpis: KPIBundle) -> float | None:
-        """Urgence temporelle : probabilité de retard P(L > d − t).
+    def _p_late(self, slack_h: float, lead_time_h: float, lead_time_std_h: float | None) -> float:
+        """Probabilité de retard P(L > slack) pour L ~ Normale(μ, σ).
 
-        Le lead time est modélisé par une loi Normale(lead_time_h,
-        lead_time_std_h) ; l'écart-type vaut 0.25·lead_time par défaut.
+        σ = ``lead_time_std_h`` si fourni, sinon 0.25·μ par défaut ;
+        σ <= 0 dégénère en lead time déterministe (retard certain ou
+        impossible selon la marge restante).
+
+        Args:
+            slack_h: marge restante avant l'échéance (heures).
+            lead_time_h: lead time moyen μ (heures).
+            lead_time_std_h: écart-type σ du lead time (heures), ou None.
+
+        Returns:
+            P(L > slack) dans [0, 1].
+        """
+        mu = lead_time_h
+        std = lead_time_std_h if lead_time_std_h is not None else 0.25 * mu
+        if std <= 0:
+            # Lead time déterministe : retard certain ou impossible.
+            return 1.0 if mu > slack_h else 0.0
+        return _clip01(_normal_sf(slack_h, mu, std))
+
+    def u_time(
+        self,
+        t: float,
+        kpis: KPIBundle,
+        milestones: list[Milestone] | None = None,
+        t0_ts: float = 0.0,
+    ) -> float | None:
+        """Urgence temporelle : P(retard), modulée par l'avancement jalon (v2).
+
+        **v1 (sans jalon actif)** — si ``milestones`` est None, vide ou sans
+        jalon ACTIVE, comportement inchangé : u = P(L > d − t) avec
+        d = ``deadline_h`` des KPIs et L ~ Normale(lead_time_h,
+        lead_time_std_h), l'écart-type valant 0.25·lead_time par défaut ;
+        1.0 si t a dépassé la deadline ; None si ``deadline_h`` ou
+        ``lead_time_h`` manquent.
+
+        **v2 (jalon actif)** — soit M* = :func:`next_active_milestone`,
+        d* = (M*.deadline_ts − t0_ts)/3600 et s* = (M*.start_ts − t0_ts)/3600
+        (heures depuis t0 projet) :
+
+        - si t > d* : u_time = 1.0 (retard avéré) ;
+        - sinon :
+            - u_base = P(L > d* − t), même loi normale qu'en v1 ;
+            - p_th = clip01((t − s*) / (d* − s*)), avancement théorique
+              (1.0 si d* <= s*) ;
+            - r = p_th − M*.progress ∈ [−1, 1], retard d'avancement ;
+            - u_time = clip01(u_base + κ_retard·max(r, 0) − κ_avance·max(−r, 0)).
+
+        La forme ADDITIVE est volontaire : la contribution κ_retard·max(r, 0)
+        reste isolable du socle probabiliste u_base pour l'explicabilité.
+
+        Choix documenté : si ``lead_time_h`` est None alors qu'un jalon est
+        actif, u_base = 0.0 (et non None) — le jalon fournit l'échéance et
+        l'avancement, la modulation planning s'applique donc quand même.
 
         Args:
             t: date courante (heures depuis t0 projet).
             kpis: bundle KPI du nœud (bloc ``time``).
+            milestones: jalons du nœud ; None ou sans jalon ACTIVE → v1.
+            t0_ts: origine du référentiel projet (epoch s), pour convertir
+                les timestamps des jalons en heures.
 
         Returns:
-            P(retard) dans [0, 1] ; 1.0 si t a dépassé la deadline ;
-            None si ``deadline_h`` ou ``lead_time_h`` manquent.
+            Urgence temporelle dans [0, 1] ; None uniquement en v1 quand
+            ``deadline_h`` ou ``lead_time_h`` manquent.
         """
         tk = kpis.time
-        if tk.deadline_h is None or tk.lead_time_h is None:
-            return None
-        if t > tk.deadline_h:
+        m_star = next_active_milestone(milestones) if milestones else None
+        if m_star is None:
+            # v1 : échéance portée par les KPIs.
+            if tk.deadline_h is None or tk.lead_time_h is None:
+                return None
+            if t > tk.deadline_h:
+                return 1.0
+            return self._p_late(tk.deadline_h - t, tk.lead_time_h, tk.lead_time_std_h)
+        # v2 : échéance portée par le prochain jalon actif M*.
+        d_star = (m_star.deadline_ts - t0_ts) / 3600.0
+        if t > d_star:
             return 1.0
-        mu = tk.lead_time_h
-        std = tk.lead_time_std_h if tk.lead_time_std_h is not None else 0.25 * mu
-        slack = tk.deadline_h - t
-        if std <= 0:
-            # Lead time déterministe : retard certain ou impossible.
-            return 1.0 if mu > slack else 0.0
-        return _clip01(_normal_sf(slack, mu, std))
+        if tk.lead_time_h is None:
+            u_base = 0.0  # Pas de lead time : socle nul, modulation planning seule.
+        else:
+            u_base = self._p_late(d_star - t, tk.lead_time_h, tk.lead_time_std_h)
+        p_th = theoretical_progress(m_star, t0_ts + t * 3600.0)
+        r = p_th - m_star.progress
+        return _clip01(u_base + self.kappa_retard * max(r, 0.0) - self.kappa_avance * max(-r, 0.0))
 
     def u_cap(self, kpis: KPIBundle) -> float | None:
         """Urgence capacitaire : saturation volume/poids et déficit de flux.
@@ -332,18 +406,27 @@ class UrModel:
 
     # --- Agrégation -----------------------------------------------------------
 
-    def blocks(self, t: float, kpis: KPIBundle) -> dict[str, float | None]:
+    def blocks(
+        self,
+        t: float,
+        kpis: KPIBundle,
+        milestones: list[Milestone] | None = None,
+        t0_ts: float = 0.0,
+    ) -> dict[str, float | None]:
         """Calcule les six urgences partielles d'un nœud.
 
         Args:
             t: date courante (heures depuis t0 projet).
             kpis: bundle KPI du nœud.
+            milestones: jalons du nœud, propagés au bloc ``time`` (u_time v2).
+            t0_ts: origine du référentiel projet (epoch s), propagée au bloc
+                ``time``.
 
         Returns:
             Dictionnaire ``{nom_de_bloc: urgence ou None}`` (cf. :data:`BLOCKS`).
         """
         return {
-            "time": self.u_time(t, kpis),
+            "time": self.u_time(t, kpis, milestones=milestones, t0_ts=t0_ts),
             "cap": self.u_cap(kpis),
             "perf": self.u_perf(kpis),
             "risk": self.u_risk(kpis),
@@ -356,6 +439,8 @@ class UrModel:
         t: float,
         kpis: KPIBundle,
         status: TaskStatus = TaskStatus.ACTIVE,
+        milestones: list[Milestone] | None = None,
+        t0_ts: float = 0.0,
     ) -> float:
         """Urgence réelle locale par OU probabiliste pondéré des blocs.
 
@@ -370,13 +455,16 @@ class UrModel:
             t: date courante (heures depuis t0 projet).
             kpis: bundle KPI du nœud.
             status: statut de la tâche portée par le nœud.
+            milestones: jalons du nœud, propagés au bloc ``time`` (u_time v2).
+            t0_ts: origine du référentiel projet (epoch s), propagée au bloc
+                ``time``.
 
         Returns:
             Urgence locale dans [0, 1] ; 0.0 si tous les blocs sont None.
         """
         product = 1.0
         any_block = False
-        for name, u in self.blocks(t, kpis).items():
+        for name, u in self.blocks(t, kpis, milestones=milestones, t0_ts=t0_ts).items():
             if u is None:
                 continue
             w = self.omega.get(name, 1.0)

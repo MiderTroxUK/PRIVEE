@@ -13,8 +13,10 @@ from __future__ import annotations
 import random
 import uuid
 
+from supplyscore.domain.milestones import Milestone, MilestoneStatus
 from supplyscore.domain.models import (
     AHPAssessment,
+    ArcKind,
     CO2KPIs,
     CostKPIs,
     InventoryKPIs,
@@ -28,6 +30,7 @@ from supplyscore.domain.models import (
     TimeKPIs,
     UrgencyState,
 )
+from supplyscore.domain.tags import Tag, TagCategory
 
 # Échelle de Saaty (jugements admissibles dans une matrice de comparaison).
 _SAATY_SCALE: tuple[float, ...] = tuple(
@@ -298,6 +301,118 @@ class RandomSupplyChainGenerator:
             previous_rank = current_rank
 
         return project, nodes, arcs
+
+    # -- enrichissements v2 (jalons, tags, arcs de secours) ----------------------
+
+    def generate_milestones(self, node_id: str, t0_ts: float) -> list[Milestone]:
+        """Jalons de TEST pour un nœud : 2 à 4 fenêtres successives depuis ``t0_ts``.
+
+        Les deadlines sont RELATIVES à ``t0_ts`` (l'origine du projet) pour que
+        l'horloge — réelle ou de jeu — rende les échéances vivantes. Le premier
+        jalon est parfois déjà terminé (~30 % de chance).
+        """
+        rng = self._rng
+        kinds = ["proto", "serie", "livraison", "custom"]
+        names = ["Proto", "Série 1", "Livraison", "Qualification"]
+        count = rng.randint(2, 4)
+        milestones: list[Milestone] = []
+        cursor = t0_ts
+        for position in range(count):
+            duration_h = rng.uniform(7 * 24.0, 60 * 24.0)
+            start = cursor
+            deadline = start + duration_h * 3600.0
+            done = position == 0 and rng.random() < 0.30
+            milestones.append(
+                Milestone(
+                    id=self._uuid(),
+                    node_id=node_id,
+                    name=names[position % len(names)],
+                    kind=kinds[position % len(kinds)],
+                    start_ts=start,
+                    deadline_ts=deadline,
+                    status=MilestoneStatus.DONE if done else MilestoneStatus.ACTIVE,
+                    progress=1.0 if done else round(rng.uniform(0.0, 0.9), 2),
+                    position=position,
+                )
+            )
+            cursor = deadline
+        return milestones
+
+    def generate_tags(self, project_id: str) -> tuple[list[TagCategory], list[Tag]]:
+        """Taxonomie de TEST : 2 catégories colorées et 4 à 6 tags rattachés."""
+        rng = self._rng
+        categories = [
+            TagCategory(id=self._uuid(), project_id=project_id, name="Procédé", color="#2c5f7c"),
+            TagCategory(id=self._uuid(), project_id=project_id, name="Région", color="#b06000"),
+        ]
+        pool = [
+            ("Usinage", 0),
+            ("Fonderie", 0),
+            ("Assemblage", 0),
+            ("Europe", 1),
+            ("Asie", 1),
+            ("Amériques", 1),
+        ]
+        count = rng.randint(4, 6)
+        tags = [
+            Tag(
+                id=self._uuid(),
+                project_id=project_id,
+                name=name,
+                category_id=categories[cat_index].id,
+            )
+            for name, cat_index in pool[:count]
+        ]
+        return categories, tags
+
+    def pick_node_tags(self, tag_ids: list[str]) -> list[str]:
+        """Tire 1 à 3 tags (sans doublon) pour un nœud."""
+        if not tag_ids:
+            return []
+        rng = self._rng
+        k = rng.randint(1, min(3, len(tag_ids)))
+        return rng.sample(tag_ids, k)
+
+    def generate_backup_arcs(
+        self, nodes: list[SupplyNode], arcs: list[SupplyArc]
+    ) -> list[SupplyArc]:
+        """Arcs de secours de TEST : ~1 arc nominal sur 10 reçoit un fournisseur backup.
+
+        L'arc backup relie un AUTRE nœud du même rang que le fournisseur nominal
+        vers le même client (purement visuel — inerte dans les calculs).
+        """
+        rng = self._rng
+        by_id = {n.id: n for n in nodes}
+        existing = {(a.source_id, a.target_id) for a in arcs}
+        backups: list[SupplyArc] = []
+        for arc in list(arcs):
+            if rng.random() >= 0.10:
+                continue
+            source = by_id.get(arc.source_id)
+            if source is None:
+                continue
+            candidates = [
+                n
+                for n in nodes
+                if n.rank == source.rank
+                and n.id != source.id
+                and (n.id, arc.target_id) not in existing
+            ]
+            if not candidates:
+                continue
+            backup_source = rng.choice(candidates)
+            backup = SupplyArc(
+                source_id=backup_source.id,
+                target_id=arc.target_id,
+                label="Backup",
+                gamma=0.0,
+                beta=0.0,
+                kind_arc=ArcKind.BACKUP,
+                kpis=self._arc_kpis(),
+            )
+            backups.append(backup)
+            existing.add((backup.source_id, backup.target_id))
+        return backups
 
     def generate_assessment(
         self,

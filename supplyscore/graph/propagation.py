@@ -16,6 +16,11 @@ Les règles de statut (DONE -> Ur_loc effectif 0.0, ABANDONED -> 1.0) sont
 appliquées AVANT la propagation montante en déléguant à la source de vérité
 unique :mod:`supplyscore.core.status_rules`.
 
+Les arcs de secours (ArcKind.BACKUP) sont purement documentaires et INERTES
+ici : le moteur ne parcourt que les voisins nominaux (comportement par défaut
+de ``predecessors``/``successors`` du dépôt) et ``topological_order`` ignore
+aussi les backup. Ils n'influencent donc ni Ud, ni Ur, ni ``simulate_shock``.
+
 Toutes les valeurs propagées sont clipées dans [0, 1]. Ce module ne calcule
 PAS l'adéquation (rôle de core/adequation) ; côté core, il n'importe que les
 règles de statut unifiées (supplyscore.core.status_rules).

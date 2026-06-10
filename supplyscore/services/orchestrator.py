@@ -18,8 +18,9 @@ from types import TracebackType
 import numpy as np
 
 from supplyscore.core import AdequationEngine, UrModel, compute_ud, run_ahp, ud_smoothed
-from supplyscore.core.clock import Clock, GameClock, SystemClock
+from supplyscore.core.clock import Clock, GameClock, SystemClock, project_hours
 from supplyscore.data import ClientDatabase, RandomSupplyChainGenerator, RegistryDatabase
+from supplyscore.domain.milestones import MilestoneStatus, derive_node_status
 from supplyscore.domain.models import (
     AHPAssessment,
     Project,
@@ -160,12 +161,25 @@ class SupplyScoreService:
     def set_status(self, node_id: str, status: TaskStatus) -> dict[str, UrgencyState]:
         """Tâche finie/abandonnée : pose le statut puis réévalue UNE fois le réseau.
 
-        Le statut est persisté dans le registre ET posé sur le nœud du graphe ;
-        ``evaluate_all(persist=True)`` (appelé une seule fois) se charge ensuite
-        des règles de statut et de la propagation.
+        Si le nœud a des jalons, le statut CASCADE sur eux (marquer un nœud
+        terminé termine ses jalons actifs, l'abandonner les abandonne) — le
+        statut global dérivant des jalons, c'est la seule façon cohérente de
+        le changer. ``evaluate_all(persist=True)`` (appelé une seule fois) se
+        charge ensuite des règles de statut et de la propagation.
         """
         with self._lock:
             status = TaskStatus(status)
+            milestones = self.registry.list_milestones(node_id)
+            if milestones and status in (TaskStatus.DONE, TaskStatus.ABANDONED):
+                target = (
+                    MilestoneStatus.DONE if status == TaskStatus.DONE else MilestoneStatus.ABANDONED
+                )
+                for milestone in milestones:
+                    if milestone.status == MilestoneStatus.ACTIVE:
+                        milestone.status = target
+                        if target == MilestoneStatus.DONE:
+                            milestone.progress = 1.0
+                        self.registry.save_milestone(milestone)
             self.registry.set_node_status(node_id, status)
             node = self.repo.get_node(node_id)
             if node is not None:
@@ -280,17 +294,51 @@ class SupplyScoreService:
 
     # --- pipeline d'évaluation ---------------------------------------------------
 
-    def refresh_ur_local(self, t: float = 0.0) -> None:
-        """Recalcule Ur_local de chaque nœud depuis ses KPIs.
+    def _project_times(self) -> dict[str, tuple[float, float]]:
+        """Temps courant par projet : ``project_id -> (t_heures, t0_ts epoch)``.
 
-        Les règles de statut (DONE → 0, ABANDONED → 1) sont appliquées par
-        ``UrModel.ur_local`` via ``core.status_rules`` — source de vérité unique.
+        ``t_heures`` est le temps écoulé depuis l'origine du projet selon SON
+        horloge (réelle ou de jeu) — c'est le « t » des formules d'urgence.
         """
+        times: dict[str, tuple[float, float]] = {}
+        for project in self.registry.list_projects():
+            origin = project.origin_ts
+            now = self.clock_for(project.id).now()
+            times[project.id] = (project_hours(now, origin), origin)
+        return times
+
+    def refresh_ur_local(self, t: float | None = None) -> None:
+        """Recalcule Ur_local de chaque nœud depuis ses KPIs et jalons.
+
+        Avec ``t=None`` (défaut), le temps de chaque nœud vient de l'horloge
+        de SON projet et ses jalons pilotent u_time (mode v2). Avec un ``t``
+        explicite, comportement v1 : pas de jalons, temps forcé identique
+        partout (rétro-compatibilité tests/outillage).
+
+        Le statut dérivé des jalons est appliqué AVANT le calcul (un nœud
+        dont tous les jalons sont terminés passe DONE) ; les règles de statut
+        (DONE → 0, ABANDONED → 1) restent dans ``core.status_rules``.
+        """
+        times = self._project_times() if t is None else None
         for node in self.repo.nodes():
-            node.urgency.ur_local = self.ur_model.ur_local(t, node.kpis, status=node.status)
+            milestones = None
+            t_h, t0 = (t if t is not None else 0.0), 0.0
+            if times is not None:
+                milestones = self.registry.list_milestones(node.id)
+                derived = derive_node_status(milestones)
+                if derived is not None and derived != node.status:
+                    node.status = derived
+                    self.registry.set_node_status(node.id, derived)
+                if node.project_id and node.project_id in times:
+                    t_h, t0 = times[node.project_id]
+            node.urgency.ur_local = self.ur_model.ur_local(
+                t_h, node.kpis, status=node.status, milestones=milestones, t0_ts=t0
+            )
             self.repo.update_node(node)
 
-    def evaluate_all(self, t: float = 0.0, persist: bool = False) -> dict[str, UrgencyState]:
+    def evaluate_all(
+        self, t: float | None = None, persist: bool = False
+    ) -> dict[str, UrgencyState]:
         """Pipeline complet : Ur_local -> propagation -> adéquation (-> persistance).
 
         Avec ``persist=True``, chaque état est journalisé dans la base du
@@ -325,13 +373,31 @@ class SupplyScoreService:
     def seed_demo(self, n_ranks: int = 3, seed: int = 42) -> Project:
         """Génère un projet de test aléatoire complet (questionnaires inclus).
 
-        Données de TEST uniquement — jamais en production.
+        Enrichissements v2 : origine temporelle = maintenant (les jalons
+        deviennent de vraies échéances), 2-4 jalons par nœud, tags et
+        taxonomie, ~1 arc de secours sur 10. Données de TEST uniquement —
+        jamais en production.
         """
         with self._lock:
             gen = RandomSupplyChainGenerator(seed=seed)
             project, nodes, arcs = gen.generate(n_ranks=n_ranks)
-            self.create_project(project, nodes, arcs)
+            project.t0_ts = self.clock.now()
+
+            categories, tags = gen.generate_tags(project.id)
+            tag_ids = [tag.id for tag in tags]
             for node in nodes:
+                node.tags = gen.pick_node_tags(tag_ids)
+            backups = gen.generate_backup_arcs(nodes, arcs)
+
+            self.registry.save_project(project)
+            for category in categories:
+                self.registry.save_tag_category(category)
+            for tag in tags:
+                self.registry.save_tag(tag)
+            self.create_project(project, nodes, arcs + backups)
+            for node in nodes:
+                for milestone in gen.generate_milestones(node.id, project.t0_ts):
+                    self.registry.save_milestone(milestone)
                 assessment = gen.generate_assessment(node.id, project.id)
                 self.submit_assessment(assessment)
             self.evaluate_all(persist=True)

@@ -7,7 +7,7 @@ from datetime import datetime
 import plotly.graph_objects as go
 
 from supplyscore.core import CRITERIA
-from supplyscore.domain.models import SupplyArc, SupplyNode, UrgencyState
+from supplyscore.domain.models import ArcKind, SupplyArc, SupplyNode, UrgencyState
 from supplyscore.web_ui.components.layout import STATUS_FR
 
 _TEMPLATE = "plotly_white"
@@ -109,12 +109,17 @@ def dag_figure(
 
     Les nœuds sont positionnés par rang (x = -rang, clients finaux à droite),
     colorés selon ``color_values`` et reliés par des flèches fournisseur -> client.
+    Les arcs de secours (kind_arc = backup) sont tracés à part, en pointillés
+    gris clair et sans flèche : purement visuels, ils sont inertes dans tous
+    les calculs.
     """
     if not nodes:
         return empty_figure("Aucun nœud : créez un projet ou générez la démo.")
 
     ordered = sorted(nodes, key=lambda n: (n.rank, n.id))
     positions = node_positions(ordered)
+    nominal_arcs = [a for a in arcs if a.kind_arc != ArcKind.BACKUP]
+    backup_arcs = [a for a in arcs if a.kind_arc == ArcKind.BACKUP]
 
     if color_values is None:
         color_values = [
@@ -128,11 +133,11 @@ def dag_figure(
             ur = n.urgency.ur if n.urgency.ur is not None else 0.0
             sizes.append(14.0 + 22.0 * min(max(ur, 0.0), 1.5) / 1.5)
 
-    # Arcs : segments + flèches (annotations en coordonnées data).
+    # Arcs nominaux : segments + flèches (annotations en coordonnées data).
     edge_x: list[float | None] = []
     edge_y: list[float | None] = []
     annotations = []
-    for arc in arcs:
+    for arc in nominal_arcs:
         if arc.source_id not in positions or arc.target_id not in positions:
             continue
         x0, y0 = positions[arc.source_id]
@@ -161,6 +166,17 @@ def dag_figure(
             }
         )
 
+    # Arcs de secours : pointillés gris clair, sans flèche (inertes).
+    backup_x: list[float | None] = []
+    backup_y: list[float | None] = []
+    for arc in backup_arcs:
+        if arc.source_id not in positions or arc.target_id not in positions:
+            continue
+        x0, y0 = positions[arc.source_id]
+        x1, y1 = positions[arc.target_id]
+        backup_x += [x0, x1, None]
+        backup_y += [y0, y1, None]
+
     fig = go.Figure()
     fig.add_trace(
         go.Scatter(
@@ -172,6 +188,19 @@ def dag_figure(
             showlegend=False,
         )
     )
+    if backup_x:
+        fig.add_trace(
+            go.Scatter(
+                x=backup_x,
+                y=backup_y,
+                mode="lines",
+                line={"width": 1, "color": "#d3dade", "dash": "dash"},
+                hoverinfo="text",
+                hovertext="Arc de secours (inactif)",
+                name="Arc de secours (inactif)",
+                showlegend=False,
+            )
+        )
     fig.add_trace(
         go.Scatter(
             x=[positions[n.id][0] for n in ordered],

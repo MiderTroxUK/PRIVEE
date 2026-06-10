@@ -116,8 +116,8 @@ class TestFreshDatabase:
         conn = sqlite3.connect(str(tmp_path / "registry.sqlite"))
         version = apply_migrations(conn, "registry")
 
-        assert version == 2
-        assert conn.execute("PRAGMA user_version").fetchone()[0] == 2
+        assert version == 3
+        assert conn.execute("PRAGMA user_version").fetchone()[0] == 3
         tables = _table_names(conn)
         assert {"projects", "nodes", "arcs", "node_urgency", "project_settings"} <= tables
         assert "idx_nodes_project" in _index_names(conn)
@@ -127,8 +127,8 @@ class TestFreshDatabase:
         conn = sqlite3.connect(str(tmp_path / "client.sqlite"))
         version = apply_migrations(conn, "client")
 
-        assert version == 1
-        assert conn.execute("PRAGMA user_version").fetchone()[0] == 1
+        assert version == 2
+        assert conn.execute("PRAGMA user_version").fetchone()[0] == 2
         assert {"assessments", "kpi_snapshots", "urgency_history"} <= _table_names(conn)
         conn.close()
 
@@ -144,7 +144,7 @@ class TestLegacyV1Database:
         conn = sqlite3.connect(str(db_file))
         assert conn.execute("PRAGMA user_version").fetchone()[0] == 0
         version = apply_migrations(conn, "registry")
-        assert version == 2
+        assert version == 3
 
         # Données préservées.
         assert conn.execute("SELECT COUNT(*) FROM projects").fetchone()[0] == 1
@@ -174,10 +174,10 @@ class TestLegacyV1Database:
         _build_legacy_registry(db_file)
         conn = sqlite3.connect(str(db_file))
 
-        assert apply_migrations(conn, "registry") == 2
+        assert apply_migrations(conn, "registry") == 3
         # Re-application : no-op, données intactes.
-        assert apply_migrations(conn, "registry") == 2
-        assert conn.execute("PRAGMA user_version").fetchone()[0] == 2
+        assert apply_migrations(conn, "registry") == 3
+        assert conn.execute("PRAGMA user_version").fetchone()[0] == 3
         assert conn.execute("SELECT COUNT(*) FROM nodes").fetchone()[0] == 3
         assert conn.execute("SELECT COUNT(*) FROM arcs").fetchone()[0] == 1
         conn.close()
@@ -186,7 +186,7 @@ class TestLegacyV1Database:
         _build_legacy_registry(tmp_path / "registry.sqlite")
 
         with RegistryDatabase(tmp_path) as db:
-            assert db.schema_version == 2
+            assert db.schema_version == 3
             node = db.get_node("n1")
             assert node is not None and node.name == "Client"
             # Pas de ligne node_urgency : UrgencyState vierge.

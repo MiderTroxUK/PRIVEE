@@ -7,8 +7,12 @@ constructeur, avec un message d'installation explicite en cas d'absence.
 Modèle de données :
 - nœud  (:SupplyNode {id, name, label, kind, rank, project_id, location,
                       latitude, longitude, status, kpis, urgency})
-- arc   (:SupplyNode)-[:SUPPLIES {label, gamma, beta, delta, kpis}]->(:SupplyNode)
+- arc   (:SupplyNode)-[:SUPPLIES {label, gamma, beta, delta, kind_arc, kpis}]->(:SupplyNode)
   orienté fournisseur -> client ; les KPIs sont sérialisés en JSON.
+
+Les arcs de secours (kind_arc = "backup") sont purement documentaires : le
+filtrage par nature est fait en Python sur les arcs récupérés, et seuls les
+arcs nominaux comptent par défaut (voisinage, tri topologique, cycles).
 """
 
 from __future__ import annotations
@@ -18,6 +22,7 @@ import json
 from typing import Any
 
 from supplyscore.domain.models import (
+    ArcKind,
     KPIBundle,
     NodeKind,
     SupplyArc,
@@ -105,6 +110,7 @@ def _arc_to_props(arc: SupplyArc) -> dict[str, Any]:
         "gamma": arc.gamma,
         "beta": arc.beta,
         "delta": arc.delta,
+        "kind_arc": str(arc.kind_arc),
         "kpis": _kpis_to_json(arc.kpis),
     }
 
@@ -117,6 +123,7 @@ def _arc_from_record(source_id: str, target_id: str, props: dict[str, Any]) -> S
         gamma=float(props.get("gamma", 0.5)),
         beta=float(props.get("beta", 0.5)),
         delta=float(props.get("delta", 1.0)),
+        kind_arc=ArcKind(props.get("kind_arc", "nominal")),
         kpis=_kpis_from_json(props.get("kpis")),
     )
 
@@ -190,13 +197,21 @@ class Neo4jGraphRepository(GraphRepository):
     # --- Arcs -----------------------------------------------------------
 
     def add_arc(self, arc: SupplyArc) -> None:
-        """Ajoute un arc fournisseur -> client. Lève ValueError si invalide ou cyclique."""
+        """Ajoute un arc fournisseur -> client. Lève ValueError si invalide ou cyclique.
+
+        Le refus de cycle ne s'applique qu'aux arcs NOMINAUX : un arc de
+        secours (backup), inerte, peut fermer un cycle apparent mais reste
+        interdit en boucle sur lui-même.
+        """
         for node_id in (arc.source_id, arc.target_id):
             if self.get_node(node_id) is None:
                 raise ValueError(f"Nœud inconnu : {node_id!r}")
         if self.get_arc(arc.source_id, arc.target_id) is not None:
             raise ValueError(f"Arc déjà présent : {arc.id!r}")
-        if self._creates_cycle(arc.source_id, arc.target_id):
+        if arc.kind_arc == ArcKind.BACKUP:
+            if arc.source_id == arc.target_id:
+                raise ValueError(f"Arc de secours en boucle sur lui-même : {arc.id!r}")
+        elif self._creates_cycle(arc.source_id, arc.target_id):
             raise ValueError(f"L'arc {arc.id!r} créerait un cycle")
         self._run(
             "MATCH (s:SupplyNode {id: $source_id}), (t:SupplyNode {id: $target_id}) "
@@ -207,14 +222,23 @@ class Neo4jGraphRepository(GraphRepository):
         )
 
     def _creates_cycle(self, source_id: str, target_id: str) -> bool:
-        # Cycle ssi un chemin target -> ... -> source existe déjà.
-        records = self._run(
-            "MATCH (t:SupplyNode {id: $target_id}), (s:SupplyNode {id: $source_id}) "
-            "RETURN exists((t)-[:SUPPLIES*]->(s)) AS has_path",
-            source_id=source_id,
-            target_id=target_id,
-        )
-        return bool(records and records[0]["has_path"])
+        # Cycle ssi un chemin NOMINAL target -> ... -> source existe déjà.
+        # Filtrage en Python sur les arcs récupérés : les arcs backup, inertes,
+        # ne créent pas de dépendance (cohérence avec le dépôt mémoire).
+        out_edges: dict[str, list[str]] = {}
+        for arc in self.arcs((str(ArcKind.NOMINAL),)):
+            out_edges.setdefault(arc.source_id, []).append(arc.target_id)
+        stack = [target_id]
+        seen: set[str] = set()
+        while stack:
+            current = stack.pop()
+            if current == source_id:
+                return True
+            if current in seen:
+                continue
+            seen.add(current)
+            stack.extend(out_edges.get(current, []))
+        return False
 
     def get_arc(self, source_id: str, target_id: str) -> SupplyArc | None:
         """Retourne l'arc source -> target ou None."""
@@ -246,31 +270,54 @@ class Neo4jGraphRepository(GraphRepository):
         records = self._run("MATCH (n:SupplyNode) RETURN n")
         return [_node_from_props(dict(rec["n"])) for rec in records]
 
-    def arcs(self) -> list[SupplyArc]:
-        """Tous les arcs du graphe."""
+    def arcs(self, kinds: tuple[str, ...] | None = None) -> list[SupplyArc]:
+        """Arcs du graphe ; ``kinds`` filtre par nature (en Python), None = tous."""
         records = self._run(
             "MATCH (s:SupplyNode)-[r:SUPPLIES]->(t:SupplyNode) "
             "RETURN s.id AS source_id, t.id AS target_id, r"
         )
-        return [
+        all_arcs = [
             _arc_from_record(rec["source_id"], rec["target_id"], dict(rec["r"])) for rec in records
         ]
+        if kinds is None:
+            return all_arcs
+        return [arc for arc in all_arcs if arc.kind_arc in kinds]
 
-    def predecessors(self, node_id: str) -> list[SupplyNode]:
-        """Fournisseurs directs : sources des arcs entrants sur node_id."""
+    def predecessors(
+        self, node_id: str, *, kinds: tuple[str, ...] = ("nominal",)
+    ) -> list[SupplyNode]:
+        """Fournisseurs directs : sources des arcs entrants sur node_id.
+
+        Par défaut, seuls les arcs nominaux comptent comme liens de flux ;
+        le filtrage par nature est fait en Python sur les arcs récupérés.
+        """
         records = self._run(
-            "MATCH (p:SupplyNode)-[:SUPPLIES]->(:SupplyNode {id: $id}) RETURN p",
+            "MATCH (p:SupplyNode)-[r:SUPPLIES]->(:SupplyNode {id: $id}) RETURN p, r",
             id=node_id,
         )
-        return [_node_from_props(dict(rec["p"])) for rec in records]
+        return [
+            _node_from_props(dict(rec["p"]))
+            for rec in records
+            if dict(rec["r"]).get("kind_arc", "nominal") in kinds
+        ]
 
-    def successors(self, node_id: str) -> list[SupplyNode]:
-        """Clients directs : cibles des arcs sortants de node_id."""
+    def successors(
+        self, node_id: str, *, kinds: tuple[str, ...] = ("nominal",)
+    ) -> list[SupplyNode]:
+        """Clients directs : cibles des arcs sortants de node_id.
+
+        Par défaut, seuls les arcs nominaux comptent comme liens de flux ;
+        le filtrage par nature est fait en Python sur les arcs récupérés.
+        """
         records = self._run(
-            "MATCH (:SupplyNode {id: $id})-[:SUPPLIES]->(s:SupplyNode) RETURN s",
+            "MATCH (:SupplyNode {id: $id})-[r:SUPPLIES]->(s:SupplyNode) RETURN s, r",
             id=node_id,
         )
-        return [_node_from_props(dict(rec["s"])) for rec in records]
+        return [
+            _node_from_props(dict(rec["s"]))
+            for rec in records
+            if dict(rec["r"]).get("kind_arc", "nominal") in kinds
+        ]
 
     def nodes_by_project(self, project_id: str) -> list[SupplyNode]:
         """Nœuds rattachés au projet donné."""
@@ -281,9 +328,13 @@ class Neo4jGraphRepository(GraphRepository):
         return [_node_from_props(dict(rec["n"])) for rec in records]
 
     def topological_order(self) -> list[str]:
-        """Tri topologique (Kahn) calculé côté Python à partir des arcs."""
+        """Tri topologique (Kahn) calculé côté Python à partir des arcs NOMINAUX.
+
+        Les arcs de secours (backup) sont ignorés : ils ne créent pas de
+        dépendance d'ordre.
+        """
         node_ids = [n.id for n in self.nodes()]
-        edges = [(a.source_id, a.target_id) for a in self.arcs()]
+        edges = [(a.source_id, a.target_id) for a in self.arcs((str(ArcKind.NOMINAL),))]
         out_edges: dict[str, list[str]] = {nid: [] for nid in node_ids}
         in_degree: dict[str, int] = {nid: 0 for nid in node_ids}
         for source_id, target_id in edges:

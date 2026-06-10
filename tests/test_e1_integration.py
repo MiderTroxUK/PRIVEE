@@ -78,14 +78,33 @@ def test_advance_week_reevaluates(service, monkeypatch):
 
 
 def test_refresh_ur_local_uses_status_rules(service):
-    """DONE -> 0.0 et ABANDONED -> 1.0 via la source de vérité unique."""
+    """DONE -> 0.0 et ABANDONED -> 1.0 via la source de vérité unique.
+
+    Les jalons sont retirés des deux nœuds testés : on teste ici le câblage
+    des règles de statut sur le chemin « statut manuel » (sans jalons, le
+    statut dérivé ne s'applique pas — rétro-compatibilité v1).
+    """
     service.seed_demo(n_ranks=2, seed=5)
     nodes = service.repo.nodes()
     done_node, abandoned_node = nodes[0], nodes[1]
+    for node in (done_node, abandoned_node):
+        for milestone in service.registry.list_milestones(node.id):
+            service.registry.delete_milestone(milestone.id)
     service.set_status(done_node.id, TaskStatus.DONE)
     service.set_status(abandoned_node.id, TaskStatus.ABANDONED)
     assert service.repo.get_node(done_node.id).urgency.ur_local == 0.0
     assert service.repo.get_node(abandoned_node.id).urgency.ur_local == 1.0
+
+
+def test_set_status_cascades_to_milestones(service):
+    """Terminer un nœud à jalons termine ses jalons actifs (statut dérivé cohérent)."""
+    service.seed_demo(n_ranks=2, seed=5)
+    node = next(n for n in service.repo.nodes() if service.registry.list_milestones(n.id))
+    service.set_status(node.id, TaskStatus.DONE)
+    milestones = service.registry.list_milestones(node.id)
+    assert all(m.status.value != "active" for m in milestones)
+    assert service.repo.get_node(node.id).status == TaskStatus.DONE
+    assert service.repo.get_node(node.id).urgency.ur_local == 0.0
 
 
 def test_clock_mode_callbacks(tmp_path):

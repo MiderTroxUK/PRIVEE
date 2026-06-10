@@ -15,13 +15,16 @@ import dataclasses
 import json
 import sqlite3
 import threading
+import time
 from pathlib import Path
 from types import TracebackType
 from typing import Any, Literal, Self
 
 from supplyscore.data.migrations import apply_migrations
+from supplyscore.domain.milestones import Milestone, MilestoneStatus
 from supplyscore.domain.models import (
     AHPAssessment,
+    ArcKind,
     CO2KPIs,
     CostKPIs,
     InventoryKPIs,
@@ -37,6 +40,7 @@ from supplyscore.domain.models import (
     TimeKPIs,
     UrgencyState,
 )
+from supplyscore.domain.tags import Tag, TagCategory
 
 # --- Sérialisation KPIBundle <-> JSON ----------------------------------------
 
@@ -173,13 +177,14 @@ class RegistryDatabase(_SQLiteDatabase):
         with self._lock, self._conn:
             self._conn.execute(
                 """
-                INSERT INTO projects (id, name, owner_node_id, description, created_at)
-                VALUES (?, ?, ?, ?, ?)
+                INSERT INTO projects (id, name, owner_node_id, description, created_at, t0_ts)
+                VALUES (?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) DO UPDATE SET
                     name = excluded.name,
                     owner_node_id = excluded.owner_node_id,
                     description = excluded.description,
-                    created_at = excluded.created_at
+                    created_at = excluded.created_at,
+                    t0_ts = excluded.t0_ts
                 """,
                 (
                     project.id,
@@ -187,6 +192,7 @@ class RegistryDatabase(_SQLiteDatabase):
                     project.owner_node_id,
                     project.description,
                     project.created_at,
+                    project.t0_ts,
                 ),
             )
 
@@ -212,18 +218,24 @@ class RegistryDatabase(_SQLiteDatabase):
             owner_node_id=row["owner_node_id"],
             description=row["description"],
             created_at=row["created_at"],
+            t0_ts=row["t0_ts"],
         )
 
     # -- nœuds --
 
     def save_node(self, node: SupplyNode) -> None:
-        """Insère ou met à jour le nœud ET son état d'urgence (upsert sur son id)."""
+        """Insère ou met à jour le nœud, son état d'urgence ET ses liens de tags.
+
+        La table ``node_tags`` est resynchronisée sur ``node.tags`` (DELETE des
+        liens du nœud puis INSERT des ids) dans la MÊME transaction que l'upsert.
+        """
         with self._lock, self._conn:
             self._conn.execute(
                 """
                 INSERT INTO nodes (id, name, label, kind, rank, project_id,
-                                   location, latitude, longitude, status, kpis_json)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                   location, latitude, longitude, status, kpis_json,
+                                   onboarding_state)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) DO UPDATE SET
                     name = excluded.name,
                     label = excluded.label,
@@ -234,7 +246,8 @@ class RegistryDatabase(_SQLiteDatabase):
                     latitude = excluded.latitude,
                     longitude = excluded.longitude,
                     status = excluded.status,
-                    kpis_json = excluded.kpis_json
+                    kpis_json = excluded.kpis_json,
+                    onboarding_state = excluded.onboarding_state
                 """,
                 (
                     node.id,
@@ -248,9 +261,11 @@ class RegistryDatabase(_SQLiteDatabase):
                     node.longitude,
                     str(node.status),
                     kpis_to_json(node.kpis),
+                    node.onboarding_state,
                 ),
             )
             self._upsert_urgency(node.id, node.urgency)
+            self._sync_node_tags(node.id, node.tags)
 
     def get_node(self, node_id: str) -> SupplyNode | None:
         """Retourne le nœud (urgence incluse) ou None s'il est inconnu."""
@@ -271,13 +286,22 @@ class RegistryDatabase(_SQLiteDatabase):
             return [self._row_to_node(row) for row in rows]
 
     def delete_node(self, node_id: str) -> None:
-        """Supprime un nœud, son état d'urgence ET tous les arcs qui le touchent."""
+        """Supprime un nœud et tout ce qui s'y rattache (arcs, urgence, jalons, tags...).
+
+        Les FK ``ON DELETE CASCADE`` du schéma ne sont pas APPLIQUÉES sur cette
+        connexion (``PRAGMA foreign_keys=OFF``, cf. ``__init__``) : les cascades
+        vers ``node_tags``, ``milestones`` et ``onboarding_progress`` sont donc
+        exécutées explicitement, dans la même transaction.
+        """
         with self._lock, self._conn:
             self._conn.execute(
                 "DELETE FROM arcs WHERE source_id = ? OR target_id = ?",
                 (node_id, node_id),
             )
             self._conn.execute("DELETE FROM node_urgency WHERE node_id = ?", (node_id,))
+            self._conn.execute("DELETE FROM node_tags WHERE node_id = ?", (node_id,))
+            self._conn.execute("DELETE FROM milestones WHERE node_id = ?", (node_id,))
+            self._conn.execute("DELETE FROM onboarding_progress WHERE node_id = ?", (node_id,))
             self._conn.execute("DELETE FROM nodes WHERE id = ?", (node_id,))
 
     def set_node_status(self, node_id: str, status: TaskStatus | str) -> None:
@@ -302,6 +326,8 @@ class RegistryDatabase(_SQLiteDatabase):
             status=TaskStatus(row["status"]),
             kpis=kpis_from_json(row["kpis_json"]),
             urgency=self._load_urgency(row["id"]),
+            tags=self._node_tag_ids(row["id"]),
+            onboarding_state=row["onboarding_state"],
         )
 
     # -- état d'urgence courant --
@@ -392,14 +418,16 @@ class RegistryDatabase(_SQLiteDatabase):
         with self._lock, self._conn:
             self._conn.execute(
                 """
-                INSERT INTO arcs (source_id, target_id, label, gamma, beta, delta, kpis_json)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO arcs (source_id, target_id, label, gamma, beta, delta,
+                                  kpis_json, arc_kind)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(source_id, target_id) DO UPDATE SET
                     label = excluded.label,
                     gamma = excluded.gamma,
                     beta = excluded.beta,
                     delta = excluded.delta,
-                    kpis_json = excluded.kpis_json
+                    kpis_json = excluded.kpis_json,
+                    arc_kind = excluded.arc_kind
                 """,
                 (
                     arc.source_id,
@@ -409,6 +437,7 @@ class RegistryDatabase(_SQLiteDatabase):
                     arc.beta,
                     arc.delta,
                     kpis_to_json(arc.kpis),
+                    str(arc.kind_arc),
                 ),
             )
 
@@ -444,8 +473,239 @@ class RegistryDatabase(_SQLiteDatabase):
             gamma=row["gamma"],
             beta=row["beta"],
             delta=row["delta"],
+            kind_arc=ArcKind(row["arc_kind"]),
             kpis=kpis_from_json(row["kpis_json"]),
         )
+
+    # -- jalons (milestones) --
+
+    def save_milestone(self, milestone: Milestone) -> None:
+        """Insère ou met à jour le jalon (upsert sur son id).
+
+        ``created_at``/``updated_at`` sont gérés ici : posés tous deux à
+        maintenant à l'insertion, seul ``updated_at`` bouge à la mise à jour.
+        """
+        now = time.time()
+        with self._lock, self._conn:
+            self._conn.execute(
+                """
+                INSERT INTO milestones (id, node_id, name, kind, start_ts, deadline_ts,
+                                        status, progress, position, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(id) DO UPDATE SET
+                    node_id = excluded.node_id,
+                    name = excluded.name,
+                    kind = excluded.kind,
+                    start_ts = excluded.start_ts,
+                    deadline_ts = excluded.deadline_ts,
+                    status = excluded.status,
+                    progress = excluded.progress,
+                    position = excluded.position,
+                    updated_at = excluded.updated_at
+                """,
+                (
+                    milestone.id,
+                    milestone.node_id,
+                    milestone.name,
+                    milestone.kind,
+                    milestone.start_ts,
+                    milestone.deadline_ts,
+                    str(milestone.status),
+                    milestone.progress,
+                    milestone.position,
+                    now,
+                    now,
+                ),
+            )
+
+    def get_milestone(self, milestone_id: str) -> Milestone | None:
+        """Retourne le jalon ou None s'il est inconnu."""
+        with self._lock:
+            row = self._conn.execute(
+                "SELECT * FROM milestones WHERE id = ?", (milestone_id,)
+            ).fetchone()
+            return self._row_to_milestone(row) if row else None
+
+    def list_milestones(self, node_id: str) -> list[Milestone]:
+        """Liste les jalons du nœud, ordonnés par position croissante."""
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT * FROM milestones WHERE node_id = ? ORDER BY position, id",
+                (node_id,),
+            ).fetchall()
+            return [self._row_to_milestone(row) for row in rows]
+
+    def delete_milestone(self, milestone_id: str) -> None:
+        """Supprime le jalon (silencieux s'il est absent)."""
+        with self._lock, self._conn:
+            self._conn.execute("DELETE FROM milestones WHERE id = ?", (milestone_id,))
+
+    @staticmethod
+    def _row_to_milestone(row: sqlite3.Row) -> Milestone:
+        return Milestone(
+            id=row["id"],
+            node_id=row["node_id"],
+            name=row["name"],
+            kind=row["kind"],
+            start_ts=row["start_ts"],
+            deadline_ts=row["deadline_ts"],
+            status=MilestoneStatus(row["status"]),
+            progress=row["progress"],
+            position=row["position"],
+        )
+
+    # -- tags et catégories --
+
+    def save_tag_category(self, category: TagCategory) -> None:
+        """Insère ou met à jour la catégorie de tags (upsert sur son id)."""
+        with self._lock, self._conn:
+            self._conn.execute(
+                """
+                INSERT INTO tag_categories (id, project_id, name, color)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(id) DO UPDATE SET
+                    project_id = excluded.project_id,
+                    name = excluded.name,
+                    color = excluded.color
+                """,
+                (category.id, category.project_id, category.name, category.color),
+            )
+
+    def list_tag_categories(self, project_id: str) -> list[TagCategory]:
+        """Liste les catégories de tags du projet, ordonnées par nom."""
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT * FROM tag_categories WHERE project_id = ? ORDER BY name, id",
+                (project_id,),
+            ).fetchall()
+            return [
+                TagCategory(
+                    id=row["id"],
+                    project_id=row["project_id"],
+                    name=row["name"],
+                    color=row["color"],
+                )
+                for row in rows
+            ]
+
+    def save_tag(self, tag: Tag) -> None:
+        """Insère ou met à jour le tag (upsert sur son id)."""
+        with self._lock, self._conn:
+            self._conn.execute(
+                """
+                INSERT INTO tags (id, project_id, category_id, name)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(id) DO UPDATE SET
+                    project_id = excluded.project_id,
+                    category_id = excluded.category_id,
+                    name = excluded.name
+                """,
+                (tag.id, tag.project_id, tag.category_id, tag.name),
+            )
+
+    def list_tags(self, project_id: str) -> list[Tag]:
+        """Liste les tags du projet, ordonnés par nom."""
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT * FROM tags WHERE project_id = ? ORDER BY name, id",
+                (project_id,),
+            ).fetchall()
+            return [self._row_to_tag(row) for row in rows]
+
+    def set_node_tags(self, node_id: str, tag_ids: list[str]) -> None:
+        """Remplace les liens de tags du nœud par ``tag_ids`` (transaction unique)."""
+        with self._lock, self._conn:
+            self._sync_node_tags(node_id, tag_ids)
+
+    def tags_of_node(self, node_id: str) -> list[Tag]:
+        """Retourne les tags liés au nœud, dans l'ordre d'association."""
+        with self._lock:
+            rows = self._conn.execute(
+                """
+                SELECT tags.* FROM tags
+                JOIN node_tags ON node_tags.tag_id = tags.id
+                WHERE node_tags.node_id = ?
+                ORDER BY node_tags.rowid
+                """,
+                (node_id,),
+            ).fetchall()
+            return [self._row_to_tag(row) for row in rows]
+
+    def _sync_node_tags(self, node_id: str, tag_ids: list[str]) -> None:
+        """Resynchronise node_tags (appelant responsable du verrou/transaction)."""
+        self._conn.execute("DELETE FROM node_tags WHERE node_id = ?", (node_id,))
+        self._conn.executemany(
+            "INSERT OR IGNORE INTO node_tags (node_id, tag_id) VALUES (?, ?)",
+            [(node_id, tag_id) for tag_id in tag_ids],
+        )
+
+    def _node_tag_ids(self, node_id: str) -> list[str]:
+        """Ids des tags liés au nœud, dans l'ordre d'association."""
+        rows = self._conn.execute(
+            "SELECT tag_id FROM node_tags WHERE node_id = ? ORDER BY rowid",
+            (node_id,),
+        ).fetchall()
+        return [row["tag_id"] for row in rows]
+
+    @staticmethod
+    def _row_to_tag(row: sqlite3.Row) -> Tag:
+        return Tag(
+            id=row["id"],
+            project_id=row["project_id"],
+            name=row["name"],
+            category_id=row["category_id"],
+        )
+
+    # -- progression d'onboarding --
+
+    def save_onboarding(
+        self,
+        node_id: str,
+        sections_done: dict[str, Any],
+        draft: dict[str, Any],
+        current_step: int,
+    ) -> None:
+        """Insère ou met à jour la progression du wizard d'onboarding du nœud."""
+        with self._lock, self._conn:
+            self._conn.execute(
+                """
+                INSERT INTO onboarding_progress (node_id, sections_done_json,
+                                                 draft_json, current_step, updated_at)
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(node_id) DO UPDATE SET
+                    sections_done_json = excluded.sections_done_json,
+                    draft_json = excluded.draft_json,
+                    current_step = excluded.current_step,
+                    updated_at = excluded.updated_at
+                """,
+                (
+                    node_id,
+                    json.dumps(sections_done, sort_keys=True),
+                    json.dumps(draft, sort_keys=True),
+                    current_step,
+                    time.time(),
+                ),
+            )
+
+    def get_onboarding(self, node_id: str) -> dict[str, Any] | None:
+        """Retourne {sections_done, draft, current_step, updated_at} ou None."""
+        with self._lock:
+            row = self._conn.execute(
+                "SELECT * FROM onboarding_progress WHERE node_id = ?", (node_id,)
+            ).fetchone()
+            if row is None:
+                return None
+            return {
+                "sections_done": json.loads(row["sections_done_json"]),
+                "draft": json.loads(row["draft_json"]),
+                "current_step": row["current_step"],
+                "updated_at": row["updated_at"],
+            }
+
+    def delete_onboarding(self, node_id: str) -> None:
+        """Supprime la progression d'onboarding du nœud (silencieux si absente)."""
+        with self._lock, self._conn:
+            self._conn.execute("DELETE FROM onboarding_progress WHERE node_id = ?", (node_id,))
 
 
 # --- Base par client -------------------------------------------------------------
@@ -608,3 +868,113 @@ class ClientDatabase(_SQLiteDatabase):
             )
             for row in rows
         ]
+
+    # -- cahier des charges versionné (spec_sheet) --
+
+    def save_spec_sheet(self, node_id: str, payload_json: str, source: str) -> int:
+        """Insère une nouvelle version du cahier des charges et la retourne.
+
+        La version est auto-incrémentée par nœud (max existant + 1, en
+        commençant à 1) dans la même transaction que l'INSERT.
+        """
+        with self._lock, self._conn:
+            row = self._conn.execute(
+                "SELECT COALESCE(MAX(version), 0) FROM spec_sheet WHERE node_id = ?",
+                (node_id,),
+            ).fetchone()
+            version = int(row[0]) + 1
+            self._conn.execute(
+                """
+                INSERT INTO spec_sheet (node_id, version, payload_json, source, created_at)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (node_id, version, payload_json, source, time.time()),
+            )
+            return version
+
+    def latest_spec_sheet(self, node_id: str) -> tuple[int, str] | None:
+        """Retourne (version, payload_json) de la dernière version, ou None."""
+        with self._lock:
+            row = self._conn.execute(
+                """
+                SELECT version, payload_json FROM spec_sheet
+                WHERE node_id = ? ORDER BY version DESC LIMIT 1
+                """,
+                (node_id,),
+            ).fetchone()
+            return (int(row["version"]), row["payload_json"]) if row else None
+
+    def spec_sheet_versions(self, node_id: str) -> list[int]:
+        """Liste les versions du cahier des charges du nœud, croissantes."""
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT version FROM spec_sheet WHERE node_id = ? ORDER BY version",
+                (node_id,),
+            ).fetchall()
+            return [int(row["version"]) for row in rows]
+
+    # -- journal d'événements --
+
+    def save_event(
+        self,
+        event_id: str,
+        node_id: str,
+        event_type: str,
+        iso_week: str,
+        occurred_at: float,
+        params_json: str,
+        impacts_json: str,
+        operator_id: str,
+        notes: str = "",
+    ) -> None:
+        """Insère un événement dans le journal (``reverted_at`` initialement NULL)."""
+        with self._lock, self._conn:
+            self._conn.execute(
+                """
+                INSERT INTO events (id, node_id, event_type, iso_week, occurred_at,
+                                    params_json, impacts_json, reverted_at,
+                                    operator_id, notes)
+                VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?, ?)
+                """,
+                (
+                    event_id,
+                    node_id,
+                    event_type,
+                    iso_week,
+                    occurred_at,
+                    params_json,
+                    impacts_json,
+                    operator_id,
+                    notes,
+                ),
+            )
+
+    def list_events(self, node_id: str, iso_week: str | None = None) -> list[dict[str, Any]]:
+        """Liste les événements du nœud (filtrés par semaine ISO si fournie).
+
+        Chaque événement est retourné comme dict (clés = colonnes de la table),
+        ordonné par ``occurred_at`` croissant.
+        """
+        with self._lock:
+            if iso_week is None:
+                rows = self._conn.execute(
+                    "SELECT * FROM events WHERE node_id = ? ORDER BY occurred_at, id",
+                    (node_id,),
+                ).fetchall()
+            else:
+                rows = self._conn.execute(
+                    """
+                    SELECT * FROM events WHERE node_id = ? AND iso_week = ?
+                    ORDER BY occurred_at, id
+                    """,
+                    (node_id, iso_week),
+                ).fetchall()
+            return [dict(row) for row in rows]
+
+    def mark_reverted(self, event_id: str, reverted_at: float) -> None:
+        """Marque l'événement comme annulé à la date ``reverted_at``."""
+        with self._lock, self._conn:
+            self._conn.execute(
+                "UPDATE events SET reverted_at = ? WHERE id = ?",
+                (reverted_at, event_id),
+            )
