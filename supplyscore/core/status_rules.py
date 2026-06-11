@@ -46,18 +46,18 @@ def effective_ur_local(status: TaskStatus, ur_local: float | None) -> float:
 def effective_ud_local(status: TaskStatus, ud_local: float | None) -> float:
     """Urgence déclarée locale effective d'un nœud selon son statut.
 
-    Pour l'instant le statut n'écrase PAS le besoin déclaré : la fonction
-    retourne ``ud_local`` si non-None, 0.0 sinon. La sémantique « un nœud
-    DONE propage-t-il encore son besoin ? » sera tranchée en phase E9 ;
-    centraliser l'appel ici garantit que la décision ne s'appliquera qu'à
-    un seul endroit.
+    DÉCISION DE MODÉLISATION n°1 (tranchée en E9, cf.
+    ``docs/modele_mathematique.md`` § Décisions) : le statut n'écrase PAS le
+    besoin déclaré — un nœud DONE continue de propager son ``ud_local`` (le
+    flux physique et les dépendances aval existent encore). Pour isoler un
+    nœud, le supprimer ou couper ses arcs, pas le marquer DONE.
 
     Args:
-        status: statut de la tâche portée par le nœud (réservé phase E9).
+        status: statut de la tâche portée par le nœud (sans effet, par décision).
         ud_local: urgence déclarée locale (questionnaire), ou None si absente.
 
     Returns:
-        Urgence déclarée locale effective.
+        Urgence déclarée locale effective (``ud_local`` ou 0.0).
     """
-    del status  # Réservé : la règle DONE/ABANDONED côté Ud sera fixée en E9.
+    del status  # Sans effet par décision n°1 — point d'application centralisé.
     return ud_local if ud_local is not None else 0.0

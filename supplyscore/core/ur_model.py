@@ -401,7 +401,11 @@ class UrModel:
         total = co2.total_g_h
         if total is None or co2.co2_target_g_h is None or co2.co2_max_g_h is None:
             return None
-        span = co2.co2_max_g_h - co2.co2_target_g_h + self.eps
+        # Garde E9.6 : si max <= cible (bornes incohérentes mais valides champ à
+        # champ), l'ancien dénominateur « max − cible + eps » pouvait valoir 0
+        # exactement (ZeroDivisionError). On force un span strictement positif :
+        # tout dépassement de la cible sature alors immédiatement vers 1.
+        span = max(co2.co2_max_g_h - co2.co2_target_g_h, 0.0) + self.eps
         return _clip01((total - co2.co2_target_g_h) / span)
 
     # --- Agrégation -----------------------------------------------------------

@@ -73,7 +73,8 @@ source = ["supplyscore"]
 omit = ["supplyscore/graph/neo4j_repo.py"]
 
 [tool.coverage.report]
-# Le seuil bloquant (fail_under = 90) sera activé au Jalon 2 (phase E9).
+# Seuil bloquant activé en phase E9 (Jalon 2) — couverture mesurée : 90.1 %.
+fail_under = 90
 precision = 1
 
 [build-system]
