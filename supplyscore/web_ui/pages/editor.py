@@ -179,28 +179,38 @@ def layout() -> html.Div:
                         width="320px",
                     ),
                 ],
+                subtitle=(
+                    "Choisissez le projet, le bloc de KPIs et d'éventuels tags : "
+                    "le tableau ci-dessous se reconstruit immédiatement."
+                ),
             ),
             card(
                 "KPIs courants",
                 [
-                    dash_table.DataTable(  # type: ignore[attr-defined]
-                        id="kpi-edit-table",
-                        columns=_block_columns(DEFAULT_BLOCK),
-                        data=[],
-                        editable=True,
-                        # Tri DÉSACTIVÉ en mode édition : l'ordre des lignes doit
-                        # rester stable pour que data_previous reste comparable
-                        # (voir la docstring du module).
-                        sort_action="none",
-                        style_cell=_TABLE_STYLE_CELL,
-                        style_header=_TABLE_STYLE_HEADER,
-                        style_as_list_view=True,
+                    # E16.6 — dcc.Loading autour du tableau éditable (zone lente
+                    # sur les grands projets) : l'id reste sur la DataTable.
+                    dcc.Loading(
+                        type="circle",
+                        children=dash_table.DataTable(  # type: ignore[attr-defined]
+                            id="kpi-edit-table",
+                            columns=_block_columns(DEFAULT_BLOCK),
+                            data=[],
+                            editable=True,
+                            # Tri DÉSACTIVÉ en mode édition : l'ordre des lignes doit
+                            # rester stable pour que data_previous reste comparable
+                            # (voir la docstring du module).
+                            sort_action="none",
+                            style_cell=_TABLE_STYLE_CELL,
+                            style_header=_TABLE_STYLE_HEADER,
+                            style_as_list_view=True,
+                        ),
                     ),
                     html.Div(id="edit-msg"),
                 ],
                 subtitle=(
-                    "Cellule vide = KPI non renseigné (None). Une valeur hors bornes "
-                    "est refusée et la cellule restaurée."
+                    "Sélectionnez d'abord un projet dans les filtres ci-dessus : sans "
+                    "projet, le tableau reste vide. Cellule vide = KPI non renseigné "
+                    "(None). Une valeur hors bornes est refusée et la cellule restaurée."
                 ),
             ),
         ],

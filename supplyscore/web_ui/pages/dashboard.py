@@ -36,6 +36,21 @@ from supplyscore.web_ui.components.layout import (
 
 _VALUE_COLUMNS = ["Ud_loc", "Ur_loc", "Ud", "Ur", "A", "F", "H"]
 
+#: Palettes du DAG (Lot 16.2) : libellés français, valeurs = colorscales Plotly.
+#: « RdYlBu » remplace l'axe rouge-vert (indiscernable pour les daltoniens
+#: deutéranopes/protanopes) par un axe rouge-bleu ; « Viridis » est
+#: perceptuellement uniforme.
+_PALETTE_OPTIONS: list[dict] = [
+    {"label": "Rouge-Vert (défaut)", "value": "RdYlGn"},
+    {"label": "Rouge-Bleu (daltonisme)", "value": "RdYlBu"},
+    {"label": "Viridis", "value": "Viridis"},
+]
+_PALETTES: frozenset[str] = frozenset(o["value"] for o in _PALETTE_OPTIONS)
+_PALETTE_DEFAUT: str = "RdYlGn"
+
+#: Clé du réglage par projet (``project_settings``) portant la palette du DAG.
+_CLE_PALETTE = "palette"
+
 _TABLE_COLUMNS = (
     [
         {"name": "Nom", "id": "Nom"},
@@ -91,10 +106,33 @@ _WARN_BANNER_STYLE = {
     "fontSize": "13px",
 }
 
+#: Bandeau d'invitation bleu (état vide : aucun projet sélectionné, Lot 16.2).
+_EMPTY_BANNER_STYLE = {
+    "backgroundColor": "#eef4f8",
+    "border": f"1px solid {COLORS['primary']}",
+    "color": COLORS["primary"],
+    "borderRadius": "6px",
+    "padding": "10px 14px",
+    "marginBottom": "14px",
+    "fontSize": "14px",
+    "fontWeight": "600",
+}
+
 
 def _r3(value: float | None) -> float | None:
-    """Arrondit à 3 décimales en tolérant None."""
+    """Arrondit à 3 décimales en tolérant None.
+
+    CHOIX DOCUMENTÉ (Lot 16.2) : les valeurs de la DataTable restent en
+    NOTATION POINT — ses colonnes ``type="numeric"`` exigent des floats pour
+    le tri et le filtre natifs ; seuls les TEXTES français (cartes KPI)
+    passent en virgule décimale via :func:`_nombre_fr`.
+    """
     return None if value is None else round(value, 3)
+
+
+def _nombre_fr(valeur: float, decimales: int = 3) -> str:
+    """Nombre en notation française (virgule décimale) pour les TEXTES affichés."""
+    return f"{valeur:.{decimales}f}".replace(".", ",")
 
 
 def _stat_card(value: str, label_text: str, color: str | None = None) -> html.Div:
@@ -132,9 +170,9 @@ def _kpi_summary(nodes, coverage: tuple[int, int] | None = None) -> list[html.Di
     """Cartes KPI du haut de page : couverture hebdo, effectif, A, risques H et F."""
     a_known = [(n.urgency.adequation, n.name) for n in nodes if n.urgency.adequation is not None]
     if a_known:
-        mean_a = f"{sum(v for v, _ in a_known) / len(a_known):.1f}"
+        mean_a = _nombre_fr(sum(v for v, _ in a_known) / len(a_known), 1)
         worst_val, worst_name = min(a_known, key=lambda pair: pair[0])
-        worst = f"{worst_val:.1f} ({worst_name})"
+        worst = f"{_nombre_fr(worst_val, 1)} ({worst_name})"
     else:
         mean_a, worst = "—", "—"
     hidden = sum(1 for n in nodes if (n.urgency.hidden_risk or 0.0) > 0.1)
@@ -164,6 +202,7 @@ def layout() -> html.Div:
     return html.Div(
         [
             html.H2("Dashboard", style={"margin": "6px 0 12px"}),
+            html.Div(id="dash-empty-banner"),
             html.Div(
                 [
                     html.Button("Recalculer maintenant", id="dash-recalc-btn", style=BUTTON_STYLE),
@@ -190,23 +229,49 @@ def layout() -> html.Div:
             ),
             card(
                 "Chaîne logistique",
-                [dcc.Graph(id="dash-dag", figure=empty_figure("Chargement…"))],
+                [
+                    labelled(
+                        "Palette de couleurs",
+                        dcc.Dropdown(
+                            id="dash-palette-dd",
+                            options=_PALETTE_OPTIONS,
+                            value=_PALETTE_DEFAUT,
+                            clearable=False,
+                        ),
+                        width="260px",
+                    ),
+                    # dcc.Loading ENVELOPPE le graphe : l'id "dash-dag" reste
+                    # posé sur le composant interne (contrat des tests e2e).
+                    dcc.Loading(
+                        dcc.Graph(id="dash-dag", figure=empty_figure("Chargement…")),
+                        type="circle",
+                        color=COLORS["primary"],
+                    ),
+                ],
             ),
             card(
                 "Priorités PROMETHEE II",
                 [
                     html.Div(id="dash-promethee-warning"),
-                    dcc.Graph(
-                        id="dash-promethee-fig",
-                        figure=empty_figure(
-                            "Sélectionnez un projet pour afficher le classement PROMETHEE II."
-                        ),
-                    ),
-                    dcc.Graph(
-                        id="dash-correlation-fig",
-                        figure=empty_figure(
-                            "Sélectionnez un projet pour afficher la corrélation des critères."
-                        ),
+                    dcc.Loading(
+                        [
+                            dcc.Graph(
+                                id="dash-promethee-fig",
+                                figure=empty_figure(
+                                    "Sélectionnez un projet pour afficher le classement "
+                                    "PROMETHEE II."
+                                ),
+                            ),
+                            dcc.Graph(
+                                id="dash-correlation-fig",
+                                figure=empty_figure(
+                                    "Sélectionnez un projet pour afficher la corrélation "
+                                    "des critères."
+                                ),
+                            ),
+                        ],
+                        type="circle",
+                        color=COLORS["primary"],
                     ),
                     html.P(
                         _NOTE_PERIMETRE,
@@ -232,19 +297,23 @@ def layout() -> html.Div:
                     # virtualization=True exige des hauteurs de lignes fixes et
                     # casse le rendu des colonnes presentation="markdown"
                     # (« Pourquoi ? ») dans plusieurs versions de dash-table.
-                    dash_table.DataTable(  # type: ignore[attr-defined]
-                        id="dash-table",
-                        columns=_TABLE_COLUMNS,
-                        data=[],
-                        sort_action="native",
-                        filter_action="native",
-                        page_action="native",
-                        page_size=25,
-                        virtualization=False,
-                        style_cell=_TABLE_STYLE_CELL,
-                        style_header=_TABLE_STYLE_HEADER,
-                        style_data_conditional=_TABLE_CONDITIONAL,
-                        style_as_list_view=True,
+                    dcc.Loading(
+                        dash_table.DataTable(  # type: ignore[attr-defined]
+                            id="dash-table",
+                            columns=_TABLE_COLUMNS,
+                            data=[],
+                            sort_action="native",
+                            filter_action="native",
+                            page_action="native",
+                            page_size=25,
+                            virtualization=False,
+                            style_cell=_TABLE_STYLE_CELL,
+                            style_header=_TABLE_STYLE_HEADER,
+                            style_data_conditional=_TABLE_CONDITIONAL,
+                            style_as_list_view=True,
+                        ),
+                        type="circle",
+                        color=COLORS["primary"],
                     )
                 ],
                 subtitle=(
@@ -274,6 +343,75 @@ def layout() -> html.Div:
 
 
 # --- Callbacks (fonctions nommées, testables sans serveur) -----------------------
+
+
+def _triggered_id():
+    """Id du composant déclencheur (None hors contexte de requête Dash)."""
+    try:  # ctx indisponible hors requête Dash (appel direct en test)
+        from dash import ctx
+
+        return ctx.triggered_id
+    except Exception:
+        return None
+
+
+def _palette_effective(service, project_id, palette, persister: bool) -> str:
+    """Palette du DAG : persistée par projet, relue au rendu (Lot 16.2).
+
+    Si ``persister`` (le dropdown a déclenché le rafraîchissement) et qu'un
+    projet est actif, la valeur est écrite dans ``project_settings``
+    (clé :data:`_CLE_PALETTE`). Sinon la valeur STOCKÉE du projet fait foi :
+    au premier rendu le dropdown n'est pas encore synchronisé. Toute valeur
+    inconnue retombe sur :data:`_PALETTE_DEFAUT`.
+
+    Args:
+        service: façade applicative.
+        project_id: projet actif (ou None/vide).
+        palette: valeur courante du dropdown (ou None).
+        persister: True si le dropdown est le déclencheur du callback.
+
+    Returns:
+        La colorscale Plotly à passer à ``dashboard_dag_figure``.
+    """
+    if palette not in _PALETTES:
+        palette = None
+    if persister and project_id and palette:
+        service.registry.set_setting(project_id, _CLE_PALETTE, palette)
+        return palette
+    if project_id:
+        stockee = service.registry.get_setting(project_id, _CLE_PALETTE)
+        if stockee in _PALETTES:
+            return stockee
+    return palette or _PALETTE_DEFAUT
+
+
+def palette_value_callback(project_data):
+    """Synchronise le dropdown palette sur le réglage du projet actif."""
+    service = get_service()
+    pid = (project_data or {}).get("project_id")
+    stockee = service.registry.get_setting(pid, _CLE_PALETTE) if pid else None
+    return stockee if stockee in _PALETTES else _PALETTE_DEFAUT
+
+
+def empty_state_callback(project_data):
+    """Bandeau d'invitation quand aucun projet n'est sélectionné (état vide).
+
+    Avec un projet actif, la zone reste vide. Sans projet, le bandeau invite
+    à en choisir un sur la page Projets — et précise, repo vide, qu'il faut
+    d'abord créer un projet ou générer la démo (rien d'affichable sinon).
+    """
+    pid = (project_data or {}).get("project_id")
+    if pid:
+        return None
+    service = get_service()
+    if not service.repo.nodes():
+        texte = "Aucun nœud à afficher : créez un projet ou générez la démo depuis la page Projets."
+    else:
+        texte = (
+            "Aucun projet sélectionné — choisissez un projet sur la page "
+            "Projets ; en attendant, tout le graphe est affiché."
+        )
+    return html.Div(texte, style=_EMPTY_BANNER_STYLE)
 
 
 def _table_row(n, etat: EtatHebdo | None) -> dict:
@@ -310,22 +448,20 @@ def tag_filter_options_callback(project_data):
     return sorted(options, key=lambda o: o["label"]), []
 
 
-def update_dashboard_callback(project_data, n_clicks, tag_ids=None):
+def update_dashboard_callback(project_data, n_clicks, tag_ids=None, palette=None):
     """Met à jour cartes KPI, DAG, tableau et options d'historique.
 
     Si le déclencheur est le bouton « Recalculer maintenant », le pipeline
     complet est relancé et persisté avant le rafraîchissement. Les états
     hebdo du projet sont construits en UNE passe (``synthese``), jamais
     nœud par nœud (N requêtes sinon). ``tag_ids`` filtre les nœuds affichés
-    (intersection non vide avec ``node.tags``).
+    (intersection non vide avec ``node.tags``). ``palette`` (dropdown
+    ``dash-palette-dd``) choisit la colorscale du DAG : persistée par projet
+    quand le dropdown déclenche, relue des réglages sinon
+    (:func:`_palette_effective`).
     """
     service = get_service()
-    try:  # ctx indisponible hors requête Dash (appel direct en test)
-        from dash import ctx
-
-        triggered = ctx.triggered_id
-    except Exception:
-        triggered = None
+    triggered = _triggered_id()
     if triggered == "dash-recalc-btn":
         service.evaluate_all(persist=True)
 
@@ -337,6 +473,7 @@ def update_dashboard_callback(project_data, n_clicks, tag_ids=None):
     arcs = [a for a in service.repo.arcs() if a.source_id in ids and a.target_id in ids]
 
     pid = (project_data or {}).get("project_id")
+    palette_dag = _palette_effective(service, pid, palette, triggered == "dash-palette-dd")
     if pid:
         cycle = CycleHebdomadaire(service)
         etats = cycle.synthese(pid)
@@ -348,7 +485,7 @@ def update_dashboard_callback(project_data, n_clicks, tag_ids=None):
     rows = [_table_row(n, etats.get(n.id)) for n in sorted(nodes, key=lambda n: (n.rank, n.name))]
     return (
         _kpi_summary(nodes, coverage),
-        dashboard_dag_figure(nodes, arcs),
+        dashboard_dag_figure(nodes, arcs, colorscale=palette_dag),
         rows,
         node_options(nodes),
     )
@@ -451,7 +588,9 @@ def _avertissements_correlation(matrice, blocs, omega):
         omega: poids effectifs par bloc (omega du UrModel du projet).
 
     Returns:
-        Liste de messages français, une entrée par paire incriminée.
+        Liste de messages français, une entrée par paire incriminée
+        (« ρ=x.xx » reste en notation POINT : format technique contractuel,
+        cf. tests PROMETHEE existants).
     """
     if not matrice:
         return []
@@ -532,6 +671,16 @@ def register_callbacks(app) -> None:
     )(tag_filter_options_callback)
 
     app.callback(
+        Output("dash-palette-dd", "value"),
+        Input("store-project", "data"),
+    )(palette_value_callback)
+
+    app.callback(
+        Output("dash-empty-banner", "children"),
+        Input("store-project", "data"),
+    )(empty_state_callback)
+
+    app.callback(
         Output("dash-kpi-cards", "children"),
         Output("dash-dag", "figure"),
         Output("dash-table", "data"),
@@ -539,6 +688,7 @@ def register_callbacks(app) -> None:
         Input("store-project", "data"),
         Input("dash-recalc-btn", "n_clicks"),
         Input("dash-tags-dd", "value"),
+        Input("dash-palette-dd", "value"),
     )(update_dashboard_callback)
 
     app.callback(

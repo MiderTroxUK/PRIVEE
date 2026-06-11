@@ -16,7 +16,10 @@
     dans docs/benchmarks. Un banc en échec fait échouer la CI.
 
 .PARAMETER Ui
-    Réservé (tests UI navigateur) — no-op pour l'instant.
+    Exécute les tests navigateur E16 (tests/ui) APRÈS la suite rapide : pose
+    SUPPLYSCORE_UI=1 et lance pytest -m ui (Chrome headless). Un parcours en
+    échec fait échouer la CI ; sans Chrome/chromedriver, les tests se
+    skippent gracieusement.
 
 .EXAMPLE
     .\scripts\ci.ps1
@@ -137,8 +140,18 @@ try {
         }
     }
     if ($Ui) {
-        Write-Host ""
-        Write-Host "Tests UI : réservé, pas encore implémenté (no-op)." -ForegroundColor Yellow
+        # Tests navigateur E16 (Lot 16.7) : exclus de la suite rapide, activés
+        # par la variable d'environnement SUPPLYSCORE_UI=1
+        # (cf. tests/ui/conftest.py). Échec d'un parcours = échec CI.
+        $env:SUPPLYSCORE_UI = "1"
+        try {
+            Invoke-Step -Name "tests UI navigateur (pytest -m ui)" -Exe $Python -StepArgs @(
+                "-m", "pytest", "tests/ui", "-q", "-m", "ui"
+            )
+        }
+        finally {
+            Remove-Item Env:SUPPLYSCORE_UI -ErrorAction SilentlyContinue
+        }
     }
 
     Write-Host ""

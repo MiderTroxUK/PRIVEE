@@ -149,6 +149,15 @@ def _fmt(value: float | None, digits: int = 2) -> str:
     return "—" if value is None else f"{value:.{digits}f}"
 
 
+def _fr(value: float, digits: int = 3) -> str:
+    """Nombre formaté à la française (virgule décimale) pour les PHRASES.
+
+    Réservé aux messages français visibles — jamais aux inputs ni aux
+    colonnes numériques de DataTable (Dash exige le point).
+    """
+    return f"{value:.{digits}f}".replace(".", ",")
+
+
 def _fmt_date(ts: float | None) -> str:
     """Date locale « JJ/MM/AAAA » d'un epoch (« — » si non renseignée)."""
     if ts is None or ts <= 0:
@@ -497,8 +506,8 @@ def _ahp_children(service: Any, node: Any) -> list:
         info = html.P("Aucune évaluation AHP pour ce nœud.", style=_MUTED_STYLE)
     else:
         info = html.P(
-            f"Dernière évaluation : Ud = {latest.ud:.3f} — "
-            f"CR = {latest.consistency_ratio:.3f} — "
+            f"Dernière évaluation : Ud = {_fr(latest.ud)} — "
+            f"CR = {_fr(latest.consistency_ratio)} — "
             f"opérateur « {latest.operator_id} » — semaine {latest.iso_week}."
         )
     points = [(s.timestamp, s.ud) for s in client.urgency_series(node.id) if s.ud is not None]
@@ -559,7 +568,9 @@ def _editable_card(title: str, section: str, body: Any, subtitle: str | None = N
                 style={"margin": "0 0 12px", "fontSize": "13px", "color": COLORS["muted"]},
             )
         )
-    children.append(html.Div(body, id=f"fiche-{section}-body"))
+    # E16.5 — dcc.Loading autour du corps re-rendu par les callbacks de
+    # sauvegarde : l'id reste sur le html.Div interne (sortie des callbacks).
+    children.append(dcc.Loading(type="circle", children=html.Div(body, id=f"fiche-{section}-body")))
     return html.Div(children, style=CARD_STYLE)
 
 
@@ -603,7 +614,14 @@ def layout(node_id: str) -> html.Div:
             ),
             card(
                 "Jalons",
-                [html.Div(_milestones_body(service, node), id="fiche-milestones-body")],
+                [
+                    dcc.Loading(
+                        type="circle",
+                        children=html.Div(
+                            _milestones_body(service, node), id="fiche-milestones-body"
+                        ),
+                    )
+                ],
                 subtitle="Avancement déclaré vs théorique, selon l'horloge du projet.",
             ),
             _editable_card(
@@ -615,7 +633,7 @@ def layout(node_id: str) -> html.Div:
             card("Évaluations AHP", _ahp_children(service, node)),
             card(
                 "Historique d'audit",
-                [history_table(_audit_entries(service, node))],
+                [dcc.Loading(type="circle", children=history_table(_audit_entries(service, node)))],
                 subtitle=(
                     "50 dernières entrées — base client (KPIs) et registre (nœud, arcs) "
                     "fusionnées par date décroissante."

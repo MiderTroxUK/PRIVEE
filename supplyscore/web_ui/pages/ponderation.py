@@ -55,6 +55,9 @@ JUGEMENTS_FR: dict[str, str] = {
 #: Poids uniformes de repli : 1/6 par bloc (bouton « Revenir aux poids uniformes »).
 POIDS_UNIFORMES: dict[str, float] = {bloc: 1.0 / len(BLOCKS) for bloc in BLOCKS}
 
+#: Nombre total de jugements FBWM attendus : 2n−3 (9 pour les 6 blocs).
+NB_JUGEMENTS: int = 2 * len(BLOCKS) - 3
+
 #: Badge vert : jugements cohérents (CR < SEUIL_CR).
 _BADGE_OK_STYLE = {
     "backgroundColor": "#e4f3e9",
@@ -75,6 +78,40 @@ _MUTED_STYLE = {"fontSize": "13px", "color": COLORS["muted"], "margin": "4px 0 1
 
 #: Message initial de l'aperçu, avant toute sélection Meilleur/Pire complète.
 _MSG_APERCU_VIDE = "Choisissez deux critères distincts (Meilleur et Pire) puis les 2n−3 jugements."
+
+
+def _nombre_fr(valeur: float, decimales: int = 3) -> str:
+    """Nombre en notation française (virgule décimale) pour les TEXTES affichés."""
+    return f"{valeur:.{decimales}f}".replace(".", ",")
+
+
+def compte_jugements_saisis(valeurs) -> int:
+    """Nombre de jugements renseignés (valeurs non vides) — fonction PURE (Lot 16.3).
+
+    Args:
+        valeurs: valeurs des dropdowns de jugement (Best→Autres puis
+            Autres→Pire, ordre indifférent).
+
+    Returns:
+        Le nombre de valeurs non vides (None et "" ne comptent pas).
+    """
+    return sum(1 for v in valeurs if v)
+
+
+def _compteur_jugements(saisis: int) -> html.Div:
+    """Indicateur « x/N jugements saisis » affiché sous les dropdowns (Lot 16.3).
+
+    CHOIX DOCUMENTÉ : le compteur est rendu par ``render_judgments_callback``
+    (PAS de callback dédié — le contrat des tests existants fige la page à
+    5 callbacks). C'est exact en continu : les dropdowns de jugement sont
+    ``clearable=False`` et pré-remplis, leur valeur ne peut jamais redevenir
+    vide une fois le groupe rendu.
+    """
+    return html.Div(
+        f"{saisis}/{NB_JUGEMENTS} jugements saisis",
+        id="pond-judgment-count",
+        style={**_MUTED_STYLE, "fontWeight": "600", "marginTop": "8px"},
+    )
 
 
 def _bloc_options() -> list[dict]:
@@ -193,10 +230,10 @@ def _badges_resultat(resultat: ResultatFBWM) -> html.Div:
             ),
             style={"marginBottom": "8px"},
         )
-    mesure = f"ξ* = {resultat.xi_star:.3f} — CR = {resultat.cr:.3f}"
+    mesure = f"ξ* = {_nombre_fr(resultat.xi_star)} — CR = {_nombre_fr(resultat.cr)}"
     if resultat.coherent:
         badge = html.Span(
-            f"{mesure} : jugements cohérents (CR < {SEUIL_CR:.2f}).",
+            f"{mesure} : jugements cohérents (CR < {_nombre_fr(SEUIL_CR, 2)}).",
             style=_BADGE_OK_STYLE,
         )
     else:
@@ -227,6 +264,9 @@ def _affichage_poids_actuels(service, project_id) -> html.Div:
     if poids is None:
         texte = "Poids actuels du projet : uniformes (aucune pondération enregistrée)."
     else:
+        # CHOIX DOCUMENTÉ (Lot 16.2) : les poids restent en notation POINT,
+        # alignés sur les étiquettes des figures de poids (poids_bars_figure)
+        # et sur le format contractuel des tests existants de la page.
         detail = " · ".join(
             f"{BLOCK_LABELS_FR.get(bloc, bloc)} {poids[bloc]:.3f}"
             for bloc in BLOCKS
@@ -291,8 +331,16 @@ def layout() -> html.Div:
             card(
                 "3. Aperçu des poids résolus",
                 [
-                    html.Div(id="pond-preview-badges"),
-                    dcc.Graph(id="pond-weights-fig", figure=empty_figure(_MSG_APERCU_VIDE)),
+                    # dcc.Loading ENVELOPPE l'aperçu : les ids internes
+                    # (badges + figure) restent posés sur les composants.
+                    dcc.Loading(
+                        [
+                            html.Div(id="pond-preview-badges"),
+                            dcc.Graph(id="pond-weights-fig", figure=empty_figure(_MSG_APERCU_VIDE)),
+                        ],
+                        type="circle",
+                        color=COLORS["primary"],
+                    ),
                 ],
                 subtitle="L'aperçu se recalcule à chaque jugement modifié — rien n'est persisté.",
             ),
@@ -344,14 +392,24 @@ def render_judgments_callback(best, worst):
     le groupe Autres→Pire omet le Meilleur ET le Pire.
     """
     if not best or not worst:
-        return html.P(
-            "Choisissez d'abord le critère le PLUS important et le MOINS important.",
-            style=_MUTED_STYLE,
+        return html.Div(
+            [
+                html.P(
+                    "Choisissez d'abord le critère le PLUS important et le MOINS important.",
+                    style=_MUTED_STYLE,
+                ),
+                _compteur_jugements(0),
+            ]
         )
     if best == worst:
-        return html.P(
-            "Le Meilleur et le Pire doivent être deux critères distincts.",
-            style=MSG_ALERT_STYLE,
+        return html.Div(
+            [
+                html.P(
+                    "Le Meilleur et le Pire doivent être deux critères distincts.",
+                    style=MSG_ALERT_STYLE,
+                ),
+                _compteur_jugements(0),
+            ]
         )
     label_best = BLOCK_LABELS_FR.get(best, best)
     label_worst = BLOCK_LABELS_FR.get(worst, worst)
@@ -400,6 +458,11 @@ def render_judgments_callback(best, worst):
                 style=_MUTED_STYLE,
             ),
             html.Div(ow_rows),
+            # Dropdowns non effaçables pré-remplis : tous les jugements sont
+            # saisis dès le rendu du groupe (cf. _compteur_jugements).
+            _compteur_jugements(
+                compte_jugements_saisis(["egalement_important"] * (len(bo_rows) + len(ow_rows)))
+            ),
         ]
     )
 
@@ -437,11 +500,11 @@ def save_callback(n_clicks, best, worst, bo_values, ow_values, bo_ids, ow_ids, p
             no_update,
         )
     if not resultat.coherent:
-        cr_txt = f"{resultat.cr:.3f}" if math.isfinite(resultat.cr) else "∞"
+        cr_txt = _nombre_fr(resultat.cr) if math.isfinite(resultat.cr) else "∞"
         return (
             html.Span(
-                f"Jugements incohérents (CR = {cr_txt} ≥ {SEUIL_CR:.2f}) — révisez vos "
-                "comparaisons avant d'enregistrer.",
+                f"Jugements incohérents (CR = {cr_txt} ≥ {_nombre_fr(SEUIL_CR, 2)}) — "
+                "révisez vos comparaisons avant d'enregistrer.",
                 style=MSG_ALERT_STYLE,
             ),
             no_update,
@@ -524,6 +587,11 @@ def register_callbacks(app) -> None:
         State({"type": "pond-ow", "index": ALL}, "id"),
         State("store-project", "data"),
         prevent_initial_call=True,
+        # Anti double-clic (Lot 16.3) : running= est supporté par Dash 4.2,
+        # y compris en enregistrement différé app.callback(...)(fn) — le
+        # bouton est désactivé pendant le traitement, et le résultat
+        # (succès/refus) s'affiche toujours dans pond-save-msg.
+        running=[(Output("pond-save-btn", "disabled"), True, False)],
     )(save_callback)
 
     app.callback(

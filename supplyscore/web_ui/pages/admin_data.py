@@ -83,6 +83,15 @@ _TABLE_STYLE_HEADER = {
 }
 
 
+def _fr(value: float, digits: int = 3) -> str:
+    """Nombre formaté à la française (virgule décimale) pour les PHRASES.
+
+    Réservé aux messages français visibles — jamais aux inputs ni aux
+    colonnes numériques de DataTable (Dash exige le point).
+    """
+    return f"{value:.{digits}f}".replace(".", ",")
+
+
 # --- Layout -----------------------------------------------------------------------------
 
 
@@ -143,20 +152,30 @@ def layout() -> html.Div:
             card(
                 "Contenu",
                 [
-                    dash_table.DataTable(  # type: ignore[attr-defined]
-                        id="admin-table",
-                        columns=[],
-                        data=[],
-                        editable=False,
-                        page_action="custom",
-                        page_current=0,
-                        page_size=PAGE_SIZE,
-                        page_count=1,
-                        style_table={"overflowX": "auto"},
-                        style_cell=_TABLE_STYLE_CELL,
-                        style_header=_TABLE_STYLE_HEADER,
+                    # E16.6 — dcc.Loading autour de la table paginée (lecture
+                    # SQLite page par page) : l'id reste sur la DataTable.
+                    dcc.Loading(
+                        type="circle",
+                        children=dash_table.DataTable(  # type: ignore[attr-defined]
+                            id="admin-table",
+                            columns=[],
+                            data=[],
+                            editable=False,
+                            page_action="custom",
+                            page_current=0,
+                            page_size=PAGE_SIZE,
+                            page_count=1,
+                            style_table={"overflowX": "auto"},
+                            style_cell=_TABLE_STYLE_CELL,
+                            style_header=_TABLE_STYLE_HEADER,
+                        ),
                     )
                 ],
+                subtitle=(
+                    "Choisissez d'abord une base puis une table ci-dessus : son contenu "
+                    "s'affiche ici page par page (la colonne rowid est la clé technique "
+                    "des lignes)."
+                ),
             ),
             html.Div(id="admin-msg"),
         ],
@@ -292,7 +311,7 @@ def edit_callback(_timestamp, data, data_previous, db, table, page_current, oper
     deltas = [abs((state.ur or 0.0) - ur_before.get(nid, 0.0)) for nid, state in states.items()]
     impacted = sum(1 for delta in deltas if delta > _UR_EPSILON)
     message = html.Span(
-        f"1 cellule modifiée, revalidation OK, ΔUr max = {max(deltas, default=0.0):.3f} "
+        f"1 cellule modifiée, revalidation OK, ΔUr max = {_fr(max(deltas, default=0.0))} "
         f"sur {impacted} nœud(s) — {result.message_fr}",
         style=MSG_OK_STYLE,
     )

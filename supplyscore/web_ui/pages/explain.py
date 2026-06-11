@@ -121,7 +121,14 @@ def _ud_card(exp: NodeExplanation) -> html.Div:
             "Le besoin déclaré (Ud)",
             [html.P("Jamais évalué — remplissez le questionnaire.", style=_MUTED_STYLE)],
         )
-    children: list = [dcc.Graph(id="explain-ud-graph", figure=ud_criteria_figure(exp.criteres))]
+    children: list = [
+        # E16.5 — dcc.Loading autour de chaque graphe (zones lentes) :
+        # l'id reste sur le dcc.Graph interne.
+        dcc.Loading(
+            type="circle",
+            children=dcc.Graph(id="explain-ud-graph", figure=ud_criteria_figure(exp.criteres)),
+        )
+    ]
     evaluation = exp.derniere_evaluation
     if evaluation is not None:
         children.append(
@@ -161,7 +168,12 @@ def _ur_local_card(exp: NodeExplanation, ur_local: float) -> html.Div:
         )
         return card("L'urgence réelle locale (Ur_local)", [encart])
     children: list = [
-        dcc.Graph(id="explain-ur-graph", figure=ur_waterfall_figure(exp.blocs, ur_local))
+        dcc.Loading(
+            type="circle",
+            children=dcc.Graph(
+                id="explain-ur-graph", figure=ur_waterfall_figure(exp.blocs, ur_local)
+            ),
+        )
     ]
     trace = exp.u_time_trace
     if (
@@ -196,7 +208,12 @@ def _fournisseurs_card(exp: NodeExplanation) -> html.Div:
     figure = propagation_bars_figure(exp.part_locale_ur, exp.fournisseurs, direction="fournisseurs")
     return card(
         "D'où vient l'urgence réelle ?",
-        [dcc.Graph(id="explain-prop-ur-graph", figure=figure)],
+        [
+            dcc.Loading(
+                type="circle",
+                children=dcc.Graph(id="explain-prop-ur-graph", figure=figure),
+            )
+        ],
         subtitle="Part locale vs parts des fournisseurs directs dans Ur propagé (β des arcs).",
     )
 
@@ -213,7 +230,12 @@ def _clients_card(exp: NodeExplanation) -> html.Div:
     figure = propagation_bars_figure(exp.part_locale_ud, exp.clients, direction="clients")
     return card(
         "Qui tire le besoin déclaré ?",
-        [dcc.Graph(id="explain-prop-ud-graph", figure=figure)],
+        [
+            dcc.Loading(
+                type="circle",
+                children=dcc.Graph(id="explain-prop-ud-graph", figure=figure),
+            )
+        ],
         subtitle="Part locale vs parts des clients directs dans Ud propagé (γ des arcs).",
     )
 

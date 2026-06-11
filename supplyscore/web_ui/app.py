@@ -15,6 +15,7 @@ from supplyscore.services import SupplyScoreService
 from supplyscore.web_ui import set_service
 from supplyscore.web_ui.components import operator
 from supplyscore.web_ui.components.layout import COLORS, FONT_FAMILY, PAGE_STYLE, navbar
+from supplyscore.web_ui.errors import proteger_app
 from supplyscore.web_ui.pages import (
     admin_data,
     dashboard,
@@ -95,6 +96,10 @@ def create_app(
         suppress_callback_exceptions=True,
         title="SupplyScore",
     )
+    # Garde-fou E16.1 : AVANT tout enregistrement (routeur compris), chaque
+    # callback est automatiquement protégé — aucune exception n'atteint
+    # l'utilisateur sans message français (cf. supplyscore.web_ui.errors).
+    proteger_app(app)
     app.layout = html.Div(
         [
             navbar(right=operator.operator_selector()),

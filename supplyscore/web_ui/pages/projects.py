@@ -42,6 +42,28 @@ NODE_LABELS: list[str] = [
     "Transport",
 ]
 
+#: Libellés français AFFICHÉS pour les labels métier — les VALEURS stockées
+#: restent techniques (« Factory », « Supplier »…), seuls les libellés des
+#: listes déroulantes sont traduits (DoD E16 : aucun texte anglais visible).
+LABELS_METIER_FR: dict[str, str] = {
+    "Client": "Client",
+    "Factory": "Usine",
+    "Warehouse": "Entrepôt",
+    "Workshop": "Atelier",
+    "Supplier": "Fournisseur",
+    "Transport": "Transport",
+}
+
+
+def label_metier_options() -> list[dict[str, str]]:
+    """Options de dropdown des labels métier : libellé français, valeur technique."""
+    options = []
+    for lbl in NODE_LABELS:
+        fr = LABELS_METIER_FR.get(lbl, lbl)
+        options.append({"label": fr if fr == lbl else f"{fr} ({lbl})", "value": lbl})
+    return options
+
+
 _TABLE_COLUMNS = [
     {"name": "Nom", "id": "Nom"},
     {"name": "Rang", "id": "Rang", "type": "numeric"},
@@ -210,10 +232,10 @@ def layout() -> html.Div:
                         "Label",
                         dcc.Dropdown(
                             id="add-node-label",
-                            options=[{"label": lbl, "value": lbl} for lbl in NODE_LABELS],
+                            options=label_metier_options(),
                             value="Supplier",
                         ),
-                        width="180px",
+                        width="200px",
                     ),
                     labelled(
                         "Alimente quels nœuds (clients aval)",
@@ -393,26 +415,35 @@ def layout() -> html.Div:
             card(
                 "Nœuds du projet actif",
                 [
+                    # E16.4 — dcc.Loading autour du tableau (zone lente sur les
+                    # grands projets) : l'id reste sur la DataTable interne.
                     # E14.3 — pagination native SEULE (page_size=25), SANS
                     # virtualization (redondante avec la pagination ; elle
                     # exige des hauteurs de lignes fixes et casse le rendu des
                     # colonnes presentation="markdown" — « Fiche » — dans
                     # plusieurs versions de dash-table). La page garde le tri
                     # natif, sans filtre (contrairement au dashboard).
-                    dash_table.DataTable(  # type: ignore[attr-defined]
-                        id="proj-table",
-                        columns=_TABLE_COLUMNS,
-                        data=[],
-                        sort_action="native",
-                        page_action="native",
-                        page_size=25,
-                        virtualization=False,
-                        style_cell=_TABLE_STYLE_CELL,
-                        style_header=_TABLE_STYLE_HEADER,
-                        style_data_conditional=style_hebdo_conditionnel("Hebdo"),
-                        style_as_list_view=True,
+                    dcc.Loading(
+                        type="circle",
+                        children=dash_table.DataTable(  # type: ignore[attr-defined]
+                            id="proj-table",
+                            columns=_TABLE_COLUMNS,
+                            data=[],
+                            sort_action="native",
+                            page_action="native",
+                            page_size=25,
+                            virtualization=False,
+                            style_cell=_TABLE_STYLE_CELL,
+                            style_header=_TABLE_STYLE_HEADER,
+                            style_data_conditional=style_hebdo_conditionnel("Hebdo"),
+                            style_as_list_view=True,
+                        ),
                     )
                 ],
+                subtitle=(
+                    "Statuts, badges hebdo, complétude et scores de chaque nœud — "
+                    "la colonne « Fiche » ouvre la fiche 360°."
+                ),
             ),
         ],
         style=PAGE_STYLE,

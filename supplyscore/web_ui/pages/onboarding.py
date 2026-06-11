@@ -26,7 +26,6 @@ from supplyscore.services.onboarding import SECTION_KEYS, OnboardingService
 from supplyscore.web_ui import get_service
 from supplyscore.web_ui.components.badges import completeness_badge, draft_badge
 from supplyscore.web_ui.components.forms_node import (
-    NODE_LABELS,
     ahp_form,
     cdc_form,
     deliverable_row,
@@ -52,6 +51,7 @@ from supplyscore.web_ui.components.layout import (
     node_options,
 )
 from supplyscore.web_ui.components.operator import current_operator
+from supplyscore.web_ui.pages.projects import label_metier_options
 from supplyscore.web_ui.pages.questionnaire import pair_label_callback, score_label_callback
 
 #: Titres français des 4 étapes, alignés sur :data:`SECTION_KEYS`.
@@ -361,7 +361,7 @@ def layout() -> html.Div:
                         "Label métier",
                         dcc.Dropdown(
                             id="onb-start-label",
-                            options=[{"label": lbl, "value": lbl} for lbl in NODE_LABELS],
+                            options=label_metier_options(),
                             value="Supplier",
                             clearable=False,
                         ),
@@ -387,7 +387,10 @@ def layout() -> html.Div:
             card(
                 "Assistant en 4 étapes",
                 [
-                    html.Div(id="onb-step-content"),
+                    # E16.4 — dcc.Loading autour du contenu d'étape (re-rendu
+                    # serveur à chaque navigation du wizard) : l'id reste sur
+                    # le html.Div interne.
+                    dcc.Loading(type="circle", children=html.Div(id="onb-step-content")),
                     html.Div(
                         [
                             html.Button(

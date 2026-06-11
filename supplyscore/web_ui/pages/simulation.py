@@ -134,6 +134,21 @@ def _triggered_id() -> Any:
         return None
 
 
+def _fr(value: float, digits: int = 3, signe: bool = False) -> str:
+    """Nombre formaté à la française (virgule décimale) pour les PHRASES.
+
+    Réservé aux messages français visibles — jamais aux inputs ni aux
+    colonnes numériques de DataTable (Dash exige le point).
+
+    Args:
+        value: valeur à formater.
+        digits: nombre de décimales.
+        signe: True pour forcer le signe (« +0,500 »).
+    """
+    texte = f"{value:+.{digits}f}" if signe else f"{value:.{digits}f}"
+    return texte.replace(".", ",")
+
+
 def layout() -> html.Div:
     """Construit la page Simulation (état du service relu à chaque navigation)."""
     service = get_service()
@@ -187,11 +202,29 @@ def layout() -> html.Div:
             ),
             card(
                 "Propagation du choc",
-                [dcc.Graph(id="sim-dag-fig", figure=empty_figure("Lancez une simulation."))],
+                [
+                    # E16.6 — dcc.Loading autour des zones lentes (figures et
+                    # tableaux recalculés) : l'id reste sur le composant interne.
+                    dcc.Loading(
+                        type="circle",
+                        children=dcc.Graph(
+                            id="sim-dag-fig", figure=empty_figure("Lancez une simulation.")
+                        ),
+                    )
+                ],
+                subtitle="Le DAG du projet, coloré par ΔUr après le choc simulé.",
             ),
             card(
                 "Impact par nœud",
-                [dcc.Graph(id="sim-bar-fig", figure=empty_figure("Lancez une simulation."))],
+                [
+                    dcc.Loading(
+                        type="circle",
+                        children=dcc.Graph(
+                            id="sim-bar-fig", figure=empty_figure("Lancez une simulation.")
+                        ),
+                    )
+                ],
+                subtitle="Les ΔUr du choc simulé, nœud par nœud.",
             ),
             card(
                 "Scénario composite (multi-chocs, sans persistance)",
@@ -231,18 +264,24 @@ def layout() -> html.Div:
                         style={"margin": "12px 0"},
                     ),
                     html.Div(id="sim-eval-msg"),
-                    dash_table.DataTable(  # type: ignore[attr-defined]
-                        id="sim-scn-table",
-                        columns=_SCN_COLUMNS,
-                        data=[],
-                        sort_action="native",
-                        style_cell=_TABLE_STYLE_CELL,
-                        style_header=_TABLE_STYLE_HEADER,
-                        style_as_list_view=True,
+                    dcc.Loading(
+                        type="circle",
+                        children=dash_table.DataTable(  # type: ignore[attr-defined]
+                            id="sim-scn-table",
+                            columns=_SCN_COLUMNS,
+                            data=[],
+                            sort_action="native",
+                            style_cell=_TABLE_STYLE_CELL,
+                            style_header=_TABLE_STYLE_HEADER,
+                            style_as_list_view=True,
+                        ),
                     ),
-                    dcc.Graph(
-                        id="sim-scn-dag-fig",
-                        figure=empty_figure("Évaluez un scénario composite."),
+                    dcc.Loading(
+                        type="circle",
+                        children=dcc.Graph(
+                            id="sim-scn-dag-fig",
+                            figure=empty_figure("Évaluez un scénario composite."),
+                        ),
                     ),
                 ],
                 subtitle=f"Évaluation pure (rien n'est modifié). {_NOTE_NON_ADDITIVITE}",
@@ -258,9 +297,12 @@ def layout() -> html.Div:
                         ),
                         style={"marginBottom": "12px"},
                     ),
-                    dcc.Graph(
-                        id="sim-crit-fig",
-                        figure=empty_figure("Lancez l'analyse de criticité."),
+                    dcc.Loading(
+                        type="circle",
+                        children=dcc.Graph(
+                            id="sim-crit-fig",
+                            figure=empty_figure("Lancez l'analyse de criticité."),
+                        ),
                     ),
                 ],
                 subtitle=(
@@ -628,12 +670,15 @@ def simulate_callback(n_clicks, node_id, ur_value, project_data):
     if impacted:
         worst = max(impacted, key=lambda nid: abs(impacted[nid]))
         text = (
-            f"Le choc sur « {shocked_name} » (Ur_local = {value:.2f}) impacte "
-            f"{len(impacted)} nœud(s) aval, ΔUr max = {impacted[worst]:+.3f} "
+            f"Le choc sur « {shocked_name} » (Ur_local = {_fr(value, 2)}) impacte "
+            f"{len(impacted)} nœud(s) aval, ΔUr max = {_fr(impacted[worst], signe=True)} "
             f"sur « {names.get(worst, worst)} ». Simulation sans persistance."
         )
     else:
-        text = f"Le choc sur « {shocked_name} » (Ur_local = {value:.2f}) n'impacte aucun nœud aval."
+        text = (
+            f"Le choc sur « {shocked_name} » (Ur_local = {_fr(value, 2)}) "
+            "n'impacte aucun nœud aval."
+        )
     return (
         shock_dag_figure(nodes, arcs, deltas),
         shock_bar_figure(deltas, names),
@@ -755,7 +800,7 @@ def evaluate_scenario_callback(
         worst = max(impactes, key=lambda nid: abs(impactes[nid]))
         texte = (
             f"Scénario évalué : {len(impactes)} nœud(s) impacté(s), "
-            f"ΔUr max = {impactes[worst]:+.3f} sur « {names.get(worst, worst)} ». "
+            f"ΔUr max = {_fr(impactes[worst], signe=True)} sur « {names.get(worst, worst)} ». "
             "Évaluation pure, rien n'est persisté."
         )
         spans: list = [html.Span(texte, style=MSG_WARN_STYLE)]

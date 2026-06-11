@@ -257,18 +257,25 @@ def layout() -> html.Div:
             card(
                 "Arcs",
                 [
-                    dash_table.DataTable(  # type: ignore[attr-defined]
-                        id="arc-edit-table",
-                        columns=_ARC_COLUMNS,
-                        data=[],
-                        editable=True,
-                        dropdown=_NATURE_DROPDOWN,
-                        style_cell=_TABLE_STYLE_CELL,
-                        style_header=_TABLE_STYLE_HEADER,
+                    # E16.6 — dcc.Loading autour du tableau des arcs (zone lente
+                    # sur les grands graphes) : l'id reste sur la DataTable.
+                    dcc.Loading(
+                        type="circle",
+                        children=dash_table.DataTable(  # type: ignore[attr-defined]
+                            id="arc-edit-table",
+                            columns=_ARC_COLUMNS,
+                            data=[],
+                            editable=True,
+                            dropdown=_NATURE_DROPDOWN,
+                            style_cell=_TABLE_STYLE_CELL,
+                            style_header=_TABLE_STYLE_HEADER,
+                        ),
                     ),
                     html.Div(id="arc-table-msg"),
                 ],
                 subtitle=(
+                    "γ : force avec laquelle le besoin du client tire ce fournisseur ; "
+                    "β : force avec laquelle le risque du fournisseur remonte. "
                     "γ et β dans [0, 1], δ dans [0, 2] — une valeur hors bornes est rejetée "
                     "et le tableau rechargé. La nature backup est inerte dans les calculs."
                 ),

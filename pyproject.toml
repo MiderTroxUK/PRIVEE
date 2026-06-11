@@ -24,6 +24,7 @@ dev = [
     "ruff>=0.8",
     "mypy>=1.13",
     "pre-commit>=4.0",
+    "dash[testing]>=4.2,<5",
 ]
 
 [tool.pytest.ini_options]

@@ -103,6 +103,15 @@ KPI_FIELDS: list[tuple[str, list[tuple[str, str]]]] = [
 _PAIR_MARKS = {-8: "-8", -4: "-4", 0: "0", 4: "+4", 8: "+8"}
 
 
+def _fr(value: float, digits: int = 3) -> str:
+    """Nombre formaté à la française (virgule décimale) pour les PHRASES.
+
+    Réservé aux messages français visibles — jamais aux inputs ni aux
+    colonnes numériques de DataTable (Dash exige le point).
+    """
+    return f"{value:.{digits}f}".replace(".", ",")
+
+
 def _pair_block(i: int, j: int) -> html.Div:
     """Slider bipolaire (-8..+8) d'une paire de critères + libellé dynamique."""
     key = f"{i}-{j}"
@@ -366,13 +375,13 @@ def preview_callback(pair_values, score_values, pair_ids, score_ids):
     cr = result.consistency_ratio
     if cr >= CONSISTENCY_THRESHOLD:
         cr_msg = html.Span(
-            f"CR = {cr:.3f} ≥ {CONSISTENCY_THRESHOLD:.2f} : jugements incohérents, "
+            f"CR = {_fr(cr)} ≥ {_fr(CONSISTENCY_THRESHOLD, 2)} : jugements incohérents, "
             "révisez vos comparaisons.",
             style={"color": COLORS["alert"], "fontWeight": "600"},
         )
     else:
         cr_msg = html.Span(
-            f"CR = {cr:.3f} < {CONSISTENCY_THRESHOLD:.2f} : jugements cohérents.",
+            f"CR = {_fr(cr)} < {_fr(CONSISTENCY_THRESHOLD, 2)} : jugements cohérents.",
             style={"color": COLORS["ok"]},
         )
     return badge, cr_msg, ahp_weights_figure(list(result.weights))
@@ -435,8 +444,8 @@ def save_assessment_callback(
     )
     if assessment.consistency_ratio >= CONSISTENCY_THRESHOLD:
         return html.Span(
-            f"Enregistrement refusé : CR = {assessment.consistency_ratio:.3f} "
-            f"≥ {CONSISTENCY_THRESHOLD:.2f}. Révisez vos comparaisons par paires.",
+            f"Enregistrement refusé : CR = {_fr(assessment.consistency_ratio)} "
+            f"≥ {_fr(CONSISTENCY_THRESHOLD, 2)}. Révisez vos comparaisons par paires.",
             style=MSG_ALERT_STYLE,
         )
 
@@ -461,7 +470,7 @@ def save_assessment_callback(
     # submit_assessment a renseigné assessment.iso_week (horloge du projet).
     return html.Span(
         f"Évaluation enregistrée pour « {node.name} » "
-        f"(Ud = {assessment.ud:.3f}, {updated} KPI mis à jour) "
+        f"(Ud = {_fr(assessment.ud)}, {updated} KPI mis à jour) "
         f"— semaine {assessment.iso_week}. "
         "Pensez à re-remplir le questionnaire chaque semaine.",
         style=MSG_OK_STYLE,

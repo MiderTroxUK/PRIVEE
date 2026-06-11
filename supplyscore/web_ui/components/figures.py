@@ -337,17 +337,41 @@ def dag_figure(
     return fig
 
 
-def dashboard_dag_figure(nodes: list[SupplyNode], arcs: list[SupplyArc]) -> go.Figure:
-    """DAG du dashboard : couleur = adéquation A (rouge -> vert), taille = Ur."""
+#: Légendes du DAG du dashboard, cohérentes avec la palette choisie (Lot 16.2) :
+#: la description des couleurs extrêmes suit la colorscale réellement rendue.
+_DAG_CAPTIONS: dict[str, str] = {
+    "RdYlGn": "Couleur : adéquation A (0 = rouge, 100 = vert) · Taille : urgence réelle Ur",
+    "RdYlBu": "Couleur : adéquation A (0 = rouge, 100 = bleu) · Taille : urgence réelle Ur",
+    "Viridis": "Couleur : adéquation A (0 = violet, 100 = jaune) · Taille : urgence réelle Ur",
+}
+
+
+def dashboard_dag_figure(
+    nodes: list[SupplyNode], arcs: list[SupplyArc], colorscale: str = "RdYlGn"
+) -> go.Figure:
+    """DAG du dashboard : couleur = adéquation A, taille = Ur.
+
+    Args:
+        nodes: nœuds à tracer.
+        arcs: arcs du graphe (nominaux et secours).
+        colorscale: palette Plotly de l'adéquation — « RdYlGn » (défaut),
+            « RdYlBu » (lisible pour les daltoniens) ou « Viridis » ; la
+            légende suit la palette (:data:`_DAG_CAPTIONS`, repli neutre
+            pour une palette inconnue).
+    """
+    caption = _DAG_CAPTIONS.get(
+        colorscale,
+        "Couleur : adéquation A (0 = faible, 100 = bonne) · Taille : urgence réelle Ur",
+    )
     return dag_figure(
         nodes,
         arcs,
-        colorscale="RdYlGn",
+        colorscale=colorscale,
         cmin=0.0,
         cmax=100.0,
         colorbar_title="A",
         title="Chaîne logistique — adéquation par nœud",
-        caption="Couleur : adéquation A (0 = rouge, 100 = vert) · Taille : urgence réelle Ur",
+        caption=caption,
     )
 
 

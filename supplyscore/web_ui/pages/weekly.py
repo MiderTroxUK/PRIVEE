@@ -161,6 +161,27 @@ _KPI_WARN_STYLE = {"fontSize": "12px", "color": COLORS["warn"], "marginTop": "3p
 
 _BUTTON_ROW_STYLE = {"marginTop": "14px", "display": "flex", "gap": "10px", "flexWrap": "wrap"}
 
+#: Bandeau d'invitation bleu (état vide : aucun nœud sélectionné, Lot 16.2).
+_EMPTY_BANNER_STYLE = {
+    "backgroundColor": "#eef4f8",
+    "border": f"1px solid {COLORS['primary']}",
+    "color": COLORS["primary"],
+    "borderRadius": "6px",
+    "padding": "10px 14px",
+    "margin": "0 0 14px",
+    "fontSize": "14px",
+    "fontWeight": "600",
+    "fontFamily": FONT_FAMILY,
+}
+
+#: Compteur de progression du volet 1 (« x/6 paires ajustées », Lot 16.3).
+_PAIR_COUNT_STYLE = {
+    "fontSize": "13px",
+    "fontWeight": "600",
+    "color": COLORS["primary"],
+    "margin": "0 0 10px",
+}
+
 
 # --- Conversions inverses (Saaty -> UI) ------------------------------------------------
 
@@ -231,8 +252,19 @@ def ahp_prefill(service: SupplyScoreService, node_id: str) -> tuple[dict[str, in
 # --- Petits helpers d'affichage --------------------------------------------------------
 
 
+def _nombre_fr(valeur: float, decimales: int = 3) -> str:
+    """Nombre en notation française (virgule décimale) pour les TEXTES affichés."""
+    return f"{valeur:.{decimales}f}".replace(".", ",")
+
+
 def _fmt_value(value: float | None) -> str:
-    """Formate une valeur de KPI : « non renseigné » si None, 4 décimales utiles."""
+    """Formate une valeur de KPI : « non renseigné » si None, 4 décimales utiles.
+
+    CHOIX DOCUMENTÉ (Lot 16.2) : notation POINT conservée — la valeur sert
+    de ``placeholder`` aux ``dcc.Input`` numériques du volet 2 (la saisie se
+    fait en point) et de colonne de comparaison alignée sur ces inputs ; la
+    virgule française est réservée aux PHRASES (:func:`_nombre_fr`).
+    """
     if value is None:
         return "non renseigné"
     return f"{value:.4g}"
@@ -283,6 +315,38 @@ def _store_node_id(hebdo_data: Any) -> str:
 def _no_node_msg() -> html.Span:
     """Message d'erreur standard quand aucun nœud n'est sélectionné."""
     return html.Span("Sélectionnez d'abord un nœud à passer en revue.", style=MSG_ALERT_STYLE)
+
+
+def _bandeau_selection() -> html.Div:
+    """Bandeau d'état vide : invite à choisir un nœud pour démarrer la revue."""
+    return html.Div("Sélectionnez un nœud pour démarrer la revue.", style=_EMPTY_BANNER_STYLE)
+
+
+def compte_paires_ajustees(valeurs) -> int:
+    """Nombre de paires AJUSTÉES : curseurs à une valeur non nulle (Lot 16.3).
+
+    Fonction PURE (testable sans serveur) : une paire compte dès que son
+    curseur bipolaire vaut autre chose que 0 (« importance égale ») ; les
+    valeurs manquantes (None) ne comptent pas.
+
+    Args:
+        valeurs: valeurs courantes des sliders de paires (ordre quelconque).
+
+    Returns:
+        Le nombre de valeurs renseignées et non nulles.
+    """
+    return sum(1 for v in valeurs if v is not None and v != 0)
+
+
+def texte_paires_ajustees(valeurs) -> str:
+    """Texte du compteur « x/6 paires ajustées » du volet 1.
+
+    Le dénominateur suit les sliders réellement montés (repli sur
+    :data:`PAIRS` tant qu'aucun volet n'est rendu).
+    """
+    valeurs = list(valeurs)
+    total = len(valeurs) or len(PAIRS)
+    return f"{compte_paires_ajustees(valeurs)}/{total} paires ajustées"
 
 
 # --- Corps des volets -------------------------------------------------------------------
@@ -338,10 +402,20 @@ def _ahp_body(service: SupplyScoreService, node_id: str) -> html.Div:
     else:
         intro = html.P(
             f"Pré-rempli depuis la dernière évaluation (semaine {latest.iso_week}, "
-            f"Ud = {latest.ud:.3f}, opérateur « {latest.operator_id} »).",
+            f"Ud = {_nombre_fr(latest.ud)}, opérateur « {latest.operator_id} »).",
             style=_MUTED_STYLE,
         )
-    children: list = [intro, html.H4("Comparaisons par paires", style=_H4_STYLE)]
+    children: list = [
+        intro,
+        html.H4("Comparaisons par paires", style=_H4_STYLE),
+        # Compteur de progression (Lot 16.3), mis à jour LIVE par
+        # ahp_pair_count_callback à chaque mouvement de slider.
+        html.Div(
+            texte_paires_ajustees(pairs[f"{i}-{j}"] for i, j in PAIRS),
+            id="hebdo-ahp-pair-count",
+            style=_PAIR_COUNT_STYLE,
+        ),
+    ]
     children += [_pair_block(i, j, pairs[f"{i}-{j}"]) for i, j in PAIRS]
     children.append(html.H4("Notes des critères (1 à 6)", style=_H4_STYLE))
     children += [_score_block(k, scores[str(k)]) for k in range(len(CRITERIA))]
@@ -590,7 +664,7 @@ def _decisions_children(decisions: list[Decision]) -> Any:
     items = []
     for decision in decisions:
         snapshot = " · ".join(
-            f"{label} {value:.2f}"
+            f"{label} {_nombre_fr(value, 2)}"
             for label, value in (
                 ("Ud", decision.scores.get("ud")),
                 ("Ur", decision.scores.get("ur")),
@@ -691,10 +765,16 @@ def _volet_card(volet: str) -> html.Details:
                 ],
                 style=_SUMMARY_STYLE,
             ),
-            html.Div(
-                html.P("Sélectionnez un nœud pour démarrer la revue.", style=_MUTED_STYLE),
-                id=body_ids[volet],
-                style={"marginTop": "10px"},
+            # dcc.Loading ENVELOPPE le corps : l'id du volet reste posé sur
+            # le Div interne (contrat des tests e2e et des callbacks).
+            dcc.Loading(
+                html.Div(
+                    html.P("Sélectionnez un nœud pour démarrer la revue.", style=_MUTED_STYLE),
+                    id=body_ids[volet],
+                    style={"marginTop": "10px"},
+                ),
+                type="circle",
+                color=COLORS["primary"],
             ),
         ],
         open=True,
@@ -735,6 +815,7 @@ def layout() -> html.Div:
                     "Budget : 15 à 20 minutes par nœud — déroulez les quatre volets dans l'ordre."
                 ),
             ),
+            html.Div(_bandeau_selection(), id="hebdo-empty-banner"),
             *[_volet_card(volet) for volet in VOLETS],
             card(
                 "Clôture",
@@ -787,6 +868,18 @@ def project_info_callback(project_data):
     return info, node_options(nodes)
 
 
+def empty_banner_callback(node_id):
+    """Bandeau d'état vide : visible tant qu'aucun nœud n'est sélectionné."""
+    if node_id:
+        return None
+    return _bandeau_selection()
+
+
+def ahp_pair_count_callback(pair_values):
+    """Compteur LIVE « x/6 paires ajustées » du volet 1 (valeurs ≠ 0)."""
+    return texte_paires_ajustees(pair_values or [])
+
+
 def select_node_callback(node_id):
     """Démarre la revue du nœud choisi et monte les quatre volets.
 
@@ -837,8 +930,9 @@ def _submit_weekly_assessment(
     if assessment.consistency_ratio >= CONSISTENCY_THRESHOLD:
         return (
             html.Span(
-                f"Enregistrement refusé : CR = {assessment.consistency_ratio:.3f} "
-                f"≥ {CONSISTENCY_THRESHOLD:.2f}. Révisez vos comparaisons par paires.",
+                f"Enregistrement refusé : CR = {_nombre_fr(assessment.consistency_ratio)} "
+                f"≥ {_nombre_fr(CONSISTENCY_THRESHOLD, 2)}. "
+                "Révisez vos comparaisons par paires.",
                 style=MSG_ALERT_STYLE,
             ),
             no_update,
@@ -847,7 +941,7 @@ def _submit_weekly_assessment(
     service.submit_assessment(assessment)
     status = WeeklyReview(service).mark_volet(node_id, "ahp", operator_id)
     message = html.Span(
-        f"{action} pour « {node.name} » (Ud = {assessment.ud:.3f}) — "
+        f"{action} pour « {node.name} » (Ud = {_nombre_fr(assessment.ud)}) — "
         f"semaine {assessment.iso_week}. Volet AHP traité.",
         style=MSG_OK_STYLE,
     )
@@ -1254,6 +1348,17 @@ def complete_callback(n_clicks, hebdo_data):
     return message, _progress_badge(status)
 
 
+def _anti_double_clic(button_id: str) -> list:
+    """Triplet ``running=`` désactivant le bouton pendant le traitement.
+
+    Anti double-clic (Lot 16.3) : ``running=`` est supporté par Dash 4.2 y
+    compris en enregistrement différé ``app.callback(...)(fn)`` — le bouton
+    déclencheur est ``disabled`` du départ de la requête à sa réponse, et
+    chaque action affiche de toute façon son message dans ``hebdo-msg``.
+    """
+    return [(Output(button_id, "disabled"), True, False)]
+
+
 def register_callbacks(app) -> None:
     """Enregistre les callbacks de la page Revue hebdomadaire sur l'app Dash."""
     app.callback(
@@ -1261,6 +1366,17 @@ def register_callbacks(app) -> None:
         Output("hebdo-node-dd", "options"),
         Input("store-project", "data"),
     )(project_info_callback)
+
+    app.callback(
+        Output("hebdo-empty-banner", "children"),
+        Input("hebdo-node-dd", "value"),
+    )(empty_banner_callback)
+
+    app.callback(
+        Output("hebdo-ahp-pair-count", "children"),
+        Input({"type": "hebdo-ahp-pair", "index": ALL}, "value"),
+        prevent_initial_call=True,
+    )(ahp_pair_count_callback)
 
     app.callback(
         Output("store-hebdo", "data"),
@@ -1287,6 +1403,7 @@ def register_callbacks(app) -> None:
         State("store-hebdo", "data"),
         State("store-operator", "data"),
         prevent_initial_call=True,
+        running=_anti_double_clic("hebdo-ahp-confirm-btn"),
     )(ahp_confirm_callback)
 
     app.callback(
@@ -1301,6 +1418,7 @@ def register_callbacks(app) -> None:
         State({"type": "hebdo-ahp-score", "index": ALL}, "value"),
         State({"type": "hebdo-ahp-score", "index": ALL}, "id"),
         prevent_initial_call=True,
+        running=_anti_double_clic("hebdo-ahp-save-btn"),
     )(ahp_save_callback)
 
     app.callback(
@@ -1313,6 +1431,7 @@ def register_callbacks(app) -> None:
         State({"type": "hebdo-kpi", "index": ALL}, "value"),
         State({"type": "hebdo-kpi", "index": ALL}, "id"),
         prevent_initial_call=True,
+        running=_anti_double_clic("hebdo-kpi-save-btn"),
     )(kpi_save_callback)
 
     app.callback(
@@ -1323,6 +1442,7 @@ def register_callbacks(app) -> None:
         State("store-hebdo", "data"),
         State("store-operator", "data"),
         prevent_initial_call=True,
+        running=_anti_double_clic("hebdo-kpi-none-btn"),
     )(kpi_none_callback)
 
     app.callback(
@@ -1338,6 +1458,7 @@ def register_callbacks(app) -> None:
         State({"type": "hebdo-ms-progress", "index": ALL}, "value"),
         State({"type": "hebdo-ms-progress", "index": ALL}, "id"),
         prevent_initial_call=True,
+        running=_anti_double_clic("hebdo-ms-save-btn"),
     )(ms_save_callback)
 
     app.callback(
@@ -1370,6 +1491,7 @@ def register_callbacks(app) -> None:
         State({"type": "ev-param", "index": ALL}, "value"),
         State({"type": "ev-param", "index": ALL}, "id"),
         prevent_initial_call=True,
+        running=_anti_double_clic("hebdo-ev-apply-btn"),
     )(ev_apply_callback)
 
     app.callback(
@@ -1393,6 +1515,7 @@ def register_callbacks(app) -> None:
         State("store-operator", "data"),
         State("hebdo-decision-text", "value"),
         prevent_initial_call=True,
+        running=_anti_double_clic("hebdo-decision-btn"),
     )(decision_callback)
 
     app.callback(
@@ -1403,6 +1526,7 @@ def register_callbacks(app) -> None:
         State("store-hebdo", "data"),
         State("store-operator", "data"),
         prevent_initial_call=True,
+        running=_anti_double_clic("hebdo-ev-none-btn"),
     )(ev_none_callback)
 
     app.callback(
@@ -1411,4 +1535,5 @@ def register_callbacks(app) -> None:
         Input("hebdo-complete-btn", "n_clicks"),
         State("store-hebdo", "data"),
         prevent_initial_call=True,
+        running=_anti_double_clic("hebdo-complete-btn"),
     )(complete_callback)
