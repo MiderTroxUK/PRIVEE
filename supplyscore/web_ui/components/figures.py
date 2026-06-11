@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import functools
 from datetime import datetime
 
 import plotly.graph_objects as go
@@ -17,6 +18,22 @@ _TEMPLATE = "plotly_white"
 _PHI_POSITIF_COLOR = "#b3261e"
 #: Gris des nœuds non prioritaires (φ <= 0) — aligné sur les voisins d'explication.
 _PHI_NEGATIF_COLOR = "#9aa7b0"
+
+#: Au-delà de ce nombre de nœuds, le DAG bascule en rendu WebGL allégé (E14.3) :
+#: ``go.Scattergl`` pour les nœuds ET les arêtes, étiquettes texte désactivées
+#: (hover seulement — Scattergl rend mal le texte), marqueurs de direction ronds
+#: (Scattergl ne supporte pas ``marker.angleref``).
+SEUIL_WEBGL = 200
+
+#: Position du marqueur de direction le long de l'arête : au ⅔ du chemin
+#: fournisseur → client (proche de la cible, le sens se lit d'un coup d'œil).
+_FRACTION_FLECHE = 2.0 / 3.0
+
+#: Couleur des marqueurs de direction — gris des anciennes flèches d'annotation.
+_FLECHE_COLOR = "#9aa7b0"
+
+#: Nom de la trace dédiée aux marqueurs de direction (repérable dans les tests).
+_NOM_TRACE_SENS = "sens-arcs"
 
 
 def _fmt(value: float | None, digits: int = 2) -> str:
@@ -71,17 +88,32 @@ def ahp_weights_figure(weights: list[float]) -> go.Figure:
     return fig
 
 
-def node_positions(nodes: list[SupplyNode]) -> dict[str, tuple[float, float]]:
-    """Positions du DAG : x = -rang, y réparti et centré au sein de chaque rang."""
-    by_rank: dict[int, list[SupplyNode]] = {}
-    for node in sorted(nodes, key=lambda n: (n.rank, n.id)):
-        by_rank.setdefault(node.rank, []).append(node)
+@functools.lru_cache(maxsize=64)
+def _positions_par_cle(cle: tuple[tuple[str, int], ...]) -> dict[str, tuple[float, float]]:
+    """Positions pour une clé ``((id, rang), ...)`` triée par (rang, id) — mémoïsées."""
+    par_rang: dict[int, list[str]] = {}
+    for node_id, rank in cle:
+        par_rang.setdefault(rank, []).append(node_id)
     positions: dict[str, tuple[float, float]] = {}
-    for rank, group in by_rank.items():
+    for rank, group in par_rang.items():
         offset = (len(group) - 1) / 2.0
-        for i, node in enumerate(group):
-            positions[node.id] = (-float(rank), float(i) - offset)
+        for i, node_id in enumerate(group):
+            positions[node_id] = (-float(rank), float(i) - offset)
     return positions
+
+
+def node_positions(nodes: list[SupplyNode]) -> dict[str, tuple[float, float]]:
+    """Positions du DAG : x = -rang, y réparti et centré au sein de chaque rang.
+
+    Le calcul est mémoïsé (E14.3) via :func:`_positions_par_cle` sur une clé
+    hashable — le tuple des ``(id, rang)`` trié par (rang, id). L'invalidation
+    est NATURELLE : tout ajout/retrait de nœud ou changement de rang produit
+    une clé différente, donc une nouvelle entrée de cache (LRU, 64 graphes).
+    NE PAS muter le dictionnaire retourné : c'est le MÊME objet qui est rendu
+    à chaque hit de cache.
+    """
+    cle = tuple(sorted(((n.id, n.rank) for n in nodes), key=lambda t: (t[1], t[0])))
+    return _positions_par_cle(cle)
 
 
 def _node_hover(node: SupplyNode) -> str:
@@ -113,11 +145,18 @@ def dag_figure(
 ) -> go.Figure:
     """Visualisation générique du DAG logistique.
 
-    Les nœuds sont positionnés par rang (x = -rang, clients finaux à droite),
-    colorés selon ``color_values`` et reliés par des flèches fournisseur -> client.
+    Les nœuds sont positionnés par rang (x = -rang, clients finaux à droite)
+    et colorés selon ``color_values``. La direction fournisseur → client de
+    chaque arc nominal est indiquée par un MARQUEUR au ⅔ de l'arête (trace
+    dédiée ``sens-arcs``) — plus AUCUNE annotation Plotly par arc : O(E)
+    annotations rendait le graphe inutilisable à 500+ nœuds (faiblesse #13).
     Les arcs de secours (kind_arc = backup) sont tracés à part, en pointillés
-    gris clair et sans flèche : purement visuels, ils sont inertes dans tous
-    les calculs.
+    gris clair, SANS marqueur de direction : purement visuels, ils sont
+    inertes dans tous les calculs.
+
+    Au-delà de :data:`SEUIL_WEBGL` nœuds, rendu allégé : ``go.Scattergl``
+    pour toutes les traces, étiquettes texte désactivées (hover seulement)
+    et mention « affichage allégé » dans la légende.
     """
     if not nodes:
         return empty_figure("Aucun nœud : créez un projet ou générez la démo.")
@@ -126,6 +165,8 @@ def dag_figure(
     positions = node_positions(ordered)
     nominal_arcs = [a for a in arcs if a.kind_arc != ArcKind.BACKUP]
     backup_arcs = [a for a in arcs if a.kind_arc == ArcKind.BACKUP]
+    use_webgl = len(ordered) > SEUIL_WEBGL
+    trace_cls: type[go.Scatter] | type[go.Scattergl] = go.Scattergl if use_webgl else go.Scatter
 
     if color_values is None:
         color_values = [
@@ -139,10 +180,16 @@ def dag_figure(
             ur = n.urgency.ur if n.urgency.ur is not None else 0.0
             sizes.append(14.0 + 22.0 * min(max(ur, 0.0), 1.5) / 1.5)
 
-    # Arcs nominaux : segments + flèches (annotations en coordonnées data).
+    # Arcs nominaux : UNE trace de segments + les points des marqueurs de
+    # direction. Chaque arc fournit une paire (point d'orientation invisible
+    # à la source, marqueur visible au ⅔ de l'arête) : le point de taille 0
+    # sert de « previous » à marker.angleref pour orienter la flèche.
+    taille_fleche = 5.0 if use_webgl else 9.0
     edge_x: list[float | None] = []
     edge_y: list[float | None] = []
-    annotations = []
+    fleche_x: list[float] = []
+    fleche_y: list[float] = []
+    fleche_tailles: list[float] = []
     for arc in nominal_arcs:
         if arc.source_id not in positions or arc.target_id not in positions:
             continue
@@ -150,27 +197,9 @@ def dag_figure(
         x1, y1 = positions[arc.target_id]
         edge_x += [x0, x1, None]
         edge_y += [y0, y1, None]
-        annotations.append(
-            {
-                "x": x1,
-                "y": y1,
-                "ax": x0,
-                "ay": y0,
-                "xref": "x",
-                "yref": "y",
-                "axref": "x",
-                "ayref": "y",
-                "showarrow": True,
-                "arrowhead": 2,
-                "arrowsize": 1.1,
-                "arrowwidth": 1.2,
-                "arrowcolor": "#9aa7b0",
-                "standoff": 16,
-                "startstandoff": 12,
-                "opacity": 0.85,
-                "text": "",
-            }
-        )
+        fleche_x += [x0, x0 + _FRACTION_FLECHE * (x1 - x0)]
+        fleche_y += [y0, y0 + _FRACTION_FLECHE * (y1 - y0)]
+        fleche_tailles += [0.0, taille_fleche]
 
     # Arcs de secours : pointillés gris clair, sans flèche (inertes).
     backup_x: list[float | None] = []
@@ -185,7 +214,7 @@ def dag_figure(
 
     fig = go.Figure()
     fig.add_trace(
-        go.Scatter(
+        trace_cls(
             x=edge_x,
             y=edge_y,
             mode="lines",
@@ -196,7 +225,7 @@ def dag_figure(
     )
     if backup_x:
         fig.add_trace(
-            go.Scatter(
+            trace_cls(
                 x=backup_x,
                 y=backup_y,
                 mode="lines",
@@ -207,29 +236,74 @@ def dag_figure(
                 showlegend=False,
             )
         )
-    fig.add_trace(
-        go.Scatter(
-            x=[positions[n.id][0] for n in ordered],
-            y=[positions[n.id][1] for n in ordered],
-            mode="markers+text",
+    node_kwargs: dict = {
+        "x": [positions[n.id][0] for n in ordered],
+        "y": [positions[n.id][1] for n in ordered],
+        "mode": "markers" if use_webgl else "markers+text",
+        "hovertext": hover_texts,
+        "hoverinfo": "text",
+        "marker": {
+            "size": sizes,
+            "color": color_values,
+            "colorscale": colorscale,
+            "cmin": cmin,
+            "cmax": cmax,
+            "showscale": True,
+            "colorbar": {"title": colorbar_title, "thickness": 14},
+            "line": {"width": 1, "color": "#44525c"},
+        },
+        "showlegend": False,
+    }
+    if not use_webgl:  # étiquettes texte uniquement en SVG (Scattergl les rend mal)
+        node_kwargs.update(
             text=[n.name for n in ordered],
             textposition="bottom center",
             textfont={"size": 11, "color": "#44525c"},
-            hovertext=hover_texts,
-            hoverinfo="text",
-            marker={
-                "size": sizes,
-                "color": color_values,
-                "colorscale": colorscale,
-                "cmin": cmin,
-                "cmax": cmax,
-                "showscale": True,
-                "colorbar": {"title": colorbar_title, "thickness": 14},
-                "line": {"width": 1, "color": "#44525c"},
-            },
-            showlegend=False,
         )
-    )
+    fig.add_trace(trace_cls(**node_kwargs))
+    if fleche_x:
+        if use_webgl:
+            # CHOIX DOCUMENTÉ : Scattergl ne supporte pas marker.angleref —
+            # repli sur un marqueur ROND sans rotation, le sens est donné par
+            # le survol (« Sens : fournisseur → client »).
+            fig.add_trace(
+                go.Scattergl(
+                    x=fleche_x,
+                    y=fleche_y,
+                    mode="markers",
+                    marker={"symbol": "circle", "size": fleche_tailles, "color": _FLECHE_COLOR},
+                    hovertext="Sens : fournisseur → client",
+                    hoverinfo="text",
+                    name=_NOM_TRACE_SENS,
+                    showlegend=False,
+                )
+            )
+        else:
+            # marker.angleref="previous" (Plotly >= 5.11, vérifié sur 6.7) :
+            # la flèche est orientée selon le segment depuis le point précédent
+            # de la trace (le point invisible posé à la source de l'arc).
+            # hoverinfo="skip" : sinon les points d'orientation invisibles
+            # captureraient le survol au beau milieu des nœuds.
+            fig.add_trace(
+                go.Scatter(
+                    x=fleche_x,
+                    y=fleche_y,
+                    mode="markers",
+                    marker={
+                        "symbol": "arrow",
+                        "angleref": "previous",
+                        "size": fleche_tailles,
+                        "color": _FLECHE_COLOR,
+                    },
+                    hoverinfo="skip",
+                    name=_NOM_TRACE_SENS,
+                    showlegend=False,
+                )
+            )
+    if use_webgl:
+        mention = f"affichage allégé (>{SEUIL_WEBGL} nœuds)"
+        caption = f"{caption} · {mention}" if caption else mention
+    annotations = []
     if caption:
         annotations.append(
             {

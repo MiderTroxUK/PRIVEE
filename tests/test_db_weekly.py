@@ -73,8 +73,8 @@ class TestClientV5Migration:
 
         conn = sqlite3.connect(str(db_file))
         assert conn.execute("PRAGMA user_version").fetchone()[0] == 4
-        assert apply_migrations(conn, "client") == 5
-        assert conn.execute("PRAGMA user_version").fetchone()[0] == 5
+        assert apply_migrations(conn, "client") == 6
+        assert conn.execute("PRAGMA user_version").fetchone()[0] == 6
 
         # Nouvelles tables et index présents.
         assert {"weekly_reviews", "decisions"} <= _table_names(conn)
@@ -91,17 +91,17 @@ class TestClientV5Migration:
         _build_v4_client_with_data(db_file)
         conn = sqlite3.connect(str(db_file))
 
-        assert apply_migrations(conn, "client") == 5
+        assert apply_migrations(conn, "client") == 6
         # Re-application : no-op, données intactes.
-        assert apply_migrations(conn, "client") == 5
-        assert conn.execute("PRAGMA user_version").fetchone()[0] == 5
+        assert apply_migrations(conn, "client") == 6
+        assert conn.execute("PRAGMA user_version").fetchone()[0] == 6
         assert conn.execute("SELECT COUNT(*) FROM assessments").fetchone()[0] == 1
         assert conn.execute("SELECT COUNT(*) FROM events").fetchone()[0] == 1
         conn.close()
 
     def test_fresh_client_reaches_v5(self, tmp_path: Path) -> None:
         conn = sqlite3.connect(str(tmp_path / "client.sqlite"))
-        assert apply_migrations(conn, "client") == 5
+        assert apply_migrations(conn, "client") == 6
         assert {"weekly_reviews", "decisions"} <= _table_names(conn)
         assert "idx_decisions_node_week" in _index_names(conn)
         conn.close()
@@ -246,7 +246,7 @@ def test_donnees_persistent_apres_reouverture(tmp_path: Path) -> None:
         db.save_decision("d1", "n1", "2026-S24", "op-7", "Décision", json.dumps(_SCORES), 1500.0)
 
     with ClientDatabase(tmp_path, "client-1") as db:
-        assert db.schema_version == 5
+        assert db.schema_version == 6
         review = db.get_weekly_review("n1", "2026-S24")
         assert review == {
             "volets": {"ahp": 1, "evenements": 1},

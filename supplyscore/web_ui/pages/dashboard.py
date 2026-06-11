@@ -226,11 +226,21 @@ def layout() -> html.Div:
             card(
                 "Détail des nœuds",
                 [
+                    # E14.3 — pagination native SEULE (page_size=25), SANS
+                    # virtualization : les deux mécanismes sont redondants
+                    # (25 lignes rendues par page suffisent à 1 000+ nœuds) et
+                    # virtualization=True exige des hauteurs de lignes fixes et
+                    # casse le rendu des colonnes presentation="markdown"
+                    # (« Pourquoi ? ») dans plusieurs versions de dash-table.
                     dash_table.DataTable(  # type: ignore[attr-defined]
                         id="dash-table",
                         columns=_TABLE_COLUMNS,
                         data=[],
                         sort_action="native",
+                        filter_action="native",
+                        page_action="native",
+                        page_size=25,
+                        virtualization=False,
                         style_cell=_TABLE_STYLE_CELL,
                         style_header=_TABLE_STYLE_HEADER,
                         style_data_conditional=_TABLE_CONDITIONAL,

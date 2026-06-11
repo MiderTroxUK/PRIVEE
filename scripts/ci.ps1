@@ -11,7 +11,9 @@
     Saute l'étape mypy.
 
 .PARAMETER Benchmarks
-    Réservé (benchmarks de performance) — no-op pour l'instant.
+    Exécute les bancs de performance E14 (tests/benchmarks) APRÈS la suite
+    rapide : pose SUPPLYSCORE_BENCH=1, lance pytest-benchmark avec autosave
+    dans docs/benchmarks. Un banc en échec fait échouer la CI.
 
 .PARAMETER Ui
     Réservé (tests UI navigateur) — no-op pour l'instant.
@@ -118,8 +120,21 @@ try {
     )
 
     if ($Benchmarks) {
-        Write-Host ""
-        Write-Host "Benchmarks : réservé, pas encore implémenté (no-op)." -ForegroundColor Yellow
+        # Bancs de performance E14 (Lot 14.1) : exclus de la suite rapide,
+        # activés par la variable d'environnement SUPPLYSCORE_BENCH=1
+        # (cf. tests/benchmarks/conftest.py). Rapports archivés dans
+        # docs/benchmarks (--benchmark-autosave).
+        $env:SUPPLYSCORE_BENCH = "1"
+        try {
+            Invoke-Step -Name "benchmarks (pytest-benchmark)" -Exe $Python -StepArgs @(
+                "-m", "pytest", "tests/benchmarks", "-q",
+                "--benchmark-only", "--benchmark-autosave",
+                "--benchmark-storage=docs/benchmarks"
+            )
+        }
+        finally {
+            Remove-Item Env:SUPPLYSCORE_BENCH -ErrorAction SilentlyContinue
+        }
     }
     if ($Ui) {
         Write-Host ""

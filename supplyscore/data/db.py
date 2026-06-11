@@ -125,6 +125,14 @@ class _SQLiteDatabase:
         self._conn = sqlite3.connect(str(self.db_path), check_same_thread=False)
         self._conn.row_factory = sqlite3.Row
         self._conn.execute("PRAGMA journal_mode=WAL")
+        # COMPROMIS DOCUMENTÉ (faiblesse #14) : avec le journal WAL,
+        # synchronous=NORMAL ne force le fsync qu'au CHECKPOINT (plus à chaque
+        # COMMIT) — gain massif en écriture. En cas de coupure brutale, les
+        # dernières transactions commitées depuis le dernier checkpoint peuvent
+        # être perdues (durabilité au niveau du checkpoint), mais l'INTÉGRITÉ de
+        # la base reste garantie par le WAL (jamais de corruption, atomicité
+        # conservée) ; :meth:`close` checkpointe explicitement à la fermeture.
+        self._conn.execute("PRAGMA synchronous=NORMAL")
         self.schema_version = apply_migrations(self._conn, self.MIGRATION_KIND)
         # Les contraintes FK du schéma (v2) restent vérifiables à la demande via
         # PRAGMA foreign_key_check, mais leur APPLICATION est laissée désactivée
@@ -353,40 +361,62 @@ class RegistryDatabase(_SQLiteDatabase):
 
     # -- état d'urgence courant --
 
+    #: upsert de node_urgency, partagé par le chemin unitaire et le chemin par lot.
+    _URGENCY_UPSERT_SQL = """
+        INSERT INTO node_urgency (node_id, ud_local, ur_local, ud, ur,
+                                  adequation, false_urgency, hidden_risk, timestamp)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(node_id) DO UPDATE SET
+            ud_local = excluded.ud_local,
+            ur_local = excluded.ur_local,
+            ud = excluded.ud,
+            ur = excluded.ur,
+            adequation = excluded.adequation,
+            false_urgency = excluded.false_urgency,
+            hidden_risk = excluded.hidden_risk,
+            timestamp = excluded.timestamp
+        """
+
+    @staticmethod
+    def _urgency_row(node_id: str, state: UrgencyState) -> tuple[str | float | None, ...]:
+        """Ligne de paramètres de :data:`_URGENCY_UPSERT_SQL` pour un nœud."""
+        return (
+            node_id,
+            state.ud_local,
+            state.ur_local,
+            state.ud,
+            state.ur,
+            state.adequation,
+            state.false_urgency,
+            state.hidden_risk,
+            state.timestamp,
+        )
+
     def save_urgency(self, node_id: str, state: UrgencyState) -> None:
         """Insère ou met à jour l'état d'urgence courant du nœud (table node_urgency)."""
         with self._lock, self._conn:
             self._upsert_urgency(node_id, state)
 
+    def save_urgencies(self, states: dict[str, UrgencyState]) -> None:
+        """Upsert PAR LOT des états d'urgence courants, en UNE transaction.
+
+        Équivalent champ à champ à N appels :meth:`save_urgency`, mais en un
+        seul ``executemany`` sous le verrou : une transaction (un seul couple
+        BEGIN/COMMIT) pour tout le réseau au lieu d'une par nœud
+        (faiblesse #14 — O(N) commits dans ``evaluate_all``).
+
+        Args:
+            states: états d'urgence courants par id de nœud.
+        """
+        with self._lock, self._conn:
+            self._conn.executemany(
+                self._URGENCY_UPSERT_SQL,
+                [self._urgency_row(node_id, state) for node_id, state in states.items()],
+            )
+
     def _upsert_urgency(self, node_id: str, state: UrgencyState) -> None:
         """Upsert SQL de node_urgency (appelant responsable du verrou/transaction)."""
-        self._conn.execute(
-            """
-            INSERT INTO node_urgency (node_id, ud_local, ur_local, ud, ur,
-                                      adequation, false_urgency, hidden_risk, timestamp)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(node_id) DO UPDATE SET
-                ud_local = excluded.ud_local,
-                ur_local = excluded.ur_local,
-                ud = excluded.ud,
-                ur = excluded.ur,
-                adequation = excluded.adequation,
-                false_urgency = excluded.false_urgency,
-                hidden_risk = excluded.hidden_risk,
-                timestamp = excluded.timestamp
-            """,
-            (
-                node_id,
-                state.ud_local,
-                state.ur_local,
-                state.ud,
-                state.ur,
-                state.adequation,
-                state.false_urgency,
-                state.hidden_risk,
-                state.timestamp,
-            ),
-        )
+        self._conn.execute(self._URGENCY_UPSERT_SQL, self._urgency_row(node_id, state))
 
     def _load_urgency(self, node_id: str) -> UrgencyState:
         """Restaure l'UrgencyState du nœud (UrgencyState() vierge si absent)."""
@@ -931,6 +961,34 @@ class ClientDatabase(_SQLiteDatabase):
 
     # -- historique d'urgence --
 
+    #: insertion dans urgency_history, partagée par le chemin unitaire et le lot.
+    _URGENCY_HISTORY_INSERT_SQL = """
+        INSERT INTO urgency_history (node_id, ud_local, ur_local, ud, ur,
+                                     adequation, false_urgency, hidden_risk,
+                                     timestamp, iso_week)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """
+
+    @staticmethod
+    def _urgency_history_row(node_id: str, state: UrgencyState) -> tuple[str | float | None, ...]:
+        """Ligne de paramètres de :data:`_URGENCY_HISTORY_INSERT_SQL` pour un état.
+
+        La semaine ISO (« AAAA-Sxx ») est calculée depuis ``state.timestamp``,
+        exactement comme dans le chemin unitaire historique.
+        """
+        return (
+            node_id,
+            state.ud_local,
+            state.ur_local,
+            state.ud,
+            state.ur,
+            state.adequation,
+            state.false_urgency,
+            state.hidden_risk,
+            state.timestamp,
+            _ts_iso_week(state.timestamp),
+        )
+
     def save_urgency_state(self, node_id: str, state: UrgencyState) -> int:
         """Insère un état d'urgence dans l'historique et retourne son rowid.
 
@@ -939,28 +997,29 @@ class ClientDatabase(_SQLiteDatabase):
         """
         with self._lock, self._conn:
             cursor = self._conn.execute(
-                """
-                INSERT INTO urgency_history (node_id, ud_local, ur_local, ud, ur,
-                                             adequation, false_urgency, hidden_risk,
-                                             timestamp, iso_week)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    node_id,
-                    state.ud_local,
-                    state.ur_local,
-                    state.ud,
-                    state.ur,
-                    state.adequation,
-                    state.false_urgency,
-                    state.hidden_risk,
-                    state.timestamp,
-                    _ts_iso_week(state.timestamp),
-                ),
+                self._URGENCY_HISTORY_INSERT_SQL,
+                self._urgency_history_row(node_id, state),
             )
             rowid = cursor.lastrowid
             assert rowid is not None  # INSERT abouti : lastrowid est défini
             return int(rowid)
+
+    def save_urgency_states(self, rows: list[tuple[str, UrgencyState]]) -> None:
+        """Insère un LOT d'états d'urgence dans l'historique, en UNE transaction.
+
+        Équivalent champ à champ à N appels :meth:`save_urgency_state`
+        (``iso_week`` comprise, calculée depuis le timestamp de CHAQUE état),
+        mais en un seul ``executemany`` sous le verrou — une transaction pour
+        tout le lot au lieu d'une par état (faiblesse #14).
+
+        Args:
+            rows: couples ``(node_id, état)`` à journaliser, dans l'ordre.
+        """
+        with self._lock, self._conn:
+            self._conn.executemany(
+                self._URGENCY_HISTORY_INSERT_SQL,
+                [self._urgency_history_row(node_id, state) for node_id, state in rows],
+            )
 
     def urgency_series(self, node_id: str) -> list[UrgencyState]:
         """Série temporelle des états d'urgence, ordonnée par timestamp croissant."""

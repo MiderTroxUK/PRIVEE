@@ -6,7 +6,7 @@ import networkx as nx
 import pytest
 
 from supplyscore.data.generator import RandomSupplyChainGenerator
-from supplyscore.domain.models import Project, SupplyArc, SupplyNode
+from supplyscore.domain.models import ArcKind, Project, SupplyArc, SupplyNode
 
 
 @pytest.fixture()
@@ -72,6 +72,72 @@ class TestGenerateTopology:
         _, _, arcs = chain
         pairs = [(a.source_id, a.target_id) for a in arcs]
         assert len(pairs) == len(set(pairs))
+
+
+class TestGenerateStress:
+    def test_stress_topology_ranks_reproducibility_and_speed(self):
+        """generate_stress(120, 20) : 120 nœuds, DAG acyclique, rangs cohérents,
+        reproductible à seed égal, rapide (< 3 s) ; enrich et validations couverts."""
+        import time
+
+        start = time.perf_counter()
+        project, nodes, arcs = RandomSupplyChainGenerator(seed=99).generate_stress(
+            n_nodes=120, largeur_rang=20
+        )
+        elapsed = time.perf_counter() - start
+        assert elapsed < 3.0
+
+        # 120 nœuds, 1 seul client au rang 0, porteur du projet.
+        assert len(nodes) == 120
+        rank0 = [n for n in nodes if n.rank == 0]
+        assert len(rank0) == 1
+        assert project.owner_node_id == rank0[0].id
+        assert all(n.project_id == project.id for n in nodes)
+
+        # DAG acyclique (networkx) et arcs orientés rang r -> rang r-1.
+        g = nx.DiGraph()
+        g.add_nodes_from(n.id for n in nodes)
+        g.add_edges_from((a.source_id, a.target_id) for a in arcs)
+        assert nx.is_directed_acyclic_graph(g)
+        rank_of = {n.id: n.rank for n in nodes}
+        for arc in arcs:
+            assert rank_of[arc.source_id] == rank_of[arc.target_id] + 1
+
+        # Rangs cohérents : rangs successifs de ~20 nœuds (1 + 20×5 + 19 = 120),
+        # chaque nœud de rang >= 1 alimente au moins 1 nœud du rang inférieur,
+        # KPIs complets, pas d'arc en double.
+        by_rank: dict[int, int] = {}
+        for n in nodes:
+            by_rank[n.rank] = by_rank.get(n.rank, 0) + 1
+        assert set(by_rank) == set(range(0, 7))
+        assert all(by_rank[r] == 20 for r in range(1, 6)) and by_rank[6] == 19
+        sources = {a.source_id for a in arcs}
+        assert all(n.id in sources for n in nodes if n.rank >= 1)
+        assert all(n.kpis.time.lead_time_h is not None for n in nodes)
+        pairs = [(a.source_id, a.target_id) for a in arcs]
+        assert len(pairs) == len(set(pairs))
+
+        # Reproductible à seed égal.
+        p2, n2, a2 = RandomSupplyChainGenerator(seed=99).generate_stress(
+            n_nodes=120, largeur_rang=20
+        )
+        assert (project, nodes, arcs) == (p2, n2, a2)
+
+        # enrich=True : tags posés sur les nœuds + arcs de secours ajoutés.
+        _, n3, a3 = RandomSupplyChainGenerator(seed=99).generate_stress(
+            n_nodes=120, largeur_rang=20, enrich=True
+        )
+        assert any(n.tags for n in n3)
+        assert any(a.kind_arc == ArcKind.BACKUP for a in a3)
+
+        # Validations (messages français, ValueError).
+        gen = RandomSupplyChainGenerator(seed=99)
+        with pytest.raises(ValueError):
+            gen.generate_stress(n_nodes=1)
+        with pytest.raises(ValueError):
+            gen.generate_stress(largeur_rang=0)
+        with pytest.raises(ValueError):
+            gen.generate_stress(p_arc_croise=1.5)
 
 
 class TestGenerateKPIs:

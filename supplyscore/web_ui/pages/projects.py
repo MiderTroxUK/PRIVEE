@@ -393,11 +393,20 @@ def layout() -> html.Div:
             card(
                 "Nœuds du projet actif",
                 [
+                    # E14.3 — pagination native SEULE (page_size=25), SANS
+                    # virtualization (redondante avec la pagination ; elle
+                    # exige des hauteurs de lignes fixes et casse le rendu des
+                    # colonnes presentation="markdown" — « Fiche » — dans
+                    # plusieurs versions de dash-table). La page garde le tri
+                    # natif, sans filtre (contrairement au dashboard).
                     dash_table.DataTable(  # type: ignore[attr-defined]
                         id="proj-table",
                         columns=_TABLE_COLUMNS,
                         data=[],
                         sort_action="native",
+                        page_action="native",
+                        page_size=25,
+                        virtualization=False,
                         style_cell=_TABLE_STYLE_CELL,
                         style_header=_TABLE_STYLE_HEADER,
                         style_data_conditional=style_hebdo_conditionnel("Hebdo"),

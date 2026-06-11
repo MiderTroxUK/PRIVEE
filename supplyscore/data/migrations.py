@@ -553,6 +553,37 @@ def _client_v5(conn: sqlite3.Connection) -> None:
         conn.execute("PRAGMA user_version = 5")
 
 
+def _client_v6(conn: sqlite3.Connection) -> None:
+    """v6 client : index temporels manquants (faiblesse #15), idempotent.
+
+    Constat avant ajout : ``idx_kpi_snap_node_ts`` (v3) couvre déjà
+    ``kpi_snapshots(node_id, timestamp)`` et, côté registre, ``idx_audit_entity``
+    / ``idx_audit_week`` existent depuis la v4 — seuls manquent les index
+    temporels des tables ``urgency_history`` et ``assessments`` (leurs index v4
+    ``idx_urgency_week``/``idx_assessments_week`` ne couvrent que
+    ``(node_id, iso_week)``, pas les tris par ``timestamp``) :
+
+    - ``idx_urgency_node_ts`` sur ``urgency_history(node_id, timestamp)`` —
+      sert ``urgency_series`` (``WHERE node_id ORDER BY timestamp``) ;
+    - ``idx_assessments_node_ts`` sur ``assessments(node_id, timestamp)`` —
+      sert ``latest_assessment`` et ``list_assessments``.
+    """
+    with conn:
+        conn.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_urgency_node_ts
+            ON urgency_history(node_id, timestamp)
+            """
+        )
+        conn.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_assessments_node_ts
+            ON assessments(node_id, timestamp)
+            """
+        )
+        conn.execute("PRAGMA user_version = 6")
+
+
 # --- Registres de migrations ---------------------------------------------------------
 
 _REGISTRY_MIGRATIONS: list[tuple[int, MigrationFn]] = [
@@ -568,6 +599,7 @@ _CLIENT_MIGRATIONS: list[tuple[int, MigrationFn]] = [
     (3, _client_v3),
     (4, _client_v4),
     (5, _client_v5),
+    (6, _client_v6),
 ]
 
 _MIGRATIONS_BY_KIND: dict[str, list[tuple[int, MigrationFn]]] = {

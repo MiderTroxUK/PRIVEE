@@ -65,6 +65,7 @@ class SupplyScoreService:
         adequation: AdequationEngine | None = None,
         rho_smoothing: float = 0.3,
         clock: Clock | None = None,
+        client_cache_size: int = _CLIENT_CACHE_SIZE,
     ):
         """Initialise la façade et ses dépendances (bases, graphe, modèles).
 
@@ -77,6 +78,10 @@ class SupplyScoreService:
             clock: horloge par défaut (mode « réel ») ; chaque projet peut
                 la remplacer par une :class:`GameClock` via
                 :meth:`set_clock_mode` (mode « jeu », serious game).
+            client_cache_size: taille du cache LRU des bases client ouvertes
+                (défaut 64 — suffisant pour un serious game ; monter vers le
+                nombre de nœuds sur les très grands graphes pour éviter le
+                va-et-vient open/close pendant ``evaluate_all(persist=True)``).
         """
         self.db_dir = Path(db_dir)
         self.db_dir.mkdir(parents=True, exist_ok=True)
@@ -88,6 +93,7 @@ class SupplyScoreService:
         self.rho = rho_smoothing
         self.clock: Clock = clock if clock is not None else SystemClock()
         self._client_dbs: OrderedDict[str, ClientDatabase] = OrderedDict()
+        self._client_cache_size = max(1, int(client_cache_size))
         self._lock = threading.RLock()
         #: Cache léger du UrModel effectif par projet (omega FBWM fusionné),
         #: invalidé projet par projet dans :meth:`set_poids_criteres`.
@@ -130,8 +136,9 @@ class SupplyScoreService:
     def client_db(self, node_id: str) -> ClientDatabase:
         """Retourne (en la créant au besoin) la base SQLite dédiée au nœud.
 
-        Le cache est un LRU borné à ``_CLIENT_CACHE_SIZE`` entrées : la base la
-        plus anciennement utilisée est fermée puis évincée au-delà de la borne.
+        Le cache est un LRU borné à ``client_cache_size`` entrées (constructeur,
+        défaut 64) : la base la plus anciennement utilisée est fermée puis
+        évincée au-delà de la borne.
         """
         with self._lock:
             db = self._client_dbs.get(node_id)
@@ -140,7 +147,7 @@ class SupplyScoreService:
                 return db
             db = ClientDatabase(self.db_dir, node_id)
             self._client_dbs[node_id] = db
-            if len(self._client_dbs) > _CLIENT_CACHE_SIZE:
+            if len(self._client_dbs) > self._client_cache_size:
                 _, evicted = self._client_dbs.popitem(last=False)
                 evicted.close()
             return db
@@ -159,6 +166,7 @@ class SupplyScoreService:
             for a in arcs:
                 self.registry.save_arc(a)
                 self.repo.add_arc(a)
+            self.propagation.invalidate()  # mutation de structure : tout sale (E14.4)
 
     def load_graph_from_registry(self) -> None:
         """Recharge le graphe en mémoire depuis la base registre (au démarrage)."""
@@ -167,6 +175,7 @@ class SupplyScoreService:
             self.repo.add_node(n)
         for a in self.registry.list_arcs():
             self.repo.add_arc(a)
+        self.propagation.invalidate()  # mutation de structure : tout sale (E14.4)
 
     def add_node(
         self,
@@ -254,8 +263,14 @@ class SupplyScoreService:
         recalculée ici à partir du contrat :class:`GraphRepository` (tri
         topologique + successeurs nominaux). Chaque nœud dont le rang a changé
         est mis à jour dans le dépôt ET sauvegardé dans le registre.
+
+        Point de passage unique des MUTATIONS DE STRUCTURE de l'orchestrateur
+        (``add_node``, ``remove_node``, ``remove_arc`` et ``reassign_ranks``
+        public passent tous ici) : la propagation incrémentale est invalidée —
+        le prochain ``evaluate_all`` repassera par une propagation complète.
         """
         with self._lock:
+            self.propagation.invalidate()  # mutation de structure : tout sale (E14.4)
             previous = {node.id: node.rank for node in self.repo.nodes()}
             ranks: dict[str, int]
             if isinstance(self.repo, InMemoryGraphRepository):
@@ -617,6 +632,9 @@ class SupplyScoreService:
                 node.urgency.ud_local = ud_smoothed(prev, assessment.ud, self.rho)
                 self.repo.update_node(node)
                 self.registry.save_node(node)
+                # Le ud_local a (potentiellement) changé : propagation Ud à
+                # refaire sur le cône amont du nœud (E14.4).
+                self.propagation.mark_dirty_ud(node.id)
             return rowid
 
     @staticmethod
@@ -735,46 +753,64 @@ class SupplyScoreService:
         dont tous les jalons sont terminés passe DONE) ; les règles de statut
         (DONE → 0, ABANDONED → 1) restent dans ``core.status_rules`` et
         priment sur l'override Monte Carlo.
+
+        Point de passage UNIQUE des changements de KPIs/statuts/temps pour la
+        propagation incrémentale (E14.4) : tout nœud dont le ``ur_local``
+        calculé CHANGE par rapport à la valeur précédente est marqué
+        ``dirty_ur`` (comparaison AVANT écriture). Le ``ur_local`` stocké
+        intégrant déjà les règles de statut (``UrModel.ur_local`` délègue à
+        ``status_rules``), un changement de statut sans effet numérique sur le
+        ``ur_local`` est sans effet sur la propagation — aucun marquage requis.
         """
         times = self._project_times() if t is None else None
         mc_overrides = self._mc_u_time_overrides(times) if times is not None else {}
         for node in self.repo.nodes():
+            previous_ur_local = node.urgency.ur_local
             if node.onboarding_state == "draft":
                 # Nœud en cours d'onboarding : contribution neutre au pipeline
                 # tant que le wizard n'est pas terminé.
                 node.urgency.ur_local = 0.0
-                self.repo.update_node(node)
-                continue
-            milestones = None
-            t_h, t0 = (t if t is not None else 0.0), 0.0
-            model = self.ur_model
-            if times is not None:
-                milestones = self.registry.list_milestones(node.id)
-                derived = derive_node_status(milestones)
-                if derived is not None and derived != node.status:
-                    node.status = derived
-                    self.registry.set_node_status(node.id, derived)
-                if node.project_id and node.project_id in times:
-                    t_h, t0 = times[node.project_id]
-                model = self._ur_model_for(node.project_id)
-            node.urgency.ur_local = model.ur_local(
-                t_h,
-                node.kpis,
-                status=node.status,
-                milestones=milestones,
-                t0_ts=t0,
-                u_time_override=mc_overrides.get(node.id),
-            )
+            else:
+                milestones = None
+                t_h, t0 = (t if t is not None else 0.0), 0.0
+                model = self.ur_model
+                if times is not None:
+                    milestones = self.registry.list_milestones(node.id)
+                    derived = derive_node_status(milestones)
+                    if derived is not None and derived != node.status:
+                        node.status = derived
+                        self.registry.set_node_status(node.id, derived)
+                    if node.project_id and node.project_id in times:
+                        t_h, t0 = times[node.project_id]
+                    model = self._ur_model_for(node.project_id)
+                node.urgency.ur_local = model.ur_local(
+                    t_h,
+                    node.kpis,
+                    status=node.status,
+                    milestones=milestones,
+                    t0_ts=t0,
+                    u_time_override=mc_overrides.get(node.id),
+                )
+            if node.urgency.ur_local != previous_ur_local:
+                self.propagation.mark_dirty_ur(node.id)
             self.repo.update_node(node)
 
     def evaluate_all(
-        self, t: float | None = None, persist: bool = False
+        self, t: float | None = None, persist: bool = False, incremental: bool = True
     ) -> dict[str, UrgencyState]:
         """Pipeline complet : Ur_local -> propagation -> adéquation (-> persistance).
 
         Avec ``persist=True``, chaque état est journalisé dans la base du
         client ET l'état courant est figé dans le registre (table
         ``node_urgency``) pour survivre à un redémarrage.
+
+        Propagation INCRÉMENTALE (E14.4) : quand ``t`` est None ET
+        ``incremental`` est True (défaut), la propagation passe par
+        :meth:`PropagationEngine.propagate_incremental` — seuls les cônes des
+        nœuds marqués sales (questionnaires, ``ur_local`` recalculés,
+        structure) sont recalculés. Le chemin ``t`` explicite reste
+        ``propagate_all`` (rétro-compatibilité v1) ; ``incremental=False``
+        permet de forcer la propagation complète (tests, contrôle croisé).
 
         Horodatage (correctif E11) : en mode automatique (``t=None``), les
         états sont horodatés par l'horloge de LEUR projet — en mode « jeu »
@@ -794,7 +830,10 @@ class SupplyScoreService:
             if t is None:
                 for project in self.registry.list_projects():
                     project_now[project.id] = self.clock_for(project.id).now()
-            states = self.propagation.propagate_all()
+            if t is None and incremental:
+                states = self.propagation.propagate_incremental()
+            else:
+                states = self.propagation.propagate_all()
             for node_id, state in states.items():
                 ud = state.ud if state.ud is not None else 0.0
                 ur = state.ur if state.ur is not None else 0.0
@@ -808,9 +847,19 @@ class SupplyScoreService:
                         state.timestamp = project_now[node.project_id]
                     node.urgency = state
                     self.repo.update_node(node)
-                if persist:
-                    self.registry.save_urgency(node_id, state)
-                    self.client_db(node_id).save_urgency_state(node_id, state)
+            if persist:
+                # Écritures PAR LOTS (faiblesse #14) : un seul executemany
+                # UPSERT dans le registre — UNE transaction pour les N nœuds au
+                # lieu de N commits. Côté clients, chaque base est journalisée
+                # par un lot groupé PAR base ; une base ne contenant que SON
+                # nœud (1 nœud = 1 base), chaque lot compte ici une seule ligne
+                # — le gain vient du registre et de la transaction unique par
+                # base. Champ à champ, les lignes écrites sont identiques à
+                # celles de l'ancien chemin unitaire (save_urgency +
+                # save_urgency_state nœud par nœud).
+                self.registry.save_urgencies(states)
+                for node_id, state in states.items():
+                    self.client_db(node_id).save_urgency_states([(node_id, state)])
             return states
 
     def simulate_shock(self, node_id: str, new_ur_local: float) -> dict[str, float]:

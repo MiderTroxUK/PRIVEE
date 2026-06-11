@@ -127,8 +127,8 @@ class TestFreshDatabase:
         conn = sqlite3.connect(str(tmp_path / "client.sqlite"))
         version = apply_migrations(conn, "client")
 
-        assert version == 5
-        assert conn.execute("PRAGMA user_version").fetchone()[0] == 5
+        assert version == 6
+        assert conn.execute("PRAGMA user_version").fetchone()[0] == 6
         assert {"assessments", "kpi_snapshots", "urgency_history"} <= _table_names(conn)
         conn.close()
 
@@ -292,17 +292,25 @@ def test_set_status_propagates_exactly_once(tmp_path, monkeypatch):
         before = service.evaluate_all()[deepest.id].ur
         assert before is not None and before > 0.0
 
-        calls: list[int] = []
-        original = PropagationEngine.propagate_all
+        calls: list[str] = []
+        original_all = PropagationEngine.propagate_all
+        original_incremental = PropagationEngine.propagate_incremental
 
-        def spy(self: PropagationEngine) -> dict[str, UrgencyState]:
-            calls.append(1)
-            return original(self)
+        def spy_all(self: PropagationEngine) -> dict[str, UrgencyState]:
+            calls.append("all")
+            return original_all(self)
 
-        monkeypatch.setattr(PropagationEngine, "propagate_all", spy)
+        def spy_incremental(self: PropagationEngine) -> dict[str, UrgencyState]:
+            calls.append("incremental")
+            return original_incremental(self)
+
+        monkeypatch.setattr(PropagationEngine, "propagate_all", spy_all)
+        monkeypatch.setattr(PropagationEngine, "propagate_incremental", spy_incremental)
         states = service.set_status(deepest.id, TaskStatus.DONE)
 
-        assert len(calls) == 1  # exactement UNE propagation par set_status
+        # Exactement UNE propagation par set_status — INCRÉMENTALE depuis E14.4
+        # (rien de structurel n'a changé : pas de délégation au complet).
+        assert calls == ["incremental"]
         after = states[deepest.id].ur
         # DONE : nœud le plus profond (sans fournisseur) -> son Ur tombe à 0.
         assert after is not None

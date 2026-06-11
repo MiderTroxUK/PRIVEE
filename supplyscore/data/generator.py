@@ -302,6 +302,93 @@ class RandomSupplyChainGenerator:
 
         return project, nodes, arcs
 
+    def generate_stress(
+        self,
+        n_nodes: int = 1000,
+        largeur_rang: int = 40,
+        p_arc_croise: float = 0.25,
+        enrich: bool = False,
+    ) -> tuple[Project, list[SupplyNode], list[SupplyArc]]:
+        """DAG de stress pour les bancs de performance (E14) — large ET profond.
+
+        Topologie : 1 client final au rang 0 (porteur du :class:`Project`),
+        puis des rangs successifs de ``largeur_rang`` nœuds (le dernier rang
+        complète à ``n_nodes``). Chaque nœud du rang ``r`` alimente exactement
+        1 nœud du rang ``r-1`` (cible tirée au hasard), plus, avec probabilité
+        ``p_arc_croise``, un arc croisé vers un AUTRE nœud du rang inférieur.
+        Tous les arcs sont orientés rang ``r`` -> rang ``r-1`` : aucun cycle
+        possible par construction. KPIs complets sur chaque nœud
+        (:meth:`_node_kpis`), reproductible à seed égal (tout l'aléa passe par
+        ``self._rng``).
+
+        STRICT NÉCESSAIRE POUR MESURER : par défaut, PAS de jalons ni de tags
+        — les bancs E14 chronomètrent propagation, persistance, Monte Carlo et
+        rendu, qui n'en dépendent pas. Avec ``enrich=True``, les tags de TEST
+        sont posés sur les nœuds (``node.tags``) et des arcs de secours sont
+        ajoutés ; les jalons, persistés par nœud côté service, restent à
+        générer par l'appelant via :meth:`generate_milestones` (la signature
+        de retour ne les transporte pas).
+
+        Args:
+            n_nodes: nombre total de nœuds (client final inclus), >= 2.
+            largeur_rang: largeur cible de chaque rang (>= 1).
+            p_arc_croise: probabilité d'un arc croisé par nœud, dans [0, 1].
+            enrich: ajoute tags (sur les nœuds) et arcs de secours.
+
+        Returns:
+            ``(project, nodes, arcs)`` — mêmes types que :meth:`generate`.
+
+        Raises:
+            ValueError: ``n_nodes < 2``, ``largeur_rang < 1`` ou
+                ``p_arc_croise`` hors [0, 1].
+        """
+        if n_nodes < 2:
+            raise ValueError("n_nodes doit être >= 2")
+        if largeur_rang < 1:
+            raise ValueError("largeur_rang doit être >= 1")
+        if not 0.0 <= p_arc_croise <= 1.0:
+            raise ValueError("p_arc_croise doit être dans [0, 1]")
+
+        rng = self._rng
+        project_id = self._uuid()
+        client = self._make_node(rank=0, index=0, project_id=project_id, label="Client")
+        project = Project(
+            id=project_id,
+            name=f"Stress {n_nodes} noeuds {rng.randint(1000, 9999)}",
+            owner_node_id=client.id,
+            description="DAG de stress genere pour les bancs de performance (simulation).",
+            created_at=rng.uniform(1.6e9, 1.8e9),
+        )
+
+        nodes: list[SupplyNode] = [client]
+        arcs: list[SupplyArc] = []
+        previous_rank: list[SupplyNode] = [client]
+        rank = 0
+        while len(nodes) < n_nodes:
+            rank += 1
+            taille = min(largeur_rang, n_nodes - len(nodes))
+            current_rank = [
+                self._make_node(rank=rank, index=index, project_id=project_id)
+                for index in range(taille)
+            ]
+            for supplier in current_rank:
+                consumer = rng.choice(previous_rank)
+                arcs.append(self._make_arc(supplier, consumer))
+                if len(previous_rank) >= 2 and rng.random() < p_arc_croise:
+                    extra_client = rng.choice([c for c in previous_rank if c.id != consumer.id])
+                    arcs.append(self._make_arc(supplier, extra_client))
+            nodes.extend(current_rank)
+            previous_rank = current_rank
+
+        if enrich:
+            _categories, tags = self.generate_tags(project_id)
+            tag_ids = [tag.id for tag in tags]
+            for node in nodes:
+                node.tags = self.pick_node_tags(tag_ids)
+            arcs.extend(self.generate_backup_arcs(nodes, arcs))
+
+        return project, nodes, arcs
+
     # -- enrichissements v2 (jalons, tags, arcs de secours) ----------------------
 
     def generate_milestones(self, node_id: str, t0_ts: float) -> list[Milestone]:

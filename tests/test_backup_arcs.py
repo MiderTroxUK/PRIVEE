@@ -182,9 +182,11 @@ def test_dag_figure_renders_backup_as_dashed_trace() -> None:
     dashed = [t for t in fig.data if t.mode == "lines" and t.line.dash == "dash"]
     assert len(dashed) == 1
     assert dashed[0].hovertext == "Arc de secours (inactif)"
-    # Une seule flèche d'annotation : celle de l'arc nominal, pas du backup.
-    arrows = [a for a in fig.layout.annotations if a.showarrow]
-    assert len(arrows) == 1
+    # E14.3 : plus AUCUNE annotation de flèche par arc — la direction est portée
+    # par la trace de marqueurs « sens-arcs », qui ignore les arcs backup.
+    assert not any(a.showarrow for a in fig.layout.annotations)
+    sens = next(t for t in fig.data if t.name == "sens-arcs")
+    assert len(sens.x) == 2  # une paire (orientation, flèche) pour le SEUL arc nominal
 
 
 def test_dag_figure_without_backup_has_no_dashed_trace() -> None:

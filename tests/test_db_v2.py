@@ -152,7 +152,7 @@ class TestRegistryV3Migration:
 class TestClientV2Migration:
     def test_fresh_client_reaches_v2(self, tmp_path):
         conn = sqlite3.connect(str(tmp_path / "client.sqlite"))
-        assert apply_migrations(conn, "client") == 5
+        assert apply_migrations(conn, "client") == 6
         assert {"spec_sheet", "events"} <= _table_names(conn)
         assert "idx_events_node_week" in _index_names(conn)
         conn.close()
@@ -168,8 +168,8 @@ class TestClientV2Migration:
         conn.commit()
         assert conn.execute("PRAGMA user_version").fetchone()[0] == 1
 
-        assert apply_migrations(conn, "client") == 5
-        assert apply_migrations(conn, "client") == 5  # idempotent
+        assert apply_migrations(conn, "client") == 6
+        assert apply_migrations(conn, "client") == 6  # idempotent
         assert conn.execute("SELECT COUNT(*) FROM kpi_snapshots").fetchone()[0] == 1
         assert {"spec_sheet", "events"} <= _table_names(conn)
         conn.close()

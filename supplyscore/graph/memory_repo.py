@@ -28,9 +28,29 @@ class InMemoryGraphRepository(GraphRepository):
 
         Le ``DiGraph`` ne porte que les arcs nominaux ; les arcs de secours
         (backup), inertes, sont stockés dans ``self._backup_arcs``.
+
+        L'ordre topologique est mis en cache (``self._topo_cache``) : calculé
+        une seule fois, il est invalidé par TOUTE mutation de structure
+        (add_node/remove_node/add_arc/remove_arc/clear — ``update_node`` ne
+        change pas la structure). Chaque invalidation incrémente aussi
+        ``structure_version``, compteur monotone qui permet aux consommateurs
+        (moteur de propagation incrémentale, E14.4) de détecter une mutation
+        de structure survenue hors de leur contrôle.
         """
         self._graph = nx.DiGraph()
         self._backup_arcs: dict[tuple[str, str], SupplyArc] = {}
+        self._topo_cache: list[str] | None = None
+        self._structure_version = 0
+
+    @property
+    def structure_version(self) -> int:
+        """Version de structure, incrémentée à chaque mutation de nœud ou d'arc."""
+        return self._structure_version
+
+    def _invalidate_structure(self) -> None:
+        """Invalide le cache topologique et incrémente la version de structure."""
+        self._topo_cache = None
+        self._structure_version += 1
 
     # --- Nœuds ----------------------------------------------------------
 
@@ -39,6 +59,7 @@ class InMemoryGraphRepository(GraphRepository):
         if self._graph.has_node(node.id):
             raise ValueError(f"Nœud déjà présent : {node.id!r}")
         self._graph.add_node(node.id, **{_NODE_KEY: node})
+        self._invalidate_structure()
 
     def get_node(self, node_id: str) -> SupplyNode | None:
         """Retourne le nœud ou None s'il est inconnu."""
@@ -60,6 +81,7 @@ class InMemoryGraphRepository(GraphRepository):
         self._backup_arcs = {
             key: arc for key, arc in self._backup_arcs.items() if node_id not in key
         }
+        self._invalidate_structure()
 
     # --- Arcs -----------------------------------------------------------
 
@@ -79,11 +101,13 @@ class InMemoryGraphRepository(GraphRepository):
             if arc.source_id == arc.target_id:
                 raise ValueError(f"Arc de secours en boucle sur lui-même : {arc.id!r}")
             self._backup_arcs[(arc.source_id, arc.target_id)] = arc  # hors DiGraph : inerte
+            self._invalidate_structure()
             return
         self._graph.add_edge(arc.source_id, arc.target_id, **{_ARC_KEY: arc})
         if not nx.is_directed_acyclic_graph(self._graph):
             self._graph.remove_edge(arc.source_id, arc.target_id)  # rollback
             raise ValueError(f"L'arc {arc.id!r} créerait un cycle")
+        self._invalidate_structure()
 
     def get_arc(self, source_id: str, target_id: str) -> SupplyArc | None:
         """Retourne l'arc source -> target (nominal ou backup) ou None."""
@@ -99,6 +123,7 @@ class InMemoryGraphRepository(GraphRepository):
             del self._backup_arcs[(source_id, target_id)]
         else:
             raise KeyError(f"Arc inconnu : {source_id!r} -> {target_id!r}")
+        self._invalidate_structure()
 
     # --- Parcours ---------------------------------------------------------
 
@@ -155,14 +180,47 @@ class InMemoryGraphRepository(GraphRepository):
 
         Le ``DiGraph`` ne portant que les arcs nominaux, les arcs de secours
         (backup) ne créent aucune dépendance d'ordre.
+
+        L'ordre est mis en CACHE : calculé une seule fois, invalidé par toute
+        mutation de structure. Une COPIE est retournée — l'appelant peut la
+        muter sans corrompre le cache.
         """
-        # Sources = fournisseurs profonds en premier, puits (rang 0) en dernier.
-        return list(nx.topological_sort(self._graph))
+        if self._topo_cache is None:
+            # Sources = fournisseurs profonds en premier, puits (rang 0) en dernier.
+            self._topo_cache = list(nx.topological_sort(self._graph))
+        return list(self._topo_cache)
+
+    def descendants(self, node_id: str) -> set[str]:
+        """Ids de TOUS les descendants de ``node_id`` (cône aval, arcs nominaux).
+
+        Le ``DiGraph`` ne contenant que les arcs nominaux, les arcs de secours
+        (backup) ne créent aucune descendance. Le nœud lui-même est EXCLU.
+
+        Raises:
+            KeyError: si ``node_id`` est inconnu (message en français).
+        """
+        if not self._graph.has_node(node_id):
+            raise KeyError(f"Nœud inconnu : {node_id!r}")
+        return set(nx.descendants(self._graph, node_id))
+
+    def ancestors(self, node_id: str) -> set[str]:
+        """Ids de TOUS les ancêtres de ``node_id`` (cône amont, arcs nominaux).
+
+        Le ``DiGraph`` ne contenant que les arcs nominaux, les arcs de secours
+        (backup) ne créent aucune ascendance. Le nœud lui-même est EXCLU.
+
+        Raises:
+            KeyError: si ``node_id`` est inconnu (message en français).
+        """
+        if not self._graph.has_node(node_id):
+            raise KeyError(f"Nœud inconnu : {node_id!r}")
+        return set(nx.ancestors(self._graph, node_id))
 
     def clear(self) -> None:
         """Vide entièrement le graphe (arcs de secours inclus)."""
         self._graph.clear()
         self._backup_arcs.clear()
+        self._invalidate_structure()
 
     # --- Rangs ------------------------------------------------------------
 
