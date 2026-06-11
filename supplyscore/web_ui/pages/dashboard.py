@@ -30,12 +30,16 @@ from supplyscore.web_ui.components.layout import (
 
 _VALUE_COLUMNS = ["Ud_loc", "Ur_loc", "Ud", "Ur", "A", "F", "H"]
 
-_TABLE_COLUMNS = [
-    {"name": "Nom", "id": "Nom"},
-    {"name": "Rang", "id": "Rang", "type": "numeric"},
-    {"name": "Statut", "id": "Statut"},
-    {"name": "Hebdo", "id": "Hebdo"},
-] + [{"name": c, "id": c, "type": "numeric"} for c in _VALUE_COLUMNS]
+_TABLE_COLUMNS = (
+    [
+        {"name": "Nom", "id": "Nom"},
+        {"name": "Rang", "id": "Rang", "type": "numeric"},
+        {"name": "Statut", "id": "Statut"},
+        {"name": "Hebdo", "id": "Hebdo"},
+    ]
+    + [{"name": c, "id": c, "type": "numeric"} for c in _VALUE_COLUMNS]
+    + [{"name": "Pourquoi ?", "id": "Pourquoi", "presentation": "markdown"}]
+)
 
 #: Règles existantes (A < 40 fond rouge, H > 0.3 texte rouge) PUIS règles hebdo.
 _TABLE_CONDITIONAL = [
@@ -214,6 +218,7 @@ def _table_row(n, etat: EtatHebdo | None) -> dict:
         "A": "—" if manquant else _r3(n.urgency.adequation),
         "F": "—" if manquant else _r3(n.urgency.false_urgency),
         "H": "—" if manquant else _r3(n.urgency.hidden_risk),
+        "Pourquoi": f"[Expliquer](/node/{n.id}/explication)",
     }
 
 

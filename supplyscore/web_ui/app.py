@@ -17,6 +17,7 @@ from supplyscore.web_ui.components import operator
 from supplyscore.web_ui.components.layout import COLORS, FONT_FAMILY, PAGE_STYLE, navbar
 from supplyscore.web_ui.pages import (
     dashboard,
+    explain,
     node_detail,
     onboarding,
     projects,
@@ -39,8 +40,10 @@ def route_callback(pathname: str | None):
     """
     path = pathname or "/"
     if path.startswith("/node/"):
-        node_id = path[len("/node/") :].strip("/")
-        return node_detail.layout(node_id)
+        rest = path[len("/node/") :].strip("/")
+        if rest.endswith("/explication"):
+            return explain.layout(rest[: -len("/explication")].strip("/"))
+        return node_detail.layout(rest)
     routes = {
         "/": projects.layout,
         "/questionnaire": questionnaire.layout,
@@ -107,6 +110,7 @@ def create_app(
         onboarding,
         node_detail,
         weekly,
+        explain,
     ):
         page.register_callbacks(app)
     return app

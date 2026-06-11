@@ -227,7 +227,13 @@ def _header(service: Any, node: Any) -> html.Div:
                     "marginBottom": "8px",
                 },
             ),
-            html.Div(scores, style={"marginBottom": "14px"}),
+            html.Div(scores, style={"marginBottom": "6px"}),
+            dcc.Link(
+                "Pourquoi ces scores ? → explication détaillée",
+                href=f"/node/{node.id}/explication",
+                style={"fontSize": "13px", "color": COLORS["primary"]},
+            ),
+            html.Div(style={"marginBottom": "14px"}),
         ]
     )
 
