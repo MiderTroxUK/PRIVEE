@@ -77,6 +77,9 @@ class TimeKPIs:
     refuel_time_h: float | None = None
     lead_time_h: float | None = None
     lead_time_std_h: float | None = None  # incertitude du lead time (loi normale)
+    lead_time_min_h: float | None = None  # distribution triangulaire (mode Monte Carlo E13)
+    lead_time_mode_h: float | None = None  # distribution triangulaire (mode Monte Carlo E13)
+    lead_time_max_h: float | None = None  # distribution triangulaire (mode Monte Carlo E13)
     delay_h: float | None = None  # extension en cas de risque
     deadline_h: float | None = None  # échéance d_i (heures depuis t0 projet)
 

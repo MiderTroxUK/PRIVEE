@@ -33,13 +33,14 @@ from dash.exceptions import PreventUpdate
 
 from supplyscore.core import CONSISTENCY_THRESHOLD, CRITERIA, bipolar_to_saaty, score_6_to_9
 from supplyscore.core.clock import iso_week
+from supplyscore.domain.constraints import kpi_unit
 from supplyscore.domain.events import EVENT_CALIBRATION
 from supplyscore.domain.milestones import Milestone, MilestoneStatus, theoretical_progress
 from supplyscore.domain.models import AHPAssessment
 from supplyscore.services import SupplyScoreService
 from supplyscore.services.decisions import Decision, DecisionService
 from supplyscore.services.events import ConflictError, EventEngine
-from supplyscore.services.weekly import VOLETS, CycleHebdomadaire, WeeklyReview
+from supplyscore.services.weekly import VOLETS, CycleHebdomadaire, KpiRow, WeeklyReview, _lundi
 from supplyscore.web_ui import get_service
 from supplyscore.web_ui.components.badges import texte_hebdo
 from supplyscore.web_ui.components.event_forms import (
@@ -78,6 +79,20 @@ VOLET_TITLES: dict[str, str] = {
 KPI_BLOCKS: list[str] = list(
     dict.fromkeys(path.split(".", 1)[0] for _bloc, fields in KPI_FIELDS for path, _ in fields)
 )
+
+#: Champs triangulaires du lead time (mode Monte Carlo E13) affichés au volet 2.
+#: POINT D'EXTENSION DOCUMENTÉ : ``KPI_FIELDS`` appartient au questionnaire
+#: PARTAGÉ (il pilote aussi l'éditeur, la fiche nœud 360 et le wizard) — ces
+#: champs, propres au mode Monte Carlo, sont donc ajoutés LOCALEMENT aux lignes
+#: du volet 2, en AVAL de :meth:`WeeklyReview.kpi_diff` (cf. :func:`_mc_kpi_rows`).
+#: La saisie réutilise le mécanisme existant tel quel : mêmes ids pattern-matchés
+#: ``{"type": "hebdo-kpi"}``, même :func:`kpi_save_callback`, validation par les
+#: bornes de ``KPI_CONSTRAINTS`` (domain.constraints).
+MC_TRIANGULAR_FIELDS: list[tuple[str, str]] = [
+    ("time.lead_time_min_h", "Lead time min — triangulaire MC (h)"),
+    ("time.lead_time_mode_h", "Lead time mode — triangulaire MC (h)"),
+    ("time.lead_time_max_h", "Lead time max — triangulaire MC (h)"),
+]
 
 #: Écart toléré (en points de progression) avant l'alerte rouge « en retard ».
 LATE_PROGRESS_MARGIN: float = 0.10
@@ -368,8 +383,45 @@ def _kpis_touched_this_week(service: SupplyScoreService, node_id: str) -> dict[s
     return touched
 
 
+def _mc_kpi_rows(service: SupplyScoreService, node_id: str) -> list[KpiRow]:
+    """Lignes du volet 2 pour les champs triangulaires (mode Monte Carlo E13).
+
+    Extension LOCALE de :meth:`WeeklyReview.kpi_diff` (cf. le choix documenté
+    sur :data:`MC_TRIANGULAR_FIELDS`), avec les MÊMES règles : valeur
+    précédente = dernier snapshot KPI antérieur au lundi 00:00 de la semaine
+    courante du projet (``kpis_at``), valeur courante = lecture fraîche du
+    registre, unité depuis ``KPI_CONSTRAINTS``.
+    """
+    node = service.registry.get_node(node_id)
+    if node is None:
+        return []
+    semaine = WeeklyReview(service).week_of(node_id)
+    previous_bundle = service.client_db(node_id).kpis_at(node_id, _lundi(semaine).timestamp())
+    rows: list[KpiRow] = []
+    for path, label in MC_TRIANGULAR_FIELDS:
+        bloc, champ = path.split(".", 1)
+        current = getattr(getattr(node.kpis, bloc), champ)
+        previous = (
+            getattr(getattr(previous_bundle, bloc), champ) if previous_bundle is not None else None
+        )
+        rows.append(
+            KpiRow(
+                path=path,
+                label_fr=label,
+                unit=kpi_unit(path),
+                previous=previous,
+                current=current,
+            )
+        )
+    return rows
+
+
 def _kpi_body(service: SupplyScoreService, node_id: str) -> html.Div:
-    """Volet 2 : tableau de diff KPI + saisie des nouvelles valeurs + 2 boutons."""
+    """Volet 2 : tableau de diff KPI + saisie des nouvelles valeurs + 2 boutons.
+
+    Aux champs du questionnaire (:meth:`WeeklyReview.kpi_diff`) s'ajoutent les
+    trois champs triangulaires du mode Monte Carlo (:func:`_mc_kpi_rows`).
+    """
     review = WeeklyReview(service)
     touched = _kpis_touched_this_week(service, node_id)
     header = html.Thead(
@@ -386,7 +438,7 @@ def _kpi_body(service: SupplyScoreService, node_id: str) -> html.Div:
         )
     )
     body_rows = []
-    for row in review.kpi_diff(node_id):
+    for row in [*review.kpi_diff(node_id), *_mc_kpi_rows(service, node_id)]:
         input_cell: list = [
             dcc.Input(
                 id={"type": "hebdo-kpi", "index": row.path},

@@ -8,9 +8,15 @@ import plotly.graph_objects as go
 
 from supplyscore.core import CRITERIA
 from supplyscore.domain.models import ArcKind, SupplyArc, SupplyNode, UrgencyState
+from supplyscore.mcda.promethee import ResultatPromethee
 from supplyscore.web_ui.components.layout import STATUS_FR
 
 _TEMPLATE = "plotly_white"
+
+#: Rouge des nœuds prioritaires (φ > 0) — aligné sur COLORS["alert"] du layout.
+_PHI_POSITIF_COLOR = "#b3261e"
+#: Gris des nœuds non prioritaires (φ <= 0) — aligné sur les voisins d'explication.
+_PHI_NEGATIF_COLOR = "#9aa7b0"
 
 
 def _fmt(value: float | None, digits: int = 2) -> str:
@@ -338,6 +344,105 @@ def urgency_history_figure(series: list[UrgencyState], node_name: str) -> go.Fig
         yaxis2={"title": "Adéquation A", "overlaying": "y", "side": "right", "range": [0, 105]},
         legend={"orientation": "h", "y": -0.25},
         margin={"l": 50, "r": 50, "t": 50, "b": 40},
+        height=380,
+    )
+    return fig
+
+
+def promethee_bars_figure(
+    resultat: ResultatPromethee, names: dict[str, str], top: int = 10
+) -> go.Figure:
+    """Barres horizontales des flux nets φ PROMETHEE II, triées par φ décroissant.
+
+    Seuls les ``top`` premiers nœuds du classement sont tracés (le classement
+    de :class:`ResultatPromethee` est déjà trié par φ décroissant), le plus
+    prioritaire en HAUT (axe y inversé). Couleur : rouge si φ > 0 (le nœud
+    domine en moyenne, à traiter en premier), gris sinon. Le survol détaille
+    les flux sortant et entrant (« φ+ = … ; φ− = … »).
+
+    Args:
+        resultat: classement PROMETHEE II complet (φ, φ⁺, φ⁻, classement).
+        names: noms d'affichage par identifiant de nœud (repli : l'id).
+        top: nombre maximal de barres tracées.
+
+    Returns:
+        Figure à barres horizontales, ou figure vide avec message si le
+        classement compte moins de 2 nœuds.
+    """
+    if len(resultat.classement) < 2:
+        return empty_figure(
+            "Classement PROMETHEE II indisponible : au moins 2 nœuds actifs requis."
+        )
+    retenus = resultat.classement[:top]
+    labels = [names.get(node_id, node_id) for node_id in retenus]
+    phis = [resultat.phi[node_id] for node_id in retenus]
+    hovers = [
+        f"<b>{label}</b><br>φ = {resultat.phi[node_id]:+.3f}<br>"
+        f"φ+ = {resultat.phi_plus[node_id]:.3f} ; φ− = {resultat.phi_moins[node_id]:.3f}"
+        for node_id, label in zip(retenus, labels, strict=True)
+    ]
+    fig = go.Figure(
+        go.Bar(
+            x=phis,
+            y=labels,
+            orientation="h",
+            marker_color=[_PHI_POSITIF_COLOR if phi > 0.0 else _PHI_NEGATIF_COLOR for phi in phis],
+            text=[f"{phi:+.3f}" for phi in phis],
+            textposition="outside",
+            hovertext=hovers,
+            hoverinfo="text",
+        )
+    )
+    fig.update_layout(
+        template=_TEMPLATE,
+        title={
+            "text": "Priorités PROMETHEE II — nœuds à traiter en premier",
+            "font": {"size": 15},
+        },
+        xaxis={"title": "Flux net φ (rouge : φ > 0, prioritaire)"},
+        yaxis={"autorange": "reversed"},
+        margin={"l": 10, "r": 50, "t": 50, "b": 40},
+        height=max(260, 90 + 38 * len(retenus)),
+    )
+    return fig
+
+
+def correlation_heatmap_figure(matrix: list[list[float]], labels: list[str]) -> go.Figure:
+    """Heatmap de corrélation de Pearson des blocs d'urgence (diagnostic PROMETHEE).
+
+    Échelle divergente RdBu bornée sur [−1, 1], valeurs ρ annotées dans les
+    cases. La diagonale vaut 1 par construction ; une forte corrélation hors
+    diagonale signale une information double-comptée par PROMETHEE.
+
+    Args:
+        matrix: matrice carrée symétrique des corrélations ρ ∈ [−1, 1].
+        labels: libellés des blocs, dans l'ordre des lignes/colonnes.
+
+    Returns:
+        Figure heatmap annotée, ou figure vide avec message si la matrice
+        est vide.
+    """
+    if not matrix:
+        return empty_figure("Corrélation indisponible : aucun bloc d'urgence calculable.")
+    fig = go.Figure(
+        go.Heatmap(
+            z=matrix,
+            x=labels,
+            y=labels,
+            colorscale="RdBu",
+            zmin=-1.0,
+            zmax=1.0,
+            text=[[f"{value:.2f}" for value in row] for row in matrix],
+            texttemplate="%{text}",
+            colorbar={"title": "ρ", "thickness": 14},
+            hovertemplate="ρ(%{y}, %{x}) = %{z:.2f}<extra></extra>",
+        )
+    )
+    fig.update_layout(
+        template=_TEMPLATE,
+        title={"text": "Corrélation des critères (blocs d'Ur)", "font": {"size": 15}},
+        yaxis={"autorange": "reversed"},
+        margin={"l": 10, "r": 30, "t": 50, "b": 40},
         height=380,
     )
     return fig

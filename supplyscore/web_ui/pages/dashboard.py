@@ -6,14 +6,20 @@ Callbacks en fonctions nommées au niveau module, enregistrées dans
 
 from __future__ import annotations
 
+import numpy as np
 from dash import Input, Output, dash_table, dcc, html
 
+from supplyscore.core import BLOCKS
+from supplyscore.domain.models import TaskStatus
 from supplyscore.services.weekly import CycleHebdomadaire, EtatHebdo, StatutHebdo
 from supplyscore.web_ui import get_service
 from supplyscore.web_ui.components.badges import style_hebdo_conditionnel, texte_hebdo
+from supplyscore.web_ui.components.explain_figures import BLOCK_LABELS_FR
 from supplyscore.web_ui.components.figures import (
+    correlation_heatmap_figure,
     dashboard_dag_figure,
     empty_figure,
+    promethee_bars_figure,
     urgency_history_figure,
 )
 from supplyscore.web_ui.components.layout import (
@@ -63,6 +69,26 @@ _TABLE_STYLE_HEADER = {
     "fontWeight": "700",
     "backgroundColor": "#eef2f5",
     "color": COLORS["text"],
+}
+
+#: Seuil d'alerte |ρ| au-delà duquel deux blocs de poids fort sont signalés.
+_SEUIL_CORRELATION = 0.8
+
+#: Note de bas de carte PROMETHEE — limite documentée du classement (PLAN.md E12).
+_NOTE_PERIMETRE = (
+    "Le classement est RELATIF au périmètre du projet : ajouter ou retirer un "
+    "nœud peut inverser des rangs (renversement de rang documenté)."
+)
+
+#: Bandeau d'avertissement orange (corrélation forte entre critères de poids fort).
+_WARN_BANNER_STYLE = {
+    "backgroundColor": "#fff4e5",
+    "border": f"1px solid {COLORS['warn']}",
+    "color": COLORS["warn"],
+    "borderRadius": "6px",
+    "padding": "10px 14px",
+    "marginBottom": "10px",
+    "fontSize": "13px",
 }
 
 
@@ -165,6 +191,37 @@ def layout() -> html.Div:
             card(
                 "Chaîne logistique",
                 [dcc.Graph(id="dash-dag", figure=empty_figure("Chargement…"))],
+            ),
+            card(
+                "Priorités PROMETHEE II",
+                [
+                    html.Div(id="dash-promethee-warning"),
+                    dcc.Graph(
+                        id="dash-promethee-fig",
+                        figure=empty_figure(
+                            "Sélectionnez un projet pour afficher le classement PROMETHEE II."
+                        ),
+                    ),
+                    dcc.Graph(
+                        id="dash-correlation-fig",
+                        figure=empty_figure(
+                            "Sélectionnez un projet pour afficher la corrélation des critères."
+                        ),
+                    ),
+                    html.P(
+                        _NOTE_PERIMETRE,
+                        style={
+                            "margin": "8px 0 0",
+                            "fontSize": "12px",
+                            "color": COLORS["muted"],
+                            "fontStyle": "italic",
+                        },
+                    ),
+                ],
+                subtitle=(
+                    "Classement multicritère des nœuds actifs (flux nets φ) et "
+                    "diagnostic de corrélation des 6 blocs d'urgence."
+                ),
             ),
             card(
                 "Détail des nœuds",
@@ -287,6 +344,164 @@ def update_dashboard_callback(project_data, n_clicks, tag_ids=None):
     )
 
 
+# --- Carte « Priorités PROMETHEE II » (Lot 12.4b) -----------------------------------
+
+
+def _noeuds_actifs(service, project_id):
+    """Nœuds ACTIFS du projet, onboarding terminé — mêmes règles que le service.
+
+    Le filtre reproduit celui de ``SupplyScoreService.classement_promethee``
+    pour que la carte et le classement portent sur le MÊME périmètre.
+    """
+    return [
+        n
+        for n in service.repo.nodes_by_project(project_id)
+        if n.status == TaskStatus.ACTIVE and n.onboarding_state != "draft"
+    ]
+
+
+def _blocs_par_noeud(service, project_id, actifs):
+    """Blocs d'urgence analytiques par nœud actif du projet.
+
+    Temps, jalons et modèle Ur viennent des MÊMES sources que
+    ``classement_promethee`` (``_project_times`` / ``_ur_model_for``) : la
+    matrice de corrélation diagnostique exactement les valeurs que PROMETHEE
+    consomme.
+
+    Returns:
+        ``{node_id: {bloc: urgence ou None}}`` (cf. :data:`BLOCKS`).
+    """
+    t_h, t0 = service._project_times().get(project_id, (0.0, 0.0))
+    model = service._ur_model_for(project_id)
+    return {
+        n.id: model.blocks(t_h, n.kpis, milestones=service.registry.list_milestones(n.id), t0_ts=t0)
+        for n in actifs
+    }
+
+
+def _pearson(xs, ys):
+    """Coefficient de Pearson des deux séries, 0.0 si indéfini.
+
+    CHOIX DOCUMENTÉ : ρ indéfini (moins de 2 paires complètes ou variance
+    nulle) est ramené à 0.0 — neutre : la heatmap reste lisible et aucun
+    avertissement n'est déclenché sans information.
+    """
+    if len(xs) < 2:
+        return 0.0
+    ax = np.asarray(xs, dtype=float)
+    ay = np.asarray(ys, dtype=float)
+    if float(np.std(ax)) == 0.0 or float(np.std(ay)) == 0.0:
+        return 0.0
+    return float(np.corrcoef(ax, ay)[0, 1])
+
+
+def _matrice_correlation(blocs_par_noeud):
+    """Matrice de corrélation de Pearson des blocs d'urgence sur les nœuds actifs.
+
+    Règles (Lot 12.4b) : corrélation par PAIRES COMPLÈTES seulement — un nœud
+    dont l'un des deux blocs vaut None est exclu de la paire ; les blocs
+    entièrement None sont exclus de la matrice.
+
+    Args:
+        blocs_par_noeud: ``{node_id: {bloc: urgence ou None}}``.
+
+    Returns:
+        ``(matrice, blocs_retenus)`` — matrice carrée symétrique (diagonale
+        à 1.0), blocs dans l'ordre de :data:`BLOCKS` ; ``([], [])`` si aucun
+        bloc n'est calculable.
+    """
+    colonnes = {
+        bloc: [valeurs.get(bloc) for valeurs in blocs_par_noeud.values()] for bloc in BLOCKS
+    }
+    retenus = [bloc for bloc in BLOCKS if any(v is not None for v in colonnes[bloc])]
+    matrice = [[1.0] * len(retenus) for _ in range(len(retenus))]
+    for i, bloc_i in enumerate(retenus):
+        for j in range(i + 1, len(retenus)):
+            paires = [
+                (vx, vy)
+                for vx, vy in zip(colonnes[bloc_i], colonnes[retenus[j]], strict=True)
+                if vx is not None and vy is not None
+            ]
+            rho = _pearson([vx for vx, _ in paires], [vy for _, vy in paires])
+            matrice[i][j] = matrice[j][i] = rho
+    return matrice, retenus
+
+
+def _avertissements_correlation(matrice, blocs, omega):
+    """Messages d'avertissement : |ρ| > 0.8 entre deux blocs de poids fort.
+
+    « Poids fort » : les 3 poids effectifs les plus élevés parmi les SIX
+    blocs (égalités départagées par l'ordre de :data:`BLOCKS`) — une forte
+    corrélation entre blocs marginaux ne fausse guère le classement, elle
+    n'est pas signalée.
+
+    Args:
+        matrice: matrice de corrélation (ordre de ``blocs``).
+        blocs: noms des blocs retenus dans la matrice.
+        omega: poids effectifs par bloc (omega du UrModel du projet).
+
+    Returns:
+        Liste de messages français, une entrée par paire incriminée.
+    """
+    if not matrice:
+        return []
+    tri = sorted(BLOCKS, key=lambda b: (-omega.get(b, 1.0), BLOCKS.index(b)))
+    top3 = set(tri[:3])
+    messages = []
+    for i, bloc_i in enumerate(blocs):
+        for j in range(i + 1, len(blocs)):
+            bloc_j = blocs[j]
+            rho = matrice[i][j]
+            if abs(rho) > _SEUIL_CORRELATION and bloc_i in top3 and bloc_j in top3:
+                messages.append(
+                    f"Attention : les critères {BLOCK_LABELS_FR.get(bloc_i, bloc_i)} et "
+                    f"{BLOCK_LABELS_FR.get(bloc_j, bloc_j)} sont fortement corrélés "
+                    f"(ρ={rho:.2f}) — PROMETHEE double-compte l'information corrélée ; "
+                    "envisagez de réduire un des deux poids."
+                )
+    return messages
+
+
+def promethee_callback(project_data, n_clicks=None):
+    """Carte « Priorités PROMETHEE II » : bandeau, barres φ et heatmap ρ.
+
+    CHOIX DOCUMENTÉ : callback DÉDIÉ plutôt qu'une extension de
+    :func:`update_dashboard_callback` — les quatre sorties existantes restent
+    inchangées (compatibilité des tests et consommateurs actuels) et le coût
+    O(n²) du classement n'est payé que pour cette carte. Le bouton
+    « Recalculer maintenant » reste un déclencheur pour rafraîchir la carte
+    en même temps que le reste du dashboard.
+
+    Sans projet actif ou avec moins de 2 nœuds actifs : figures vides avec
+    message, aucun bandeau, aucune exception.
+    """
+    service = get_service()
+    pid = (project_data or {}).get("project_id")
+    if not pid:
+        return (
+            [],
+            empty_figure("Sélectionnez un projet pour afficher le classement PROMETHEE II."),
+            empty_figure("Sélectionnez un projet pour afficher la corrélation des critères."),
+        )
+    actifs = _noeuds_actifs(service, pid)
+    if len(actifs) < 2:
+        return (
+            [],
+            empty_figure("Au moins 2 nœuds actifs sont requis pour le classement PROMETHEE II."),
+            empty_figure("Au moins 2 nœuds actifs sont requis pour la corrélation des critères."),
+        )
+    resultat = service.classement_promethee(pid)
+    figure_phi = promethee_bars_figure(resultat, {n.id: n.name for n in actifs})
+    matrice, retenus = _matrice_correlation(_blocs_par_noeud(service, pid, actifs))
+    figure_rho = correlation_heatmap_figure(matrice, [BLOCK_LABELS_FR.get(b, b) for b in retenus])
+    omega = service._ur_model_for(pid).omega
+    bandeaux = [
+        html.Div(message, style=_WARN_BANNER_STYLE)
+        for message in _avertissements_correlation(matrice, retenus, omega)
+    ]
+    return bandeaux, figure_phi, figure_rho
+
+
 def history_figure_callback(node_id):
     """Figure d'évolution temporelle Ud/Ur/A du nœud sélectionné."""
     if not node_id:
@@ -315,6 +530,14 @@ def register_callbacks(app) -> None:
         Input("dash-recalc-btn", "n_clicks"),
         Input("dash-tags-dd", "value"),
     )(update_dashboard_callback)
+
+    app.callback(
+        Output("dash-promethee-warning", "children"),
+        Output("dash-promethee-fig", "figure"),
+        Output("dash-correlation-fig", "figure"),
+        Input("store-project", "data"),
+        Input("dash-recalc-btn", "n_clicks"),
+    )(promethee_callback)
 
     app.callback(
         Output("dash-history-fig", "figure"),

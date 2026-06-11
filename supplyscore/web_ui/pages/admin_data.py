@@ -9,7 +9,7 @@ bouton « Déverrouiller l'édition » (confirmé par un
 d'historique restent inéditables par construction.
 
 Parcours : dropdown base (« Registre » + bases client par nom de nœud) →
-dropdown table (« nom (n lignes) », 🔒 pour les non éditables) → DataTable
+dropdown table (« nom (n lignes) », our les non éditables) → DataTable
 paginée (pagination custom servie par :meth:`RawTableService.fetch`). Une
 édition de cellule est diffée par LIGNE sur le ``rowid`` SQLite (clé de ligne
 universelle incluse par ``fetch``), validée et auditée par

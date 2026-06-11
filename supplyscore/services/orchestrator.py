@@ -10,14 +10,18 @@ Pipeline complet pour un projet à la date t :
 
 from __future__ import annotations
 
+import dataclasses
 import threading
+import zlib
 from collections import OrderedDict
 from pathlib import Path
 from types import TracebackType
+from typing import Any
 
 import numpy as np
 
 from supplyscore.core import (
+    BLOCKS,
     CONSISTENCY_THRESHOLD,
     AdequationEngine,
     UrModel,
@@ -37,6 +41,8 @@ from supplyscore.domain.models import (
     UrgencyState,
 )
 from supplyscore.graph import GraphRepository, InMemoryGraphRepository, PropagationEngine
+from supplyscore.mc.lead_time import N_TIRAGES_MAX, N_TIRAGES_MIN, ResultatMC, SimulateurLeadTime
+from supplyscore.mcda.promethee import Critere, PrometheeII, ResultatPromethee
 from supplyscore.services.mutations import MutationService
 
 #: nombre maximal de ClientDatabase gardées ouvertes simultanément (cache LRU).
@@ -83,6 +89,12 @@ class SupplyScoreService:
         self.clock: Clock = clock if clock is not None else SystemClock()
         self._client_dbs: OrderedDict[str, ClientDatabase] = OrderedDict()
         self._lock = threading.RLock()
+        #: Cache léger du UrModel effectif par projet (omega FBWM fusionné),
+        #: invalidé projet par projet dans :meth:`set_poids_criteres`.
+        self._ur_models: dict[str, UrModel] = {}
+        #: Dernier résultat Monte Carlo par projet (IC95 pour l'UI), purgé au
+        #: retour en mode analytique. Cf. :meth:`last_mc_result`.
+        self._last_mc: dict[str, ResultatMC] = {}
         self.mutations = MutationService(
             registry=self.registry,
             client_db_factory=self.client_db,
@@ -357,6 +369,216 @@ class SupplyScoreService:
             )
             return self.evaluate_all(persist=True)
 
+    # --- pondération FBWM des blocs d'Ur + classement PROMETHEE (E12) ---------------
+
+    def set_poids_criteres(
+        self,
+        project_id: str,
+        poids: dict[str, float],
+        methode: str = "fbwm",
+        xi_star: float | None = None,
+        iso_week_val: str | None = None,
+    ) -> None:
+        """Persiste les poids des blocs d'Ur du projet (sortie FBWM ou saisie).
+
+        Les poids alimentent le ``omega`` de l'OU probabiliste de
+        :class:`UrModel` via :meth:`_ur_model_for` ; les blocs absents du
+        dictionnaire conservent leur poids par défaut.
+
+        Args:
+            project_id: projet porteur des poids.
+            poids: poids par nom de bloc (clés ⊆ :data:`BLOCKS`, valeurs
+                >= 0, somme strictement positive).
+            methode: provenance des poids (``"fbwm"`` par défaut).
+            xi_star: ξ* du solveur FBWM (indicateur de cohérence), ou None.
+            iso_week_val: semaine ISO de rattachement ; None → semaine
+                courante du projet (selon SON horloge).
+
+        Raises:
+            ValueError: bloc inconnu, poids négatif ou somme des poids non
+                strictement positive (messages en français).
+        """
+        with self._lock:
+            inconnus = sorted(set(poids) - set(BLOCKS))
+            if inconnus:
+                raise ValueError(
+                    f"Bloc(s) inconnu(s) dans les poids : {inconnus} "
+                    f"(blocs valides : {list(BLOCKS)})"
+                )
+            negatifs = {nom: w for nom, w in poids.items() if w < 0}
+            if negatifs:
+                raise ValueError(f"Poids négatif(s) interdit(s) : {negatifs}")
+            if sum(poids.values()) <= 0:
+                raise ValueError("La somme des poids doit être strictement positive.")
+            if iso_week_val is None:
+                iso_week_val = iso_week(self.clock_for(project_id).now())
+            self.registry.set_setting(
+                project_id,
+                "omega_ur",
+                {
+                    "poids": {nom: float(w) for nom, w in poids.items()},
+                    "methode": methode,
+                    "xi_star": xi_star,
+                    "iso_week": iso_week_val,
+                },
+            )
+            self._ur_models.pop(project_id, None)  # invalide le cache du projet
+
+    def poids_criteres(self, project_id: str) -> dict[str, float] | None:
+        """Poids des blocs d'Ur stockés pour le projet, ou None si absents."""
+        raw = self.registry.get_setting(project_id, "omega_ur")
+        if not isinstance(raw, dict):
+            return None
+        poids = raw.get("poids")
+        if not isinstance(poids, dict):
+            return None
+        return {str(nom): float(w) for nom, w in poids.items()}
+
+    def _ur_model_for(self, project_id: str | None) -> UrModel:
+        """Modèle Ur effectif du projet : omega FBWM fusionné, sinon le défaut.
+
+        Sans poids stockés, retourne ``self.ur_model`` tel quel ; sinon une
+        copie via :func:`dataclasses.replace` avec
+        ``omega = {**omega_defaut, **poids_stockés}``. Cache léger par
+        projet, invalidé par :meth:`set_poids_criteres`.
+
+        Args:
+            project_id: projet concerné ; None → modèle par défaut.
+
+        Returns:
+            Le :class:`UrModel` à utiliser pour les nœuds du projet.
+        """
+        if project_id is None:
+            return self.ur_model
+        with self._lock:
+            cached = self._ur_models.get(project_id)
+            if cached is not None:
+                return cached
+            poids = self.poids_criteres(project_id)
+            if poids is None:
+                model = self.ur_model
+            else:
+                model = dataclasses.replace(self.ur_model, omega={**self.ur_model.omega, **poids})
+            self._ur_models[project_id] = model
+            return model
+
+    def classement_promethee(self, project_id: str) -> ResultatPromethee:
+        """Classement PROMETHEE II des nœuds du projet « à traiter en priorité ».
+
+        Alternatives : les nœuds ACTIFS du projet (statut ACTIVE, onboarding
+        terminé). Valeurs : les six blocs d'urgence de
+        :meth:`UrModel.blocks` au temps du projet — mêmes règles que
+        :meth:`refresh_ur_local` (temps et jalons par projet, via
+        :meth:`_project_times`) ; blocs calculés en ANALYTIQUE, le mode
+        Monte Carlo (E13) ne concerne que l'agrégation d'Ur. Critères : les
+        six blocs en sens « max », fonction de préférence par défaut
+        (:class:`LineaireIndifference`). Poids : l'omega effectif du projet
+        (poids FBWM stockés complétés par les défauts ; uniformes sans poids
+        stockés) — les blocs de poids nul sont exclus du classement, comme
+        ils le sont de l'OU probabiliste.
+
+        Args:
+            project_id: projet à classer.
+
+        Returns:
+            Le :class:`ResultatPromethee` (φ, φ⁺, φ⁻, classement complet).
+
+        Raises:
+            ValueError: si le projet compte moins de 2 nœuds actifs.
+        """
+        with self._lock:
+            actifs = [
+                node
+                for node in self.repo.nodes_by_project(project_id)
+                if node.status == TaskStatus.ACTIVE and node.onboarding_state != "draft"
+            ]
+            if len(actifs) < 2:
+                raise ValueError(
+                    f"Classement PROMETHEE impossible pour le projet {project_id!r} : "
+                    f"au moins 2 nœuds actifs sont requis (trouvé : {len(actifs)})."
+                )
+            t_h, t0 = self._project_times().get(project_id, (0.0, 0.0))
+            model = self._ur_model_for(project_id)
+            valeurs: dict[str, dict[str, float | None]] = {
+                node.id: model.blocks(
+                    t_h,
+                    node.kpis,
+                    milestones=self.registry.list_milestones(node.id),
+                    t0_ts=t0,
+                )
+                for node in actifs
+            }
+            retenus = [nom for nom in BLOCKS if model.omega.get(nom, 1.0) > 0.0]
+            criteres = [Critere(nom=nom, sens="max") for nom in retenus]
+            poids = {nom: model.omega.get(nom, 1.0) for nom in retenus}
+            return PrometheeII(criteres, poids).classer(valeurs)
+
+    # --- mode Monte Carlo du lead time (E13) -----------------------------------------
+
+    def set_lead_time_mode(
+        self,
+        project_id: str,
+        mode: str,
+        n_tirages: int = 10_000,
+        graine: int | None = None,
+    ) -> None:
+        """Choisit le mode de calcul de u_time du projet (analytique ou Monte Carlo).
+
+        CHOIX DOCUMENTÉ : ``n_tirages`` est validé ICI, à l'écriture, contre
+        les bornes du simulateur — une configuration invalide ne peut donc
+        jamais atteindre :meth:`evaluate_all` (le garde-fou mémoire
+        N × n_nœuds, lui, reste évalué à l'exécution car il dépend de la
+        taille courante du graphe).
+
+        Repasser en mode analytique purge le dernier résultat MC mémorisé du
+        projet (:meth:`last_mc_result` retourne alors None — l'UI n'affiche
+        pas d'IC95 périmé).
+
+        Args:
+            project_id: projet concerné.
+            mode: ``"analytique"`` ou ``"monte_carlo"``.
+            n_tirages: nombre de tirages N (mode MC), dans
+                [:data:`N_TIRAGES_MIN`, :data:`N_TIRAGES_MAX`].
+            graine: graine PCG64 figée, ou None → graine STABLE dérivée de
+                (project_id, semaine ISO du projet) à chaque évaluation.
+
+        Raises:
+            ValueError: mode inconnu ou ``n_tirages`` hors bornes
+                (messages en français).
+        """
+        with self._lock:
+            if mode not in ("analytique", "monte_carlo"):
+                raise ValueError(
+                    f"Mode de lead time inconnu : {mode!r} (attendu 'analytique' ou 'monte_carlo')"
+                )
+            if not N_TIRAGES_MIN <= n_tirages <= N_TIRAGES_MAX:
+                raise ValueError(
+                    f"n_tirages doit être dans [{N_TIRAGES_MIN}, {N_TIRAGES_MAX}], reçu {n_tirages}"
+                )
+            self.registry.set_setting(
+                project_id,
+                "lead_time",
+                {"mode": mode, "n_tirages": int(n_tirages), "graine": graine},
+            )
+            if mode == "analytique":
+                self._last_mc.pop(project_id, None)
+
+    def lead_time_mode(self, project_id: str) -> dict[str, Any]:
+        """Configuration lead time du projet (``{"mode": "analytique"}`` par défaut)."""
+        raw = self.registry.get_setting(project_id, "lead_time")
+        if isinstance(raw, dict) and raw.get("mode") in ("analytique", "monte_carlo"):
+            return dict(raw)
+        return {"mode": "analytique"}
+
+    def last_mc_result(self, project_id: str) -> ResultatMC | None:
+        """Dernier :class:`ResultatMC` du projet (IC95 pour l'UI), ou None.
+
+        Renseigné à chaque :meth:`evaluate_all` automatique (``t=None``)
+        d'un projet en mode « monte_carlo » ; None pour un projet analytique
+        (y compris après un retour en mode analytique, qui purge l'entrée).
+        """
+        return self._last_mc.get(project_id)
+
     # --- questionnaire AHP -----------------------------------------------------
 
     def submit_assessment(self, assessment: AHPAssessment) -> int:
@@ -437,19 +659,85 @@ class SupplyScoreService:
             times[project.id] = (project_hours(now, origin), origin)
         return times
 
+    def _mc_u_time_overrides(self, times: dict[str, tuple[float, float]]) -> dict[str, float]:
+        """u_time simulés par nœud pour les projets en mode « monte_carlo ».
+
+        Pour chaque projet en mode Monte Carlo, exécute UNE SEULE FOIS
+        :class:`SimulateurLeadTime` puis ne consomme que les u_time des
+        nœuds du projet. COÛT DOCUMENTÉ : le simulateur travaille sur le
+        DÉPÔT ENTIER (sa récurrence suit le ``topological_order()`` global,
+        il n'accepte pas de sous-ensemble) — chaque projet en mode MC coûte
+        donc une passe complète N × n_nœuds(repo), les nœuds des autres
+        projets étant simulés puis ignorés.
+
+        La graine est celle stockée dans ``project_settings['lead_time']`` ;
+        sinon une graine STABLE est dérivée de (project_id, semaine ISO du
+        projet) via ``zlib.crc32`` — deux rafraîchissements de la même
+        semaine produisent des résultats identiques bit à bit (le dashboard
+        ne « clignote » pas), et la graine change naturellement à la semaine
+        suivante. Le dernier :class:`ResultatMC` de chaque projet est
+        mémorisé dans ``self._last_mc`` (cf. :meth:`last_mc_result`).
+
+        Args:
+            times: temps par projet, au format de :meth:`_project_times`.
+
+        Returns:
+            ``{node_id: u_time simulé}`` — les nœuds sans échéance (u_time
+            None côté simulateur) sont absents (aucun override).
+
+        Raises:
+            ValueError: garde-fou mémoire du simulateur (N × n_nœuds trop
+                grand pour le graphe courant).
+        """
+        overrides: dict[str, float] = {}
+        for project in self.registry.list_projects():
+            config = self.lead_time_mode(project.id)
+            if config.get("mode") != "monte_carlo":
+                continue
+            nodes = self.repo.nodes_by_project(project.id)
+            if not nodes:
+                continue
+            graine_stockee = config.get("graine")
+            if graine_stockee is not None:
+                graine = int(graine_stockee)
+            else:
+                semaine = iso_week(self.clock_for(project.id).now())
+                graine = zlib.crc32(f"{project.id}:{semaine}".encode())
+            t_h, t0 = times.get(project.id, (0.0, 0.0))
+            simulateur = SimulateurLeadTime(
+                self.repo, n_tirages=int(config.get("n_tirages", 10_000)), graine=graine
+            )
+            resultat = simulateur.executer(
+                t=t_h,
+                milestones_par_noeud={n.id: self.registry.list_milestones(n.id) for n in nodes},
+                t0_ts=t0,
+            )
+            self._last_mc[project.id] = resultat
+            for node in nodes:
+                u = resultat.u_time.get(node.id)
+                if u is not None:
+                    overrides[node.id] = u
+        return overrides
+
     def refresh_ur_local(self, t: float | None = None) -> None:
         """Recalcule Ur_local de chaque nœud depuis ses KPIs et jalons.
 
         Avec ``t=None`` (défaut), le temps de chaque nœud vient de l'horloge
-        de SON projet et ses jalons pilotent u_time (mode v2). Avec un ``t``
-        explicite, comportement v1 : pas de jalons, temps forcé identique
-        partout (rétro-compatibilité tests/outillage).
+        de SON projet, ses jalons pilotent u_time (mode v2), le modèle Ur
+        appliqué est celui de SON projet (:meth:`_ur_model_for`, omega FBWM
+        — E12) et les projets en mode « monte_carlo » reçoivent leur u_time
+        simulé (:meth:`_mc_u_time_overrides` — E13). Avec un ``t`` explicite,
+        comportement v1 : pas de jalons, temps forcé identique partout,
+        ``self.ur_model`` pour tous et JAMAIS de Monte Carlo
+        (rétro-compatibilité tests/outillage).
 
         Le statut dérivé des jalons est appliqué AVANT le calcul (un nœud
         dont tous les jalons sont terminés passe DONE) ; les règles de statut
-        (DONE → 0, ABANDONED → 1) restent dans ``core.status_rules``.
+        (DONE → 0, ABANDONED → 1) restent dans ``core.status_rules`` et
+        priment sur l'override Monte Carlo.
         """
         times = self._project_times() if t is None else None
+        mc_overrides = self._mc_u_time_overrides(times) if times is not None else {}
         for node in self.repo.nodes():
             if node.onboarding_state == "draft":
                 # Nœud en cours d'onboarding : contribution neutre au pipeline
@@ -459,6 +747,7 @@ class SupplyScoreService:
                 continue
             milestones = None
             t_h, t0 = (t if t is not None else 0.0), 0.0
+            model = self.ur_model
             if times is not None:
                 milestones = self.registry.list_milestones(node.id)
                 derived = derive_node_status(milestones)
@@ -467,8 +756,14 @@ class SupplyScoreService:
                     self.registry.set_node_status(node.id, derived)
                 if node.project_id and node.project_id in times:
                     t_h, t0 = times[node.project_id]
-            node.urgency.ur_local = self.ur_model.ur_local(
-                t_h, node.kpis, status=node.status, milestones=milestones, t0_ts=t0
+                model = self._ur_model_for(node.project_id)
+            node.urgency.ur_local = model.ur_local(
+                t_h,
+                node.kpis,
+                status=node.status,
+                milestones=milestones,
+                t0_ts=t0,
+                u_time_override=mc_overrides.get(node.id),
             )
             self.repo.update_node(node)
 
@@ -486,6 +781,12 @@ class SupplyScoreService:
         l'historique tombe ainsi dans la bonne semaine SIMULÉE, pas dans la
         semaine réelle du poste (le moteur de propagation, lui, horodate à
         l'heure murale).
+
+        Modes E12/E13 : en mode automatique, chaque nœud est évalué avec le
+        UrModel de SON projet (omega FBWM) et, pour les projets en mode
+        « monte_carlo », avec le u_time simulé ; avec un ``t`` explicite,
+        comportement v1 strict (``self.ur_model``, jamais de Monte Carlo) —
+        cf. :meth:`refresh_ur_local`.
         """
         with self._lock:
             self.refresh_ur_local(t=t)
@@ -513,7 +814,12 @@ class SupplyScoreService:
             return states
 
     def simulate_shock(self, node_id: str, new_ur_local: float) -> dict[str, float]:
-        """Scénario catastrophe what-if : retourne les ΔUr propagés sans rien persister."""
+        """Scénario catastrophe what-if : retourne les ΔUr propagés sans rien persister.
+
+        CHOIX DOCUMENTÉ (E13) : le what-if reste ANALYTIQUE même pour un
+        projet en mode « monte_carlo » — il doit répondre instantanément
+        dans l'UI, là où une passe MC coûte N × n_nœuds tirages.
+        """
         return self.propagation.simulate_shock(node_id, new_ur_local)
 
     # --- données de démonstration ---------------------------------------------------

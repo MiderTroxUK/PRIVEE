@@ -426,8 +426,18 @@ class UrModel:
         kpis: KPIBundle,
         milestones: list[Milestone] | None = None,
         t0_ts: float = 0.0,
+        u_time_override: float | None = None,
     ) -> dict[str, float | None]:
         """Calcule les six urgences partielles d'un nœud.
+
+        ``u_time_override`` est le point d'extension du mode Monte Carlo
+        (E13) — la simulation calcule P(C_i > d_i) sur tout le graphe et
+        l'injecte nœud par nœud ; simulate_shock reste analytique (rapidité).
+        Quand il est fourni (non-None), le bloc ``time`` prend cette valeur
+        clipée sur [0, 1] au lieu du calcul local (analytique ou jalons),
+        y compris si le calcul local aurait donné None : le bloc devient
+        alors actif. :meth:`u_time` lui-même n'est pas modifié — l'override
+        se joue uniquement au niveau de l'agrégation.
 
         Args:
             t: date courante (heures depuis t0 projet).
@@ -435,12 +445,23 @@ class UrModel:
             milestones: jalons du nœud, propagés au bloc ``time`` (u_time v2).
             t0_ts: origine du référentiel projet (epoch s), propagée au bloc
                 ``time``.
+            u_time_override: urgence temporelle imposée (mode Monte Carlo),
+                clipée sur [0, 1] ; None → calcul local via :meth:`u_time`.
 
         Returns:
             Dictionnaire ``{nom_de_bloc: urgence ou None}`` (cf. :data:`BLOCKS`).
+
+        Raises:
+            ValueError: si ``u_time_override`` est NaN ou infini.
         """
+        if u_time_override is None:
+            u_time = self.u_time(t, kpis, milestones=milestones, t0_ts=t0_ts)
+        else:
+            if not math.isfinite(u_time_override):
+                raise ValueError(f"u_time_override doit être un réel fini, reçu {u_time_override}")
+            u_time = _clip01(u_time_override)
         return {
-            "time": self.u_time(t, kpis, milestones=milestones, t0_ts=t0_ts),
+            "time": u_time,
             "cap": self.u_cap(kpis),
             "perf": self.u_perf(kpis),
             "risk": self.u_risk(kpis),
@@ -455,6 +476,7 @@ class UrModel:
         status: TaskStatus = TaskStatus.ACTIVE,
         milestones: list[Milestone] | None = None,
         t0_ts: float = 0.0,
+        u_time_override: float | None = None,
     ) -> float:
         """Urgence réelle locale par OU probabiliste pondéré des blocs.
 
@@ -463,7 +485,13 @@ class UrModel:
 
         Les règles de statut (DONE → 0.0, ABANDONED → 1.0) sont déléguées à
         :func:`supplyscore.core.status_rules.effective_ur_local`, source de
-        vérité unique.
+        vérité unique — elles restent prioritaires même quand
+        ``u_time_override`` est fourni.
+
+        ``u_time_override`` est le point d'extension du mode Monte Carlo
+        (E13) — la simulation calcule P(C_i > d_i) sur tout le graphe et
+        l'injecte nœud par nœud ; simulate_shock reste analytique (rapidité).
+        Le paramètre est simplement propagé à :meth:`blocks`.
 
         Args:
             t: date courante (heures depuis t0 projet).
@@ -472,13 +500,21 @@ class UrModel:
             milestones: jalons du nœud, propagés au bloc ``time`` (u_time v2).
             t0_ts: origine du référentiel projet (epoch s), propagée au bloc
                 ``time``.
+            u_time_override: urgence temporelle imposée (mode Monte Carlo),
+                clipée sur [0, 1] ; None → calcul local via :meth:`u_time`.
 
         Returns:
             Urgence locale dans [0, 1] ; 0.0 si tous les blocs sont None.
+
+        Raises:
+            ValueError: si ``u_time_override`` est NaN ou infini.
         """
         product = 1.0
         any_block = False
-        for name, u in self.blocks(t, kpis, milestones=milestones, t0_ts=t0_ts).items():
+        block_values = self.blocks(
+            t, kpis, milestones=milestones, t0_ts=t0_ts, u_time_override=u_time_override
+        )
+        for name, u in block_values.items():
             if u is None:
                 continue
             w = self.omega.get(name, 1.0)

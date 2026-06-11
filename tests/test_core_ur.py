@@ -1,5 +1,6 @@
 """Tests du modèle d'urgence réelle Ur."""
 
+import math
 from itertools import pairwise
 
 import pytest
@@ -171,6 +172,79 @@ class TestAgregation:
     def test_bloc_inconnu_rejete(self):
         with pytest.raises(ValueError):
             UrModel(omega={"inconnu": 1.0})
+
+
+class TestUTimeOverride:
+    """Point d'extension u_time_override du mode Monte Carlo (E13, Lot 13.2)."""
+
+    @pytest.fixture
+    def kpis_temps_complets(self) -> KPIBundle:
+        """Bundle avec KPIs temps complets (le calcul local serait possible)."""
+        return KPIBundle(time=TimeKPIs(deadline_h=100.0, lead_time_h=10.0, lead_time_std_h=2.0))
+
+    def test_override_prime_sur_kpis_temps_complets(self, model, kpis_temps_complets):
+        """L'override remplace le calcul local même quand celui-ci est possible."""
+        local = model.blocks(0.0, kpis_temps_complets)["time"]
+        assert local is not None and local != 0.42  # le calcul local existe et diffère
+        blocks = model.blocks(0.0, kpis_temps_complets, u_time_override=0.42)
+        assert blocks["time"] == 0.42
+
+    def test_override_clipe_au_dessus(self, model, kpis_temps_complets):
+        blocks = model.blocks(0.0, kpis_temps_complets, u_time_override=1.7)
+        assert blocks["time"] == 1.0
+
+    def test_override_clipe_en_dessous(self, model, kpis_temps_complets):
+        blocks = model.blocks(0.0, kpis_temps_complets, u_time_override=-0.3)
+        assert blocks["time"] == 0.0
+
+    def test_override_nan_rejete(self, model, kpis_temps_complets):
+        with pytest.raises(ValueError, match="u_time_override"):
+            model.blocks(0.0, kpis_temps_complets, u_time_override=float("nan"))
+
+    def test_override_inf_rejete(self, model, kpis_temps_complets):
+        with pytest.raises(ValueError, match="u_time_override"):
+            model.blocks(0.0, kpis_temps_complets, u_time_override=float("inf"))
+        with pytest.raises(ValueError, match="u_time_override"):
+            model.ur_local(0.0, kpis_temps_complets, u_time_override=-math.inf)
+
+    def test_override_active_un_bloc_time_absent(self, model, empty):
+        """KPIs temps absents : u_time local None, mais l'override active le bloc."""
+        assert model.blocks(0.0, empty)["time"] is None
+        blocks = model.blocks(0.0, empty, u_time_override=0.6)
+        assert blocks["time"] == 0.6
+
+    def test_ur_local_override_monte_l_agregat_selon_ou(self, model):
+        """L'override s'agrège par OU probabiliste : 1 − (1 − 0.5)(1 − 0.5) = 0.75."""
+        k = KPIBundle(oee=OEEKPIs(availability=0.5, performance=1.0, quality=1.0))
+        sans = model.ur_local(0.0, k)
+        avec = model.ur_local(0.0, k, u_time_override=0.5)
+        assert sans == pytest.approx(0.5)
+        assert avec == pytest.approx(0.75, rel=1e-6)
+        assert avec > sans
+
+    def test_ur_local_statut_done_prime_sur_override(self, model, kpis_temps_complets):
+        """Les règles de statut restent prioritaires : DONE → 0.0 malgré l'override."""
+        assert (
+            model.ur_local(0.0, kpis_temps_complets, status=TaskStatus.DONE, u_time_override=0.9)
+            == 0.0
+        )
+
+    def test_ur_local_statut_abandoned_prime_sur_override(self, model, empty):
+        assert model.ur_local(0.0, empty, status=TaskStatus.ABANDONED, u_time_override=0.1) == 1.0
+
+    def test_override_none_egalite_bit_a_bit(self, model):
+        """u_time_override=None : strictement aucun changement de comportement."""
+        bundle = KPIBundle(
+            time=TimeKPIs(deadline_h=50.0, lead_time_h=30.0, lead_time_std_h=8.0),
+            inventory=InventoryKPIs(max_volume_m3=100.0, current_volume_m3=70.0, flow_rate=5.0),
+            network=NetworkKPIs(demand=8.0),
+            oee=OEEKPIs(availability=0.9, performance=0.8, quality=0.95),
+            risk=RiskKPIs(failure_probability=0.1, recovery_time_h=12.0, severity=0.7),
+            cost=CostKPIs(op_cost=120.0, nominal_op_cost=100.0, tariff=1.2, storage_cost=300.0),
+            co2=CO2KPIs(op_emission_g_h=150.0, co2_target_g_h=100.0, co2_max_g_h=200.0),
+        )
+        assert model.blocks(3.0, bundle, u_time_override=None) == model.blocks(3.0, bundle)
+        assert model.ur_local(3.0, bundle, u_time_override=None) == model.ur_local(3.0, bundle)
 
 
 class TestSingularite:

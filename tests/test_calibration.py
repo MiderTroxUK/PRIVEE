@@ -14,12 +14,10 @@ from __future__ import annotations
 from collections.abc import Iterator
 from datetime import datetime
 from pathlib import Path
-from types import SimpleNamespace
 from typing import ClassVar
 
 import pytest
 
-import supplyscore.graph.propagation as propagation_mod
 from supplyscore.core.clock import FixedClock
 from supplyscore.domain.milestones import Milestone, MilestoneStatus
 from supplyscore.domain.models import Project, SupplyNode, TaskStatus, UrgencyState
@@ -79,7 +77,7 @@ def calib(service: SupplyScoreService) -> CalibrationService:
 
 @pytest.fixture
 def partie(
-    service: SupplyScoreService, monkeypatch: pytest.MonkeyPatch
+    service: SupplyScoreService,
 ) -> tuple[SupplyScoreService, Project, tuple[str, str, str]]:
     """Vraie partie : seed_demo en S24, 5 semaines de jeu, issues contrôlées.
 
@@ -92,20 +90,10 @@ def partie(
     - nœud C : état d'urgence SANS H inséré en S23, et un événement de
       gravité « defaut » déclaré en S26 puis ANNULÉ aussitôt.
     """
-    # La propagation horodate les états d'urgence avec ``time.time()`` (horloge
-    # murale), même en mode jeu — limite connue du moteur, hors périmètre du
-    # lot 11.1. Pour une partie DÉTERMINISTE, on fait suivre à ces horodatages
-    # l'horloge effective du projet (FixedClock puis GameClock).
-    project_ref: dict[str, str] = {}
-
-    def _now_projet() -> float:
-        pid = project_ref.get("id")
-        return (service.clock_for(pid) if pid else service.clock).now()
-
-    monkeypatch.setattr(propagation_mod, "time", SimpleNamespace(time=_now_projet))
-
+    # Correctif E11 : ``evaluate_all`` re-horodate désormais chaque état avec
+    # l'horloge effective de SON projet (mode jeu inclus) — plus aucun
+    # contournement nécessaire ici, les états tombent dans la bonne semaine.
     projet = service.seed_demo(n_ranks=2, seed=1)
-    project_ref["id"] = projet.id
     nodes = sorted(
         (
             n

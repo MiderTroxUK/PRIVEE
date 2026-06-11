@@ -13,6 +13,7 @@ from dash.exceptions import PreventUpdate
 
 from supplyscore.core.clock import iso_week
 from supplyscore.domain.models import Project, SupplyNode, TaskStatus
+from supplyscore.mc.lead_time import N_TIRAGES_MAX, N_TIRAGES_MIN
 from supplyscore.services.onboarding import OnboardingService
 from supplyscore.services.weekly import CycleHebdomadaire, EtatHebdo
 from supplyscore.web_ui import get_service
@@ -68,9 +69,52 @@ _TABLE_STYLE_HEADER = {
 }
 
 
+#: Nombre de tirages N proposé par défaut dans la carte « Paramètres du calcul ».
+MC_N_DEFAUT: int = 10_000
+
+#: Style de la ligne d'état du mode de calcul (mc-status).
+_MC_STATUS_STYLE = {"fontSize": "13px", "color": COLORS["muted"], "marginTop": "8px"}
+
+
 def _r3(value: float | None) -> float | None:
     """Arrondit à 3 décimales en tolérant None."""
     return None if value is None else round(value, 3)
+
+
+def _fmt_n(n: int) -> str:
+    """Formate N à la française avec une espace pour séparateur de milliers."""
+    return f"{n:,}".replace(",", " ")
+
+
+def _mc_status_line(service, project_id: str) -> html.Span:
+    """Ligne d'état du calcul de u_time du projet (carte « Paramètres du calcul »).
+
+    En mode Monte Carlo APRÈS une évaluation : « u_time : Monte Carlo,
+    N=10 000 — IC95 moyen ±0.010 » (moyenne des demi-largeurs d'IC95 du
+    dernier :class:`~supplyscore.mc.lead_time.ResultatMC`, restreinte aux
+    nœuds du projet — le simulateur travaille sur le dépôt entier). En mode
+    Monte Carlo sans résultat mémorisé, l'IC95 est annoncé pour la prochaine
+    évaluation ; en analytique : « u_time : formule analytique (loi normale) ».
+    """
+    config = service.lead_time_mode(project_id)
+    if config.get("mode") != "monte_carlo":
+        return html.Span("u_time : formule analytique (loi normale).", style=_MC_STATUS_STYLE)
+    resultat = service.last_mc_result(project_id)
+    if resultat is None:
+        n = int(config.get("n_tirages", MC_N_DEFAUT))
+        return html.Span(
+            f"u_time : Monte Carlo, N={_fmt_n(n)} — IC95 disponible après la prochaine évaluation.",
+            style=_MC_STATUS_STYLE,
+        )
+    node_ids = {node.id for node in service.repo.nodes_by_project(project_id)}
+    ics = [ic for nid, ic in resultat.ic95.items() if nid in node_ids]
+    if not ics:  # garde-fou : projet sans nœud simulé
+        ics = list(resultat.ic95.values()) or [0.0]
+    moyen = sum(ics) / len(ics)
+    return html.Span(
+        f"u_time : Monte Carlo, N={_fmt_n(resultat.n_tirages)} — IC95 moyen ±{moyen:.3f}.",
+        style=_MC_STATUS_STYLE,
+    )
 
 
 def _hebdo_texte(etat: EtatHebdo | None) -> str:
@@ -270,6 +314,57 @@ def layout() -> html.Div:
                 subtitle=(
                     "En mode jeu, « Avancer d'une semaine » fait progresser le temps simulé "
                     "du projet (l'animateur pilote les tours du serious game)."
+                ),
+            ),
+            card(
+                "Paramètres du calcul d'urgence",
+                [
+                    labelled(
+                        "Mode de calcul de u_time",
+                        dcc.Dropdown(
+                            id="mc-mode-dd",
+                            options=[
+                                {"label": "Analytique (loi normale)", "value": "analytique"},
+                                {
+                                    "label": "Monte Carlo (propagation sur le DAG)",
+                                    "value": "monte_carlo",
+                                },
+                            ],
+                            placeholder="Choisir un mode…",
+                        ),
+                        width="320px",
+                    ),
+                    labelled(
+                        f"Nombre de tirages N ({N_TIRAGES_MIN}..{N_TIRAGES_MAX})",
+                        dcc.Input(
+                            id="mc-n-input",
+                            type="number",
+                            min=N_TIRAGES_MIN,
+                            max=N_TIRAGES_MAX,
+                            step=1,
+                            value=MC_N_DEFAUT,
+                            style=INPUT_STYLE,
+                        ),
+                        width="220px",
+                    ),
+                    labelled(
+                        "Graine (optionnelle)",
+                        dcc.Input(
+                            id="mc-seed-input",
+                            type="number",
+                            step=1,
+                            placeholder="stable par semaine si vide",
+                            style=INPUT_STYLE,
+                        ),
+                        width="220px",
+                    ),
+                    html.Div(html.Button("Appliquer", id="mc-apply-btn", style=BUTTON_STYLE)),
+                    html.Div(id="mc-msg"),
+                    html.Div(id="mc-status"),
+                ],
+                subtitle=(
+                    "Mode Monte Carlo (E13) : u_time est estimé par propagation des dates "
+                    "d'achèvement sur le DAG ; une graine vide reste stable par semaine ISO."
                 ),
             ),
             card(
@@ -486,6 +581,77 @@ def advance_week_callback(n_clicks, project_data, refresh):
     return msg, (refresh or 0) + 1
 
 
+def mc_init_callback(project_data, refresh):
+    """Reflète la configuration lead time du projet actif dans la carte MC.
+
+    À la sélection d'un projet (ou après un rafraîchissement), les contrôles
+    de la carte « Paramètres du calcul d'urgence » reprennent
+    ``lead_time_mode(pid)`` : mode, N et graine stockés ; la ligne d'état
+    (mc-status) est recalculée (IC95 moyen en mode Monte Carlo).
+    """
+    service = get_service()
+    pid = (project_data or {}).get("project_id")
+    if not pid:
+        return (
+            None,
+            MC_N_DEFAUT,
+            None,
+            html.Span(
+                "Sélectionnez un projet pour régler le calcul d'urgence.",
+                style=_MC_STATUS_STYLE,
+            ),
+        )
+    config = service.lead_time_mode(pid)
+    mode = config.get("mode", "analytique")
+    n_tirages = int(config.get("n_tirages", MC_N_DEFAUT))
+    graine = config.get("graine")
+    return mode, n_tirages, graine, _mc_status_line(service, pid)
+
+
+def mc_apply_callback(n_clicks, project_data, mode, n_tirages, graine, refresh):
+    """« Appliquer » : pose le mode de calcul de u_time puis réévalue tout.
+
+    Passe par ``set_lead_time_mode`` (validation à l'ÉCRITURE : un N hors
+    bornes est refusé en français et RIEN n'est persisté), puis
+    ``evaluate_all(persist=True)`` — en mode Monte Carlo, le dernier
+    :class:`~supplyscore.mc.lead_time.ResultatMC` alimente la ligne d'état
+    (IC95 moyen).
+    """
+    if not n_clicks:
+        raise PreventUpdate
+    service = get_service()
+    pid = (project_data or {}).get("project_id")
+    if not pid:
+        return (
+            html.Span("Sélectionnez d'abord un projet.", style=MSG_ALERT_STYLE),
+            no_update,
+            no_update,
+        )
+    if mode not in ("analytique", "monte_carlo"):
+        return (
+            html.Span("Choisissez un mode de calcul.", style=MSG_ALERT_STYLE),
+            no_update,
+            no_update,
+        )
+    n = int(n_tirages) if n_tirages is not None else MC_N_DEFAUT
+    seed = int(graine) if graine is not None and str(graine).strip() != "" else None
+    try:
+        service.set_lead_time_mode(pid, mode, n_tirages=n, graine=seed)
+    except ValueError as exc:  # message français de l'orchestrateur, rien n'est écrit
+        return html.Span(str(exc), style=MSG_ALERT_STYLE), no_update, no_update
+    service.evaluate_all(persist=True)
+    libelle = (
+        "Monte Carlo (propagation sur le DAG)"
+        if mode == "monte_carlo"
+        else "Analytique (loi normale)"
+    )
+    msg = html.Span(
+        f"Mode de calcul appliqué : {libelle} — urgences réévaluées sur tout le réseau.",
+        style=MSG_OK_STYLE,
+    )
+    return msg, _mc_status_line(service, pid), (refresh or 0) + 1
+
+
 def export_project_callback(n_clicks, project_data):
     """Exporte le projet actif en classeur xlsx et déclenche le téléchargement."""
     if not n_clicks:
@@ -635,6 +801,28 @@ def register_callbacks(app) -> None:
         State("store-refresh", "data"),
         prevent_initial_call=True,
     )(advance_week_callback)
+
+    app.callback(
+        Output("mc-mode-dd", "value"),
+        Output("mc-n-input", "value"),
+        Output("mc-seed-input", "value"),
+        Output("mc-status", "children"),
+        Input("store-project", "data"),
+        Input("store-refresh", "data"),
+    )(mc_init_callback)
+
+    app.callback(
+        Output("mc-msg", "children"),
+        Output("mc-status", "children", allow_duplicate=True),
+        Output("store-refresh", "data", allow_duplicate=True),
+        Input("mc-apply-btn", "n_clicks"),
+        State("store-project", "data"),
+        State("mc-mode-dd", "value"),
+        State("mc-n-input", "value"),
+        State("mc-seed-input", "value"),
+        State("store-refresh", "data"),
+        prevent_initial_call=True,
+    )(mc_apply_callback)
 
     app.callback(
         Output("export-msg", "children"),

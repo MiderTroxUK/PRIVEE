@@ -31,6 +31,9 @@ KPI_CONSTRAINTS: dict[str, tuple[float | None, float | None, str]] = {
     "time.refuel_time_h": (0.0, None, "h"),
     "time.lead_time_h": (0.0, None, "h"),
     "time.lead_time_std_h": (0.0, None, "h"),
+    "time.lead_time_min_h": (0.0, None, "h"),  # distribution triangulaire (Monte Carlo E13)
+    "time.lead_time_mode_h": (0.0, None, "h"),  # distribution triangulaire (Monte Carlo E13)
+    "time.lead_time_max_h": (0.0, None, "h"),  # distribution triangulaire (Monte Carlo E13)
     "time.delay_h": (0.0, None, "h"),
     "time.deadline_h": (0.0, None, "h"),
     # Coût

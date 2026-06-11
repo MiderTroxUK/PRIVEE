@@ -23,6 +23,7 @@ from supplyscore.web_ui.pages import (
     graph_editor,
     node_detail,
     onboarding,
+    ponderation,
     projects,
     questionnaire,
     report,
@@ -59,6 +60,7 @@ def route_callback(pathname: str | None):
         "/graphe": graph_editor.layout,
         "/admin": admin_data.layout,
         "/rapport": report.layout,
+        "/ponderation": ponderation.layout,
     }
     builder = routes.get(path)
     if builder is None:
@@ -123,6 +125,7 @@ def create_app(
         graph_editor,
         admin_data,
         report,
+        ponderation,
     ):
         page.register_callbacks(app)
     return app
