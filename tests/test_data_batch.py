@@ -307,7 +307,7 @@ def test_client_v6_pose_les_index_temporels_manquants(tmp_path):
 
 def test_registre_reste_en_v4_index_audit_deja_presents(tmp_path):
     with RegistryDatabase(tmp_path) as db:
-        assert db.schema_version == 4  # aucun index registre ne manquait
+        assert db.schema_version == 5  # aucun index registre ne manquait (v5 = scénarios)
 
     index = _index_names(tmp_path / "registry.sqlite")
     assert {"idx_audit_entity", "idx_audit_week"} <= index

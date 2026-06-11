@@ -343,6 +343,33 @@ def _registry_v4(conn: sqlite3.Connection) -> None:
         conn.execute("PRAGMA user_version = 4")
 
 
+def _registry_v5(conn: sqlite3.Connection) -> None:
+    """v5 registre : scénarios nommés par projet (table ``scenarios``), idempotent.
+
+    Un scénario est un instantané nommé de paramètres de simulation rattaché à
+    un projet. Son contenu (``payload_json``) est OPAQUE pour la couche data :
+    stocké et restitué tel quel, sans interprétation. Le nom est unique PAR
+    projet (``UNIQUE(project_id, nom)``) ; l'index ``idx_scenarios_project``
+    sert les listages par projet.
+    """
+    with conn:
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS scenarios (
+                id TEXT PRIMARY KEY,
+                project_id TEXT NOT NULL,
+                nom TEXT NOT NULL,
+                payload_json TEXT NOT NULL,
+                created_at REAL NOT NULL,
+                updated_at REAL NOT NULL,
+                UNIQUE(project_id, nom)
+            )
+            """
+        )
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_scenarios_project ON scenarios(project_id)")
+        conn.execute("PRAGMA user_version = 5")
+
+
 # --- Migrations des bases client ---------------------------------------------------
 
 
@@ -591,6 +618,7 @@ _REGISTRY_MIGRATIONS: list[tuple[int, MigrationFn]] = [
     (2, _registry_v2),
     (3, _registry_v3),
     (4, _registry_v4),
+    (5, _registry_v5),
 ]
 
 _CLIENT_MIGRATIONS: list[tuple[int, MigrationFn]] = [

@@ -82,7 +82,7 @@ class TestRegistryV3Migration:
 
         conn = sqlite3.connect(str(db_file))
         assert conn.execute("PRAGMA user_version").fetchone()[0] == 2
-        assert apply_migrations(conn, "registry") == 4
+        assert apply_migrations(conn, "registry") == 5
 
         # Données préservées.
         assert conn.execute("SELECT COUNT(*) FROM projects").fetchone()[0] == 1
@@ -117,17 +117,17 @@ class TestRegistryV3Migration:
         _build_v2_registry(db_file)
         conn = sqlite3.connect(str(db_file))
 
-        assert apply_migrations(conn, "registry") == 4
+        assert apply_migrations(conn, "registry") == 5
         # Re-application : no-op, données intactes.
-        assert apply_migrations(conn, "registry") == 4
-        assert conn.execute("PRAGMA user_version").fetchone()[0] == 4
+        assert apply_migrations(conn, "registry") == 5
+        assert conn.execute("PRAGMA user_version").fetchone()[0] == 5
         assert conn.execute("SELECT COUNT(*) FROM nodes").fetchone()[0] == 2
         assert conn.execute("SELECT t0_ts FROM projects WHERE id = 'p1'").fetchone()[0] == 1000.0
         conn.close()
 
     def test_fresh_registry_reaches_v3(self, tmp_path):
         conn = sqlite3.connect(str(tmp_path / "registry.sqlite"))
-        assert apply_migrations(conn, "registry") == 4
+        assert apply_migrations(conn, "registry") == 5
         assert {"milestones", "tags", "tag_categories", "node_tags"} <= _table_names(conn)
         assert conn.execute("PRAGMA foreign_key_check").fetchall() == []
         conn.close()
@@ -486,7 +486,7 @@ def test_v3_fields_persist_across_reopen(tmp_path):
         db.save_milestone(_milestone("m1", node_id="n1"))
 
     with RegistryDatabase(tmp_path) as db:
-        assert db.schema_version == 4
+        assert db.schema_version == 5
         project = db.get_project("p1")
         assert project is not None and project.t0_ts == 5.0
         node = db.get_node("n1")

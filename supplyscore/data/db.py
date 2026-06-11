@@ -758,6 +758,106 @@ class RegistryDatabase(_SQLiteDatabase):
         with self._lock, self._conn:
             self._conn.execute("DELETE FROM onboarding_progress WHERE node_id = ?", (node_id,))
 
+    # -- scénarios nommés --
+
+    def save_scenario(
+        self,
+        scenario_id: str,
+        project_id: str,
+        nom: str,
+        payload_json: str,
+        now: float,
+    ) -> None:
+        """Insère ou met à jour le scénario nommé (upsert sur son id).
+
+        Le contenu ``payload_json`` est OPAQUE pour la couche data (aucune
+        interprétation), mais sa syntaxe JSON est validée AVANT toute écriture.
+        À l'insertion, ``created_at`` et ``updated_at`` valent ``now`` ; à la
+        mise à jour, seul ``updated_at`` est rafraîchi (``created_at`` est
+        préservé). Le nom est unique PAR projet : un doublon de
+        ``(project_id, nom)`` porté par un AUTRE id est refusé.
+
+        Args:
+            scenario_id: identifiant du scénario (clé d'upsert).
+            project_id: projet auquel le scénario est rattaché.
+            nom: nom du scénario, unique au sein du projet.
+            payload_json: contenu du scénario, déjà sérialisé en JSON.
+            now: timestamp courant, fourni par l'appelant (testabilité).
+
+        Raises:
+            ValueError: si ``payload_json`` n'est pas du JSON valide, ou si un
+                scénario de ce nom existe déjà dans le projet sous un autre id.
+        """
+        try:
+            json.loads(payload_json)
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"payload_json n'est pas du JSON valide : {exc}") from exc
+        with self._lock, self._conn:
+            try:
+                self._conn.execute(
+                    """
+                    INSERT INTO scenarios (id, project_id, nom, payload_json,
+                                           created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(id) DO UPDATE SET
+                        project_id = excluded.project_id,
+                        nom = excluded.nom,
+                        payload_json = excluded.payload_json,
+                        updated_at = excluded.updated_at
+                    """,
+                    (scenario_id, project_id, nom, payload_json, now, now),
+                )
+            except sqlite3.IntegrityError as exc:
+                raise ValueError(
+                    f"un scénario de ce nom existe déjà dans le projet : {nom!r}"
+                ) from exc
+
+    def get_scenario(self, scenario_id: str) -> dict[str, Any] | None:
+        """Retourne le scénario ou None s'il est inconnu.
+
+        Le dict retourné contient ``id``, ``project_id``, ``nom``, ``payload``
+        (désérialisé du JSON), ``created_at`` et ``updated_at``.
+        """
+        with self._lock:
+            row = self._conn.execute(
+                "SELECT * FROM scenarios WHERE id = ?", (scenario_id,)
+            ).fetchone()
+            return self._row_to_scenario(row) if row else None
+
+    def list_scenarios(self, project_id: str) -> list[dict[str, Any]]:
+        """Liste les scénarios du projet, les plus récemment modifiés d'abord.
+
+        Tri par ``updated_at`` décroissant (départage par id pour un ordre
+        stable). Même forme de dict que :meth:`get_scenario`. Servie par
+        l'index ``idx_scenarios_project``.
+        """
+        with self._lock:
+            rows = self._conn.execute(
+                """
+                SELECT * FROM scenarios WHERE project_id = ?
+                ORDER BY updated_at DESC, id
+                """,
+                (project_id,),
+            ).fetchall()
+            return [self._row_to_scenario(row) for row in rows]
+
+    def delete_scenario(self, scenario_id: str) -> None:
+        """Supprime le scénario (silencieux s'il est absent)."""
+        with self._lock, self._conn:
+            self._conn.execute("DELETE FROM scenarios WHERE id = ?", (scenario_id,))
+
+    @staticmethod
+    def _row_to_scenario(row: sqlite3.Row) -> dict[str, Any]:
+        """Ligne SQL -> dict de scénario (payload désérialisé du JSON)."""
+        return {
+            "id": row["id"],
+            "project_id": row["project_id"],
+            "nom": row["nom"],
+            "payload": json.loads(row["payload_json"]),
+            "created_at": row["created_at"],
+            "updated_at": row["updated_at"],
+        }
+
 
 # --- Base par client -------------------------------------------------------------
 

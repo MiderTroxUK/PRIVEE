@@ -116,8 +116,8 @@ class TestFreshDatabase:
         conn = sqlite3.connect(str(tmp_path / "registry.sqlite"))
         version = apply_migrations(conn, "registry")
 
-        assert version == 4
-        assert conn.execute("PRAGMA user_version").fetchone()[0] == 4
+        assert version == 5
+        assert conn.execute("PRAGMA user_version").fetchone()[0] == 5
         tables = _table_names(conn)
         assert {"projects", "nodes", "arcs", "node_urgency", "project_settings"} <= tables
         assert "idx_nodes_project" in _index_names(conn)
@@ -144,7 +144,7 @@ class TestLegacyV1Database:
         conn = sqlite3.connect(str(db_file))
         assert conn.execute("PRAGMA user_version").fetchone()[0] == 0
         version = apply_migrations(conn, "registry")
-        assert version == 4
+        assert version == 5
 
         # Données préservées.
         assert conn.execute("SELECT COUNT(*) FROM projects").fetchone()[0] == 1
@@ -174,10 +174,10 @@ class TestLegacyV1Database:
         _build_legacy_registry(db_file)
         conn = sqlite3.connect(str(db_file))
 
-        assert apply_migrations(conn, "registry") == 4
+        assert apply_migrations(conn, "registry") == 5
         # Re-application : no-op, données intactes.
-        assert apply_migrations(conn, "registry") == 4
-        assert conn.execute("PRAGMA user_version").fetchone()[0] == 4
+        assert apply_migrations(conn, "registry") == 5
+        assert conn.execute("PRAGMA user_version").fetchone()[0] == 5
         assert conn.execute("SELECT COUNT(*) FROM nodes").fetchone()[0] == 3
         assert conn.execute("SELECT COUNT(*) FROM arcs").fetchone()[0] == 1
         conn.close()
@@ -186,7 +186,7 @@ class TestLegacyV1Database:
         _build_legacy_registry(tmp_path / "registry.sqlite")
 
         with RegistryDatabase(tmp_path) as db:
-            assert db.schema_version == 4
+            assert db.schema_version == 5
             node = db.get_node("n1")
             assert node is not None and node.name == "Client"
             # Pas de ligne node_urgency : UrgencyState vierge.

@@ -522,6 +522,69 @@ def correlation_heatmap_figure(matrix: list[list[float]], labels: list[str]) -> 
     return fig
 
 
+def criticite_tornado_figure(points: list, top: int = 15) -> go.Figure:
+    """Tornado de criticité : barres horizontales de ΔUr_final décroissant (Lot 15.4).
+
+    Duck-typing volontaire : tout objet exposant ``node_name``,
+    ``delta_ur_final``, ``delta_ur_max`` et ``nb_impactes`` convient (la
+    dataclass :class:`~supplyscore.services.criticite.PointCriticite` comme un
+    substitut de test) ; un attribut manquant ou None vaut 0 (nom vide).
+    Les barres sont triées par ``delta_ur_final`` décroissant (tri stable :
+    l'ordre d'entrée départage les égalités), le nœud le plus critique en
+    HAUT ; le survol détaille la portée du choc (« impacte n nœud(s) ;
+    ΔUr max = … ») ; rouge dégradé — plus le ΔUr du client final est grand,
+    plus la barre est sombre.
+
+    Args:
+        points: points de criticité (``ServiceCriticite.top`` ou équivalent).
+        top: nombre maximal de barres tracées.
+
+    Returns:
+        Figure à barres horizontales, ou figure vide avec message si la
+        liste est vide.
+    """
+    if not points:
+        return empty_figure("Criticité indisponible : aucun nœud actif analysé.")
+
+    def _val(point: object, attr: str) -> float:
+        valeur = getattr(point, attr, 0.0)
+        return float(valeur) if valeur is not None else 0.0
+
+    retenus = sorted(points, key=lambda p: -_val(p, "delta_ur_final"))[: max(0, top)]
+    labels = [str(getattr(p, "node_name", "") or "") for p in retenus]
+    valeurs = [_val(p, "delta_ur_final") for p in retenus]
+    hovers = [
+        f"<b>{label}</b><br>impacte {int(_val(p, 'nb_impactes'))} nœud(s) ; "
+        f"ΔUr max = {_val(p, 'delta_ur_max'):+.3f}"
+        for p, label in zip(retenus, labels, strict=True)
+    ]
+    borne = max(valeurs, default=0.0) or 0.01
+    fig = go.Figure(
+        go.Bar(
+            x=valeurs,
+            y=labels,
+            orientation="h",
+            marker={"color": valeurs, "colorscale": "Reds", "cmin": 0.0, "cmax": borne},
+            text=[f"{v:+.3f}" for v in valeurs],
+            textposition="outside",
+            hovertext=hovers,
+            hoverinfo="text",
+        )
+    )
+    fig.update_layout(
+        template=_TEMPLATE,
+        title={
+            "text": "Criticité systématique — pire choc local par nœud",
+            "font": {"size": 15},
+        },
+        xaxis={"title": "ΔUr du client final si le nœud tombait (ur_local → 1.0)"},
+        yaxis={"autorange": "reversed"},
+        margin={"l": 10, "r": 50, "t": 50, "b": 40},
+        height=max(260, 90 + 38 * len(retenus)),
+    )
+    return fig
+
+
 def shock_bar_figure(deltas: dict[str, float], names: dict[str, str]) -> go.Figure:
     """Bar chart des ΔUr par nœud, ordonné par delta décroissant."""
     if not deltas:
