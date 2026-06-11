@@ -139,8 +139,19 @@ def layout() -> html.Div:
         [
             html.H2("Dashboard", style={"margin": "6px 0 12px"}),
             html.Div(
-                html.Button("Recalculer maintenant", id="dash-recalc-btn", style=BUTTON_STYLE),
-                style={"marginBottom": "14px"},
+                [
+                    html.Button("Recalculer maintenant", id="dash-recalc-btn", style=BUTTON_STYLE),
+                    html.Div(
+                        dcc.Dropdown(
+                            id="dash-tags-dd",
+                            options=[],
+                            multi=True,
+                            placeholder="Filtrer par tags…",
+                        ),
+                        style={"width": "320px", "marginLeft": "14px"},
+                    ),
+                ],
+                style={"display": "flex", "alignItems": "center", "marginBottom": "14px"},
             ),
             html.Div(
                 id="dash-kpi-cards",
@@ -222,13 +233,24 @@ def _table_row(n, etat: EtatHebdo | None) -> dict:
     }
 
 
-def update_dashboard_callback(project_data, n_clicks):
+def tag_filter_options_callback(project_data):
+    """Options du filtre par tags (tags du projet actif, valeur réinitialisée)."""
+    service = get_service()
+    pid = (project_data or {}).get("project_id")
+    if not pid:
+        return [], []
+    options = [{"label": t.name, "value": t.id} for t in service.registry.list_tags(pid)]
+    return sorted(options, key=lambda o: o["label"]), []
+
+
+def update_dashboard_callback(project_data, n_clicks, tag_ids=None):
     """Met à jour cartes KPI, DAG, tableau et options d'historique.
 
     Si le déclencheur est le bouton « Recalculer maintenant », le pipeline
     complet est relancé et persisté avant le rafraîchissement. Les états
     hebdo du projet sont construits en UNE passe (``synthese``), jamais
-    nœud par nœud (N requêtes sinon).
+    nœud par nœud (N requêtes sinon). ``tag_ids`` filtre les nœuds affichés
+    (intersection non vide avec ``node.tags``).
     """
     service = get_service()
     try:  # ctx indisponible hors requête Dash (appel direct en test)
@@ -241,6 +263,9 @@ def update_dashboard_callback(project_data, n_clicks):
         service.evaluate_all(persist=True)
 
     nodes = _scope_nodes(project_data)
+    if tag_ids:
+        wanted = set(tag_ids)
+        nodes = [n for n in nodes if wanted & set(n.tags)]
     ids = {n.id for n in nodes}
     arcs = [a for a in service.repo.arcs() if a.source_id in ids and a.target_id in ids]
 
@@ -276,12 +301,19 @@ def history_figure_callback(node_id):
 def register_callbacks(app) -> None:
     """Enregistre les callbacks de la page Dashboard sur l'application Dash."""
     app.callback(
+        Output("dash-tags-dd", "options"),
+        Output("dash-tags-dd", "value"),
+        Input("store-project", "data"),
+    )(tag_filter_options_callback)
+
+    app.callback(
         Output("dash-kpi-cards", "children"),
         Output("dash-dag", "figure"),
         Output("dash-table", "data"),
         Output("dash-history-dd", "options"),
         Input("store-project", "data"),
         Input("dash-recalc-btn", "n_clicks"),
+        Input("dash-tags-dd", "value"),
     )(update_dashboard_callback)
 
     app.callback(

@@ -17,7 +17,14 @@ from types import TracebackType
 
 import numpy as np
 
-from supplyscore.core import AdequationEngine, UrModel, compute_ud, run_ahp, ud_smoothed
+from supplyscore.core import (
+    CONSISTENCY_THRESHOLD,
+    AdequationEngine,
+    UrModel,
+    compute_ud,
+    run_ahp,
+    ud_smoothed,
+)
 from supplyscore.core.clock import Clock, GameClock, SystemClock, iso_week, project_hours
 from supplyscore.data import ClientDatabase, RandomSupplyChainGenerator, RegistryDatabase
 from supplyscore.domain.milestones import MilestoneStatus, derive_node_status
@@ -156,7 +163,13 @@ class SupplyScoreService:
         gamma: float = 0.5,
         beta: float = 0.5,
     ) -> None:
-        """Ajoute un client/fournisseur de rang quelconque, relié à ses clients aval."""
+        """Ajoute un client/fournisseur de rang quelconque, relié à ses clients aval.
+
+        Après l'ajout des arcs, les rangs de TOUS les nœuds sont recalés sur la
+        définition canonique « plus longue distance vers un puits » (faiblesse
+        #10 : le rang « 1 + max(cibles) » déduit par l'UI peut diverger de
+        cette définition dans les graphes en diamant).
+        """
         with self._lock:
             self.registry.save_node(node)
             self.repo.add_node(node)
@@ -164,6 +177,91 @@ class SupplyScoreService:
                 arc = SupplyArc(source_id=node.id, target_id=target, gamma=gamma, beta=beta)
                 self.registry.save_arc(arc)
                 self.repo.add_arc(arc)
+            self._reassign_ranks()
+
+    def remove_arc(self, source_id: str, target_id: str) -> None:
+        """Retire l'arc fournisseur -> client, recale les rangs puis réévalue.
+
+        L'arc est retiré du dépôt en mémoire ET du registre SQLite ; les rangs
+        canoniques sont ensuite recalculés (un fournisseur devenu isolé passe
+        au rang 0) et le réseau entier est réévalué avec persistance.
+
+        Args:
+            source_id: id du nœud fournisseur (origine de l'arc).
+            target_id: id du nœud client (cible de l'arc).
+
+        Raises:
+            KeyError: si l'arc est inconnu (message en français, rien n'est
+                modifié dans ce cas).
+        """
+        with self._lock:
+            self.repo.remove_arc(source_id, target_id)  # KeyError français si absent
+            self.registry.delete_arc(source_id, target_id)
+            self._reassign_ranks()
+            self.evaluate_all(persist=True)
+
+    def remove_node(self, node_id: str) -> None:
+        """Supprime le nœud du graphe et du registre — sa base SQLite est ARCHIVÉE.
+
+        Le fichier ``<node_id>.sqlite`` du client n'est PAS supprimé : il est
+        conservé en archive (historique des évaluations AHP, snapshots KPI,
+        série d'urgence) pour audit ultérieur. Seule la connexion ouverte est
+        fermée proprement puis évincée du cache LRU. La suppression cascade
+        dans le registre (arcs incidents, tags, jalons, onboarding), puis les
+        rangs canoniques sont recalculés et le réseau réévalué.
+
+        Args:
+            node_id: id du nœud à supprimer.
+
+        Raises:
+            KeyError: si le nœud est inconnu (message en français, rien n'est
+                modifié dans ce cas).
+        """
+        with self._lock:
+            if self.repo.get_node(node_id) is None:
+                raise KeyError(f"Nœud inconnu : {node_id!r}")
+            db = self._client_dbs.pop(node_id, None)
+            if db is not None:
+                db.close()  # le FICHIER sqlite reste sur disque (archive)
+            self.registry.delete_node(node_id)  # cascade arcs/tags/jalons/onboarding
+            self.repo.remove_node(node_id)
+            self._reassign_ranks()
+            self.evaluate_all(persist=True)
+
+    def reassign_ranks(self) -> None:
+        """Recale les rangs canoniques (API publique — éditeurs de graphe)."""
+        with self._lock:
+            self._reassign_ranks()
+
+    def _reassign_ranks(self) -> None:
+        """Recale tous les rangs sur la définition canonique et persiste les écarts.
+
+        Le rang canonique d'un nœud est sa plus longue distance vers un puits
+        via les arcs NOMINAUX (``InMemoryGraphRepository.assign_ranks``). Pour
+        un dépôt qui n'expose pas ``assign_ranks``, la même définition est
+        recalculée ici à partir du contrat :class:`GraphRepository` (tri
+        topologique + successeurs nominaux). Chaque nœud dont le rang a changé
+        est mis à jour dans le dépôt ET sauvegardé dans le registre.
+        """
+        with self._lock:
+            previous = {node.id: node.rank for node in self.repo.nodes()}
+            ranks: dict[str, int]
+            if isinstance(self.repo, InMemoryGraphRepository):
+                ranks = self.repo.assign_ranks()
+            else:  # définition canonique recalculée via le contrat abstrait
+                ranks = {}
+                for node_id in reversed(self.repo.topological_order()):
+                    successors = self.repo.successors(node_id)
+                    ranks[node_id] = 1 + max(ranks[s.id] for s in successors) if successors else 0
+            for node_id, rank in ranks.items():
+                if previous.get(node_id) == rank:
+                    continue
+                node = self.repo.get_node(node_id)
+                if node is None:  # pragma: no cover - assign_ranks ne renvoie que des nœuds connus
+                    continue
+                node.rank = rank
+                self.repo.update_node(node)
+                self.registry.save_node(node)
 
     def set_status(self, node_id: str, status: TaskStatus) -> dict[str, UrgencyState]:
         """Tâche finie/abandonnée : pose le statut puis réévalue UNE fois le réseau.
@@ -264,11 +362,26 @@ class SupplyScoreService:
     def submit_assessment(self, assessment: AHPAssessment) -> int:
         """Enregistre un questionnaire hebdo et met à jour le Ud_local lissé du nœud.
 
+        Garde-fou serveur (faiblesse #9) : une évaluation incohérente au sens
+        de Saaty (``consistency_ratio >= CONSISTENCY_THRESHOLD``) est REFUSÉE
+        ici même — RIEN n'est persisté. L'UI vérifie déjà le CR, mais un appel
+        direct au service ne peut plus contourner ce contrôle.
+
         Si ``assessment.iso_week`` est vide, la semaine ISO est posée depuis
         l'horloge du projet (``clock_for``) quand ``project_id`` est renseigné,
         sinon depuis l'horloge par défaut du service.
+
+        Raises:
+            ValueError: si le ratio de cohérence atteint le seuil de Saaty
+                (jugements incohérents, message en français).
         """
         with self._lock:
+            if assessment.consistency_ratio >= CONSISTENCY_THRESHOLD:
+                raise ValueError(
+                    f"Évaluation refusée : CR = {assessment.consistency_ratio:.3f}"
+                    f" >= {CONSISTENCY_THRESHOLD:.2f} — jugements incohérents,"
+                    " révisez les comparaisons."
+                )
             if not assessment.iso_week:
                 clock = (
                     self.clock_for(assessment.project_id) if assessment.project_id else self.clock

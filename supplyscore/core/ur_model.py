@@ -191,7 +191,17 @@ class UrModel:
             P(L > slack) dans [0, 1].
         """
         mu = lead_time_h
-        std = lead_time_std_h if lead_time_std_h is not None else 0.25 * mu
+        if lead_time_std_h is None:
+            # σ par défaut RELATIF (0.25·μ) : on travaille sur l'échelle
+            # normalisée slack/μ — mathématiquement identique à N(μ, 0.25·μ),
+            # mais sans le sous-passement dénormalisé de 0.25·μ vers 0.0 qui
+            # rendait p_late non monotone en μ (contre-exemple Hypothesis :
+            # μ = 5e-324 sautait à 1.0 alors que μ = 1.0 donnait Φ(4) < 1).
+            if mu <= 0.0:
+                # Lead time nul : retard certain ssi l'échéance est déjà passée.
+                return 1.0 if mu > slack_h else 0.0
+            return _clip01(_normal_sf(slack_h / mu, 1.0, 0.25))
+        std = lead_time_std_h
         if std <= 0:
             # Lead time déterministe : retard certain ou impossible.
             return 1.0 if mu > slack_h else 0.0

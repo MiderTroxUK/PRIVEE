@@ -16,8 +16,11 @@ from supplyscore.web_ui import set_service
 from supplyscore.web_ui.components import operator
 from supplyscore.web_ui.components.layout import COLORS, FONT_FAMILY, PAGE_STYLE, navbar
 from supplyscore.web_ui.pages import (
+    admin_data,
     dashboard,
+    editor,
     explain,
+    graph_editor,
     node_detail,
     onboarding,
     projects,
@@ -51,6 +54,9 @@ def route_callback(pathname: str | None):
         "/simulation": simulation.layout,
         "/onboarding": onboarding.layout,
         "/hebdo": weekly.layout,
+        "/edition": editor.layout,
+        "/graphe": graph_editor.layout,
+        "/admin": admin_data.layout,
     }
     builder = routes.get(path)
     if builder is None:
@@ -111,6 +117,9 @@ def create_app(
         node_detail,
         weekly,
         explain,
+        editor,
+        graph_editor,
+        admin_data,
     ):
         page.register_callbacks(app)
     return app
