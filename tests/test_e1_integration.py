@@ -135,3 +135,31 @@ def test_clock_mode_callbacks(tmp_path):
     finally:
         web_ui.set_service(None)
         svc.close()
+
+
+def test_urgency_history_stamped_with_game_clock(tmp_path):
+    """Correctif E11 : en mode jeu, l'historique tombe dans la semaine SIMULÉE.
+
+    Le moteur de propagation horodate à l'heure murale ; evaluate_all doit
+    re-horodater chaque état avec l'horloge de SON projet pour que la
+    calibration et les courbes lisent les bonnes semaines.
+    """
+    from supplyscore.core.clock import FixedClock
+
+    t0 = 1_750_000_000.0
+    svc = SupplyScoreService(db_dir=tmp_path / "store", clock=FixedClock(t0))
+    try:
+        project = svc.seed_demo(n_ranks=1, seed=4)
+        svc.set_clock_mode(project.id, "game")
+        svc.advance_week(project.id, 3)
+
+        node = svc.repo.nodes()[0]
+        series = svc.client_db(node.id).urgency_series(node.id)
+        assert series, "l'historique doit exister"
+        expected = t0 + 3 * WEEK
+        assert series[-1].timestamp == pytest.approx(expected), (
+            "le dernier état doit être horodaté par l'horloge de JEU du projet"
+        )
+        assert iso_week(series[-1].timestamp) == iso_week(expected)
+    finally:
+        svc.close()

@@ -480,9 +480,19 @@ class SupplyScoreService:
         Avec ``persist=True``, chaque état est journalisé dans la base du
         client ET l'état courant est figé dans le registre (table
         ``node_urgency``) pour survivre à un redémarrage.
+
+        Horodatage (correctif E11) : en mode automatique (``t=None``), les
+        états sont horodatés par l'horloge de LEUR projet — en mode « jeu »
+        l'historique tombe ainsi dans la bonne semaine SIMULÉE, pas dans la
+        semaine réelle du poste (le moteur de propagation, lui, horodate à
+        l'heure murale).
         """
         with self._lock:
             self.refresh_ur_local(t=t)
+            project_now: dict[str, float] = {}
+            if t is None:
+                for project in self.registry.list_projects():
+                    project_now[project.id] = self.clock_for(project.id).now()
             states = self.propagation.propagate_all()
             for node_id, state in states.items():
                 ud = state.ud if state.ud is not None else 0.0
@@ -493,6 +503,8 @@ class SupplyScoreService:
                 state.hidden_risk = evaluated.hidden_risk
                 node = self.repo.get_node(node_id)
                 if node is not None:
+                    if node.project_id in project_now:
+                        state.timestamp = project_now[node.project_id]
                     node.urgency = state
                     self.repo.update_node(node)
                 if persist:

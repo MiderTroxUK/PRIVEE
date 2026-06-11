@@ -118,6 +118,7 @@ def navbar(right: html.Div | None = None) -> html.Div:
         dcc.Link("Simulation", href="/simulation", style=link_style),
         dcc.Link("Édition", href="/edition", style=link_style),
         dcc.Link("Graphe", href="/graphe", style=link_style),
+        dcc.Link("Rapport", href="/rapport", style=link_style),
         dcc.Link("Admin", href="/admin", style=link_style),
     ]
     if right is not None:
