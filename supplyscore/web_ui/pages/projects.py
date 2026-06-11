@@ -273,6 +273,29 @@ def layout() -> html.Div:
                 ),
             ),
             card(
+                "Exporter & sauvegarder",
+                [
+                    html.Div(
+                        [
+                            html.Button(
+                                "Exporter le projet (xlsx)", id="export-btn", style=BUTTON_STYLE
+                            ),
+                            html.Button(
+                                "Sauvegarder les bases maintenant",
+                                id="backup-btn",
+                                style={**BUTTON_STYLE, "marginLeft": "10px"},
+                            ),
+                        ]
+                    ),
+                    dcc.Download(id="export-download"),
+                    html.Div(id="export-msg"),
+                ],
+                subtitle=(
+                    "Export complet (scores, évaluations, événements, décisions, audit) pour "
+                    "l'analyse post-jeu ; sauvegarde zip de toutes les bases SQLite."
+                ),
+            ),
+            card(
                 "Nœuds du projet actif",
                 [
                     dash_table.DataTable(  # type: ignore[attr-defined]
@@ -463,6 +486,35 @@ def advance_week_callback(n_clicks, project_data, refresh):
     return msg, (refresh or 0) + 1
 
 
+def export_project_callback(n_clicks, project_data):
+    """Exporte le projet actif en classeur xlsx et déclenche le téléchargement."""
+    if not n_clicks:
+        raise PreventUpdate
+    service = get_service()
+    pid = (project_data or {}).get("project_id")
+    if not pid:
+        return html.Span("Sélectionnez d'abord un projet.", style=MSG_ALERT_STYLE), no_update
+    from supplyscore.services.exports import ExportService
+
+    path = ExportService(service).export_project(pid, fmt="xlsx")
+    msg = html.Span(f"Export généré : {path.name}", style=MSG_OK_STYLE)
+    return msg, dcc.send_file(str(path))
+
+
+def backup_now_callback(n_clicks):
+    """Sauvegarde toutes les bases SQLite dans un zip horodaté."""
+    if not n_clicks:
+        raise PreventUpdate
+    service = get_service()
+    from supplyscore.data.backup import IntegriteError, ServiceSauvegarde
+
+    try:
+        path = ServiceSauvegarde(service.db_dir, clock=service.clock).backup_all()
+    except IntegriteError as exc:
+        return html.Span(str(exc), style=MSG_ALERT_STYLE)
+    return html.Span(f"Sauvegarde créée : {path}", style=MSG_OK_STYLE)
+
+
 def update_view_callback(project_data, refresh):
     """Rafraîchit dropdowns, tableau (statuts hebdo inclus) et bandeau du projet actif."""
     service = get_service()
@@ -583,6 +635,20 @@ def register_callbacks(app) -> None:
         State("store-refresh", "data"),
         prevent_initial_call=True,
     )(advance_week_callback)
+
+    app.callback(
+        Output("export-msg", "children"),
+        Output("export-download", "data"),
+        Input("export-btn", "n_clicks"),
+        State("store-project", "data"),
+        prevent_initial_call=True,
+    )(export_project_callback)
+
+    app.callback(
+        Output("export-msg", "children", allow_duplicate=True),
+        Input("backup-btn", "n_clicks"),
+        prevent_initial_call=True,
+    )(backup_now_callback)
 
     app.callback(
         Output("proj-dd", "options"),

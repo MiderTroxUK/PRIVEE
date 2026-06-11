@@ -8,6 +8,7 @@ dependencies = [
     "networkx>=3.6,<4",
     "dash>=4.2,<5",
     "plotly>=6.8,<7",
+    "openpyxl>=3.1,<4",
 ]
 
 [project.optional-dependencies]
