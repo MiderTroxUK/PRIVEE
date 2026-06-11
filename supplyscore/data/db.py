@@ -1095,3 +1095,157 @@ class ClientDatabase(_SQLiteDatabase):
                 "UPDATE events SET reverted_at = ? WHERE id = ?",
                 (reverted_at, event_id),
             )
+
+    # -- revue hebdomadaire --
+
+    def get_weekly_review(self, node_id: str, iso_week: str) -> dict[str, Any] | None:
+        """Retourne l'état de la revue hebdomadaire du nœud pour la semaine, ou None.
+
+        Le dict retourné contient ``volets`` (désérialisé du JSON, ex.
+        ``{"ahp": 1, "kpis": 0}``), ``started_at`` et ``completed_at``
+        (timestamps, ou None tant que non posés).
+        """
+        with self._lock:
+            row = self._conn.execute(
+                """
+                SELECT volets_json, started_at, completed_at FROM weekly_reviews
+                WHERE node_id = ? AND iso_week = ?
+                """,
+                (node_id, iso_week),
+            ).fetchone()
+            if row is None:
+                return None
+            return {
+                "volets": json.loads(row["volets_json"]),
+                "started_at": row["started_at"],
+                "completed_at": row["completed_at"],
+            }
+
+    def upsert_weekly_review(
+        self,
+        node_id: str,
+        iso_week: str,
+        *,
+        volets: dict[str, Any] | None = None,
+        started_at: float | None = None,
+        completed_at: float | None = None,
+    ) -> None:
+        """Crée la revue hebdomadaire au besoin et ne touche QUE les champs fournis.
+
+        Sémantique champ à champ (transaction unique, sous le verrou) :
+
+        - ``volets`` est FUSIONNÉ clé à clé avec l'existant (les volets non
+          mentionnés sont conservés, ceux fournis sont écrasés) ;
+        - ``started_at`` n'est posé que s'il est encore NULL en base (premier
+          démarrage de la revue — les appels suivants ne l'écrasent pas) ;
+        - ``completed_at`` est écrasé chaque fois qu'il est fourni.
+        """
+        with self._lock, self._conn:
+            self._conn.execute(
+                "INSERT OR IGNORE INTO weekly_reviews (node_id, iso_week) VALUES (?, ?)",
+                (node_id, iso_week),
+            )
+            if volets is not None:
+                row = self._conn.execute(
+                    "SELECT volets_json FROM weekly_reviews WHERE node_id = ? AND iso_week = ?",
+                    (node_id, iso_week),
+                ).fetchone()
+                merged: dict[str, Any] = json.loads(row["volets_json"])
+                merged.update(volets)
+                self._conn.execute(
+                    """
+                    UPDATE weekly_reviews SET volets_json = ?
+                    WHERE node_id = ? AND iso_week = ?
+                    """,
+                    (json.dumps(merged, sort_keys=True), node_id, iso_week),
+                )
+            if started_at is not None:
+                self._conn.execute(
+                    """
+                    UPDATE weekly_reviews SET started_at = ?
+                    WHERE node_id = ? AND iso_week = ? AND started_at IS NULL
+                    """,
+                    (started_at, node_id, iso_week),
+                )
+            if completed_at is not None:
+                self._conn.execute(
+                    """
+                    UPDATE weekly_reviews SET completed_at = ?
+                    WHERE node_id = ? AND iso_week = ?
+                    """,
+                    (completed_at, node_id, iso_week),
+                )
+
+    # -- journal des décisions --
+
+    def save_decision(
+        self,
+        decision_id: str,
+        node_id: str,
+        iso_week: str,
+        operator_id: str,
+        description: str,
+        scores_snapshot_json: str,
+        created_at: float,
+    ) -> None:
+        """Insère une décision dans le journal.
+
+        ``scores_snapshot_json`` est le snapshot JSON des scores
+        ``{ud, ur, a, f, h}`` au moment de la décision, fourni déjà sérialisé
+        par l'appelant et stocké tel quel.
+        """
+        with self._lock, self._conn:
+            self._conn.execute(
+                """
+                INSERT INTO decisions (id, node_id, iso_week, operator_id,
+                                       description, scores_snapshot_json, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    decision_id,
+                    node_id,
+                    iso_week,
+                    operator_id,
+                    description,
+                    scores_snapshot_json,
+                    created_at,
+                ),
+            )
+
+    def list_decisions(self, node_id: str, iso_week: str | None = None) -> list[dict[str, Any]]:
+        """Liste les décisions du nœud (filtrées par semaine ISO si fournie).
+
+        Chaque décision est un dict : ``id``, ``node_id``, ``iso_week``,
+        ``operator_id``, ``description``, ``scores`` (snapshot désérialisé) et
+        ``created_at``. Tri par ``created_at`` décroissant (les plus récentes
+        d'abord). Servie par l'index ``idx_decisions_node_week``.
+        """
+        with self._lock:
+            if iso_week is None:
+                rows = self._conn.execute(
+                    """
+                    SELECT * FROM decisions WHERE node_id = ?
+                    ORDER BY created_at DESC, id
+                    """,
+                    (node_id,),
+                ).fetchall()
+            else:
+                rows = self._conn.execute(
+                    """
+                    SELECT * FROM decisions WHERE node_id = ? AND iso_week = ?
+                    ORDER BY created_at DESC, id
+                    """,
+                    (node_id, iso_week),
+                ).fetchall()
+            return [
+                {
+                    "id": row["id"],
+                    "node_id": row["node_id"],
+                    "iso_week": row["iso_week"],
+                    "operator_id": row["operator_id"],
+                    "description": row["description"],
+                    "scores": json.loads(row["scores_snapshot_json"]),
+                    "created_at": row["created_at"],
+                }
+                for row in rows
+            ]

@@ -511,6 +511,48 @@ def _client_v4(conn: sqlite3.Connection) -> None:
         raise
 
 
+def _client_v5(conn: sqlite3.Connection) -> None:
+    """v5 client : revue hebdomadaire par volets et journal des décisions.
+
+    Ajouts : table ``weekly_reviews`` (avancement des volets de la revue d'une
+    semaine ISO d'un nœud — ``volets_json`` de la forme ``{"ahp": 0|1, ...}`` —
+    avec horodatages de démarrage et de complétion) et table ``decisions``
+    (journal des décisions prises en revue, chacune emportant un snapshot des
+    scores ``{ud, ur, a, f, h}`` au moment T), plus l'index
+    ``idx_decisions_node_week``. Idempotent (``IF NOT EXISTS`` partout).
+    """
+    with conn:
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS weekly_reviews (
+                node_id TEXT NOT NULL,
+                iso_week TEXT NOT NULL,
+                volets_json TEXT NOT NULL DEFAULT '{}',
+                started_at REAL,
+                completed_at REAL,
+                PRIMARY KEY (node_id, iso_week)
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS decisions (
+                id TEXT PRIMARY KEY,
+                node_id TEXT NOT NULL,
+                iso_week TEXT NOT NULL,
+                operator_id TEXT NOT NULL,
+                description TEXT NOT NULL,
+                scores_snapshot_json TEXT NOT NULL,
+                created_at REAL NOT NULL
+            )
+            """
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_decisions_node_week ON decisions(node_id, iso_week)"
+        )
+        conn.execute("PRAGMA user_version = 5")
+
+
 # --- Registres de migrations ---------------------------------------------------------
 
 _REGISTRY_MIGRATIONS: list[tuple[int, MigrationFn]] = [
@@ -525,6 +567,7 @@ _CLIENT_MIGRATIONS: list[tuple[int, MigrationFn]] = [
     (2, _client_v2),
     (3, _client_v3),
     (4, _client_v4),
+    (5, _client_v5),
 ]
 
 _MIGRATIONS_BY_KIND: dict[str, list[tuple[int, MigrationFn]]] = {

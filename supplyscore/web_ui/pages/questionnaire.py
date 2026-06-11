@@ -189,6 +189,15 @@ def layout() -> html.Div:
     return html.Div(
         [
             html.H2("Questionnaire hebdomadaire", style={"margin": "6px 0 6px"}),
+            html.P(
+                [
+                    "Mode expert — pour le rituel guidé en 4 volets (AHP pré-rempli, diff KPI, "
+                    "jalons, événements), utilisez la ",
+                    dcc.Link("revue hebdomadaire", href="/hebdo"),
+                    ".",
+                ],
+                style={"fontSize": "13px", "color": COLORS["muted"], "margin": "0 0 10px"},
+            ),
             html.Div(id="q-project-info", style={"marginBottom": "14px"}),
             card(
                 "Évaluation",

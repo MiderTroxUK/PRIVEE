@@ -127,8 +127,8 @@ class TestFreshDatabase:
         conn = sqlite3.connect(str(tmp_path / "client.sqlite"))
         version = apply_migrations(conn, "client")
 
-        assert version == 4
-        assert conn.execute("PRAGMA user_version").fetchone()[0] == 4
+        assert version == 5
+        assert conn.execute("PRAGMA user_version").fetchone()[0] == 5
         assert {"assessments", "kpi_snapshots", "urgency_history"} <= _table_names(conn)
         conn.close()
 

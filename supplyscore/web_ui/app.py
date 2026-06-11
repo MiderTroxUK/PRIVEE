@@ -22,6 +22,7 @@ from supplyscore.web_ui.pages import (
     projects,
     questionnaire,
     simulation,
+    weekly,
 )
 
 
@@ -46,6 +47,7 @@ def route_callback(pathname: str | None):
         "/dashboard": dashboard.layout,
         "/simulation": simulation.layout,
         "/onboarding": onboarding.layout,
+        "/hebdo": weekly.layout,
     }
     builder = routes.get(path)
     if builder is None:
@@ -97,6 +99,14 @@ def create_app(
 
     app.callback(Output("page-content", "children"), Input("url", "pathname"))(route_callback)
     operator.register_callbacks(app)
-    for page in (projects, questionnaire, dashboard, simulation, onboarding, node_detail):
+    for page in (
+        projects,
+        questionnaire,
+        dashboard,
+        simulation,
+        onboarding,
+        node_detail,
+        weekly,
+    ):
         page.register_callbacks(app)
     return app

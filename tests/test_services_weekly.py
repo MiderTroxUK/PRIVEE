@@ -261,9 +261,9 @@ def test_migration_v4_backfill_iso_week(tmp_path: Path) -> None:
     _build_v3_client_with_data(tmp_path / "client.sqlite", [_NOW, ts_s53])
 
     conn = sqlite3.connect(str(tmp_path / "client.sqlite"))
-    assert apply_migrations(conn, "client") == 4
-    assert apply_migrations(conn, "client") == 4  # idempotent
-    assert conn.execute("PRAGMA user_version").fetchone()[0] == 4
+    assert apply_migrations(conn, "client") == 5
+    assert apply_migrations(conn, "client") == 5  # idempotent
+    assert conn.execute("PRAGMA user_version").fetchone()[0] == 5
 
     weeks = [
         row[0]
@@ -292,7 +292,7 @@ def test_client_database_ouvre_base_v3_et_lit_les_semaines(tmp_path: Path) -> No
     _build_v3_client_with_data(tmp_path / "client.sqlite", [_NOW, ts_s53])
 
     with ClientDatabase(tmp_path, "client") as db:
-        assert db.schema_version == 4
+        assert db.schema_version == 5
         assert db.assessment_weeks("n1") == ["2026-S53", "2026-S24"]
         assert db.last_assessment_week("n1") == "2026-S53"
         latest = db.latest_assessment("n1")

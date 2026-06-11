@@ -112,6 +112,7 @@ def navbar(right: html.Div | None = None) -> html.Div:
         ),
         dcc.Link("Projets", href="/", style=link_style),
         dcc.Link("Onboarding", href="/onboarding", style=link_style),
+        dcc.Link("Hebdo", href="/hebdo", style=link_style),
         dcc.Link("Questionnaire", href="/questionnaire", style=link_style),
         dcc.Link("Dashboard", href="/dashboard", style=link_style),
         dcc.Link("Simulation", href="/simulation", style=link_style),
