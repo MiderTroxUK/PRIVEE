@@ -1,10 +1,17 @@
-"""Sauvegarde et restauration manuelles des bases SQLite de supplyscore (Lot 7.2).
+"""Sauvegarde et restauration des bases SQLite de supplyscore (Lots 7.2 et 17.2).
 
 Objectif : protéger les données du serious game. La sauvegarde s'appuie sur
 l'API native :meth:`sqlite3.Connection.backup`, qui produit une copie COHÉRENTE
 même si la base est ouverte ailleurs (serveur web en cours d'exécution), puis
 archive toutes les copies dans un zip horodaté
 ``SupplyScore_AAAAMMJJ_HHMMSS.zip``.
+
+Le Lot 17.2 ajoute la sauvegarde AUTOMATIQUE avec rétention :
+:meth:`ServiceSauvegarde.backup_auto` (API unique pour le démarrage de
+l'application) crée une archive si la plus récente est trop vieille
+(:meth:`~ServiceSauvegarde.backup_si_obsolete`) puis supprime les archives les
+plus anciennes au-delà du quota (:meth:`~ServiceSauvegarde.appliquer_retention`,
+:data:`RETENTION_DEFAUT` archives conservées par défaut).
 
 Garde-fous :
 
@@ -21,6 +28,7 @@ Restauration en ligne de commande : ``python -m supplyscore.tools.restore``.
 
 from __future__ import annotations
 
+import re
 import shutil
 import sqlite3
 import tempfile
@@ -30,6 +38,12 @@ from datetime import datetime
 from pathlib import Path
 
 from supplyscore.core.clock import Clock, SystemClock
+
+#: Nombre d'archives conservées par défaut par la rétention (Lot 17.2).
+RETENTION_DEFAUT: int = 20
+
+#: Motif STRICT du nom d'archive produit par :meth:`ServiceSauvegarde.backup_all`.
+_MOTIF_NOM_ARCHIVE = re.compile(r"SupplyScore_(\d{8}_\d{6})\.zip")
 
 
 class IntegriteError(Exception):
@@ -46,6 +60,32 @@ def _horodatage(ts: float) -> str:
         Libellé « AAAAMMJJ_HHMMSS » en heure locale du poste.
     """
     return datetime.fromtimestamp(ts).strftime("%Y%m%d_%H%M%S")
+
+
+def _ts_depuis_nom(path: Path) -> float | None:
+    """Extrait l'epoch local du nom d'une archive ``SupplyScore_AAAAMMJJ_HHMMSS.zip``.
+
+    Le parse est ROBUSTE : le nom doit correspondre exactement au motif produit
+    par :meth:`ServiceSauvegarde.backup_all` ET porter une date calendaire
+    valide (« SupplyScore_20269999_999999.zip » est rejeté). Les fichiers au
+    nom inattendu retournent ``None`` et sont ignorés PARTOUT par la mécanique
+    automatique du Lot 17.2 : ni pris en compte pour l'âge de la dernière
+    sauvegarde, ni comptés ni supprimés par la rétention.
+
+    Args:
+        path: chemin (ou nom) d'une archive candidate.
+
+    Returns:
+        L'instant d'archivage en secondes epoch (heure locale du poste), ou
+        ``None`` si le nom ne suit pas le format attendu.
+    """
+    match = _MOTIF_NOM_ARCHIVE.fullmatch(path.name)
+    if match is None:
+        return None
+    try:
+        return datetime.strptime(match.group(1), "%Y%m%d_%H%M%S").timestamp()
+    except ValueError:
+        return None
 
 
 def _exiger_integrite(conn: sqlite3.Connection, message: str) -> None:
@@ -143,6 +183,116 @@ class ServiceSauvegarde:
             key=lambda p: p.name,
             reverse=True,
         )
+
+    def backup_si_obsolete(
+        self, max_age_h: float = 24.0, dest_dir: Path | str | None = None
+    ) -> Path | None:
+        """Crée une sauvegarde si la plus récente est trop vieille (ou absente).
+
+        L'âge se lit dans le NOM des archives (``SupplyScore_AAAAMMJJ_HHMMSS.zip``),
+        comparé à l'horloge du service : si la plus récente a STRICTEMENT plus
+        de ``max_age_h`` heures — ou s'il n'existe aucune archive au nom
+        conforme — :meth:`backup_all` est appelé. Les fichiers au nom inattendu
+        sont ignorés (voir :func:`_ts_depuis_nom`).
+
+        Args:
+            max_age_h: âge maximal toléré de la dernière sauvegarde, en heures.
+            dest_dir: répertoire des archives ; ``db_dir/backups`` par défaut.
+
+        Returns:
+            Le chemin du zip créé, ou ``None`` si la dernière sauvegarde est
+            encore assez fraîche.
+
+        Raises:
+            FileNotFoundError: si aucune base ``*.sqlite`` n'existe dans ``db_dir``.
+            IntegriteError: si une base est corrompue — rien n'est alors archivé.
+        """
+        horodatees = self._archives_horodatees(dest_dir)
+        if horodatees:
+            age_h = (self.clock.now() - horodatees[0][1]) / 3600.0
+            if age_h <= max_age_h:
+                return None
+        return self.backup_all(dest_dir)
+
+    def appliquer_retention(
+        self, garder: int = RETENTION_DEFAUT, dest_dir: Path | str | None = None
+    ) -> list[Path]:
+        """Supprime les archives les PLUS ANCIENNES au-delà du quota ``garder``.
+
+        Seules les archives au nom conforme ``SupplyScore_AAAAMMJJ_HHMMSS.zip``
+        participent à la rétention — les fichiers au nom inattendu ne sont ni
+        comptés ni supprimés (voir :func:`_ts_depuis_nom`). L'ancienneté est
+        celle de l'horodatage porté par le nom.
+
+        Args:
+            garder: nombre d'archives à conserver, >= 1.
+            dest_dir: répertoire des archives ; ``db_dir/backups`` par défaut.
+
+        Returns:
+            Les chemins supprimés, du plus récent au plus ancien (liste vide si
+            le quota n'est pas dépassé).
+
+        Raises:
+            ValueError: si ``garder`` est inférieur à 1.
+        """
+        if garder < 1:
+            raise ValueError(f"garder doit être >= 1, reçu {garder}")
+        horodatees = self._archives_horodatees(dest_dir)
+        supprimees = [path for path, _ts in horodatees[garder:]]
+        for path in supprimees:
+            path.unlink()
+        return supprimees
+
+    def backup_auto(
+        self,
+        max_age_h: float = 24.0,
+        garder: int = RETENTION_DEFAUT,
+        dest_dir: Path | str | None = None,
+    ) -> Path | None:
+        """Sauvegarde automatique : crée si obsolète PUIS applique la rétention.
+
+        API UNIQUE destinée au démarrage de l'application (Lot 17.1 y branche
+        l'appel) : enchaîne :meth:`backup_si_obsolete` puis
+        :meth:`appliquer_retention`. ``garder`` est validé AVANT toute
+        création d'archive.
+
+        Args:
+            max_age_h: âge maximal toléré de la dernière sauvegarde, en heures.
+            garder: nombre d'archives à conserver après rétention, >= 1.
+            dest_dir: répertoire des archives ; ``db_dir/backups`` par défaut.
+
+        Returns:
+            Le chemin du zip créé, ou ``None`` si aucune sauvegarde n'était
+            nécessaire.
+
+        Raises:
+            ValueError: si ``garder`` est inférieur à 1 (aucune archive créée).
+            FileNotFoundError: si aucune base ``*.sqlite`` n'existe dans ``db_dir``.
+            IntegriteError: si une base est corrompue — rien n'est alors archivé.
+        """
+        if garder < 1:
+            raise ValueError(f"garder doit être >= 1, reçu {garder}")
+        cree = self.backup_si_obsolete(max_age_h=max_age_h, dest_dir=dest_dir)
+        self.appliquer_retention(garder=garder, dest_dir=dest_dir)
+        return cree
+
+    def _archives_horodatees(self, dest_dir: Path | str | None) -> list[tuple[Path, float]]:
+        """Archives au nom conforme et leur epoch, de la plus récente à la plus ancienne.
+
+        Args:
+            dest_dir: répertoire des archives ; ``db_dir/backups`` par défaut.
+
+        Returns:
+            Couples ``(chemin, epoch)`` triés par horodatage décroissant ; les
+            fichiers au nom inattendu sont exclus (voir :func:`_ts_depuis_nom`).
+        """
+        couples: list[tuple[Path, float]] = []
+        for path in self.list_backups(dest_dir):
+            ts = _ts_depuis_nom(path)
+            if ts is not None:
+                couples.append((path, ts))
+        couples.sort(key=lambda couple: couple[1], reverse=True)
+        return couples
 
     @staticmethod
     def _copier_coherent(source_path: Path, copie_path: Path) -> Path:

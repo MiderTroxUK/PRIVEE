@@ -1416,13 +1416,14 @@ wheels = [
 
 [[package]]
 name = "supplyscore"
-version = "0.1.0"
+version = "2.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "dash" },
     { name = "networkx" },
     { name = "numpy" },
     { name = "openpyxl" },
+    { name = "platformdirs" },
     { name = "plotly" },
     { name = "scipy" },
 ]
@@ -1451,6 +1452,7 @@ requires-dist = [
     { name = "networkx", specifier = ">=3.6,<4" },
     { name = "numpy", specifier = ">=2.4,<3" },
     { name = "openpyxl", specifier = ">=3.1,<4" },
+    { name = "platformdirs", specifier = ">=4.0,<5" },
     { name = "plotly", specifier = ">=6.8,<7" },
     { name = "scipy", specifier = ">=1.13,<2" },
 ]

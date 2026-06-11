@@ -1,6 +1,6 @@
 [project]
 name = "supplyscore"
-version = "0.1.0"
+version = "2.0.0"
 description = "Score d'alignement entre besoin déclaré (Ud) et réalité opérationnelle (Ur) sur une supply chain multi-rangs"
 requires-python = ">=3.12"
 dependencies = [
@@ -10,10 +10,14 @@ dependencies = [
     "plotly>=6.8,<7",
     "openpyxl>=3.1,<4",
     "scipy>=1.13,<2",
+    "platformdirs>=4.0,<5",
 ]
 
 [project.optional-dependencies]
 neo4j = ["neo4j>=5.20"]
+
+[project.scripts]
+supplyscore = "supplyscore.cli:main"
 
 [dependency-groups]
 dev = [

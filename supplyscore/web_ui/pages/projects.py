@@ -12,6 +12,7 @@ from dash import Input, Output, State, dash_table, dcc, html, no_update
 from dash.exceptions import PreventUpdate
 
 from supplyscore.core.clock import iso_week
+from supplyscore.data.backup import RETENTION_DEFAUT
 from supplyscore.domain.models import Project, SupplyNode, TaskStatus
 from supplyscore.mc.lead_time import N_TIRAGES_MAX, N_TIRAGES_MIN
 from supplyscore.services.onboarding import OnboardingService
@@ -406,10 +407,12 @@ def layout() -> html.Div:
                     ),
                     dcc.Download(id="export-download"),
                     html.Div(id="export-msg"),
+                    html.Div(id="backup-list", style={"marginTop": "10px"}),
                 ],
                 subtitle=(
                     "Export complet (scores, évaluations, événements, décisions, audit) pour "
-                    "l'analyse post-jeu ; sauvegarde zip de toutes les bases SQLite."
+                    "l'analyse post-jeu ; sauvegarde zip de toutes les bases SQLite "
+                    f"(rétention : {RETENTION_DEFAUT} archives)."
                 ),
             ),
             card(
@@ -707,18 +710,61 @@ def export_project_callback(n_clicks, project_data):
     return msg, dcc.send_file(str(path))
 
 
-def backup_now_callback(n_clicks):
-    """Sauvegarde toutes les bases SQLite dans un zip horodaté."""
+def backup_now_callback(n_clicks, refresh):
+    """Sauvegarde toutes les bases SQLite dans un zip horodaté puis applique la rétention.
+
+    Le rafraîchissement (store-refresh) est incrémenté pour que la liste
+    « Dernières sauvegardes » (:func:`backup_list_callback`) reflète la
+    nouvelle archive.
+    """
     if not n_clicks:
         raise PreventUpdate
     service = get_service()
     from supplyscore.data.backup import IntegriteError, ServiceSauvegarde
 
+    sauvegarde = ServiceSauvegarde(service.db_dir, clock=service.clock)
     try:
-        path = ServiceSauvegarde(service.db_dir, clock=service.clock).backup_all()
+        path = sauvegarde.backup_all()
     except IntegriteError as exc:
-        return html.Span(str(exc), style=MSG_ALERT_STYLE)
-    return html.Span(f"Sauvegarde créée : {path}", style=MSG_OK_STYLE)
+        return html.Span(str(exc), style=MSG_ALERT_STYLE), no_update
+    sauvegarde.appliquer_retention(garder=RETENTION_DEFAUT)
+    msg = html.Span(
+        f"Sauvegarde créée : {path} (rétention : {RETENTION_DEFAUT})", style=MSG_OK_STYLE
+    )
+    return msg, (refresh or 0) + 1
+
+
+def _taille_lisible(octets: int) -> str:
+    """Formate une taille de fichier en Ko ou Mo (virgule décimale française)."""
+    if octets >= 1024 * 1024:
+        return f"{octets / (1024 * 1024):.1f} Mo".replace(".", ",")
+    return f"{max(1, round(octets / 1024))} Ko"
+
+
+def backup_list_callback(refresh):
+    """Affiche les 3 sauvegardes les plus récentes (nom + taille) de la carte export."""
+    service = get_service()
+    from supplyscore.data.backup import ServiceSauvegarde
+
+    archives = ServiceSauvegarde(service.db_dir, clock=service.clock).list_backups()[:3]
+    if not archives:
+        return html.Span(
+            "Dernières sauvegardes : aucune pour l'instant.",
+            style={"fontSize": "13px", "color": COLORS["muted"]},
+        )
+    items = [
+        html.Li(
+            f"{p.name} ({_taille_lisible(p.stat().st_size)})",
+            style={"fontSize": "13px"},
+        )
+        for p in archives
+    ]
+    return html.Div(
+        [
+            html.Span("Dernières sauvegardes :", style={"fontSize": "13px", "fontWeight": "600"}),
+            html.Ul(items, style={"margin": "4px 0 0", "paddingLeft": "22px"}),
+        ]
+    )
 
 
 def update_view_callback(project_data, refresh):
@@ -874,9 +920,16 @@ def register_callbacks(app) -> None:
 
     app.callback(
         Output("export-msg", "children", allow_duplicate=True),
+        Output("store-refresh", "data", allow_duplicate=True),
         Input("backup-btn", "n_clicks"),
+        State("store-refresh", "data"),
         prevent_initial_call=True,
     )(backup_now_callback)
+
+    app.callback(
+        Output("backup-list", "children"),
+        Input("store-refresh", "data"),
+    )(backup_list_callback)
 
     app.callback(
         Output("proj-dd", "options"),
