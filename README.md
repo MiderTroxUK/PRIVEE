@@ -120,6 +120,37 @@ les points d'extension sont décrits dans [le guide développeur](docs/guide_dev
 La spécification complète (dérivations, bornes, cas de référence chiffrés, décisions de
 modélisation, références) : [docs/modele_mathematique.md](docs/modele_mathematique.md).
 
+## Hypothèses du modèle
+
+Le score repose sur des hypothèses explicites ; les connaître évite de lui faire dire ce
+qu'il ne dit pas.
+
+1. La chaîne est un DAG multi-rangs : pas de cycle (l'éditeur de graphe refuse l'arc),
+   client final au rang 0, et un nœud appartient à un seul projet. Seuls les arcs nominaux
+   portent la propagation ; un arc de secours reste hors calcul tant qu'il n'est pas
+   transformé en arc nominal.
+2. Le déclaratif est humain et hebdomadaire : Ud vient du questionnaire AHP (4 critères,
+   évaluation refusée si CR ≥ 0,10) et un score n'est jamais plus à jour que la dernière
+   saisie. Il n'y a pas de connecteur ERP : la fraîcheur des KPIs est celle de la cadence
+   de saisie.
+3. Les six blocs d'Ur sont traités comme des sources d'urgence quasi indépendantes,
+   agrégées en OU probabiliste pondéré ; un bloc sans donnée est ignoré, jamais imputé.
+   u_time ne regarde que le prochain jalon actif : un jalon lointain qui dérive reste
+   invisible jusqu'à devenir le prochain.
+4. L'asymétrie est un choix de gouvernance : sous-estimer l'urgence réelle (risque caché H,
+   λ₊ = 2.25) pénalise le score plus fort que la sur-déclarer (fausse urgence F,
+   λ₋ = 1.0), selon la fonction de valeur de la Prospect Theory.
+5. Un nœud terminé n'isole pas sa branche : il n'émet plus d'urgence propre mais transmet
+   celle de ses fournisseurs, car le flux physique et les dépendances aval existent encore.
+   Pour isoler un nœud du calcul, il faut couper ses arcs, pas le marquer terminé.
+6. Les calibrations d'événements (a priori bayésiens, N₀ = 26) sont défendables mais ne
+   sont pas des vérités mesurées : le serious game sert précisément à les recaler sur des
+   données constatées, via le rapport de session et la calibration prédiction/réalité.
+
+Les décisions tranchées et la liste des limites assumées : §9 « Décisions de
+modélisation » et §12 « Limites honnêtes du modèle » de
+[docs/modele_mathematique.md](docs/modele_mathematique.md).
+
 ## Documentation
 
 | Document | Public | Contenu |
