@@ -25,24 +25,20 @@ Prérequis : Windows, Python 3.12, [uv](https://docs.astral.sh/uv/).
 $env:UV_LINK_MODE='copy'; uv sync
 
 # lancer avec des données de démonstration (TEST uniquement, générées aléatoirement)
-.venv\Scripts\python.exe run_app.py --demo
+.venv\Scripts\supplyscore.exe --demo --open-browser
 
-# -> http://127.0.0.1:8050
+# -> http://127.0.0.1:8050 (onglet ouvert automatiquement par --open-browser)
 ```
+
+Sans console : un double-clic sur `scripts\SupplyScore.bat` lance le même serveur et ouvre
+le navigateur.
 
 > `UV_LINK_MODE='copy'` est nécessaire si le dossier du projet est synchronisé cloud
 > (les liens physiques y échouent). Pour les **données** en revanche, ne PAS utiliser un
 > dossier synchronisé — voir [exploitation.md](exploitation.md#1-emplacement-des-données).
 
-Options de `run_app.py` :
-
-| Option | Effet | Défaut |
-|---|---|---|
-| `--db-dir` | répertoire des bases SQLite | `data_store` |
-| `--demo` | si la base est vide, génère un projet de TEST aléatoire (n_ranks=3, seed=42) | désactivé |
-| `--port` | port d'écoute HTTP | `8050` |
-| `--debug` | mode debug Dash (rechargement à chaud) | désactivé |
-| `--log-level` | niveau de journalisation (`DEBUG`, `INFO`, `WARNING`…) | `INFO` |
+Les options de la commande `supplyscore` (port, répertoire des données, journaux,
+sauvegarde au démarrage) sont décrites dans [la référence CLI](reference_cli.md).
 
 Les données `--demo` sont **simulées, pour test et démonstration uniquement** — jamais pour
 des décisions réelles.
@@ -190,6 +186,111 @@ Onze pages dans la barre de navigation, plus deux pages par nœud (routes `/node
 | **Admin** (`/admin`) | Vue « données brutes » des tables SQLite, en lecture seule par défaut ; édition cellule par cellule après déverrouillage explicite, revalidée et auditée. | **Zone avancée.** Ne déverrouiller l'édition qu'en connaissance de cause ; les tables d'historique (`audit_log`, `urgency_history`, `kpi_snapshots`, `weekly_reviews`, `decisions`) sont inéditables par construction — ne pas essayer de les « corriger ». |
 | **Fiche nœud** (`/node/<id>`) | Vue 360° d'un nœud : identité, cahier des charges versionné, jalons, KPIs, évaluations, événements, journal d'audit ; chaque carte est rééditable avec les validations du wizard. | Ne pas modifier plusieurs cartes « en parallèle » : une seule carte en édition à la fois. |
 | **Explication** (`/node/<id>/explication`) | « Pourquoi ce score ? » : décomposition exacte de Ud, d'Ur (par bloc, part locale vs propagée) et de l'équation d'adéquation, avec liens vers l'historique d'audit. | Page en lecture seule — c'est l'instrument de défense du score, pas un endroit où le changer. |
+
+### En images
+
+Les captures ci-dessous proviennent du scénario de démonstration AERIS (données simulées).
+Elles montrent chaque page dans l'ordre de la table.
+
+#### Projets
+
+![Page Projets](presentation/screenshots/01-projets.png)
+
+Le point d'entrée de toute session : sélectionner ou créer un projet, puis régler la carte
+« Horloge du projet » (réel ou jeu) avant la première saisie. Le geste typique de
+l'animateur entre deux tours : « Avancer d'une semaine » sur cette même carte.
+
+#### Onboarding
+
+![Page Onboarding](presentation/screenshots/02-onboarding.png)
+
+Le wizard en 4 sections qui crée un nœud complet. Regarder la carte « Brouillons en
+cours » avant de recommencer une saisie : un brouillon persiste en base et se reprend là
+où il a été laissé.
+
+#### Hebdo
+
+![Page Hebdo](presentation/screenshots/03-hebdo.png)
+
+La page des joueurs : choisir son nœud, dérouler les 4 volets (AHP, KPIs, jalons,
+événements et décision), clôturer la revue. Le bouton « Confirmer à l'identique » du
+volet 1 expédie une semaine sans changement en un clic.
+
+#### Questionnaire
+
+![Page Questionnaire](presentation/screenshots/04-questionnaire.png)
+
+Le mode expert : évaluation AHP et saisie KPI directes, avec calcul de Ud en direct.
+Surveiller l'indicateur de cohérence : une évaluation avec CR ≥ 0,10 est refusée.
+
+#### Dashboard
+
+![Page Dashboard](presentation/screenshots/05-dashboard.png)
+
+La vue d'animateur : cartes de synthèse, DAG coloré par adéquation, priorités
+PROMETHEE II, tableau Ud/Ur/A/F/H. Premier regard utile : la colonne « Hebdo », qui dit
+qui n'a pas encore joué cette semaine.
+
+#### Simulation
+
+![Page Simulation](presentation/screenshots/06-simulation.png)
+
+Le bac à sable what-if : choquer un nœud, composer un scénario multi-chocs, lancer
+l'analyse de criticité. Rien n'est persisté, sauf par la carte « Appliquer réellement »,
+à manier en connaissance de cause.
+
+#### Édition
+
+![Page Édition](presentation/screenshots/07-edition.png)
+
+Le tableau des KPIs courants, filtrable par projet, bloc ou tags. Corriger une cellule
+recalcule les scores ; une valeur hors bornes est rejetée et la cellule restaurée.
+
+#### Pondération
+
+![Page Pondération](presentation/screenshots/08-ponderation.png)
+
+Le questionnaire FBWM qui pondère les blocs KPI d'Ur pour le projet et la semaine
+courante. Regarder l'aperçu en direct des poids avant d'enregistrer : il montre l'effet de
+chaque comparaison.
+
+#### Graphe
+
+![Page Graphe](presentation/screenshots/09-graphe.png)
+
+L'éditeur de structure : arcs avec leurs coefficients, nature nominal ou backup, tags et
+statuts. Tenter un arc qui créerait un cycle se solde par un refus avant toute écriture.
+
+#### Rapport
+
+![Page Rapport](presentation/screenshots/10-rapport.png)
+
+Génère le rapport de session HTML autonome : évolution des scores, chronologie des
+événements et décisions, calibration prédiction/réalité. Choisir l'horizon de calibration
+(1 à 12 semaines) avant de générer.
+
+#### Admin
+
+![Page Admin](presentation/screenshots/11-admin.png)
+
+Les tables SQLite en lecture seule, pour vérifier une donnée brute. L'édition cellule par
+cellule exige un déverrouillage explicite ; les tables d'historique restent inéditables.
+
+#### Fiche nœud
+
+![Page Fiche nœud](presentation/screenshots/12-fiche-noeud.png)
+
+La vue 360° d'un nœud : identité, cahier des charges versionné, jalons, KPIs, événements,
+journal d'audit. Chaque carte se réédite individuellement, une seule à la fois, avec les
+validations du wizard.
+
+#### Explication
+
+![Page Explication](presentation/screenshots/13-explication.png)
+
+La réponse à « pourquoi ce score ? » : décomposition de Ud critère par critère, d'Ur bloc
+par bloc, équation d'adéquation instanciée. C'est la page à projeter quand un joueur
+conteste son A.
 
 ---
 

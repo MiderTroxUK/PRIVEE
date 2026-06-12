@@ -26,6 +26,9 @@
 11. [Références](#11-références)
 12. [Limites honnêtes du modèle](#12-limites-honnêtes-du-modèle)
 
+La correspondance formule vers code (fichier, classe, fonction pour chaque équation) se
+trouve dans [le guide développeur](guide_developpeur.md), sections 3 à 5.
+
 ---
 
 ## 1. Vue d'ensemble du pipeline

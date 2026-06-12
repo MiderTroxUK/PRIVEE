@@ -6,6 +6,22 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le
 projet adhère au [versionnage sémantique](https://semver.org/lang/fr/) — la
 version du paquet suit les jalons du PLAN (v2.0.0 = fin du Jalon 3).
 
+## [Non publié]
+
+### Documentation
+
+- Réécriture du README : badges figés sur la v2.0.0, démarrage rapide via
+  `scripts/Installer.ps1`, table des 13 pages avec leurs routes, table
+  d'orientation des documents par public.
+- Création de `docs/reference_cli.md` (points d'entrée exécutables),
+  `docs/reference_donnees.md` (exports, schéma SQLite, audit),
+  `docs/guide_developpeur.md` (architecture et points d'extension) et
+  `docs/README.md` (index de la documentation).
+- Manuel utilisateur illustré page par page et guide d'exploitation retouchés.
+- Nouveau test de cohérence documentation/code (`tests/test_docs_coherence.py`) :
+  options CLI, feuilles d'export, versions de schéma, nombre de pages, liens
+  relatifs, version du paquet.
+
 ## [2.0.0] — 2026-06-11
 
 Refonte complète en trois jalons (phases E0 à E17 du PLAN).
