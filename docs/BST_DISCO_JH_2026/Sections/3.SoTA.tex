@@ -1,0 +1,410 @@
+%% ═══════════════════════════════════════════════════════════════════════════
+\subsection{Introduction: Key Definitions}
+%% ═══════════════════════════════════════════════════════════════════════════
+
+\textbf{Urgency} is defined here as the degree to which a supply chain task requires prompt action to avoid a material deterioration in operational performance. It differs from \emph{importance}, which reflects strategic value, and from \emph{priority}, which reflects the current execution order. In this work, urgency is treated as a multi-dimensional operational quantity, aggregated from heterogeneous KPI evidence rather than from a single deadline-driven signal~\autocite{cheng2025survey,zhu2018mere}.
+
+\textbf{Real-time scheduling} refers to the class of algorithms that assign execution order to tasks given temporal constraints (deadlines, inter-task dependencies), resource constraints (vehicle capacity, supplier availability), and optimality criteria (makespan, weighted tardiness)~\autocite{pinedo2012scheduling}. This literature is drawn on here only as historical grounding for deadline-sensitive value functions; the present work does not deliver a scheduling algorithm.
+
+\textbf{Digital twin} is a synchronized digital representation of a physical system that supports monitoring, simulation, and decision-making using real-time and historical data~\autocite{ivanov2020digital}. In supply chains, digital twins are used to improve visibility, disruption assessment, and replanning under changing conditions~\autocite{ivanov2020digital,ding2023realtime,hrusovsky2021realtime}.
+
+\textbf{Multi-criteria decision-making (\gls{mcdm})} encompasses methods that combine multiple, potentially conflicting performance dimensions into a decision~\autocite{saaty1980analytic,brans1986promethee}. In the present work, the main dimensions considered for node prioritisation are time pressure, capacity saturation, operational performance, failure risk, cost drift, and carbon overshoot.
+
+\textbf{Physical Internet} (\gls{pi}) is the paradigm of open, mutualized logistics networks that route shipments through shared infrastructure using standardised modular containers~\autocite{montreuil2011toward}. In such shared logistics environments, inaccurate urgency assessment may have effects beyond a single actor by influencing the allocation of mutualized capacity. This makes urgency evaluation particularly important in Physical Internet settings~\autocite{montreuil2011toward,leung2022digital}.
+
+\textbf{Serious game} is a simulation environment designed to train decision-makers through realistic scenarios with immediate feedback and scoring~\autocite{sterman1989modeling,prensky2001digital}. In this project, DISCO functions both as a serious game and as a digital twin: users interact with simulated supply chain decisions, while the underlying digital model evaluates operational consequences on a weekly cadence.
+
+
+%% ═══════════════════════════════════════════════════════════════════════════
+\subsection{Literature Review}
+%% ═══════════════════════════════════════════════════════════════════════════
+
+The literature relevant to this framework is broad but fragmented. No retrieved work
+in the project searches combines, within a single supply-chain decision
+architecture, five elements at once: a multi-block operational urgency function, a
+structured client-side urgency input, an adequacy layer comparing stated and
+operational urgency, network propagation of that urgency across a multi-tier DAG, and
+empirical validation of the adequacy signal against recorded
+outcomes~\autocite{sawik2013integrated,sawik2014joint,sawik2016integrated,cohen2021assigning,hosseini2020bayesian}.
+
+The review is organised by argumentative function. Two foundational streams establish
+\emph{why} the problem exists. Two enabling streams provide the computational toolkit.
+One section covers the closest antecedents. Analogical literature provides rhetorical
+grounding but is labelled explicitly as non-foundational throughout.
+
+Table~\ref{tab:stream_synthesis} summarises the seven streams and their relationship to
+the thesis.
+
+\begin{table}[H]
+\centering
+\caption{Literature stream synthesis: contribution and gap relative to this thesis.}
+\label{tab:stream_synthesis}
+\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{3.5cm} >{\raggedright\arraybackslash}p{2.2cm} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\toprule
+\textbf{Stream} & \textbf{Role} & \textbf{Main contribution} & \textbf{Gap relative to this thesis} \\
+\midrule
+Risk propagation and deadline-sensitive value & Foundation &
+  Monotone time-value functions; ripple-effect propagation on networks &
+  No declared-vs-operational comparison \\[3pt]
+Cognitive bias in urgency & Foundation &
+  Documents urgency mis-declaration patterns &
+  No operational correction mechanism \\[3pt]
+Digital twins of network risk and MCDM supplier scheduling & Closest antecedent &
+  Multi-criteria supplier scoring and network disruption monitoring &
+  No client-declared urgency or adequacy layer \\[3pt]
+Bayesian and probabilistic risk updating & Enabling method &
+  Conjugate/probabilistic belief revision under new evidence &
+  Not used to compare declared vs.\ computed urgency \\[3pt]
+Digital twin operations & Enabling method &
+  Real-time replanning and disruption response &
+  No stated-vs-operational urgency module found \\[3pt]
+MCDM methods & Enabling method &
+  Criteria weighting and outranking &
+  Rank reversal risk; nominal weights $\neq$ effective weights \\[3pt]
+Medical triage / PI / CO\textsubscript{2} & Analogy / Context &
+  Asymmetric urgency vocabulary; network context &
+  Analogical only (no formal transfer) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+%% ───────────────────────────────────────────────────────────────────────
+\subsubsection{Stream~1: Risk Propagation and Deadline-Sensitive Value}
+\label{subsec:temporal}
+%% ───────────────────────────────────────────────────────────────────────
+
+\noindent\textit{Role: Foundation. \\ Why: It demonstrates that operational value can be formulated as a time-dependent and network-dependent quantity, providing the primary motivation for treating urgency as a variable that is both time-varying and propagated across a multi-tier network rather than computed at a single node in isolation.}
+
+\medskip
+
+Within real-time systems, deadline-sensitive scheduling theory models task value as a function of completion or response time, a paradigm known as time-value or utility-accrual scheduling~\autocite{cheng1996due,cheng2025survey}. Cheng and M\"uhlethaler~\autocite{cheng1996due} show that task utility is typically constant up to a deadline and then non-increasing with delay; the utility-accrual survey by Chen and Bella~\autocite{cheng2025survey} confirms that deadline-sensitive literature represents task value as a function of response time with bounded, structured degradation after critical thresholds. This establishes the historical precedent for treating urgency as time-varying, but it stops at a single task in isolation.
+
+A second, complementary line of evidence comes from network risk-propagation research. Ivanov and colleagues formalise the ripple effect, whereby a local disruption at one supplier cascades through downstream tiers and amplifies as it travels along the network~\autocite{ivanov2020digital,ivanov2019viable,li2020exploring}. Probabilistic risk-inference methods for supply chain systems~\autocite{Zhe20} further show that aggregating heterogeneous risk indicators into a single node-level score is itself an open modelling question, distinct from how that score should then be propagated.
+
+Table~\ref{tab:urgency_models} compares four candidate aggregation and growth models found across these two lines of literature.
+
+\begin{table}[H]
+\centering
+\caption{Comparative urgency aggregation and growth models and their properties.}
+\label{tab:urgency_models}
+\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{2.6cm} >{\raggedright\arraybackslash}p{2.6cm} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}p{2.4cm}}
+\toprule
+\textbf{Model} & \textbf{Formula} & \textbf{Key property} & \textbf{Use case} \\
+\midrule
+Linear (time) & $U_0 + \lambda t$ & Constant pressure & Administrative tasks \\[3pt]
+Hyperbolic (time) & $K / (t_c - t)$, bounded via $\tanh$ & Finite-time singularity, discounting & Synthetic scenario generation \\[3pt]
+Weighted average (blocks) & $\sum_m \omega_m u_m$ & Fully compensatory: one weak block hidden by strong ones & Simple composite indices \\[3pt]
+Noisy-OR (blocks) & $1-\prod_m(1-u_m)^{\omega_m}$ & Non-compensatory: one saturated block dominates & Multi-block operational risk \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+This thesis adopts the noisy-OR aggregation over the fully compensatory weighted average, on the grounds that a single catastrophic KPI block (for instance a complete capacity failure) should not be masked by acceptable scores on the remaining blocks, a property established in the probabilistic-inference literature on combining independent causal evidence~\autocite{pearl1988probabilistic}. The bounded hyperbolic discounting curve is retained separately, purely as an auxiliary tool for generating realistic synthetic urgency trajectories used in testing and calibration; a structurally similar acceleration appears in Log-Periodic Power Law (\gls{lppl}) models of financial crash precursors~\autocite{johansen2001finite,johansen2000crashes}, used here strictly as an analogical reference for that auxiliary generator, since empirical analyses by Feigenbaum~\autocite{feigenbaum2001statistical} and Br{\'e}e et al.~\autocite{bree2010prediction} show that LPPL-family models are highly parameter-sensitive and unsuited to direct use as a production risk model.
+
+\medskip
+\noindent\textbf{Summary of Stream~1:}
+\begin{itemize}
+    \item \textbf{Established literature:} Deadline-sensitive scheduling supports time-dependent task valuation~\autocite{cheng2025survey}; ripple-effect research supports network propagation of local disruptions~\autocite{ivanov2020digital,li2020exploring}.
+    \item \textbf{Research gap:} Neither stream specifies how to aggregate heterogeneous, block-structured operational risk indicators at a single node before propagating them.
+    \item \textbf{Working assumption:} A non-compensatory, noisy-OR aggregation of KPI blocks is proposed as the local urgency model, to be propagated with a leaky product rule across the network.
+    \item \textbf{Systemic gap:} While these streams model network propagation and deadline sensitivity, neither addresses user-declared urgency or the mismatch between stated and operational urgency.
+\end{itemize}
+%% ───────────────────────────────────────────────────────────────────────
+\subsubsection{Stream~2: Cognitive Bias in Urgency Declaration}
+\label{subsec:biases}
+%% ───────────────────────────────────────────────────────────────────────
+
+\noindent\textit{Role: Foundation. \\ Why: It establishes that client-declared urgency is
+systematically biased and cannot be taken at face value as a planning input.}
+
+\medskip
+
+Behavioural operations research suggests that human decision-makers systematically
+misrepresent urgency, a finding with direct implications for any system that relies on
+operator-declared urgency as an input.
+
+Two convergent lines show this from different angles. Zhu, Yang and
+Hsee~\autocite{zhu2018mere} report the Mere-Urgency Effect in five controlled experiments:
+participants consistently over-prioritised imminent low-value tasks over distant
+high-value tasks, and the bias persisted even when participants were informed of its
+existence. Steel~\autocite{steel2006integrating} provides a complementary formal model
+through Temporal Motivational Theory (\gls{tmt}):
+\begin{equation}
+    V(t) = \frac{U \cdot E}{1 + \Gamma \cdot D(t)^k},
+    \label{eq:tmt_val}
+\end{equation}
+where $U$ is objective utility, $E$ is the expectancy of success, $D(t)$ is the delay
+to deadline, and $\Gamma$, $k$ are individual discounting parameters. As $D(t) \to 0$,
+$V(t) \to U \cdot E$, so immediacy becomes more salient as the deadline approaches.
+Near-term tasks can therefore attract disproportionate attention even when their broader
+objective value is lower~\autocite{steel2006integrating}, which helps explain why
+imminent tasks may be over-declared as urgent. The operational roles of the parameters in this formulation are structured in Table~\ref{tab:tmt_vars}.
+
+\begin{table}[H]
+\centering
+\caption{Temporal Motivational Theory (TMT) parameters and domains.}
+\label{tab:tmt_vars}
+\begin{tabularx}{\linewidth}{llX}
+\toprule
+\textbf{Symbol} & \textbf{Concept} & \textbf{Operational Role} \\
+\midrule
+$V(t)$ & Temporal motivational value & Dynamic task salience \\
+$U$ & Objective utility & Task strategic importance \\
+$E$ & Expectancy of success & Probability of task completion \\
+$D(t)$ & Delay to deadline & Remaining safe execution window \\
+$\Gamma$ & Impulsiveness parameter & Operator sensitivity to delay \\
+$k$ & Sensitivity scaling parameter & Non-linear scaling of delay discounting \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+These laboratory findings are supported by evidence from operational settings.
+Rusou, Amar and Ayal~\autocite{rusou2020psychology} show that operators under workload
+preferentially complete small, easy tasks, the operational analogue of under-triage for
+large-scope supply chain activities. DiwasSingh et al.~\autocite{diwa2020task} confirm
+in a large field study that completing easy tasks first significantly hurts overall
+performance. Hospital admission control under occupancy uncertainty~\autocite{kim2020admission}
+produces over- and under-triage patterns analogous to those in logistics operator
+decisions under uncertain lead times. The magnitude of these biases in industrial supply chain contexts remains a subject of calibration. To mitigate these time-perception and workload biases, human-centered decision support systems (such as Rosenthal and Hiatt~\autocite{rosenthal2020human}) use visual feedback techniques to show the mismatch between human plans and system temporal constraints, helping users calibrate their schedules.
+
+This study treats declared urgency as a noisy signal and computes a model-based
+correction. The correction mechanism, and its empirical predictive validity, is detailed in Section~\ref{sec:Operations}.
+
+\medskip
+\noindent\textbf{Summary.} \\
+\textit{Known}: Urgency over-declaration for near-deadline tasks is documented in
+controlled settings~\autocite{zhu2018mere} and in operational
+settings~\autocite{diwa2020task,rusou2020psychology}. \\
+\textit{Unknown}: Bias magnitude in industrial supply chain contexts. \\
+\textit{Assumed}: Asymmetric penalty $\lambda_{\text{under}} > \lambda_{\text{over}}$
+is the appropriate correction structure. \\
+\textit{Open gap}: Behavioural research diagnoses the problem. It does not prescribe a
+real-time operational correction.
+
+%% ───────────────────────────────────────────────────────────────────────
+\subsubsection{Closest Antecedents: Digital Twins of Network Risk and MCDM Supplier Scoring}
+\label{subsec:antecedents}
+%% ───────────────────────────────────────────────────────────────────────
+
+\noindent\textit{Role: Closest antecedents. \\ Why: These are the works most structurally
+similar to the thesis. Identifying their gap precisely isolates what this work adds.}
+
+\medskip
+
+The works most structurally similar to this thesis combine multi-criteria supplier
+scoring with disruption-aware network monitoring.
+Sawik~\autocite{sawik2013integrated,sawik2014joint,sawik2016integrated} develops
+mixed-integer programming models for resilient supplier order assignment integrating
+cost, service level, and disruption risk. Cohen and Kaspi~\autocite{cohen2021assigning}
+and Afrasiabi et al.~\autocite{afrasiabi2022extended} extend this to \gls{mcdm}
+supplier prioritisation under disruption, combining criteria weighting with allocation
+optimisation. Chakrabortty et al.~\autocite{chakrabortty2020efficient} confirm that
+rule-based heuristics remain competitive against exact methods in dynamic
+industrial environments. These works are cited here for the closeness of their subject
+matter (multi-criteria, disruption-aware supply chain decisions), not because this
+thesis reuses their optimisation machinery, which addresses allocation and sequencing
+rather than urgency measurement.
+
+Taken together, this stream models disruption-aware supplier evaluation with
+multi-criteria weighting. Two gaps distinguish it from the present work. First, none
+introduces a network-propagated urgency signal computed independently at every node
+and combined across tiers; risk is typically evaluated once, at the point of decision.
+Second, none compares a client-stated urgency against a model-derived urgency: the
+client-declared signal, where it exists, is used directly, without validation against
+live operational proxies.
+
+\medskip
+\noindent\textbf{Narrow gap statement.}
+In the retrieved literature, no work simultaneously (i)~aggregates heterogeneous
+operational risk into a multi-block urgency function propagated across a DAG,
+(ii)~captures client-declared urgency as a structured, consistency-gated input, and
+(iii)~feeds the mismatch between (i) and (ii) into an empirically calibrated
+adequacy score. Each stream addresses at most two of these three requirements.
+
+\medskip
+\noindent\textbf{Commercial positioning.} The same gap was checked informally against commercial multi-tier supply chain risk-monitoring platforms (for example Everstream Analytics, Resilinc, and Interos), which map supplier networks to several tiers and continuously score them against pre-defined disruption scenarios. This is an informal product review rather than an academic source, and is stated here as the project's own positioning assessment: to the team's knowledge, none of these platforms compares a client-declared urgency signal against their own computed risk score, which is the specific mismatch this framework targets.
+
+%% ───────────────────────────────────────────────────────────────────────
+\subsubsection{Enabling Method: Bayesian and Probabilistic Risk Updating}
+\label{subsec:bayesian}
+%% ───────────────────────────────────────────────────────────────────────
+
+\noindent\textit{Role: Enabling method. \\ Why: Revising a failure probability from a
+small number of new observations is a component of operational risk state. Bayesian
+conjugate updating is the borrowed tool.}
+
+\medskip
+
+Bayesian methods have emerged as a well-supported approach for revising risk estimates
+from new evidence in supply chain research~\autocite{pearl1988probabilistic,koller2009probabilistic}. Rather than a full Bayesian network with an explicit
+conditional-probability-table structure, this study draws on the narrower and more
+tractable case of Beta-Bernoulli conjugate updating: a failure probability
+$p$ is treated as a Beta-distributed belief with an equivalent prior sample size
+$n_0$, revised from a small number of newly observed equivalent trials
+$(k, n)$ each time a calibrated operational event is declared. This is the
+standard conjugate-prior construction for binomial-outcome belief
+revision~\autocite{pearl1988probabilistic,koller2009probabilistic}.
+
+Three convergent findings from the retrieved Bayesian supply-chain literature support
+this choice of tool. Hosseini and Ivanov~\autocite{hosseini2020bayesian} provide the most
+comprehensive survey (259~citations) of Bayesian methods applied to supply chain risk and
+resilience, finding that probabilistic belief-revision methods are often preferred to
+simple deterministic scoring when new, sparse evidence must update an existing risk
+estimate. Huang et al.~\autocite{huang2020bayesian} and Deng, Zhang and
+Wei~\autocite{deng2020prediction} develop Bayesian models for disruption and delay
+probability estimation that serve as a methodological precedent for revising a KPI
+block's failure probability from a declared event. Lockamy~\autocite{lockamy2011bayesian} and
+Qazi et al.~\autocite{qazi2017dynamic} further support Bayesian revision as a practical
+tool for dynamic supply chain risk quantification under sparse, event-driven evidence,
+consistent with the small-sample setting of a weekly-cadence digital twin. Plain
+frequency counts, by contrast, are unstable when only a handful of events are declared
+per node per project, which motivates the conjugate-prior formulation adopted here
+over a raw frequentist estimate~\autocite{zheng2020risk}.
+
+The specific conjugate-update parameters used for each event family are developed in
+Section~\ref{sec:Operations}.
+
+\medskip
+\noindent\textbf{Summary.} \\
+\textit{Known}: Bayesian conjugate updating is an established, low-data-regime tool for
+revising failure probabilities in logistics contexts. \\
+\textit{Unknown}: The optimal prior sample size for DISCO's specific event taxonomy. \\
+\textit{Assumed}: A shared, moderately informative prior (equivalent to roughly
+six months of weekly observations) is sufficient for initial calibration. \\
+\textit{Open gap}: Bayesian belief revision quantifies disruption exposure but does not,
+by itself, compare it against client-declared urgency.
+
+%% ───────────────────────────────────────────────────────────────────────
+\subsubsection{Enabling Method: Digital Twin and Real-Time Decision Support}
+\label{subsec:dt}
+%% ───────────────────────────────────────────────────────────────────────
+
+\noindent\textit{Role: Enabling method and primary gap source. \\ Why: DT systems are the
+architectural family closest to DISCO; this review establishes both what they already do
+and the specific gap this thesis addresses.}
+
+\medskip
+
+The digital twin concept was formalised by Grieves~\autocite{grieves2014digital} as a
+virtualised representation of a physical process. Tao et al.~\autocite{tao2018digital}
+extended the concept to manufacturing; Fuller et al.~\autocite{fuller2020digital}
+surveyed the enabling technologies underpinning modern deployments. In supply chain
+management, Ivanov et al.~\autocite{ivanov2021digital} define the \gls{sc} \gls{dt} as
+integrating simulation (what-if analysis), optimisation (decision support), and machine
+learning (pattern detection). Ivanov and Dolgui~\autocite{ivanov2020digital} address the
+use of digital \gls{sc} twins for disruption risk and resilience management in the
+Industry~4.0 era. Wang, Wang and Liu~\autocite{wang2020digital} demonstrate
+\gls{dt}-driven planning in a manufacturing context analogous to DISCO's satellite
+component network. More recently, in the context of Industry 5.0, these systems have evolved towards Human-in-the-Loop (HITL) Cognitive Digital Twins (CDTs) where semantic models and reasoning methods are used to capture human feedback and synchronize mental models with simulated physical operations~\autocite{niloofar2023}.
+
+Real-time freight planning work demonstrates that operational urgency proxies (slack, lateness risk, and shortage exposure) are present within these
+systems~\autocite{hrusovsky2021realtime,perez2022digital}. Model-predictive control
+approaches for vehicle routing~\autocite{karam2022realtime} and digital-twin disruption
+response~\autocite{ding2023realtime,leung2022digital,zhu2025industry5} confirm the
+state of the art in live operational replanning.
+
+Taken together, the digital-twin literature supports simulation, optimisation, and
+disruption-aware decision support. In the retrieved literature, however, no system surfaces a standard module that:
+\begin{itemize}
+    \item captures a client-declared urgency signal as a structured input,
+    \item computes a model-based operational urgency from the live system state, and
+    \item measures their mismatch as an active, network-propagated indicator.
+\end{itemize}
+This three-layer architecture appears to be an open slot in digital \gls{sc} operations (stated as an observation from the retrieved literature, not as a claim about the totality of published work). Whether filling this gap improves the identification of at-risk nodes is the central empirical hypothesis
+of this thesis (Lock~3, Section~\ref{sec:locks}).
+
+\subsubsection{Enabling Methods: Multi-Criteria Decision Methods}
+\label{subsec:mcdm}
+%% ───────────────────────────────────────────────────────────────────────
+
+\noindent\textit{Role: Enabling methods. \\ Why: These multi-criteria decision-making (\gls{mcdm}) tools provide the computational foundation for criteria weighting, outranking, and network prioritisation.}
+
+\medskip
+
+This research integrates and builds upon two distinct methodological domains within multi-criteria decision-making: pairwise comparison methods for eliciting weights, and outranking aggregation for turning those weights into a defensible ranking of nodes.
+
+\paragraph{Pairwise Elicitation and Pairwise Comparison Methods.}
+To construct a structured representation of operator-declared urgency ($U_d$), criteria weights must be systematically elicited. The Analytic Hierarchy Process (\gls{ahp})~\autocite{saaty1980analytic} derives criteria weights as the principal eigenvector of a pairwise comparison matrix, validating logical consistency via the Consistency Ratio ($\gls{cr} \le 0.10$). While widely applied in logistics, AHP suffers from rank reversal, where the introduction of a new alternative alters the relative ranking of existing ones, and is sensitive to cognitive noise during expert elicitation~\autocite{dyer1990,triantaphyllou2024}.
+
+To minimize operator cognitive load and improve consistency, the Best-Worst Method (\gls{bwm})~\autocite{rezaei2015best} reduces the number of required pairwise comparisons from $n(n-1)/2$ to $2(n-1)$ by anchoring comparisons around chosen "best" and "worst" criteria. This is further extended by the Fuzzy Best-Worst Method (\gls{fbwm})~\autocite{guo2017fuzzy,Yuc18,amiri2020new}, which uses Triangular Fuzzy Numbers (\glspl{tfn}) to absorb human judgment uncertainty. In this study, consistent FBWM weight vectors~\autocite{liang2020} serve as an alternative elicitation gate to crisp AHP, and both feed the same downstream propagation and adequacy machinery.
+
+\paragraph{Outranking Aggregation, Network Criticality, and Composite Indicator Critique.}
+For prioritising which nodes require attention, direct weighted averages risk full compensatory aggregation, where an excellent score on one criterion (e.g., cost) completely masks a critical failure on another (e.g., capacity). To prevent this, outranking methods such as PROMETHEE~II~\autocite{brans1986promethee,brans2005promethee} establish pairwise preference flows ($\phi^+$ and $\phi^-$), allowing a non-compensatory ordering of alternatives. A comprehensive survey of PROMETHEE applications~\autocite{behzadian2010promethee} confirms its suitability for supplier and node evaluation in industrial contexts. In this work, PROMETHEE~II ranks active network nodes directly on the same weighted KPI blocks that feed the local urgency aggregation, giving a network-wide outranking view that complements the per-node adequacy score. Systematic what-if shock simulation, in which a node's local risk is forced to saturation and the resulting propagated delta is measured across the network, provides a second, independent criticality signal that is combined with the outranking flow to identify structural bottlenecks.
+
+However, constructing any composite indicator from weighted criteria introduces methodological challenges. Composite-index literature warns that nominal weights assigned to criteria often diverge from their effective importance due to correlation, normalization, and aggregation dynamics~\autocite{greco2018,becker2017,borgonovo2021global}. Furthermore, the choice of normalization method is non-neutral and can lead to rank reversal~\autocite{triantaphyllou2000multi}. To keep the aggregation weights interpretable and defensible, this study exposes per-block contributions on the operator explainability page rather than only the aggregate score, while validating the risk parameters under uncertainty~\autocite{sawik2020risk}.
+
+\subsubsection{Analogical and Contextual Literature}
+\label{subsec:triage}
+%% ───────────────────────────────────────────────────────────────────────
+
+\noindent\textit{Role: Analogies and context. \\ Why: These bodies of literature provide conceptual analogies (medical triage), network contexts (Physical Internet), or regulatory frameworks (carbon accounting) that support the design of the adequacy variables.}
+
+\medskip
+
+While the core scoring and network-propagation methods are mathematically derived, their operational structure draws grounding and context from three non-foundational literature streams.
+
+\paragraph{Medical Triage as a Conceptual Analogy.}
+Medical triage provides a rich conceptual analogy for prioritizing tasks under severe capacity constraints and cognitive pressure. Standard protocols such as the Manchester Triage System (\gls{mts})~\autocite{mackway2013emergency} categorize patients into five urgency levels using flowcharts, whereas the Emergency Severity Index (ESI) integrates predicted resource consumption. Comparative clinical studies~\autocite{kuligowski2025comparative} show significant classification discrepancies (weighted $\kappa = 0.51$) between these systems, highlighting that even trained professionals struggle with consistent urgency assessment.
+
+In a supply chain context, this triage process maps directly to node prioritisation. The design of the cognitive adequacy score $A(t)$ is motivated by the clinical principle of asymmetric risk: under-triage (under-declaring urgency, leading to untreated critical conditions) is far more dangerous than over-triage (over-declaring urgency, leading to resource congestion)~\autocite{kim2020admission}. Consequently, the adequacy score enforces an asymmetric penalty ($\lambda_{\text{under}} > \lambda_{\text{over}}$) to protect the physical supply chain from hidden stockout ruptures. Table~\ref{tab:triage_transfer} maps these triage concepts to their logistics equivalents.
+
+\begin{table}[H]
+\centering
+\caption{Heuristic mapping of medical triage concepts to DISCO logistics prioritisation.}
+\label{tab:triage_transfer}
+\begin{tabularx}{\linewidth}{lX}
+\toprule
+\textbf{Medical concept} & \textbf{DISCO logistics equivalent} \\
+\midrule
+Patient priority P1 (immediate) & Node with $A(t) < 20$ and high network criticality rank \\
+Under-triage (P3 classified as P1) & Hidden risk $H = [U_r - U_d]_+$: silent bottleneck builds unnoticed \\
+ESI resource consumption estimate & DISCO criticality index (propagated impact on final-customer nodes) \\
+Resource-blind triage (MTS) & Local urgency threshold ignoring network position \\
+Resource-aware triage (ESI) & Criticality-weighted prioritisation of coordinator attention \\
+\bottomrule
+\end{tabularx}
+\end{table}
+\paragraph{Physical Internet and Supply Chain Synchromodality.}
+The Physical Internet (\gls{pi}) paradigm~\autocite{montreuil2011toward} conceptualizes open, mutualized logistics networks where routing, storage, and transport assets are shared. In such hyperconnected systems, urgency ceases to be a localized concern and becomes a network-level Quality of Service variable. Dynamic routing and order synchronization in synchromodal networks require real-time, responsive priority signals compatible with rolling planning windows~\autocite{guo2020dynamic}. Furthermore, disruptions propagate rapidly through hyperconnected networks, creating cascading ripple effects~\autocite{li2020exploring} that validate the need for a synchronized, digital-twin-driven propagation model~\autocite{ivanov2020digital}.
+
+\paragraph{Regulatory Carbon Accounting.}
+The integration of an environmental criterion is motivated by modern corporate sustainability requirements, such as the Corporate Sustainability Reporting Directive (CSRD Scope 3) and ALTEN's environmental guidelines~\autocite{cordova2024green}. Standardized frameworks like the \gls{glec} Framework v3.2~\autocite{smartfreight2023glec} and \gls{vecto}~\autocite{commission2017vecto} define emissions calculation baselines for heavy duty vehicles. ADEME~\autocite{ademe2014impacts} reports that emissions factors are non-linearly related to vehicle speed and cargo load, supporting the treatment of carbon overshoot as its own urgency block rather than folding it into a generic cost term.
+
+%% ───────────────────────────────────────────────────────────────────────
+\subsubsection{Validation Methodology: Serious Games}
+\label{subsec:games}
+%% ───────────────────────────────────────────────────────────────────────
+
+\noindent\textit{Role: Validation rationale. \\ Why: It justifies the weekly-cadence serious game
+used as the validation environment for the whole framework.}
+
+\medskip
+
+The Beer Game~\autocite{sterman1989modeling} is the foundational supply chain serious game: Sterman demonstrates that players systematically under-react to upstream demand signals, generating the bullwhip effect. This decision bias is analogous to the under-triage pathology in logistics, where operators consistently under-respond to signals of building urgency. The finding that game-based observation captures systematic decision biases supports the use of digital twin serious games as an empirical instrument. Prensky~\autocite{prensky2001digital} establishes the theoretical basis for digital game-based learning, and Deterding et al.~\autocite{deterding2011game} formalise gamification design principles.
+
+Mohaddesi et al.~\autocite{mohaddesi2020gamettes} introduce the Gamette methodology, a playful, bite-sized approach to capturing decision-making patterns to build behavioural models, directly applicable to a weekly-review protocol in which operators repeatedly submit urgency assessments over the course of a project. Bellotti et al.~\autocite{bellotti2013framework} provide an evaluation framework for serious game learning outcomes, which supports the design of the calibration methodology detailed in Section~\ref{sec:Operations}.
+
+
+%% ═══════════════════════════════════════════════════════════════════════════
+\subsection{Summary: Limitations of Existing Solutions}
+\label{subsec:gaps}
+%% ═══════════════════════════════════════════════════════════════════════════
+
+A review of the literature indicates that classical operational monitoring typically evaluates a single criterion (a deadline, a cost, or a risk score) at a time, failing to capture the multi-block nature of supply chain KPIs or the systemic impact of operator decision biases. While pairwise comparison methods (AHP, BWM, and Fuzzy BWM) are widely applied for criteria weighting, they function as static elicitation tools and are rarely compared against a computed operational counterpart. Outranking methods like PROMETHEE II prevent compensatory aggregation but are not usually combined with a network-propagated urgency signal.
+
+Furthermore, while contemporary supply chain digital twins and Bayesian risk models offer strong capabilities in real-time disruption monitoring and belief revision, they typically lack a mechanism to compare human operator inputs with the physical state of the digital twin. This review identifies a key gap: the absence of an integrated architecture that compares a declared client-side urgency signal against a computed, network-propagated operational urgency to evaluate and correct cognitive mismatch, and that validates this correction empirically against recorded operational outcomes. Whether this adequacy-driven prioritisation improves the identification of at-risk nodes compared to standard KPI baselines represents the central open question of this R\&D operation.
+
+%% ═══════════════════════════════════════════════════════════════════════════
+\subsection{Research Axis and Proposed Adequacy-Propagation Structure}
+\label{subsec:contribution}
+%% ═══════════════════════════════════════════════════════════════════════════
+
+To investigate this gap, this study proposes an architecture centered on a cognitive-physical adequacy check combined with network-wide risk propagation. The main objective is to design and evaluate a two-layer control loop:
+\begin{enumerate}
+    \item \textbf{Cognitive adequacy check}: This layer captures the operator's declared urgency $U_d$ (elicited through consistency-gated pairwise comparisons) and compares it with a physically-grounded real urgency $U_r(t)$ computed from live digital twin state. The mismatch is processed using an asymmetric penalty to debias operator judgments.
+    \item \textbf{Network propagation and criticality-driven prioritisation}: Local urgency is propagated across the supply chain DAG (declared urgency descending toward suppliers, real urgency ascending toward the final customer), and the resulting network state feeds both a PROMETHEE~II outranking ranking and a systematic shock-simulation criticality index, jointly identifying which nodes warrant prioritised operator attention.
+\end{enumerate}
+
+This two-layer architecture is exercised and empirically validated within a persistent, multi-tenant digital twin operated as a weekly-cadence serious game, closing the loop between the adequacy signal and observed operational outcomes (Section~\ref{sec:Operations}).

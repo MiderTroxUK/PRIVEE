@@ -1,0 +1,82 @@
+%% ─────────────────────────────────────────────────────────────────────────
+%%  ACRONYMS
+%% ─────────────────────────────────────────────────────────────────────────
+\newacronym{ahp}{AHP}{Analytic Hierarchy Process}
+\newacronym{bst}{BST}{Bilan Scientifique et Technique}
+\newacronym{bwm}{BWM}{Best-Worst Method}
+\newacronym{ci}{CI}{Consistency Index}
+\newacronym{cr}{CR}{Consistency Ratio}
+\newacronym{csrd}{CSRD}{Corporate Sustainability Reporting Directive}
+\newacronym{dag}{DAG}{Directed Acyclic Graph}
+\newacronym{din}{DIN}{Direction Innovation Num\'erique}
+\newacronym{disco}{DISCO}{Supply Chain Illustrator (Digital Twin, DIN ALTEN)}
+\newacronym{dt}{DT}{Digital Twin}
+\newacronym{fbwm}{F-BWM}{Fuzzy Best-Worst Method}
+\newacronym{glec}{GLEC}{Global Logistics Emissions Council}
+\newacronym{hgv}{HGV}{Heavy Goods Vehicle}
+\newacronym{iot}{IoT}{Internet of Things}
+\newacronym{ipg}{IPG}{Itinerary Performance Index}
+\newacronym{kpi}{KPI}{Key Performance Indicator}
+\newacronym{lppl}{LPPL}{Log-Periodic Power Law}
+\newacronym{mcdm}{MCDM}{Multi-Criteria Decision-Making}
+\newacronym{mts}{MTS}{Manchester Triage System}
+\newacronym{pi}{PI}{Physical Internet}
+\newacronym{promethee}{PROMETHEE}{Preference Ranking Organisation METHod for Enrichment Evaluation}
+\newacronym{ri}{RI}{Random Index (Saaty)}
+\newacronym{sc}{SC}{Supply Chain}
+\newacronym{tmt}{TMT}{Temporal Motivational Theory}
+\newacronym{tfn}{TFN}{Triangular Fuzzy Number}
+\newacronym{tts}{TTS}{Time To Service}
+\newacronym{ttr}{TTR}{Time To Recovery}
+\newacronym{vecto}{VECTO}{Vehicle Energy Consumption calculation TOol}
+\newacronym{xai}{XAI}{Explainable Artificial Intelligence}
+
+%% ─────────────────────────────────────────────────────────────────────────
+%%  MAIN GLOSSARY ENTRIES (key mathematical symbols and concepts)
+%% ─────────────────────────────────────────────────────────────────────────
+\newglossaryentry{ur}{
+    name={$U_r(t)$},
+    description={Real (operationally computable) urgency at time $t$: a
+        weighted probabilistic OR aggregation of six local KPI blocks
+        (time, capacity, performance, risk, cost, CO2), $U_{r,\text{local}}
+        = 1-\prod_m(1-u_m)^{\omega_m}$, propagated upstream across the
+        supply chain DAG through the leaky coefficients $\beta_{ji}$}}
+
+\newglossaryentry{ud}{
+    name={$U_d$},
+    description={Declared urgency, a scalar $\in [0,1]$ elicited from the
+        human operator via an AHP or Fuzzy-BWM questionnaire, propagated
+        downstream across the supply chain DAG through the leaky
+        coefficients $\gamma_{ik}$}}
+
+\newglossaryentry{at}{
+    name={$A(t)$},
+    description={Adequacy score at time $t$, quantifying the asymmetric
+        Prospect Theory penalty between $U_d$ and $U_r(t)$:
+        $A = 100\times(\exp(-\text{penalty})-\text{floor})/(1-\text{floor})$
+        with $\text{penalty}=\lambda_{\text{under}}H^{\alpha}+
+        \lambda_{\text{over}}F^{\alpha}$, $\in [0,100]$}}
+
+\newglossaryentry{deltau}{
+    name={$\Delta U(t)$},
+    description={Raw urgency mismatch: $U_d - U_r(t) \in (-1,1)$; positive
+        = over-triage (false urgency), negative = under-triage
+        (hidden risk)}}
+
+\newglossaryentry{fh}{
+    name={$F$, $H$},
+    description={False urgency $F=[U_d-U_r]_+$ (unjustified panic) and
+        hidden risk $H=[U_r-U_d]_+$ (silent danger), the two asymmetrically
+        penalised pathologies underlying $A(t)$}}
+
+\newglossaryentry{omegam}{
+    name={$\omega_m$},
+    description={Aggregation weight of KPI block $m$ in the real urgency
+        noisy-OR aggregation, reused unchanged as the PROMETHEE~II
+        criteria weight for network-wide node outranking}}
+
+\newglossaryentry{deltaurcrit}{
+    name={$\Delta U_{r,\text{final}}$},
+    description={Network criticality delta: the increase in real urgency
+        propagated to final-customer nodes when a given node's local
+        urgency is forced to saturation in a systematic shock simulation}}

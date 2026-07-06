@@ -1,0 +1,172 @@
+%% ─────────────────────────────────────────────────────────────────────────
+\subsection{Relevant Context and Motivating Observations}
+%% ─────────────────────────────────────────────────────────────────────────
+
+Supply chain scheduling is NP-hard in the general case~\autocite{garey1979computers}, and modern operators face simultaneous multi-dimensional decisions (cost, deadline, risk, carbon) where many traditional scheduling algorithms process only a single criterion at a time~\autocite{pinedo2012scheduling,chakrabortty2020efficient}. Furthermore, we address an additional layer of complexity that has not yet been fully investigated in the classical literature: the urgency signal itself is systematically biased at the source and must be corrected before it can inform any downstream decision~\autocite{zhu2018mere,rusou2020psychology}. In a Physical Internet network~\autocite{montreuil2011toward}, where logistics capacity is mutualized across actors, a biased urgency signal propagates and amplifies systemic misallocations. Over-triage (declaring an urgency higher than the physical situation warrants) starves other network tenants, whereas under-triage (declaring an urgency lower than warranted) creates invisible stock rupture risk that cascades downstream~\autocite{li2020exploring,ivanov2020digital}.
+
+While digital twin architectures and real-time decision support systems have demonstrated strong capabilities in operational monitoring, disruption detection, resource reallocation, and order synchronisation~\autocite{ding2023realtime,leung2022digital,hrusovsky2021realtime,karam2022realtime,zhu2025industry5}, they do so primarily by computing the physical operational state of the system. To the best of the present review, existing systems do not appear to explicitly model the gap between a declared client urgency and a computed operational urgency; the client-stated signal is rarely compared directly to live operational proxies (such as multi-block KPI risk, lateness probability, and shortage exposure) within the same model. The core scientific novelty of this R\&D operation lies in the formal comparison between these declared and computed urgencies, propagated coherently across a multi-tier network, motivating the introduction of an urgency adequacy layer to address this missing integration in digital operations architectures.
+
+%% ─────────────────────────────────────────────────────────────────────────
+\subsection{Formal Problem Statement}
+%% ─────────────────────────────────────────────────────────────────────────
+
+Let $U_d \in [0,1]$ denote the declared urgency and $U_r(t) \in [0,1]$ the real urgency computed from operational data in the digital twin. The core variables and domains are summarized in Table~\ref{tab:problem_vars}.
+
+\begin{table}[H]
+\centering
+\caption{Core variables and domains.}
+\label{tab:problem_vars}
+\begin{tabularx}{\linewidth}{lXl}
+\toprule
+\textbf{Symbol} & \textbf{Meaning} & \textbf{Domain} \\
+\midrule
+$t$ & Current time (project hours, ISO week granularity) & $\mathbb{R}$ \\
+$U_r(t)$ & Physically/operationally computable real urgency & $[0,1]$ \\
+$U_d$ & Operator-declared urgency  & $[0,1]$ \\
+$\varepsilon$ & Tolerance threshold (cognitive noise band) & $[0,1)$ \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The mismatch between both signals is defined as
+\begin{equation}
+    \Delta U(t) = U_d - U_r(t) \in [-1,\, 1].
+    \label{eq:delta_u}
+\end{equation}
+
+The components of this mismatch equation are explained in Table~\ref{tab:delta_u_components}.
+
+\begin{table}[H]
+\centering
+\caption{Component definitions for the urgency discrepancy equation.}
+\label{tab:delta_u_components}
+\small
+\begin{tabularx}{\linewidth}{llX}
+\toprule
+\textbf{Component} & \textbf{Type} & \textbf{Description} \\
+\midrule
+$\Delta U(t)$ & Dependent variable & Raw urgency mismatch signal at time $t$ \\
+$U_d$         & Input variable     & Urgency level declared subjectively by the human operator \\
+$U_r(t)$      & Dynamic variable   & Urgency level computed operationally by the digital twin \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+A tolerance band $\varepsilon \in [0,1]$ is introduced so that small deviations are not treated as operationally meaningful. In this setting, over-declaration corresponds to $\Delta U(t) > \varepsilon$, under-declaration to $\Delta U(t) < -\varepsilon$, and approximate agreement to $|\Delta U(t)| \le \varepsilon$. Potential consequences of these mismatch conditions are summarized in Table~\ref{tab:pathologies}.
+
+\begin{table}[H]
+\centering
+\caption{Urgency pathologies and potential consequences.}
+\label{tab:pathologies}
+\small
+\begin{tabularx}{\linewidth}{l >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\toprule
+\textbf{Condition} & \textbf{Interpretation} & \textbf{Potential consequence} \\
+\midrule
+$\Delta U(t) > \varepsilon$ & Over-declaration of urgency (false urgency) & Excess expediting, avoidable cost, possible delay for other flows \\[4pt]
+$\Delta U(t) < -\varepsilon$ & Under-declaration of urgency (hidden risk) & Hidden lateness or stockout risk, delayed intervention, downstream disruption \\[4pt]
+$|\Delta U(t)| \le \varepsilon$ & Acceptable alignment & No material urgency mismatch \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+An asymmetric treatment of mismatch may be introduced through weights such as $\lambda_{\text{under}} \ge \lambda_{\text{over}}$ when the application context treats under-prioritisation as more harmful than over-prioritisation. This is motivated by operations literature showing that decision errors can generate unequal downstream consequences~\autocite{kim2020admission,diwa2020task}, and by scheduling literature that models differentiated tardiness penalties rather than uniform delay costs~\autocite{baker1982dynamic,chakrabortty2022}. However, the degree of asymmetry is treated here as a design and calibration choice to be validated in the target use case, rather than as a universal property.
+
+%% ─────────────────────────────────────────────────────────────────────────
+\subsection{Formalised Research Questions}
+%% ─────────────────────────────────────────────────────────────────────────
+
+\begin{enumerate}[label=\textbf{RQ\arabic*}., leftmargin=*]
+  \item \textbf{Multi-block real urgency ($U_r(t)$):}
+  How can a physically and operationally grounded real urgency $U_r(t)$ be computed dynamically in a multi-tenant digital twin from heterogeneous KPI blocks (temporal, capacity, performance, risk, cost, environmental), and propagated coherently across a multi-tier supply chain graph?
+
+  \item \textbf{Cognitive adequacy formulation ($A(t)$):}
+  How should an adequacy score $A(t)$ be formulated to measure the alignment between operator declared urgency $U_d$ and computed real urgency $U_r(t)$, while asymmetrically penalizing under-triage vs.\ over-triage, and can this scoring demonstrate predictive validity against real operational outcomes?
+
+  \item \textbf{Network prioritisation and criticality:}
+  How can pairwise elicitation methods (AHP, Fuzzy Best-Worst Method) be combined with outranking aggregation (PROMETHEE~II) and systematic shock simulation to identify which nodes of a supply network are structurally critical and warrant prioritised attention?
+
+  \item \textbf{Operational validation within a digital twin:}
+  How can this cognitive-physical framework be operationalised and empirically validated within a persistent, multi-tenant digital twin exercised as a weekly-cadence serious game, and what predictive validity does it demonstrate against recorded operational incidents?
+\end{enumerate}
+
+%% ─────────────────────────────────────────────────────────────────────────
+\subsection{Research Hypotheses}
+\label{sec:hypotheses}
+%% ─────────────────────────────────────────────────────────────────────────
+
+To structure the empirical evaluation of the proposed framework, three research hypotheses are formulated:
+\begin{description}
+    \item[Hypothesis 1 (Cognitive Adequacy Debiasing):] Explicitly monitoring the adequacy score $A(t)$ between human declared urgency $U_d$ and digital twin computed real urgency $U_r(t)$ serves to debias operator scheduling decisions, mitigating the "mere urgency effect"~\autocite{Zhu18} and preventing the over-allocation of mutualized transport resources.
+    \item[Hypothesis 2 (Network Criticality Robustness):] Combining DAG-propagated real urgency with PROMETHEE~II outranking and systematic shock simulation identifies the nodes whose failure would cause the greatest downstream impact, producing a criticality ranking that remains stable and reproducible under repeated what-if perturbations of the network.
+    \item[Hypothesis 3 (Calibrated Event Integration):] A taxonomy of calibrated supply chain events, revised through Bayesian (Beta-Bernoulli) and exponential-smoothing update operators, can integrate heterogeneous operational shocks into the KPI state without obscuring the visibility of the individual urgency blocks that compose it.
+\end{description}
+
+%% ─────────────────────────────────────────────────────────────────────────
+\subsection{Technical and Scientific Challenges}
+\label{sec:locks}
+%% ─────────────────────────────────────────────────────────────────────────
+
+To evaluate the validity of the proposed framework, its performance is investigated against six scientific challenges (locks) identified in contemporary literature:
+
+\begin{attentionBox}
+\noindent\textbf{Lock~1: Urgency Aggregation Model Justification}
+
+\smallskip
+Real urgency can be modeled from a single deadline-proximity signal or from an aggregation of heterogeneous risk blocks (slack, capacity saturation, performance, failure exposure, cost drift, emissions overshoot). A single-block, purely time-driven curve is analytically convenient but discards information available in a live digital twin. Conversely, any multi-block aggregation rule must be theoretically justified against simpler linear or averaging alternatives~\autocite{cheng1992scheduling,cheng1996due,cheng2025survey,miller2010}.
+
+A noisy-OR aggregation, in which a single saturated block is sufficient to drive the aggregate urgency toward its maximum, is grounded in the probabilistic-inference literature on conditional independence and combined causal evidence~\autocite{pearl1988probabilistic} and in probabilistic risk-inference models for supply chain systems~\autocite{Zhe20}. As a complementary, purely time-driven reference, a bounded hyperbolic discounting curve in the spirit of finite-time singularity models~\autocite{johansen2001finite,johansen2000crashes} is retained here strictly as an auxiliary tool for generating realistic synthetic urgency trajectories for testing and calibration, not as the production aggregation rule; its suitability for that narrower purpose is evaluated separately from the main model.
+\end{attentionBox}
+
+\begin{attentionBox}
+\noindent\textbf{Lock~2: Measurement Reliability of Declared Urgency}
+
+\smallskip
+Eliciting the declared urgency $U_d$ via pairwise multi-criteria methods (AHP, BWM, Fuzzy BWM) introduces cognitive noise and ranking instability. These methods are sensitive to human inconsistency and rank reversal, meaning that declared urgency cannot be assumed as a deterministic ground truth~\autocite{afrasiabi2022extended,triantaphyllou2024,liang2020}.
+
+Consequently, operator judgments must be modeled as noisy, stochastic inputs~\autocite{stam1997}. The framework addresses this by enforcing consistency ratio ($\gls{cr}$) validation gates and interval boundaries to absorb cognitive fluctuations.
+\end{attentionBox}
+
+\begin{attentionBox}
+\noindent\textbf{Lock~3: Value-Added of the Adequacy Signal}
+
+\smallskip
+Computing $\Delta U(t) = U_d - U_r(t)$ is necessary but not sufficient. The decisive scientific test is whether this adequacy signal improves the identification of operationally at-risk nodes beyond the raw variables already available to an operator (local KPI thresholds, unweighted urgency, or simple node degree)~\autocite{cohen2021assigning,bojarski2021}.
+
+If the score does not demonstrably outperform these simpler baselines against recorded outcomes, it serves merely as an auxiliary decision metric rather than a primary planning signal. This is addressed by citing behavioral operations research~\autocite{ahmetoglu2025} and human-in-the-loop mediation models~\autocite{turner2021}, which indicate that visualizing the gap between operator perception and physical system state reduces operational cognitive biases, and is tested empirically through the calibration methodology detailed in Section~\ref{sec:Operations}.
+\end{attentionBox}
+
+\begin{attentionBox}
+\noindent\textbf{Lock~4: Composite Score Interpretability}
+
+\smallskip
+Aggregating multiple criteria into a single composite score, whether the local urgency $U_r$ across six KPI blocks or the outranking flow across a network of nodes, risks obscuring trade-offs and weakening decision interpretability. Composite-index literature warns that nominal weights do not always reflect real influence due to component correlations~\autocite{greco2018,becker2017,borgonovo2021global}.
+
+The proposed framework mitigates this by exposing each block's contribution individually on the operator explainability page and by keeping the aggregation weights $\omega_m$ configurable and auditable rather than hard-coded, so that nominal and effective weights can be compared and, where needed, realigned through global sensitivity analysis.
+\end{attentionBox}
+
+\begin{attentionBox}
+\noindent\textbf{Lock~5: Scientific Maturity of Network Risk Propagation vs. Front-End}
+
+\smallskip
+Disruption propagation on supply chain graphs and digital-twin-driven scheduling are mature, well-studied fields~\autocite{sawik2013integrated,sawik2014joint,sawik2016integrated,Zhu25,Zho23,Zha26c}. The contribution of this work is not the propagation mechanics themselves, but making the urgency architecture defensible by:
+\begin{itemize}
+    \item constructing a credible $U_d$ input via consistency-gated elicitation,
+    \item computing a physically-grounded, multi-block $U_r(t)$, and
+    \item evaluating whether the adequacy gap between the two provides operational utility beyond standard KPI-threshold baselines.
+\end{itemize}
+If only the propagation mechanism is delivered, the work represents a re-implementation of existing digital twin capabilities rather than a novel integration.
+\end{attentionBox}
+
+\begin{attentionBox}
+\noindent\textbf{Lock~6: Absence of Digital Twin Precedent for Urgency Adequacy}
+
+\smallskip
+Digital twin systems routinely monitor real-time operational states, disruption responses, and order synchronization~\autocite{ding2023realtime,leung2022digital,Zha21,Zha26b,Zho21c}. However, to the best of our knowledge, existing digital twin and decision support systems lack a module that simultaneously:
+\begin{itemize}
+    \item captures a client-declared urgency signal,
+    \item computes a model-based operational urgency from live system state, and
+    \item measures their mismatch as an active, network-propagated indicator.
+\end{itemize}
+This three-layer architecture has no established precedent in the surveyed literature. Its integration feasibility and operational utility are investigated through this study to evaluate its practical viability and integration risks within a cognitive digital twin framework~\autocite{zheng2022,niloofar2023,kalaboukas2021}.
+\end{attentionBox}

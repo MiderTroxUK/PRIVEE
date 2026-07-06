@@ -1,0 +1,17 @@
+# Artefacts de compilation LaTeX (le PDF final est versionné, pas les intermédiaires)
+*.aux
+*.log
+*.out
+*.toc
+*.fls
+*.fdb_latexmk
+*.bbl
+*.blg
+*.bcf
+*.run.xml
+*.bcf-SAVE-ERROR
+Sections/*.log
+Sections/*.bbl
+Sections/*.blg
+*.lof
+*.lot

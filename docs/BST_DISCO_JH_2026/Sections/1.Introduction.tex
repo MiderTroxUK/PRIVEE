@@ -1,0 +1,144 @@
+%% ─────────────────────────────────────────────────────────────────────────
+\subsection{Internal Research Context}
+%% ─────────────────────────────────────────────────────────────────────────
+
+\subsubsection{Smart Green Supply Chain Programme}
+
+
+The \gls{din} of ALTEN conducts applied R\&D at the
+intersection of digital twin technology, logistics optimisation, and sustainable
+transport. 
+
+The Smart Green Supply Chain programme~\autocite{benzakour2024history}
+articulates three complementary pillars:
+
+\begin{itemize}
+    \item \textbf{Lean}: Minimisation of waste (cost, delay, over-stock) through
+          pull-flow logic and real-time scheduling.
+    \item \textbf{Green}: Minimisation of carbon footprint per transport leg, aligned with the \gls{glec} Framework v3.2~\autocite{smartfreight2023glec} and ISO~14083:2023~\autocite{iso14083}.
+    \item \textbf{Predictive}: Anticipation of disruptions through probabilistic modelling and machine learning, consistent with the digital supply chain twin paradigm~\autocite{ivanov2020digital}.
+\end{itemize}
+
+This programme places ALTEN-DIN within the broader Industry~4.0 movement \autocite{kagermann2013industry}, which leverages cyber-physical systems, \gls{iot}, and
+digital twins to transform reactive supply chains into adaptive, self-organising networks. The Physical Internet framework~\autocite{montreuil2011toward}, proposing
+open, mutualized logistics networks analogous to internet routing protocols, provides the theoretical backdrop for the supply chain simulation environment described below.
+
+\subsubsection{Project: DISCO Digital Twin}
+
+DISCO (Supply Chain Illustrator) is a serious game and digital twin developed by the DIN to simulate a complete supply chain for a fictitious satellite product. It involves
+22 component suppliers in domains such as structural assemblies, optical systems, and embedded electronics~\autocite{baxas2025architecture}. Players assume the role of
+supply chain buyers and make decisions about supplier selection, transport routes, and factory allocation. The DISCO technology stack is summarised in Table~\ref{tab:disco_stack}.
+
+The scoring engine applies Min-Max normalisation over the values of the current game
+session:
+
+	\begin{equation}
+	    \text{ScoreCO}_2 = 1 + 9 \times \frac{\text{realCO}_2 - \text{co}_{2,\min}}
+	                                         {\text{co}_{2,\max} - \text{co}_{2,\min}},
+	    \label{eq:score_co2}
+	\end{equation}
+	
+	The operational variables of the CO\textsubscript{2} scoring model are described in Table~\ref{tab:co2_components}.
+	
+	\begin{table}[H]
+	\centering
+	\caption{Component definitions for the CO\textsubscript{2} scoring equation.}
+	\label{tab:co2_components}
+	\small
+	\begin{tabularx}{\linewidth}{llX}
+	\toprule
+	\textbf{Component} & \textbf{Type} & \textbf{Description} \\
+	\midrule
+	$\text{ScoreCO}_2$ & Dependent variable & Normalized greenhouse gas score on a $[1, 10]$ scale \\
+	$\text{realCO}_2$  & Input variable     & Measured carbon emissions on the transport leg \\
+	$\text{co}_{2,\min}$ & System parameter  & Minimum historical or target emissions threshold \\
+	$\text{co}_{2,\max}$ & System parameter  & Maximum historical or target emissions threshold \\
+	\bottomrule
+	\end{tabularx}
+	\end{table}
+
+with analogous formulae for cost and risk. The scale ranges from $[1, 10]$, where $1 \to$ best
+performance and $10 \to$ worst.
+
+To support the showcase and continuous improvement of mature supply chain capabilities, the DISCO digital twin incorporates several specialized modules developed in prior research cycles: The routing module~\autocite{baulain2024internet}, the risk scorer~\autocite{kabouche2025scoring}, the CO\textsubscript{2} quantification methodology~\autocite{cordova2024green}, and the software integration framework~\autocite{auclin2025bst}.
+
+
+	\begin{table}[ht]
+	\centering
+	\caption{DISCO technology stack and key parameters.}
+	\label{tab:disco_stack}
+	\begin{tabularx}{\linewidth}{lX}
+	\toprule
+	\textbf{Component} & \textbf{Technology / Value} \\
+	\midrule
+	Backend API    & Spring Boot + Java~21 \\
+	Database       & PostgreSQL (Azure) \\
+	Frontend       & Angular (localhost:4200) \\
+	REST API (test) & \texttt{https://test-disco.altenlabs.net/back/} \\
+	Authentication & Player key / Azure AD SSO OAuth2 \\
+	Scores computed & CO\textsubscript{2}, Cost, Risk per supplier/itinerary [1–10] \\
+	\bottomrule
+	\end{tabularx}
+	\end{table}
+
+%% ─────────────────────────────────────────────────────────────────────────
+\subsubsection{Capitalisation of Prior ALTEN-DIN Research}
+%% ─────────────────────────────────────────────────────────────────────────
+
+This R\&D operation builds directly on eight prior DIN research works that form an
+integrated body of knowledge within the DISCO programme.
+
+\textbf{Baxas~\autocite{baxas2025architecture}} defines the DISCO software architecture,
+including the \gls{tts}/\gls{ttr} formalisation and the conceptual anti-thrashing gate
+framework that motivates Lock~1.
+
+\textbf{Baulain and Dubarry~\autocite{baulain2024internet}} developed the Physical
+Internet routing module, providing $T_{\text{HERE}}$ via the HERE Maps API
+(Vincenty distances, mandatory 4h30 \gls{hgv} pause compliance) and the Itinerary
+Performance Index (\gls{ipg}) normalised in $[0,1]$.
+
+\textbf{Kabouche~\autocite{kabouche2025scoring}} developed the supplier risk scorer
+combining delay history, geographic vulnerability, and financial fragility into a
+$[1, 10]$ scale.
+
+\textbf{Cordova~\autocite{cordova2024green}} developed the CO\textsubscript{2}
+quantification module per route using the GLEC/VECTO methodology with log-normalised
+output $\hat{x}_{\text{CO}_2}$.
+
+\textbf{Mondelice~\autocite{mondelice2025tms}} developed the Transport Management
+System interface providing real-time $T_{\text{HERE}}$ extraction.
+
+
+%% ─────────────────────────────────────────────────────────────────────────
+\subsection{R\&D Operation Brief}
+%% ─────────────────────────────────────────────────────────────────────────
+
+\subsubsection{Title and Objectives}
+
+The R\&D operation is entitled: \textit{``Adequacy Score Between Declared and Real
+Urgency in a Smart Green Supply Chain Digital Twin''}. Its four operational objectives
+are:
+
+\begin{enumerate}[label=\textbf{O\arabic*.}]
+    \item Define a multi-block, DAG-propagated real urgency $U_r(t)$ and a cognitive adequacy score $A(t) \in [0, 100]$ to measure the gap between the human planner's declared urgency $U_d$ and the digital twin's operational state.
+    \item Develop and implement a network propagation and criticality-driven prioritisation layer, combining PROMETHEE~II outranking with systematic shock simulation, to identify structurally critical nodes.
+    \item Validate the adequacy-driven prioritisation logic empirically, through worked scenarios and a calibration service comparing the hidden-risk signal against recorded operational outcomes.
+    \item Operationalise the framework within a persistent, multi-tenant digital twin exercised as a weekly-cadence serious game, integrating a calibrated event engine, explainability, export, and administrative hardening.
+\end{enumerate}
+
+\subsubsection{Research Questions}
+
+Four core research questions drive the scientific approach:
+
+\begin{description}
+    \item[RQ1 (Multi-block Real Urgency)] How can a physically and operationally grounded real urgency $U_r(t)$ be computed dynamically in a digital twin from heterogeneous KPI blocks, and propagated coherently across a multi-tier supply chain graph?
+    \item[RQ2 (Cognitive Adequacy)] How should an adequacy score $A(t)$ be formulated to measure the alignment between operator declared urgency $U_d$ and computed real urgency $U_r(t)$, asymmetrically penalizing under-triage vs.\ over-triage, and can this scoring demonstrate predictive validity against real outcomes?
+    \item[RQ3 (Network Prioritisation)] How can pairwise elicitation (AHP, Fuzzy-BWM) be combined with outranking (PROMETHEE~II) and shock simulation to identify structurally critical nodes?
+    \item[RQ4 (Operational Validation)] How can this cognitive-physical framework be operationalised and empirically validated within a persistent, multi-tenant digital twin exercised as a weekly-cadence serious game?
+\end{description}
+
+These questions define the scientific scope of this \gls{bst}: \textbf{RQ1} addresses multi-block urgency computation and propagation, \textbf{RQ2} defines the adequacy score formulation and its empirical validity, \textbf{RQ3} addresses network-wide criticality and prioritisation, and \textbf{RQ4} addresses operational validation within the digital twin.
+
+\subsubsection{Document Structure}
+
+This document is structured as follows. Section~\ref{sec:Problem} formalises the scientific problem and outlines the primary research challenges. Section~\ref{sec:SOTA} reviews the state of the art across thematic subsections. Section~\ref{sec:Operations} details the R\&D iterations, methodology, and experimental results. Finally, Section~\ref{sec:Conclusions} evaluates the research questions and discusses the project's evolution.

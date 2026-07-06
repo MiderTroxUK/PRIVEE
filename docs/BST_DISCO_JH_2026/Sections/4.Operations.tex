@@ -1,0 +1,509 @@
+%% ═══════════════════════════════════════════════════════════════════════════
+\subsection{Methodology: The Agile Test-and-Learn Program}
+%% ═══════════════════════════════════════════════════════════════════════════
+
+This R\&D operation is structured as an agile Test-and-Learn program designed to systematically investigate cognitive biases in supply chain urgency assessment and formulate a digital-twin-based correction loop. Rather than following a rigid sequential path, the program operates through continuous iterations of literature analysis, mathematical specification, software implementation, and scenario-based simulation.
+
+The R\&D pipeline is organized into five core operational areas:
+\begin{itemize}
+    \item \textbf{Literature Review and Gap Analysis}: Establishing the psychological and mathematical foundations of multi-block urgency aggregation and cognitive bias (detailed in Section~\ref{sec:SOTA}).
+    \item \textbf{Mathematical Framework Specification}: Deriving and formalizing the multi-block real urgency function, its DAG propagation, and the asymmetric cognitive adequacy score from first principles to ensure dimensional and probabilistic consistency.
+    \item \textbf{Pairwise comparison elicitation}: Formulating crisp Analytic Hierarchy Process (AHP) and Fuzzy Best-Worst Method (F-BWM) eigenvectors to build a reliable representation of declared operator urgency.
+    \item \textbf{Software Implementation and Testing}: Constructing a modular Python library, exercised through a multi-page Dash web application, with comprehensive unit and property-based test coverage. The delivered codebase spans roughly sixty modules across eight packages (Table~\ref{tab:modules}) and is exercised by over 1400 automated test functions, including property-based tests (Hypothesis library) that caught non-monotonic edge cases in the real urgency aggregation during development.
+    \item \textbf{Simulation and Validation}: Conducting controlled shock and scenario simulations across a persistent digital twin, and validating the adequacy signal empirically against recorded operational outcomes through a dedicated calibration service.
+\end{itemize}
+
+%% ═══════════════════════════════════════════════════════════════════════════
+\subsection{Mathematical Framework and Core Formulations}
+%% ═══════════════════════════════════════════════════════════════════════════
+
+\textbf{Hypothesis.} A multi-block noisy-OR urgency model, propagated across the supply chain DAG and compared against declared operator urgency through an asymmetric cognitive adequacy score, can resolve the discrepancy between human operator declared urgency ($U_d$) and digital twin computed urgency ($U_r(t)$), providing a stable, explainable, and empirically calibratable prioritisation signal.
+
+\textbf{Approach.} A systematic review of prior preliminary DIN formulations was conducted to identify mathematical inconsistencies (Lock~1, Lock~2, Section~\ref{sec:locks}). The core physics of multi-block risk aggregation and cognitive bias correction were re-derived from first principles, establishing a two-layer control loop (cognitive adequacy check and DAG propagation with criticality-driven prioritisation) detailed below.
+
+\subsubsection{Core Model: Multi-Block Real Urgency and Network Propagation}
+
+\paragraph{Local Real Urgency ($U_{r,\text{local}}$).}
+Real urgency is not read from a single deadline-proximity signal; it is aggregated at each node from six independent KPI blocks, $\{\text{time}, \text{cap}, \text{perf}, \text{risk}, \text{cost}, \text{co2}\}$, each producing a partial urgency $u_m \in [0,1]$ or \texttt{None} when the underlying KPI data is unavailable. The aggregation is a weighted probabilistic OR, so that a single saturated block is sufficient to drive the local urgency toward its maximum, regardless of how well the other blocks score:
+\begin{equation}
+    U_{r,\text{local}} = 1 - \prod_{m} (1 - u_m)^{\omega_m},
+    \label{eq:ur_local}
+\end{equation}
+where $\omega_m \ge 0$ is the aggregation weight of block $m$, and the product runs over blocks with available data. Table~\ref{tab:ur_blocks} summarises how each block is computed.
+
+\begin{table}[H]
+\centering
+\caption{The six real urgency blocks and their computation.}
+\label{tab:ur_blocks}
+\small
+\begin{tabularx}{\linewidth}{lX}
+\toprule
+\textbf{Block} & \textbf{Computation} \\
+\midrule
+$u_{\text{time}}$ & Probability of lateness $P(L > d^\ast - t)$, with lead time $L$ modelled as Normal($\mu$, $\sigma$); when an active milestone exists, additively modulated by its planning slippage $r = p_{\text{th}} - \text{progress}$, gained by $\kappa_{\text{retard}}$ on delay and damped by $\kappa_{\text{avance}}$ on advance. \\
+$u_{\text{cap}}$ & Weighted saturation of remaining volume, remaining weight, and unmet flow demand relative to capacity. \\
+$u_{\text{perf}}$ & $1 - \text{OEE}$ (Overall Equipment Effectiveness). \\
+$u_{\text{risk}}$ & $1-\exp(-p_{\text{fail}}\cdot t_{\text{recov}}\cdot\text{sev}/T_{\text{ref}})$, composed by probabilistic OR with environmental and political exposure terms. \\
+$u_{\text{cost}}$ & Weighted operating cost drift, tariff multiplier excess, and storage cost relative to a reference cost. \\
+$u_{\text{co2}}$ & Normalised overshoot of measured emissions above a target, relative to a maximum threshold. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Two lifecycle status rules are applied before aggregation: a node marked \texttt{DONE} has its effective local $U_r$ forced to $0.0$ (a completed task carries no further physical risk), while a node marked \texttt{ABANDONED} has it forced to $1.0$ (complete failure). These rules are applied identically whether the local urgency comes from the analytic blocks above or from a Monte Carlo estimate of the time block (Section~\ref{sec:mc_criticality}).
+
+\paragraph{Network Propagation.}
+Declared urgency $U_d$ propagates \emph{downstream}, from the final customer (rank~0) toward raw-material suppliers, while real urgency $U_r$ propagates \emph{upstream}, from suppliers toward the final customer, using a leaky product rule that keeps both signals bounded in $[0,1]$ and monotonically increasing as more neighbours become urgent:
+\begin{align}
+    U_{d,i} &= 1 - \bigl(1 - U_{d,\text{local},i}\bigr) \prod_{k \in \text{Succ}(i)} \bigl(1 - \gamma_{ik} U_{d,k}\bigr), \label{eq:ud_prop} \\
+    U_{r,i} &= 1 - \bigl(1 - U_{r,\text{local},i}\bigr) \prod_{j \in \text{Pred}(i)} \bigl(1 - \beta_{ji} U_{r,j}\bigr), \label{eq:ur_prop}
+\end{align}
+where $\gamma_{ik} \in [0,1]$ is the downstream attenuation coefficient on arc $(i,k)$ and $\beta_{ji} \in [0,1]$ is the upstream amplification coefficient on arc $(j,i)$. Backup arcs are purely documentary and inert with respect to both propagations. Table~\ref{tab:propagation_components} details the propagation variables.
+
+\begin{table}[H]
+\centering
+\caption{Component definitions for the network propagation equations.}
+\label{tab:propagation_components}
+\small
+\begin{tabularx}{\linewidth}{llX}
+\toprule
+\textbf{Component} & \textbf{Type} & \textbf{Description} \\
+\midrule
+$U_{d,i}$, $U_{r,i}$ & Dependent variables & Propagated declared/real urgency at node $i$ \\
+$U_{d,\text{local},i}$, $U_{r,\text{local},i}$ & Input variables & Local urgency at node $i$ after status-rule adjustment \\
+$\gamma_{ik}$ & System parameter & Downstream (demand) attenuation coefficient on arc $i \to k$ \\
+$\beta_{ji}$ & System parameter & Upstream (risk) amplification coefficient on arc $j \to i$ \\
+$\text{Succ}(i)$, $\text{Pred}(i)$ & Structural sets & Nominal (non-backup) successors and predecessors of node $i$ \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Propagation is recomputed incrementally: only the nodes downstream or upstream of a change (a submitted questionnaire, a revised KPI, a structural edit) are recalculated, rather than the full graph, which keeps the digital twin responsive as the network grows.
+
+\subsubsection{Core Model: Asymmetric Cognitive Adequacy (Prospect Theory)}
+
+The mismatch between declared and real urgency is split into two named pathologies, false urgency $F$ (over-declaration, panic) and hidden risk $H$ (under-declaration, silent danger):
+\begin{equation}
+    F = \max(U_d - U_r,\, 0), \qquad H = \max(U_r - U_d,\, 0).
+    \label{eq:fh}
+\end{equation}
+Drawing on Kahneman and Tversky's Prospect Theory~\autocite{kahneman1979prospect}, the two pathologies are penalised asymmetrically and with diminishing marginal sensitivity to large errors:
+\begin{equation}
+    \text{penalty} = \lambda_{\text{under}} H^{\alpha} + \lambda_{\text{over}} F^{\alpha},
+    \label{eq:penalty}
+\end{equation}
+and the penalty is rescaled into an adequacy score $A \in [0, 100]$ through an exponential mapping bounded by the penalty of a maximal one-sided error:
+\begin{equation}
+    A = 100 \cdot \frac{\exp(-\text{penalty}) - \exp(-\text{penalty}_{\max})}{1 - \exp(-\text{penalty}_{\max})}, \qquad \text{penalty}_{\max} = \max(\lambda_{\text{under}}, \lambda_{\text{over}}).
+    \label{eq:At}
+\end{equation}
+Table~\ref{tab:adequation_components} lists the parameters, with their governing constraint $\lambda_{\text{under}} > \lambda_{\text{over}}$: a coordinator who panics wastes premium transport capacity, but a coordinator who under-reports risk misses the window to prevent a line stoppage, so under-declaration is priced more expensively.
+
+\begin{table}[H]
+\centering
+\caption{Component and parameter definitions for the asymmetric adequacy equations.}
+\label{tab:adequation_components}
+\small
+\begin{tabularx}{\linewidth}{llXl}
+\toprule
+\textbf{Component} & \textbf{Type} & \textbf{Description} & \textbf{Default} \\
+\midrule
+$F$ & Dependent variable & False urgency (over-declaration) & --- \\
+$H$ & Dependent variable & Hidden risk (under-declaration) & --- \\
+$\lambda_{\text{under}}$ & System parameter & Penalty weight on hidden risk & $2.25$ \\
+$\lambda_{\text{over}}$ & System parameter & Penalty weight on false urgency & $1.0$ \\
+$\alpha$ & System parameter & Psychophysical curvature (diminishing sensitivity) & $0.88$ \\
+$A$ & Dependent variable & Adequacy score, $100$ = perfect alignment & $[0,100]$ \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The default $\lambda_{\text{under}}/\lambda_{\text{over}} = 2.25$ ratio reprises the loss-aversion coefficient measured by Kahneman and Tversky~\autocite{kahneman1979prospect,kahneman2011thinking}, and $\alpha = 0.88$ reprises their measured curvature of the value function, so that a large mismatch is heavily penalised while the marginal penalty flattens for extreme errors.
+
+\textbf{Note on an auxiliary formulation.} A separate, purely time-driven urgency function, $\tanh(K / \max(t_c - t, \varepsilon_{\min}))$, referencing the finite-time singularity literature~\autocite{johansen2001finite,johansen2000crashes}, is also implemented in the codebase, but exclusively as part of the synthetic scenario generator used to produce realistic test and calibration data, not as the production computation of $U_{r,\text{local}}$ described above (Lock~1, Section~\ref{sec:locks}).
+
+\textbf{Conclusion.} The core model is mathematically consistent and dimensionally bounded on $[0,1]$ (urgency) and $[0,100]$ (adequacy) throughout. Both the aggregation weights $\omega_m$ and the penalty parameters $(\lambda_{\text{under}}, \lambda_{\text{over}}, \alpha)$ are configurable per project rather than hard-coded, and their empirical calibration is addressed in Section~\ref{sec:mc_criticality}.
+
+%% ═══════════════════════════════════════════════════════════════════════════
+\subsection{Expert Criteria Weighting: The AHP Elicitation Model}
+%% ═══════════════════════════════════════════════════════════════════════════
+
+\textbf{Hypothesis.} The Saaty AHP enables consistent weight derivation from expert
+pairwise judgements with $\gls{cr} \leq 0.10$, producing a valid $U_d \in [0,1]$ that
+encodes multi-dimensional operational urgency more reliably than a single intuitive
+score.
+
+\textbf{Approach.} The Python module \texttt{core/ahp.py} implements the Saaty
+eigenvector method for a 4-criterion questionnaire administered through the weekly
+review page. The four criteria are:
+
+\begin{enumerate}[label=\textbf{C\arabic*.}]
+    \item \textit{Operational impact}: ``If this task fails, what is the downstream
+          consequence?''
+    \item \textit{Time window}: ``How long before the situation becomes irredeemable?''
+    \item \textit{Downstream dependencies}: ``How many tasks are blocked waiting for
+          this one?''
+    \item \textit{Recoverability}: ``Can we catch up if this task is late?''
+          (inverted, where lower is worse)
+\end{enumerate}
+
+The consistency ratio is computed as:
+\begin{equation}
+    \gls{cr} = \frac{\gls{ci}}{\gls{ri}[n]},
+    \label{eq:ahp_cr}
+\end{equation}
+where the components of the consistency assessment are defined in Table~\ref{tab:ahp_cr_components}.
+
+\begin{table}[H]
+\centering
+\caption{Component definitions for the AHP consistency ratio equation.}
+\label{tab:ahp_cr_components}
+\small
+\begin{tabularx}{\linewidth}{llX}
+\toprule
+\textbf{Component} & \textbf{Type} & \textbf{Description} \\
+\midrule
+$\gls{cr}$ & Dependent variable & Consistency Ratio of the pairwise comparison matrix \\
+$\gls{ci}$ & Dynamic variable   & Consistency Index computed from the matrix principal eigenvalue \\
+$\gls{ri}[n]$ & System parameter & Random Index for a matrix of size $n$ (from Saaty's reference table) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+using Saaty's Random Index table. If $\gls{cr} > 0.10$, the interface flags the questionnaire as inconsistent and invites the operator to revise the most contradictory pairwise comparison before the assessment is accepted. Declared urgency is further smoothed with an exponential moving average ($\rho = 0.3$) across consecutive weekly assessments, absorbing transient stress spikes without erasing a sustained change in perception.
+
+\textbf{Results.}
+\begin{itemize}
+    \item Consistency validation, the eigenvector computation, and the EMA smoothing are exercised by the automated test suite, including property-based tests (Hypothesis library) that generate randomised comparison matrices to check that the consistency ratio and priority vector remain numerically stable across the input domain.
+    \item Worked numerical traces (Section~\ref{sec:numerical_trace}) confirm the eigenvector approximation, the consistency computation, and the resulting $U_d$ against hand-verified reference values.
+    \item Live, in-person expert elicitation campaigns with supply chain planners are identified as a validation step for a subsequent phase (Section~\ref{sec:Conclusions}) rather than a result already obtained.
+\end{itemize}
+
+\textbf{Conclusion.} AHP is viable for $U_d$ encoding in the DISCO context. The
+$\gls{cr}$ validation gate, exercised by both worked examples and automated tests, successfully detects and rejects cognitively inconsistent
+expert inputs before they enter the network.
+
+%% ═══════════════════════════════════════════════════════════════════════════
+\subsection{Stochastic Judgment Modeling: Fuzzy BWM and PROMETHEE II Network Outranking}
+%% ═══════════════════════════════════════════════════════════════════════════
+
+\textbf{Hypothesis.} F-BWM \glspl{tfn} weights provide an alternative, lower-effort elicitation
+route to crisp AHP under expert uncertainty, and PROMETHEE~II outranking, applied to the same
+weighted KPI blocks that drive local real urgency, produces a network-wide ranking of nodes
+that complements the per-node adequacy score.
+
+\textbf{Approach.} The modules \texttt{mcda/fbwm.py} and \texttt{mcda/promethee.py} implement
+the two methods independently.
+
+\paragraph{F-BWM Implementation.}
+The linguistic TFN scale maps five qualitative judgements to triangular fuzzy numbers on a
+1--4.5 scale (\textit{égalent important} to \textit{absolument plus important}), each carrying
+its own maximum consistency index. The consistency ratio of the Fuzzy BWM model is formulated as:
+\begin{equation}
+    \gls{cr}_{\text{BWM}} = \frac{\xi^*}{\text{CI}},
+    \label{eq:bwm_cr}
+\end{equation}
+where $\xi^*$ is the optimal consistency indicator returned by a constrained non-linear
+optimisation (Scipy SLSQP) that fits the fuzzy weights to the elicited Best-to-Others and
+Others-to-Worst comparisons, and $\text{CI}$ is read from the strongest linguistic judgement used.
+If the optimisation fails to converge, the implementation falls back to uniform weights rather than
+raising an error, so that a single malformed elicitation cannot crash the weekly review. Fuzzy
+weights are defuzzified with the Graded Mean Integration Representation (GMIR):
+\begin{equation}
+    w_j = \frac{l_j + 4 m_j + u_j}{6},
+    \label{eq:bwm_defuzz}
+\end{equation}
+then renormalised so that $\sum_j w_j = 1$. Table~\ref{tab:bwm_defuzz_components} defines the terms.
+
+\begin{table}[H]
+\centering
+\caption{Component definitions for the Fuzzy BWM defuzzification.}
+\label{tab:bwm_defuzz_components}
+\small
+\begin{tabularx}{\linewidth}{llX}
+\toprule
+\textbf{Component} & \textbf{Type} & \textbf{Description} \\
+\midrule
+$w_j$ & Dependent variable & Crisp normalized weight of criterion $j$ \\
+$l_j, m_j, u_j$ & Dynamic variables & Lower, modal, and upper bounds of the triangular fuzzy weight \\
+$\xi^*$ & Dynamic variable & Optimal consistency indicator from the fitted optimisation \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\paragraph{PROMETHEE~II Implementation.}
+PROMETHEE~II is applied in production to rank the active nodes of a project on the same six
+weighted urgency blocks (Table~\ref{tab:ur_blocks}) that feed local real urgency, giving
+coordinators a network-wide, non-compensatory view of which nodes are collectively driving
+urgency. For each pair of active nodes $(a,b)$ and each block $m$, the preference intensity
+$P_m(g_m(a) - g_m(b)) \in [0,1]$ is computed with a Type~V linear preference function with an
+indifference threshold; the aggregated preference index and net outranking flow follow the
+standard PROMETHEE~II formulation:
+\begin{equation}
+    \pi(a,b) = \sum_m \omega_m P_m\bigl(g_m(a) - g_m(b)\bigr), \qquad \phi(a) = \phi^+(a) - \phi^-(a),
+    \label{eq:promethee_net}
+\end{equation}
+where $\phi^+(a)$ and $\phi^-(a)$ are the average preference of $a$ over, respectively by, all
+other active nodes. Table~\ref{tab:promethee_net_components} defines the outranking flow terms.
+
+\begin{table}[H]
+\centering
+\caption{Component definitions for the PROMETHEE II net flow.}
+\label{tab:promethee_net_components}
+\small
+\begin{tabularx}{\linewidth}{llX}
+\toprule
+\textbf{Component} & \textbf{Type} & \textbf{Description} \\
+\midrule
+$\pi(a,b)$ & Dependent variable & Aggregated preference index of $a$ over $b$ \\
+$\phi(a)$ & Dependent variable & Net outranking flow representing overall preference ($\in [-1, 1]$) \\
+$\phi^+(a)$, $\phi^-(a)$ & Dynamic variables & Positive (dominance) and negative (dominated) outranking flows \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The same weights $\omega_m$ used in the local urgency aggregation (Equation~\ref{eq:ur_local}) are
+reused as the PROMETHEE criteria weights, so that the network ranking and the per-node urgency
+score remain mutually consistent rather than relying on a separately calibrated weight set.
+
+\textbf{Conclusion.} The F-BWM and PROMETHEE~II modules are fully implemented, unit tested, and
+already wired into the production ranking path (\texttt{services/orchestrator.py}). F-BWM offers
+a lower-effort alternative to AHP for criteria weighting; PROMETHEE~II turns those weights into a
+defensible, non-compensatory network ranking.
+
+%% ═══════════════════════════════════════════════════════════════════════════
+\subsection{Worked Numerical Trace}
+\label{sec:numerical_trace}
+%% ═══════════════════════════════════════════════════════════════════════════
+
+\textbf{Hypothesis.} Declared urgency elicitation, multi-block real urgency aggregation, network propagation, and asymmetric adequacy scoring compose coherently end to end, producing traceable and explainable results at each stage.
+
+\textbf{Approach.} A minimal three-node serial network is used to trace the full pipeline: Node~3 (raw material supplier) $\to$ Node~2 (sub-assembly) $\to$ Node~1 (final assembly, rank~0), with downstream coefficients $\gamma_{12}=0.9$, $\gamma_{23}=0.8$ and upstream coefficients $\beta_{21}=0.7$, $\beta_{32}=0.9$.
+
+\paragraph{Step~1: AHP elicitation of $U_d$.}
+An operator compares the four criteria of Table~\ref{tab:ur_blocks}'s counterpart questionnaire, producing a reciprocal matrix whose priority vector is $w \approx (0.482, 0.157, 0.272, 0.088)$ with $\lambda_{\max} \approx 4.0145$, $CI \approx 0.0048$, and $CR \approx 0.0054 < 0.10$ (consistent). With local scores $s = (5, 3, 4, 2)$, the weighted score is $\sum w_j s_j \approx 4.148$, giving $U_{d,\text{current}} = (4.148-1)/8 \approx 0.394$. Smoothed against a previous value $U_{d,t-1}=0.30$ with $\rho=0.3$: $U_d = 0.3(0.30) + 0.7(0.394) \approx 0.366$.
+
+\paragraph{Step~2: Local real urgency for each node.}
+Node~1 is \texttt{ACTIVE} with $U_{r,\text{local},1}=0.0$; Node~2 is \texttt{ACTIVE} with $U_{r,\text{local},2}=0.40$ (aggregated from its own blocks); Node~3 is \texttt{DONE}, so its effective local urgency is forced to $0.0$ by the status rule regardless of its raw block values.
+
+\paragraph{Step~3: Network propagation.}
+Descending $U_d$ (topological order 1, 2, 3), with local declared urgencies $U_{d,\text{local}} = (0.80, 0.30, 0.50)$ (Node~3 keeps propagating $U_d$ downstream despite being \texttt{DONE}, to preserve structural demand dependencies):
+\begin{align*}
+    U_{d,1} &= 0.80 \\
+    U_{d,2} &= 1-(1-0.30)(1-0.9\times0.80) = 1-0.7\times0.28 = 0.804 \\
+    U_{d,3} &= 1-(1-0.50)(1-0.8\times0.804) = 1-0.5\times0.357 = 0.822
+\end{align*}
+Ascending $U_r$ (topological order 3, 2, 1):
+\begin{align*}
+    U_{r,3} &= 0.0 \quad (\texttt{DONE}) \\
+    U_{r,2} &= 1-(1-0.40)(1-0.9\times0.0) = 0.40 \\
+    U_{r,1} &= 1-(1-0.0)(1-0.7\times0.40) = 0.28
+\end{align*}
+
+\paragraph{Step~4: Asymmetric adequacy at Node~1.}
+With $U_d=0.80$ and $U_r=0.28$: $F = 0.52$, $H=0.0$. Using default parameters ($\lambda_{\text{under}}=2.25$, $\lambda_{\text{over}}=1.0$, $\alpha=0.88$): $\text{penalty} = 1.0\times0.52^{0.88} \approx 0.567$, $\text{penalty}_{\max}=2.25$, floor $=\exp(-2.25)\approx 0.105$, and:
+\begin{equation*}
+    A_1 = 100 \times \frac{\exp(-0.567) - 0.105}{1 - 0.105} \approx 100 \times \frac{0.567-0.105}{0.895} \approx 51.6.
+\end{equation*}
+Node~1 over-declares urgency relative to the network-propagated real risk; the score of $\approx 51.6/100$ reflects a moderate false-urgency penalty rather than a severe one, consistent with the asymmetric design where false urgency is priced less harshly than an equivalent hidden risk would be.
+
+\textbf{Conclusion.} The full pipeline, elicitation, aggregation, propagation, and adequacy scoring, produces internally consistent, hand-verifiable results at every stage, which is a precondition for the explainability page described in Section~\ref{sec:explain_export}.
+
+\subsubsection{Software Implementation Summary}
+
+The delivered codebase is organised in eight packages (Table~\ref{tab:modules}), amounting to roughly sixty Python modules and over 1400 automated test functions, measured directly against the repository (\texttt{supplyscore/}) and cross-checked against the project's code graph (5039 indexed code entities, 16517 call/reference edges across 183 files).
+
+\begin{table}[H]
+\centering
+\caption{Python packages of the SupplyScore implementation.}
+\label{tab:modules}
+\begin{tabularx}{\linewidth}{lXl}
+\toprule
+\textbf{Package} & \textbf{Responsibility} & \textbf{Status} \\
+\midrule
+\texttt{core/}     & $U_r$ aggregation, AHP, adequacy, status rules, clock, per-node explainability & Implemented \checkmark{}, tested \\
+\texttt{graph/}    & DAG propagation, in-memory and Neo4j repositories, scenario/shock simulation & Implemented \checkmark{}, tested \\
+\texttt{mcda/}     & Fuzzy-BWM weighting, PROMETHEE~II outranking & Implemented \checkmark{}, tested \\
+\texttt{mc/}       & Monte Carlo PERT lead-time simulation & Implemented \checkmark{}, tested \\
+\texttt{services/} & Orchestration facade, weekly review, event engine, criticality, calibration, exports, admin & Implemented \checkmark{}, tested \\
+\texttt{domain/}   & Domain model, milestones, constraints, validation, event taxonomy & Implemented \checkmark{}, tested \\
+\texttt{data/}     & Multi-tenant SQLite persistence, migrations, backup, synthetic data generator & Implemented \checkmark{}, tested \\
+\texttt{web\_ui/}  & Multi-page Dash application (dashboard, onboarding, weekly review, simulation, admin, explainability) & Implemented \checkmark{}, tested \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\textbf{Conclusion.} The elicitation, aggregation, propagation, and adequacy layers behave as predicted on the worked trace above and are backed by a substantially larger, independently tested codebase than a single illustrative example can convey.
+
+%% ═══════════════════════════════════════════════════════════════════════════
+\subsection{Development Methodology and Quality Gates}
+\label{sec:methodology_gates}
+%% ═══════════════════════════════════════════════════════════════════════════
+
+\textbf{Approach.} Beyond the mathematical model itself, the delivered codebase followed a staged, gated development process rather than a single monolithic build, which matters for assessing how much confidence to place in the results above.
+
+\paragraph{Three-milestone structure.} The rewrite that produced the current system was organised into eighteen incremental phases, grouped into three milestones, each with an explicit exit condition (Table~\ref{tab:milestones}).
+
+\begin{table}[H]
+\centering
+\caption{Development milestones and their scope.}
+\label{tab:milestones}
+\small
+\begin{tabularx}{\linewidth}{lX}
+\toprule
+\textbf{Milestone} & \textbf{Scope} \\
+\midrule
+Milestone 1 -- ``Ready for the serious game'' & Onboarding wizard, ISO weekly cycle, calibrated event engine, bimodal clock, universal versioning/audit, exports and backup. \\
+Milestone 2 -- ``Analysis and defensibility'' & End-to-end explainability, property-based proofs on the adequacy/event/milestone logic, safe free-form editing and admin view, prediction/reality calibration, F-BWM and PROMETHEE~II weighting, Monte Carlo lead-time simulation. \\
+Milestone 3 -- ``Industrialisation'' & Performance at 1000+ nodes, multi-shock and criticality scenarios, systematic UI guardrails and automated browser testing, local packaging and hardened startup. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\paragraph{Quality gates.} Each phase was only considered closed once it passed a fixed Definition of Done: static analysis clean (\texttt{ruff}, \texttt{mypy} strict on the core/graph/data/services packages), 100\% of the test suite green, and a coverage threshold that started as a measured, non-blocking indicator in Milestone~1 and became a blocking gate at $\geq 90\%$ from Milestone~2 onward. The core governance parameters used throughout this report ($\lambda_{\text{under}}=2.25$, $\lambda_{\text{over}}=1.0$, $\alpha=0.88$, $CR<0.10$, EMA $\rho=0.3$, $\kappa_{\text{retard}}=0.5$, $\kappa_{\text{avance}}=0.2$, $n_0=26$) are treated as versioned constants: changing any of them is required to be a documented decision rather than a silent tuning change.
+
+\paragraph{Early audit and iterative hardening.} A code audit of the initial baseline (144 tests, no persistence hardening yet) catalogued thirteen concrete weaknesses before the rewrite began, including two rated critical: urgency state was not persisted across restarts, and SQLite connections created on the main thread were shared with Dash's worker threads without the appropriate driver flag. These, along with several majors (duplicated status-rule logic in three places, double propagation on status changes, an unbounded per-node connection cache), were resolved across the following phases rather than left as known issues, which is the kind of iterative hardening a single end-to-end demo would not surface.
+
+\paragraph{Performance and end-to-end validation.} Milestone~3 added a dedicated performance phase validating the system at 1000+ nodes against measured budgets (\texttt{pytest-benchmark}, results archived with the test suite), and a UX/robustness phase adding eight automated Chrome (headless) browser journeys covering the main user flows, alongside a systematic guardrail that no raw exception is ever surfaced directly to the operator's screen.
+
+\textbf{Conclusion.} The adequacy and propagation results reported in this section were produced by a codebase developed under an explicit, auditable quality process (static analysis, blocking coverage, performance budgets, browser-level end-to-end tests), not only by unit tests of the mathematical core in isolation.
+
+%% ═══════════════════════════════════════════════════════════════════════════
+\subsection{Weekly Review Cycle and Calibrated Event Engine}
+%% ═══════════════════════════════════════════════════════════════════════════
+
+\textbf{Hypothesis.} A structured, signed, weekly review cycle, combined with a taxonomy of calibrated operational events, can keep a multi-tenant digital twin's KPI state current without requiring free-form manual data entry, while preserving a complete audit trail.
+
+\textbf{Approach.} The system is operated as a serious game advancing in discrete weeks (\texttt{core/clock.py} implements \texttt{SystemClock} for live use, \texttt{GameClock} for week-by-week advancement, and \texttt{FixedClock} for deterministic testing). At each new week, every active node is flagged as due for review, and the operator completes four sequential sections (\texttt{services/weekly.py}, served by the \texttt{/hebdo} page, Figure~\ref{fig:hebdo}):
+\begin{enumerate}
+    \item the AHP questionnaire (Section~\ref{sec:Operations}, pre-filled with the previous week's values, with a one-click "unchanged" confirmation);
+    \item the week's KPI values, shown against the previous week for quick differencing;
+    \item progress on active milestones, compared against theoretical planning progress;
+    \item any supply chain events that occurred during the week.
+\end{enumerate}
+All four sections are written as a single signed, atomic transaction, so that no partial or anonymous review can corrupt the node's history.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\linewidth]{Images/4.Operations/hebdo.png}
+    \caption{Weekly review page: the four sequential sections (AHP, KPIs, milestones, events).}
+    \label{fig:hebdo}
+\end{figure}
+
+\paragraph{Calibrated Event Engine.}
+Rather than asking operators to manually recompute the KPI impact of a disruption, the system exposes a taxonomy of fourteen calibrated event types (\texttt{domain/events.py}), listed in Table~\ref{tab:event_types}, each mapped to one or more KPI updates through one of three calibration operators.
+
+\begin{table}[H]
+\centering
+\caption{The fourteen calibrated event types.}
+\label{tab:event_types}
+\small
+\begin{tabularx}{\linewidth}{XXX}
+\toprule
+\texttt{panne\_machine} & \texttt{retard\_fournisseur} & \texttt{greve} \\
+\texttt{hausse\_tarif} & \texttt{rupture\_matiere} & \texttt{accident} \\
+\texttt{non\_conformite\_qualite} & \texttt{perturbation\_transport} & \texttt{instabilite\_politique} \\
+\texttt{cyber\_incident} & \texttt{hausse\_energie} & \texttt{alerte\_financiere\_fournisseur} \\
+\texttt{perte\_capacite} & \texttt{pic\_demande} & \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The three calibration operators are: a Beta-Bernoulli Bayesian update for failure probabilities,
+\begin{equation}
+    p_{\text{post}} = \text{clip}\!\left(\frac{p\cdot n_0 + k}{n_0+n},\, 10^{-4},\, 0.99\right),
+    \label{eq:bayes_update}
+\end{equation}
+with a prior weight $n_0=26$ (roughly six months of weekly observations); an exponential moving average for continuous variables such as OEE, $x_{\text{new}} = (1-\lambda)x_{\text{old}} + \lambda x_{\text{obs}}$ with $\lambda \in [0.3, 0.5]$; and a ratchet (max) update for severity, $s_{\text{new}} = \max(s_{\text{old}}, s_{\text{event}})$. Table~\ref{tab:event_components} defines the shared terms.
+
+\begin{table}[H]
+\centering
+\caption{Component definitions for the event calibration operators.}
+\label{tab:event_components}
+\small
+\begin{tabularx}{\linewidth}{llX}
+\toprule
+\textbf{Component} & \textbf{Type} & \textbf{Description} \\
+\midrule
+$p_{\text{post}}$ & Dependent variable & Revised failure probability after the event \\
+$n_0$ & System parameter & Prior equivalent sample size ($26$, roughly six months) \\
+$(k,n)$ & Event input & Equivalent failures/trials implied by the declared event's severity \\
+$x_{\text{new}}$ & Dependent variable & Revised continuous KPI (e.g., availability) \\
+$\lambda$ & System parameter & EMA reactivity weight, $\in[0.3,0.5]$ \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\paragraph{Numerical Example: Strike Event.}
+A node declares a \texttt{greve} (strike) lasting $d=24$~hours affecting a fraction $p_f=0.50$ of the workforce. Equivalent lost hours over a 168-hour week: $H_{\text{lost}} = d \cdot p_f = 12$, so $f_{\text{lost}} = 12/168 \approx 0.0714$ and the observed availability is $A_{\text{obs}} = 1 - 0.0714 \approx 0.9286$. Updating a baseline availability $A_{\text{old}}=0.95$ with EMA reactivity $\lambda=0.5$: $A_{\text{new}} = 0.5(0.95) + 0.5(0.9286) \approx 0.9393$. Risk severity is updated in ratchet mode: $S_{\text{new}} = \max(0.30, 0.50) = 0.50$. Operators can preview the transient impact of a declared event before confirming it, and reverting an event recomputes the baseline KPIs automatically.
+
+\textbf{Conclusion.} The weekly cycle and event engine let coordinators keep the digital twin's KPI state current from structured, auditable inputs rather than free-form edits, which is a precondition for treating the resulting urgency history as a reliable calibration dataset (Section~\ref{sec:mc_criticality}).
+
+%% ═══════════════════════════════════════════════════════════════════════════
+\subsection{Monte Carlo Simulation, Network Criticality, and Empirical Calibration}
+\label{sec:mc_criticality}
+%% ═══════════════════════════════════════════════════════════════════════════
+
+\textbf{Hypothesis.} Replacing the analytic time block with a Monte Carlo estimate of delay probability, combined with systematic shock simulation and PROMETHEE~II outranking, identifies structurally critical nodes; and the resulting adequacy signal has measurable predictive validity against recorded operational outcomes.
+
+\paragraph{Monte Carlo Lead-Time Simulation (PERT).}
+\texttt{mc/lead\_time.py} replaces the analytic $u_{\text{time}}$ block with a full stochastic simulation when enabled, because the maximum of several lognormal lead times is not itself lognormal, which makes closed-form PERT approximations unreliable on multi-tier networks. Lead times are drawn from lognormal, normal (clipped to zero), or triangular distributions per node; completion times propagate topologically along the DAG, $S_i = \max_{j\in\text{Pred}(i)} C_j$, $C_i = S_i + L_i$; and the delay probability is estimated as $u_{\text{time}} = P(C_i > d_i) \approx \frac{1}{N}\sum_k \mathbb{I}(C_i^{(k)} > d_i)$ over $N=10\,000$ draws by default. A memory guardrail caps the simulation to $N \times n \le 5\times 10^7$ across $n$ nodes, and the resulting per-node delay probability feeds directly into Equation~\ref{eq:ur_local} through the \texttt{u\_time\_override} extension point, so the same aggregation and propagation machinery is reused unchanged.
+
+\paragraph{Network Criticality Index.}
+\texttt{services/criticite.py} answers a systematic version of the question a shock simulation answers manually: which node, if it failed completely, would cause the most damage to final-customer delivery? For every active node, the service forces its local real urgency to $1.0$, re-runs the ascending propagation, and measures the resulting delta at the final-customer nodes ($\Delta U_{r,\text{final}}$) and across the whole network ($\Delta U_{r,\max}$). Nodes are ranked by $\Delta U_{r,\text{final}}$ descending, then $\Delta U_{r,\max}$ descending, then alphabetically; nodes already saturated at $U_r \ge 1.0$ yield a delta of zero and sink to the bottom of the ranking, since their risk is already realised in the baseline. Reusing the three-node network of Section~\ref{sec:numerical_trace}, forcing Node~2 to $U_{r,2}=1.0$ propagates to $U_{r,1} = 1-(1-0.7\times1.0) = 0.70$, giving $\Delta U_{r,\text{final}} = 0.70-0.28=0.42$ and $\Delta U_{r,\max}=1.0-0.40=0.60$ (Figure~\ref{fig:criticite}).
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\linewidth]{Images/4.Operations/criticite.png}
+    \caption{Network criticality ranking after a systematic shock simulation.}
+    \label{fig:criticite}
+\end{figure}
+
+\paragraph{Empirical Calibration of the Adequacy Signal.}
+\texttt{services/calibration.py} directly addresses Lock~3 (Section~\ref{sec:locks}): does the hidden-risk signal $H$ have predictive value beyond a raw KPI threshold? For each recorded (node, week) pair, the historical hidden risk $H$ is compared against negative outcomes observed in a subsequent window $[S{+}1, S{+}\text{horizon}]$ (default horizon: four weeks), a missed milestone, an abandoned node, or a critical event. The resulting confusion matrix yields precision, recall, and F1:
+\begin{equation}
+    \text{Precision} = \frac{TP}{TP+FP}, \qquad \text{Recall} = \frac{TP}{TP+FN}, \qquad F1 = 2\cdot\frac{\text{Precision}\cdot\text{Recall}}{\text{Precision}+\text{Recall}}.
+    \label{eq:calib_metrics}
+\end{equation}
+On a small illustrative sample of four observation points at threshold $H\ge0.5$ (one true positive, one true negative, one false positive, one false negative), Precision $=$ Recall $=$ F1 $= 0.50$; the service explicitly flags any calibration run with fewer than 30 observation points as too small to draw statistically significant conclusions, and defers a well-powered confusion matrix to the accumulation of further weekly cycles (Figure~\ref{fig:rapport}).
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\linewidth]{Images/4.Operations/rapport.png}
+    \caption{Calibration report: confusion matrix and precision/recall/F1 for the hidden-risk signal.}
+    \label{fig:rapport}
+\end{figure}
+
+\textbf{Conclusion.} Monte Carlo delay estimation, systematic criticality ranking, and empirical calibration are implemented, tested, and wired into the same aggregation and propagation pipeline used elsewhere in the document. The calibration service in particular gives Lock~3 and RQ2 a concrete, falsifiable empirical test rather than a purely theoretical argument, subject to the sample-size caveat above.
+
+%% ═══════════════════════════════════════════════════════════════════════════
+\subsection{Explainability, Export, and Operational Hardening}
+\label{sec:explain_export}
+%% ═══════════════════════════════════════════════════════════════════════════
+
+\textbf{Approach.} Three supporting capabilities complete the operational demonstrator.
+
+\paragraph{Explainability (XAI).}
+The per-node explanation page (\texttt{services/explain.py}) decomposes $U_d$ into the exact linear contribution of each AHP criterion, $\kappa_j = w_j(s_j-1)/8$ with $\sum_j \kappa_j = U_d$, and decomposes local $U_r$ into the log-survival contribution of each KPI block, $\ell_m = -\omega_m\ln(1-u_m)$, with $U_{r,\text{local}} = 1-\exp(-\sum_m \ell_m)$ and per-block share $c_m = \ell_m / \sum_k \ell_k$, so that a coordinator can see precisely which block is driving a node's urgency and whether the mismatch reflects false urgency or hidden risk (Figure~\ref{fig:ponderation}).
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\linewidth]{Images/4.Operations/ponderation.png}
+    \caption{Criteria weighting interface (Fuzzy-BWM) feeding the explainability decomposition.}
+    \label{fig:ponderation}
+\end{figure}
+
+\paragraph{Export and Reporting.}
+\texttt{services/exports.py} compiles global registry and per-node history into a twelve-worksheet Excel workbook (project metadata, nodes, arcs, milestones, KPI history, urgency history, assessments, weekly reviews, KPI snapshots, events, decisions, and two audit-log sheets), converting all epoch timestamps to the coordinator's local timezone.
+
+\paragraph{Operational Hardening.}
+Because the persistence layer is SQLite, \texttt{data/backup.py} enables Write-Ahead Logging, runs \texttt{PRAGMA integrity\_check} before every backup, and uses the native \texttt{sqlite3.backup} API to copy each database without locking the running application; automatic backups run every 24 hours with a retention cap of 20 archives, and schema migrations are versioned through \texttt{PRAGMA user\_version} (Figure~\ref{fig:admin}).
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\linewidth]{Images/4.Operations/admin.png}
+    \caption{Administration page: database sizes, migration version, and backup controls.}
+    \label{fig:admin}
+\end{figure}
+
+\textbf{Conclusion.} Explainability, export, and hardening are not peripheral features here: they are what make the adequacy score auditable and the digital twin operable outside a development environment, which is a precondition for the empirical calibration described above.
