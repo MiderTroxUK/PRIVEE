@@ -1,0 +1,11 @@
+[
+  {
+    "node": "novafab",
+    "type": "rupture_matiere",
+    "params": {
+      "duree_prevue_h": 309.3,
+      "criticite": 0.7
+    },
+    "note": "Sécheresse : rationnement d'eau ultrapure (juin 2021)."
+  }
+]

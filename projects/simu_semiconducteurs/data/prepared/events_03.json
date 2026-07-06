@@ -1,0 +1,10 @@
+[
+  {
+    "node": "novafab",
+    "type": "pic_demande",
+    "params": {
+      "nouvelle_demande": 110.0
+    },
+    "note": "Recommandes automobiles sur créneaux déjà vendus (nov. 2020)."
+  }
+]

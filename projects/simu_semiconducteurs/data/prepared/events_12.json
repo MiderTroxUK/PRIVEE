@@ -1,0 +1,19 @@
+[
+  {
+    "node": "electis",
+    "type": "perte_capacite",
+    "params": {
+      "pct_volume_perdu": 0.3
+    },
+    "note": "Backend Asie du Sud-Est en rotation : capacité aval amputée (août 2021)."
+  },
+  {
+    "node": "transglobal",
+    "type": "perturbation_transport",
+    "params": {
+      "retard_h": 77.3,
+      "surcout": 20000.0
+    },
+    "note": "Flux backend ralentis, bascule vers le fret aérien (août 2021)."
+  }
+]

@@ -1,0 +1,15 @@
+node_id,kpi_path,valeur
+meridian,network.demand,111.9
+compodis,inventory.flow_rate,111.9
+compodis,time.lead_time_h,541.3
+compodis,cost.op_cost,99.35
+compodis,risk.cost_volatility,0.0017
+compodis,risk.failure_probability,0.01719
+electis,oee.performance,1.0
+electis,oee.availability,0.937
+electis,cost.op_cost,100.88
+electis,risk.cost_volatility,0.0024
+silpure,cost.op_cost,100.88
+silpure,risk.cost_volatility,0.0024
+silpure,risk.failure_probability,0.0086
+aviosys,inventory.flow_rate,100.0

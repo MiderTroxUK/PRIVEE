@@ -1,0 +1,19 @@
+[
+  {
+    "node": "transglobal",
+    "type": "perturbation_transport",
+    "params": {
+      "retard_h": 116.0,
+      "surcout": 30000.0
+    },
+    "note": "Congestion portuaire côte ouest US, 100+ navires (oct. 2021)."
+  },
+  {
+    "node": "compodis",
+    "type": "hausse_tarif",
+    "params": {
+      "pct": 25.0
+    },
+    "note": "Majorations tarifaires, primes spot (oct. 2021)."
+  }
+]

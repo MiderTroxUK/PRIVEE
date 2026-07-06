@@ -1,0 +1,56 @@
+[
+  {
+    "node": "orbitalys",
+    "name": "Livraison HÉLIOS-2",
+    "progress": 0.7,
+    "status": "active"
+  },
+  {
+    "node": "aviosys",
+    "name": "Sous-système avionique lot 3",
+    "progress": 0.6,
+    "status": "active"
+  },
+  {
+    "node": "aviosys",
+    "name": "Sous-système avionique lot 4",
+    "progress": 0.0,
+    "status": "active"
+  },
+  {
+    "node": "electis",
+    "name": "Cartes HÉLIOS série C",
+    "progress": 0.375,
+    "status": "active"
+  },
+  {
+    "node": "compodis",
+    "name": "Couverture composants S2",
+    "progress": 0.583,
+    "status": "active"
+  },
+  {
+    "node": "transglobal",
+    "name": "Renouvellement contrat de flux",
+    "progress": 0.4,
+    "status": "active"
+  },
+  {
+    "node": "novafab",
+    "name": "Allocation wafers HÉLIOS S2",
+    "progress": 0.5,
+    "status": "active"
+  },
+  {
+    "node": "meridian",
+    "name": "Créneaux de production engagés",
+    "progress": 0.8,
+    "status": "active"
+  },
+  {
+    "node": "silpure",
+    "name": "Contrat wafers année suivante",
+    "progress": 0.333,
+    "status": "active"
+  }
+]

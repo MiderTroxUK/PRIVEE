@@ -1,0 +1,19 @@
+[
+  {
+    "node": "novafab",
+    "type": "pic_demande",
+    "params": {
+      "nouvelle_demande": 125.0
+    },
+    "note": "Report de commandes après l'incendie d'un concurrent (mars 2021)."
+  },
+  {
+    "node": "transglobal",
+    "type": "perturbation_transport",
+    "params": {
+      "retard_h": 33.1,
+      "surcout": 15000.0
+    },
+    "note": "Blocage du canal de Suez, 6 jours + désorganisation (mars 2021)."
+  }
+]

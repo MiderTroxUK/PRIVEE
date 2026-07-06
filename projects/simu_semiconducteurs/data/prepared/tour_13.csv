@@ -1,0 +1,16 @@
+node_id,kpi_path,valeur
+novafab,network.demand,141.1
+meridian,network.demand,141.1
+compodis,inventory.flow_rate,141.1
+compodis,time.lead_time_h,947.3
+compodis,cost.op_cost,100.55
+compodis,risk.cost_volatility,0.0008
+compodis,risk.failure_probability,0.01436
+electis,oee.performance,1.0
+electis,oee.availability,0.996
+electis,cost.op_cost,111.83
+electis,risk.cost_volatility,0.0106
+silpure,cost.op_cost,111.83
+silpure,risk.cost_volatility,0.0106
+silpure,risk.failure_probability,0.00718
+aviosys,inventory.flow_rate,50.0

@@ -1,0 +1,10 @@
+[
+  {
+    "node": "compodis",
+    "type": "pic_demande",
+    "params": {
+      "nouvelle_demande": 160.0
+    },
+    "note": "Sur-commandes massives des clients (bullwhip, sept. 2021)."
+  }
+]

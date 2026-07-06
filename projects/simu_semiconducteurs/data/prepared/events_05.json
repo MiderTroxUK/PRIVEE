@@ -1,0 +1,10 @@
+[
+  {
+    "node": "compodis",
+    "type": "retard_fournisseur",
+    "params": {
+      "retard_h": 77.3
+    },
+    "note": "Passage en mode allocation ; livraisons amont décalées (janv. 2021)."
+  }
+]

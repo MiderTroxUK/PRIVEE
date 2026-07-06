@@ -1,0 +1,11 @@
+[
+  {
+    "node": "novafab",
+    "type": "accident",
+    "params": {
+      "duree_arret_h": 154.7,
+      "gravite": "critique"
+    },
+    "note": "Gel Texas : arrêt à chaud de la fab texane (févr. 2021)."
+  }
+]

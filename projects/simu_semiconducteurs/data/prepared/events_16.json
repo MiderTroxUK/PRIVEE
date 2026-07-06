@@ -1,0 +1,10 @@
+[
+  {
+    "node": "silpure",
+    "type": "hausse_tarif",
+    "params": {
+      "pct": 18.0
+    },
+    "note": "Répercussion de la flambée du polysilicium (déc. 2021)."
+  }
+]
