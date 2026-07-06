@@ -14,6 +14,50 @@ The R\&D pipeline is organized into five core operational areas:
 \end{itemize}
 
 %% ═══════════════════════════════════════════════════════════════════════════
+\subsection{System Architecture}
+\label{sec:architecture}
+%% ═══════════════════════════════════════════════════════════════════════════
+
+Before the mathematical content, the delivered system's architecture deserves a short
+description of its own: several design guarantees relied upon later (auditability,
+multi-tenant isolation, deterministic testing) are architectural, not mathematical.
+
+\paragraph{Single facade.} All operations go through one orchestrating facade
+(\texttt{services/orchestrator.py}), which coordinates the mathematical core, the
+graph repository, and the persistence layers behind a single thread-safe entry
+point. The web interface, the command-line entry point, and the test suite all
+drive the system exclusively through this facade --- there is no second write path.
+
+\paragraph{Multi-tenant persistence.} Data is split between one global registry
+database (projects, nodes, arcs, milestones, scenarios, registry-level audit) and
+one SQLite database per node holding its private operational history (KPI
+snapshots, AHP assessments, weekly reviews, urgency history, declared events, and
+a per-node audit log). This isolation prevents write contention between operators
+reviewing different nodes and enforces the boundary that one supplier's raw
+history is not readable through another supplier's records.
+
+\paragraph{Gatekeeper writes.} Every business write crosses a single mutation
+service that whitelists the touched fields, validates ranges, diffs against the
+current state (a no-op write leaves no trace), records the change in the audit
+log with its author and source, and synchronises the in-memory graph. Audit
+tables are strictly immutable, including from the administration interface ---
+the "no silent data loss" guarantee of Table~\ref{tab:limitations} is enforced
+here, not by convention.
+
+\paragraph{Graph and propagation.} The network lives in an in-memory graph
+repository (networkx-backed; a Neo4j adapter is scaffolded but out of scope).
+Propagation is incremental: only the upstream/downstream cones of nodes whose
+local urgency actually changed are recomputed, which keeps the twin responsive
+at the 1000+-node scale validated in Milestone~3.
+
+\paragraph{Decoupled clocks.} Each project carries its own clock: a system clock
+for live use, a game clock advancing week by week for serious-game sessions, and
+a fixed clock for deterministic tests. The weekly cycle, milestone pressure, and
+event timestamps all read the project clock, never the wall clock directly ---
+which is what makes a compressed serious-game campaign (Section~\ref{sec:Conclusions})
+possible without touching the model.
+
+%% ═══════════════════════════════════════════════════════════════════════════
 \subsection{Mathematical Framework and Core Formulations}
 %% ═══════════════════════════════════════════════════════════════════════════
 

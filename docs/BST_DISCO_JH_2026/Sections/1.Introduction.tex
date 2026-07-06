@@ -85,15 +85,18 @@ To support the showcase and continuous improvement of mature supply chain capabi
 \subsubsection{Capitalisation of Prior ALTEN-DIN Research}
 %% ─────────────────────────────────────────────────────────────────────────
 
-This R\&D operation builds directly on eight prior DIN research works that form an
-integrated body of knowledge within the DISCO programme.
+This R\&D operation is situated within a body of prior DIN research on the DISCO
+programme. These works form the organisational and thematic context of the present
+operation; the system delivered here (SupplyScore, Section~\ref{sec:Operations}) is
+a standalone Python application and does not integrate with these modules yet ---
+their coupling is a stated perspective (Section~\ref{sec:Conclusions}), not a
+delivered capability.
 
-\textbf{Baxas~\autocite{baxas2025architecture}} defines the DISCO software architecture,
-including the \gls{tts}/\gls{ttr} formalisation and the conceptual anti-thrashing gate
-framework that motivates Lock~1.
+\textbf{Baxas~\autocite{baxas2025architecture}} defines the DISCO software
+architecture, including the \gls{tts}/\gls{ttr} formalisation.
 
 \textbf{Baulain and Dubarry~\autocite{baulain2024internet}} developed the Physical
-Internet routing module, providing $T_{\text{HERE}}$ via the HERE Maps API
+Internet routing module of DISCO, providing transit times via the HERE Maps API
 (Vincenty distances, mandatory 4h30 \gls{hgv} pause compliance) and the Itinerary
 Performance Index (\gls{ipg}) normalised in $[0,1]$.
 
@@ -106,7 +109,7 @@ quantification module per route using the GLEC/VECTO methodology with log-normal
 output $\hat{x}_{\text{CO}_2}$.
 
 \textbf{Mondelice~\autocite{mondelice2025tms}} developed the Transport Management
-System interface providing real-time $T_{\text{HERE}}$ extraction.
+System interface providing real-time transit-time extraction.
 
 
 %% ─────────────────────────────────────────────────────────────────────────
