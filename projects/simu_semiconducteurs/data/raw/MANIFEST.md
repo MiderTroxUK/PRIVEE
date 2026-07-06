@@ -1,6 +1,6 @@
 # MANIFEST des données brutes — campagne HÉLIOS
 
-Généré par fetch_data.py le 2026-07-03. Fenêtre de campagne : 2020-07 -> 2022-02.
+Généré par fetch_data.py le 2026-07-06. Fenêtre de campagne : 2020-07 -> 2022-02.
 
 ## Séries INSEE (API BDM, licence ouverte Etalab)
 
@@ -18,20 +18,28 @@ Généré par fetch_data.py le 2026-07-03. Fenêtre de campagne : 2020-07 -> 202
 - Page : https://www.wsts.org/67/Historical-Billings-Report
 - Statut : Téléchargé automatiquement depuis https://www.wsts.org/esraCMS/extension/media/f/WST/7644/WSTS-Historical-Billings-Report-Apr_2026.xlsx (sha256 e03f4871a10e710f…).
 
-## Étapes manuelles restantes (compte requis — utilisateur)
+## Datasets Kaggle (déposés manuellement — verdicts du contrôle HD5)
 
-1. **Kaggle — Semiconductor shortage (1985-2021)** :
-   https://www.kaggle.com/datasets/ramjasmaurya/semiconductor-shortages19852021
-   -> déposer le CSV dans ce dossier sous `kaggle_semiconductor_shortage.csv`.
-   Contrôle d'authenticité AVANT usage : la description doit citer la source
-   primaire (FRED/BLS) ; sinon, écarter (HD5).
-2. **Kaggle — Logistics and Supply Chain Dataset (SoCal 2021-2024)** :
-   https://www.kaggle.com/datasets/datasetengineer/logistics-and-supply-chain-dataset
-   -> déposer sous `kaggle_socal_logistics.csv`. Même contrôle HD5 :
-   provenance réelle citée, sinon écarté (le plan tient sans).
+1. **`Semiconductor shortage affects.csv`** (semiconductor-shortages19852021) —
+   **AUTHENTIQUE, UTILISÉ.** Séries mensuelles US de type FRED/BLS (PPI
+   semi-conducteurs, indices export/import, emploi sectoriel), 1985-01 ->
+   2021-11. Signatures de réalité : déclin séculaire du PPI (100.5 -> 55.3),
+   inflexion HAUSSIÈRE en 2021 (l'anomalie documentée de la crise), emploi
+   cohérent avec les séries officielles. Usage : contexte coût de novafab
+   (cost.op_cost normalisé baseline juil-août 2020). Limite : série arrêtée
+   nov. 2021 -> T16-T18 sans écriture (dernière valeur persiste). SHA256 : 2b81c8a1f721ca22…
+2. **`dynamic_supply_chain_logistics_dataset.csv`** (logistics-and-supply-chain-
+   dataset) — **ÉCARTÉ (HD5).** Marqueurs de données synthétiques générées pour
+   l'entraînement ML : colonnes cibles pré-calculées (delay_probability,
+   risk_classification, disruption_likelihood_score), coordonnées GPS
+   éparpillées sur tout le territoire US alors que la description annonce la
+   Californie du Sud, distributions uniformément moyennes. Conservé dans raw/
+   pour trace, jamais chargé par le pipeline. TransGlobal reste piloté par
+   les événements calibrés, comme prévu au plan.
 
 ## Séries écartées / non trouvées (documenté, jamais inventé)
 
+- Dataset logistique Kaggle : écarté (synthétique, voir section Kaggle).
 - Indice de fret public couvrant 2020-2022 sans licence : non identifié à ce
   stade -> le bloc cost de TransGlobal reste piloté par les événements
   calibrés (surcoûts documentés) + IPP industrie en contexte.

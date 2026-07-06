@@ -1,5 +1,7 @@
 node_id,kpi_path,valeur
 novafab,network.demand,146.0
+novafab,cost.op_cost,101.07
+novafab,risk.cost_volatility,0.0037
 meridian,network.demand,146.0
 compodis,inventory.flow_rate,146.0
 compodis,time.lead_time_h,966.6

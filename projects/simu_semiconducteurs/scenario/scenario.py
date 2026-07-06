@@ -225,6 +225,9 @@ BASELINE_KPIS: dict[str, dict[str, float]] = {
         "oee.availability": 0.95,
         "oee.performance": 0.95,
         "oee.quality": 0.99,
+        # Contexte coût : PPI semi-conducteurs US (Kaggle/BLS, contrôle HD5 OK).
+        "cost.nominal_op_cost": 100.0,
+        "cost.op_cost": 100.0,
         "risk.failure_probability": 0.01,
         "risk.recovery_time_h": real_weeks_h(4),  # redémarrage fab ≈ 1 mois (gel Texas)
         "risk.severity": 0.2,

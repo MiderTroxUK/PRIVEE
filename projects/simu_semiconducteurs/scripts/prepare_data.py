@@ -25,6 +25,7 @@ Table de mapping (source -> champ), toutes transformations nommées ci-dessous :
 | electis    | oee.availability           | TUC interpolé mensuel / 82.6 (dernier trimestre pré-covid, borne [0,1]) |
 | electis    | cost.op_cost               | IPP industrie / baseline × nominal           |
 | silpure    | cost.op_cost               | IPP industrie / baseline × nominal (contexte ; la flambée polysilicium passe par hausse_tarif T16) |
+| novafab    | cost.op_cost               | PPI semi-conducteurs US (Kaggle/BLS, HD5 : authentique) / baseline × nominal — série arrêtée nov. 2021 : T16-T18 sans écriture (dernière valeur persiste, jamais d'invention) |
 | silpure    | risk.failure_probability   | défaillances industrie / baseline × p_base   |
 | compodis   | risk.failure_probability   | défaillances industrie / baseline × p_base   |
 | aviosys    | inventory.flow_rate        | AVIOSYS_COVERAGE_WEEKS -> capacité d'alimentation 100×min(couv/6, 1) (scripté narration — assumé) |
@@ -66,6 +67,28 @@ SKIP_SERIES_ON_EVENT: dict[tuple[str, str], set[int]] = {
 def _load_series(slug: str) -> dict[str, float]:
     with (RAW / f"{slug}.csv").open(encoding="utf-8") as f:
         return {r["periode"]: float(r["valeur"]) for r in csv.DictReader(f)}
+
+
+def _load_kaggle_ppi_semi() -> dict[str, float]:
+    """PPI semi-conducteurs US (Kaggle 'Semiconductor shortage affects', BLS).
+
+    Contrôle HD5 passé (séries FRED/BLS reconnaissables : déclin séculaire du
+    PPI, emploi sectoriel cohérent). Dates au format 01-MM-AAAA, série arrêtée
+    en novembre 2021 : les mois absents ne sont simplement pas écrits.
+    """
+    path = RAW / "Semiconductor shortage affects.csv"
+    out: dict[str, float] = {}
+    if not path.exists():
+        return out
+    ppi_col = "Producer Price Index(By  Industry in $)"
+    with path.open(encoding="utf-8", errors="replace") as f:
+        for row in csv.DictReader(f):
+            raw = (row.get(ppi_col) or "").strip()
+            if raw in ("", "."):
+                continue
+            _day, month, year = row["DATE"].split("-")
+            out[f"{year}-{month}"] = float(raw)
+    return out
 
 
 def _load_wsts_worldwide() -> dict[str, float]:
@@ -160,7 +183,14 @@ def build_tours() -> dict[int, list[tuple[str, str, float]]]:
     b_wsts = baseline(wsts)
     tuc_ref = 82.6  # dernier trimestre pré-covid (2020-Q1), borne de normalisation
 
-    cost_hist: dict[str, list[float]] = {"electis": [], "silpure": [], "compodis": []}
+    ppi_semi = _load_kaggle_ppi_semi()
+    b_ppi_semi = (
+        (ppi_semi["2020-07"] + ppi_semi["2020-08"]) / 2.0 if ppi_semi else None
+    )
+
+    cost_hist: dict[str, list[float]] = {
+        "electis": [], "silpure": [], "compodis": [], "novafab": []
+    }
     tours: dict[int, list[tuple[str, str, float]]] = {0: []}
 
     for tour, month in enumerate(months, start=1):
@@ -169,6 +199,16 @@ def build_tours() -> dict[int, list[tuple[str, str, float]]]:
         # NovaFab : demande mondiale (les délais clients sont portés par compodis).
         if tour not in SKIP_SERIES_ON_EVENT[("novafab", "network.demand")]:
             rows.append(("novafab", "network.demand", round(wsts_idx, 1)))
+        # NovaFab : contexte coût PPI US (série arrêtée nov. 2021 — mois absents
+        # non écrits, la dernière valeur persiste dans le moteur).
+        if b_ppi_semi is not None and month in ppi_semi:
+            op_semi = round(100.0 * ppi_semi[month] / b_ppi_semi, 2)
+            rows.append(("novafab", "cost.op_cost", op_semi))
+            cost_hist["novafab"].append(op_semi)
+            rows.append(
+                ("novafab", "risk.cost_volatility",
+                 round(_volatility(cost_hist["novafab"]), 4))
+            )
         # Meridian : la même vague de demande le frappe (capacité flow constante).
         rows.append(("meridian", "network.demand", round(wsts_idx, 1)))
         # CompoDis : volume servi (WSTS), délais constatés, prix catalogue, risque.

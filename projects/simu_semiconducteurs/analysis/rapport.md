@@ -10,7 +10,7 @@ lags par nœud : {'orbitalys': 1, 'aviosys': 0, 'electis': 0, 'compodis': 0, 'tr
 
 ### HA2 — détection précoce (risque caché) — NON CONFIRMÉE
 
-H(novafab) sur T6-T12 : max = 0.070 (seuil : 0.3) — {6: 0.0, 7: 0.011088270514588272, 8: 0.045720345592875855, 9: 0.06998624088520433, 10: 0.061836541730010186, 11: 0.0, 12: 0.0}
+H(novafab) sur T6-T12 : max = 0.070 (seuil : 0.3) — {6: 0.0, 7: 0.011088270500366315, 8: 0.045720345593317724, 9: 0.06998624088617922, 10: 0.06183654173042119, 11: 0.0, 12: 0.0}
 
 ### HA3 — criticité structurelle — NON CONFIRMÉE
 
