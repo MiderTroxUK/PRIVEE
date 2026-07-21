@@ -14,7 +14,8 @@ import threading
 
 import pytest
 
-from supplyscore.data.db import RegistryDatabase, kpis_from_json
+from supplyscore.data import migrations
+from supplyscore.data.db import ClientDatabase, RegistryDatabase, kpis_from_json
 from supplyscore.data.generator import RandomSupplyChainGenerator
 from supplyscore.data.migrations import apply_migrations
 from supplyscore.domain.models import TaskStatus, UrgencyState
@@ -127,9 +128,12 @@ class TestFreshDatabase:
         conn = sqlite3.connect(str(tmp_path / "client.sqlite"))
         version = apply_migrations(conn, "client")
 
-        assert version == 6
-        assert conn.execute("PRAGMA user_version").fetchone()[0] == 6
-        assert {"assessments", "kpi_snapshots", "urgency_history"} <= _table_names(conn)
+        assert version == 7
+        assert conn.execute("PRAGMA user_version").fetchone()[0] == 7
+        assert {"assessments", "kpi_snapshots", "urgency_history", "interventions"} <= _table_names(
+            conn
+        )
+        assert "idx_interventions_node_date" in _index_names(conn)
         conn.close()
 
 
@@ -192,6 +196,84 @@ class TestLegacyV1Database:
             # Pas de ligne node_urgency : UrgencyState vierge.
             for field in _URGENCY_FIELDS:
                 assert getattr(node.urgency, field) is None
+
+
+# --- Migrations : base client v6 existante (U16 — journal des interventions) --------
+
+
+class TestClientV6ToV7:
+    def test_migration_v6_to_v7_ajoute_interventions_sans_perte(self, tmp_path):
+        """Une base client réellement en v6 migre proprement vers v7 (open -> migrate -> reopen)."""
+        db_file = tmp_path / "client.sqlite"
+
+        # Construit une base v6 réelle en rejouant UNIQUEMENT les vraies
+        # migrations v1..v6 du module (pas une copie à la main du schéma).
+        conn = sqlite3.connect(str(db_file))
+        with pytest.MonkeyPatch.context() as mp:
+            # ``apply_migrations`` lit ``_MIGRATIONS_BY_KIND["client"]`` (pas
+            # ``_CLIENT_MIGRATIONS`` directement) : c'est CETTE entrée qu'il
+            # faut patcher pour que la troncature soit effective.
+            sliced = [t for t in migrations._CLIENT_MIGRATIONS if t[0] <= 6]
+            mp.setitem(migrations._MIGRATIONS_BY_KIND, "client", sliced)
+            version = apply_migrations(conn, "client")
+        assert version == 6
+        assert "interventions" not in _table_names(conn)
+
+        # Données antérieures, pour vérifier qu'elles survivent à la migration v7.
+        conn.execute(
+            """
+            INSERT INTO events (id, node_id, event_type, iso_week, occurred_at,
+                                params_json, impacts_json, reverted_at, operator_id, notes)
+            VALUES ('ev1', 'n1', 'panne_machine', '2026-S24', 1000.0, '{}', '[]', NULL, 'op', '')
+            """
+        )
+        conn.commit()
+        conn.close()
+
+        # Réouverture : migration réelle jusqu'à v7 (liste NON monkeypatchée).
+        conn2 = sqlite3.connect(str(db_file))
+        version2 = apply_migrations(conn2, "client")
+        assert version2 == 7
+        assert conn2.execute("PRAGMA user_version").fetchone()[0] == 7
+        assert "interventions" in _table_names(conn2)
+        assert "idx_interventions_node_date" in _index_names(conn2)
+        assert conn2.execute("SELECT COUNT(*) FROM events").fetchone()[0] == 1
+        conn2.close()
+
+        # Rejouable : re-application = no-op.
+        conn3 = sqlite3.connect(str(db_file))
+        assert apply_migrations(conn3, "client") == 7
+        assert conn3.execute("PRAGMA user_version").fetchone()[0] == 7
+        conn3.close()
+
+        # Le chemin normal (ClientDatabase) migre aussi proprement et la table
+        # interventions est immédiatement utilisable (round-trip minimal).
+        with ClientDatabase(tmp_path, "client") as db:
+            assert db.schema_version == 7
+            row_id = db.insert_intervention(
+                {
+                    "id": "iv-1",
+                    "node_id": "n1",
+                    "date_ts": 1000.0,
+                    "etat_avant_json": "{}",
+                    "action_id": "a1",
+                    "acteur": "op",
+                    "objectif_operationnel": "tester la migration",
+                    "decidee_ts": 1000.0,
+                    "executee": None,
+                    "executee_ts": None,
+                    "date_effet_ts": None,
+                    "resultat": "en_cours",
+                    "etat_apres_json": None,
+                    "etat_risque_avant_json": "{}",
+                    "etat_risque_apres_json": None,
+                    "succes": None,
+                    "effets_voisins_json": "[]",
+                    "notes": "",
+                }
+            )
+            assert row_id == "iv-1"
+            assert [row["id"] for row in db.list_interventions("n1")] == ["iv-1"]
 
 
 # --- Redémarrage du service (test pivot) ---------------------------------------------

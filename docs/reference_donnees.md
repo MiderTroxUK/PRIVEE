@@ -418,7 +418,7 @@ terminant par `PRAGMA user_version = N` dans sa propre transaction.
 | audit_log | id (PK), entity_type, entity_id, field, old_value, new_value, source | journal d'audit du registre (section 6) |
 | scenarios | id (PK), project_id, nom, payload_json | scénarios de simulation nommés, nom unique par projet |
 
-### Tables d'une base client (8 tables, schéma final v6)
+### Tables d'une base client (9 tables, schéma final v7)
 
 Chaque nœud possède son fichier `<node_id>.sqlite` :
 
@@ -432,6 +432,7 @@ Chaque nœud possède son fichier `<node_id>.sqlite` :
 | audit_log | id (PK), entity_type, entity_id, field, source | journal d'audit de la base client (section 6) |
 | weekly_reviews | (node_id, iso_week) PK, volets_json, started_at, completed_at | avancement des volets de la revue hebdomadaire |
 | decisions | id (PK), node_id, iso_week, description, scores_snapshot_json | décisions consignées en revue, scores au moment T |
+| interventions | id (PK), node_id, date_ts, etat_avant_json, action_id, resultat, etat_apres_json, etat_risque_avant_json, etat_risque_apres_json, succes | journal des interventions correctives, contrat n°9 (voir modele_mathematique.md §13) |
 
 Les bundles KPI sont stockés en JSON (colonnes `kpis_json`). La sérialisation
 n'embarque que les champs déclarés des dataclasses : les propriétés calculées
@@ -454,6 +455,7 @@ par la couche data, et le nom d'un scénario est unique par projet.
 | idx_decisions_node_week | decisions (node_id, iso_week) | journal des décisions d'un nœud, filtré par semaine |
 | idx_urgency_node_ts | urgency_history (node_id, timestamp) | série temporelle `urgency_series` |
 | idx_assessments_node_ts | assessments (node_id, timestamp) | dernière évaluation effective, liste chronologique |
+| idx_interventions_node_date | interventions (node_id, date_ts) | journal des interventions d'un nœud, ordre chronologique |
 
 Côté registre, `idx_nodes_project` sert le filtrage des nœuds par projet,
 `idx_milestones_node` le listage des jalons par position, `idx_node_tags_tag`
@@ -475,6 +477,7 @@ les index d'audit sont décrits en section 6.
 | client | v4 | colonne iso_week sur assessments et urgency_history, backfillée ligne à ligne depuis le timestamp, index idx_assessments_week et idx_urgency_week |
 | client | v5 | weekly_reviews, decisions et l'index idx_decisions_node_week |
 | client | v6 | index temporels idx_urgency_node_ts et idx_assessments_node_ts |
+| client | v7 | table interventions (journal des interventions correctives, contrat n°9) et l'index idx_interventions_node_date |
 
 Chaque migration est atomique : une interruption laisse la base à la version
 précédente, rejouable proprement au prochain démarrage.

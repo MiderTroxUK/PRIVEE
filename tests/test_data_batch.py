@@ -296,7 +296,7 @@ def _index_names(db_path: Path) -> set[str]:
 
 def test_client_v6_pose_les_index_temporels_manquants(tmp_path):
     with ClientDatabase(tmp_path, "client") as db:
-        assert db.schema_version == 6
+        assert db.schema_version == 7  # v7 (U16) est la version courante
 
     index = _index_names(tmp_path / "client.sqlite")
     assert "idx_urgency_node_ts" in index  # nouveau (v6)

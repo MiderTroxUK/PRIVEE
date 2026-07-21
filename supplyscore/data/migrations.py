@@ -611,6 +611,54 @@ def _client_v6(conn: sqlite3.Connection) -> None:
         conn.execute("PRAGMA user_version = 6")
 
 
+def _client_v7(conn: sqlite3.Connection) -> None:
+    """v7 client : journal des interventions (contrat n°9, HÉLIOS v7), idempotent.
+
+    Ajoute la table ``interventions`` : une ligne par intervention décidée sur
+    un nœud, de l'ouverture (``etat_avant_json`` — état OBSERVABLE seulement —
+    ``action_id``, ``acteur``, ``objectif_operationnel``, ``decidee_ts``) à la
+    clôture (``resultat`` causal, ``etat_apres_json``, ``succes`` dérivé,
+    ``effets_voisins_json``). L'état de risque (``etat_risque_avant_json`` /
+    ``etat_risque_apres_json``) est porté par des colonnes SÉPARÉES des
+    colonnes ``etat_*_json`` : c'est une information d'INTERFACE, jamais le
+    label causal du résultat opérationnel (voir docs/modele_mathematique.md,
+    §13, et :mod:`supplyscore.services.interventions`). Index
+    ``idx_interventions_node_date`` sur ``(node_id, date_ts)``.
+    """
+    with conn:
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS interventions (
+                id TEXT PRIMARY KEY,
+                node_id TEXT NOT NULL,
+                date_ts REAL NOT NULL,
+                etat_avant_json TEXT NOT NULL,
+                action_id TEXT NOT NULL,
+                acteur TEXT NOT NULL,
+                objectif_operationnel TEXT NOT NULL,
+                decidee_ts REAL NOT NULL,
+                executee INTEGER,
+                executee_ts REAL,
+                date_effet_ts REAL,
+                resultat TEXT NOT NULL DEFAULT 'en_cours',
+                etat_apres_json TEXT,
+                etat_risque_avant_json TEXT NOT NULL,
+                etat_risque_apres_json TEXT,
+                succes INTEGER,
+                effets_voisins_json TEXT NOT NULL DEFAULT '[]',
+                notes TEXT NOT NULL DEFAULT ''
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_interventions_node_date
+            ON interventions(node_id, date_ts)
+            """
+        )
+        conn.execute("PRAGMA user_version = 7")
+
+
 # --- Registres de migrations ---------------------------------------------------------
 
 _REGISTRY_MIGRATIONS: list[tuple[int, MigrationFn]] = [
@@ -628,6 +676,7 @@ _CLIENT_MIGRATIONS: list[tuple[int, MigrationFn]] = [
     (4, _client_v4),
     (5, _client_v5),
     (6, _client_v6),
+    (7, _client_v7),
 ]
 
 _MIGRATIONS_BY_KIND: dict[str, list[tuple[int, MigrationFn]]] = {
