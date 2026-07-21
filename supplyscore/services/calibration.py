@@ -37,9 +37,14 @@ Limite assumée (censure à droite) : pour les semaines récentes, la fenêtre
 from __future__ import annotations
 
 import json
+from collections import defaultdict
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import timedelta
 from typing import TYPE_CHECKING
+
+import numpy as np
+from numpy.typing import NDArray
 
 from supplyscore.core.clock import iso_week
 from supplyscore.domain.milestones import MilestoneStatus
@@ -77,6 +82,36 @@ def _semaine_decalee(week: str, n: int) -> str:
     """
     iso = (_lundi(week) + timedelta(weeks=n)).isocalendar()
     return f"{iso.year:04d}-S{iso.week:02d}"
+
+
+def _rangs_moyens(valeurs: NDArray[np.float64]) -> NDArray[np.float64]:
+    """Rangs moyens (1-indexés) de ``valeurs``, ex æquo partageant leur rang.
+
+    Implémente le rang « fractional » standard (identique à
+    ``scipy.stats.rankdata(method="average")``) sans dépendance
+    supplémentaire : les valeurs égales reçoivent la moyenne des rangs
+    bruts qu'elles occuperaient triées.
+
+    Args:
+        valeurs: tableau 1D de valeurs (peut contenir des ex æquo).
+
+    Returns:
+        Un tableau de même longueur, rang moyen par position d'origine.
+    """
+    ordre = np.argsort(valeurs, kind="mergesort")
+    valeurs_triees = valeurs[ordre]
+    n = len(valeurs)
+    rangs_bruts = np.arange(1, n + 1, dtype=np.float64)
+    frontieres = np.zeros(n, dtype=np.bool_)
+    frontieres[1:] = valeurs_triees[1:] != valeurs_triees[:-1]
+    groupes = np.cumsum(frontieres)
+    sommes = np.bincount(groupes, weights=rangs_bruts)
+    comptes = np.bincount(groupes)
+    rangs_par_groupe = sommes / comptes
+    rangs_tries = rangs_par_groupe[groupes]
+    rangs: NDArray[np.float64] = np.empty(n, dtype=np.float64)
+    rangs[ordre] = rangs_tries
+    return rangs
 
 
 @dataclass(frozen=True)
@@ -133,6 +168,42 @@ class ConfusionMatrix:
         """Rappel ``vp / (vp + fn)``, None si aucune issue défavorable."""
         denominateur = self.vp + self.fn
         return self.vp / denominateur if denominateur else None
+
+
+def _score_youden(matrice: ConfusionMatrix) -> float | None:
+    """Indice de Youden (sensibilité + spécificité − 1) d'une matrice de confusion.
+
+    Args:
+        matrice: matrice de confusion à un seuil donné.
+
+    Returns:
+        L'indice, ou None si le rappel (sensibilité) ou la spécificité n'est
+        pas défini (classe unique parmi les points considérés).
+    """
+    if matrice.rappel is None:
+        return None
+    denominateur_specificite = matrice.vn + matrice.fp
+    if denominateur_specificite == 0:
+        return None
+    specificite = matrice.vn / denominateur_specificite
+    return matrice.rappel + specificite - 1.0
+
+
+def _score_f1(matrice: ConfusionMatrix) -> float | None:
+    """Score F1 (moyenne harmonique précision/rappel) d'une matrice de confusion.
+
+    Args:
+        matrice: matrice de confusion à un seuil donné.
+
+    Returns:
+        Le score F1, ou None si la précision ou le rappel n'est pas défini.
+    """
+    if matrice.precision is None or matrice.rappel is None:
+        return None
+    denominateur = matrice.precision + matrice.rappel
+    if denominateur == 0:
+        return None
+    return 2.0 * matrice.precision * matrice.rappel / denominateur
 
 
 class CalibrationService:
@@ -346,13 +417,240 @@ class CalibrationService:
             if effectifs[i]
         ]
 
+    # -- discrimination et calibration probabiliste --
+
+    def auc(self, points: list[OutcomePoint]) -> float | None:
+        """Aire sous la courbe ROC, via la statistique de rang de Mann-Whitney.
+
+        Équivaut à la probabilité qu'un point avec issue défavorable ait un H
+        strictement plus élevé qu'un point sans issue, tirés au hasard parmi
+        les points exploitables (les ex æquo comptant pour moitié) — calculée
+        à partir de la somme des rangs moyens de H chez les points positifs,
+        sans balayer de seuils.
+
+        Args:
+            points: points d'observation (typiquement :meth:`outcomes`). Les
+                points sans H (None) sont ignorés.
+
+        Returns:
+            L'AUC dans [0, 1], ou None si une seule classe (positive ou
+            négative) est présente parmi les points exploitables.
+        """
+        utilisables = [point for point in points if point.hidden_risk is not None]
+        if not utilisables:
+            return None
+        h: NDArray[np.float64] = np.array(
+            [point.hidden_risk for point in utilisables], dtype=np.float64
+        )
+        positifs: NDArray[np.bool_] = np.array(
+            [point.issue_defavorable for point in utilisables], dtype=np.bool_
+        )
+        n_pos = int(positifs.sum())
+        n_neg = len(utilisables) - n_pos
+        if n_pos == 0 or n_neg == 0:
+            return None
+        rangs = _rangs_moyens(h)
+        somme_rangs_positifs = float(rangs[positifs].sum())
+        return (somme_rangs_positifs - n_pos * (n_pos + 1) / 2.0) / (n_pos * n_neg)
+
+    def auc_ci(
+        self, points: list[OutcomePoint], n_boot: int = 1000, seed: int = 0
+    ) -> tuple[float, float] | None:
+        """Intervalle de confiance à 95 % de l'AUC, par bootstrap en grappes de nœuds.
+
+        Chaque tirage rééchantillonne AVEC REMISE les identifiants de nœuds
+        distincts (même effectif de nœuds que l'original), préservant ainsi
+        la corrélation entre les points d'un même nœud, puis concatène les
+        points des nœuds tirés et recalcule l'AUC (:meth:`auc`) ; les tirages
+        où une seule classe subsiste sont ignorés. Déterministe à ``seed``
+        fixé (générateur numpy dédié).
+
+        Args:
+            points: points d'observation (typiquement :meth:`outcomes`). Les
+                points sans H (None) sont ignorés.
+            n_boot: nombre de tirages bootstrap (défaut 1000).
+            seed: graine du générateur, pour la reproductibilité.
+
+        Returns:
+            Le couple (percentile 2.5, percentile 97.5) des AUC bootstrap, ou
+            None si moins de deux tirages exploitables.
+        """
+        utilisables = [point for point in points if point.hidden_risk is not None]
+        if not utilisables:
+            return None
+        points_par_noeud: dict[str, list[OutcomePoint]] = defaultdict(list)
+        for point in utilisables:
+            points_par_noeud[point.node_id].append(point)
+        noeuds = np.array(sorted(points_par_noeud), dtype=object)
+        rng = np.random.default_rng(seed)
+        aucs: list[float] = []
+        for _ in range(n_boot):
+            tirage = rng.choice(noeuds, size=len(noeuds), replace=True)
+            echantillon = [point for noeud_id in tirage for point in points_par_noeud[noeud_id]]
+            auc_tirage = self.auc(echantillon)
+            if auc_tirage is not None:
+                aucs.append(auc_tirage)
+        if len(aucs) < 2:
+            return None
+        bas, haut = np.percentile(np.array(aucs, dtype=np.float64), [2.5, 97.5])
+        return float(bas), float(haut)
+
+    def pr_auc(self, points: list[OutcomePoint]) -> float | None:
+        """Précision moyenne (average precision), aire sous la courbe précision-rappel.
+
+        Intégration en escalier de la courbe précision-rappel obtenue en
+        balayant les valeurs de H par ordre décroissant, les ex æquo étant
+        regroupés au même palier avant de calculer précision et rappel
+        (définition « sklearn-style » de l'average precision, insensible à
+        l'ordre de tri arbitraire des ex æquo).
+
+        Args:
+            points: points d'observation (typiquement :meth:`outcomes`). Les
+                points sans H (None) sont ignorés.
+
+        Returns:
+            L'average precision dans [0, 1], ou None si aucune issue
+            défavorable n'est présente parmi les points exploitables.
+        """
+        utilisables = [point for point in points if point.hidden_risk is not None]
+        if not utilisables:
+            return None
+        h: NDArray[np.float64] = np.array(
+            [point.hidden_risk for point in utilisables], dtype=np.float64
+        )
+        y: NDArray[np.float64] = np.array(
+            [float(point.issue_defavorable) for point in utilisables], dtype=np.float64
+        )
+        n_pos = float(y.sum())
+        if n_pos == 0:
+            return None
+        ordre = np.argsort(-h, kind="mergesort")
+        h_trie = h[ordre]
+        y_trie = y[ordre]
+        tp_cumule = np.cumsum(y_trie)
+        fp_cumule = np.cumsum(1.0 - y_trie)
+        n = len(h_trie)
+        palier: NDArray[np.bool_] = np.empty(n, dtype=np.bool_)
+        palier[:-1] = h_trie[:-1] != h_trie[1:]
+        palier[-1] = True
+        tp_palier = tp_cumule[palier]
+        fp_palier = fp_cumule[palier]
+        precision = tp_palier / (tp_palier + fp_palier)
+        rappel = tp_palier / n_pos
+        rappel_precedent = np.concatenate(([0.0], rappel[:-1]))
+        return float(np.sum((rappel - rappel_precedent) * precision))
+
+    def brier(self, points: list[OutcomePoint]) -> tuple[float, float] | None:
+        """Score de Brier de H contre l'issue constatée, et sa skill score de climatologie.
+
+        Le score de Brier est l'erreur quadratique moyenne de H comme
+        prévision probabiliste de l'issue défavorable (0 = parfait). La
+        climatologie prédit pour CHAQUE point le taux de base observé
+        (moyenne des issues, prévision constante) ; la skill score
+        ``1 − brier / brier_climatologie`` mesure le gain de H par rapport à
+        cette référence triviale (positif = H fait mieux que la
+        climatologie, négatif = moins bien).
+
+        Args:
+            points: points d'observation (typiquement :meth:`outcomes`). Les
+                points sans H (None) sont ignorés.
+
+        Returns:
+            Le couple (score de Brier, skill score), ou None si aucun point
+            n'est exploitable. Convention : skill score à 0.0 si la
+            climatologie est déjà parfaite (brier climatologique nul, taux
+            de base à 0 ou 1).
+        """
+        utilisables = [point for point in points if point.hidden_risk is not None]
+        if not utilisables:
+            return None
+        h: NDArray[np.float64] = np.array(
+            [point.hidden_risk for point in utilisables], dtype=np.float64
+        )
+        y: NDArray[np.float64] = np.array(
+            [float(point.issue_defavorable) for point in utilisables], dtype=np.float64
+        )
+        brier_score = float(np.mean((h - y) ** 2))
+        taux_base = float(y.mean())
+        brier_climatologie = float(np.mean((taux_base - y) ** 2))
+        skill = 1.0 - brier_score / brier_climatologie if brier_climatologie > 0 else 0.0
+        return brier_score, skill
+
+    def sweep(
+        self, points: list[OutcomePoint], seuils: list[float] | None = None
+    ) -> list[ConfusionMatrix]:
+        """Matrices de confusion balayées sur une liste de seuils.
+
+        Args:
+            points: points d'observation (typiquement :meth:`outcomes`).
+            seuils: seuils à évaluer (:meth:`confusion` pour chacun) ; par
+                défaut les valeurs de H distinctes observées parmi les
+                points (triées croissant), soit le balayage exhaustif des
+                seuils qui changent effectivement la matrice de confusion.
+
+        Returns:
+            Une :class:`ConfusionMatrix` par seuil, dans l'ordre de
+            ``seuils`` (ou de H croissant si par défaut).
+        """
+        valeurs = (
+            seuils
+            if seuils is not None
+            else sorted({point.hidden_risk for point in points if point.hidden_risk is not None})
+        )
+        return [self.confusion(points, seuil=valeur) for valeur in valeurs]
+
+    def seuil_optimal(
+        self, points: list[OutcomePoint], critere: str = "youden"
+    ) -> tuple[float, ConfusionMatrix] | None:
+        """Seuil de décision maximisant un critère, parmi les seuils observés.
+
+        Balaie les valeurs de H distinctes (:meth:`sweep`, seuils par
+        défaut) et retient celle qui maximise le critère choisi :
+        ``"youden"`` (sensibilité + spécificité − 1) ou ``"f1"`` (moyenne
+        harmonique précision/rappel). En cas d'égalité, le premier seuil
+        rencontré est conservé (le plus petit, l'ordre de :meth:`sweep` par
+        défaut étant croissant).
+
+        Args:
+            points: points d'observation (typiquement :meth:`outcomes`).
+            critere: ``"youden"`` ou ``"f1"``.
+
+        Returns:
+            Le couple (seuil optimal, sa :class:`ConfusionMatrix`), ou None
+            si le critère n'est défini pour aucun seuil (classe unique parmi
+            les points exploitables).
+
+        Raises:
+            ValueError: si ``critere`` n'est ni ``"youden"`` ni ``"f1"``.
+        """
+        if critere not in ("youden", "f1"):
+            raise ValueError(f"critère inconnu : {critere!r} (attendu « youden » ou « f1 »)")
+        calcul_score: Callable[[ConfusionMatrix], float | None] = (
+            _score_youden if critere == "youden" else _score_f1
+        )
+        meilleur_score: float | None = None
+        meilleure_matrice: ConfusionMatrix | None = None
+        for matrice in self.sweep(points):
+            score = calcul_score(matrice)
+            if score is None:
+                continue
+            if meilleur_score is None or score > meilleur_score:
+                meilleur_score = score
+                meilleure_matrice = matrice
+        if meilleure_matrice is None:
+            return None
+        return meilleure_matrice.seuil, meilleure_matrice
+
     def summary(self, project_id: str, horizon_weeks: int = 4, seuil: float = 0.5) -> str:
         """Résumé français de la calibration du projet, prudence statistique incluse.
 
         Construit les points (:meth:`outcomes`), la matrice (:meth:`confusion`)
         puis restitue : nombre de points, matrice, précision et rappel avec
-        leurs effectifs, et un avertissement explicite (« échantillon trop
-        petit pour conclure ») sous :data:`_MIN_POINTS_CONCLUSION` points.
+        leurs effectifs, AUC avec son IC95 bootstrap (:meth:`auc`,
+        :meth:`auc_ci`), score de Brier et skill score (:meth:`brier`), seuil
+        optimal au sens de Youden avec sa précision/son rappel
+        (:meth:`seuil_optimal`), et un avertissement explicite (« échantillon
+        trop petit pour conclure ») sous :data:`_MIN_POINTS_CONCLUSION` points.
 
         Args:
             project_id: identifiant du projet.
@@ -384,6 +682,43 @@ class CalibrationService:
                 f"Rappel : {matrice.rappel:.2f}"
                 f" ({matrice.vp}/{constats} issues défavorables détectées)."
             )
+        auc_valeur = self.auc(points)
+        if auc_valeur is None:
+            ligne_auc = (
+                "AUC (aire sous la courbe ROC) : non définie"
+                " (classe unique ou aucun point exploitable)."
+            )
+        else:
+            ic = self.auc_ci(points)
+            ic_txt = f"[{ic[0]:.2f}, {ic[1]:.2f}]" if ic is not None else "non calculable"
+            ligne_auc = f"AUC : {auc_valeur:.2f} (IC95 bootstrap {ic_txt})."
+        brier_resultat = self.brier(points)
+        if brier_resultat is None:
+            ligne_brier = "Score de Brier : non défini (aucun point exploitable)."
+        else:
+            brier_score, skill = brier_resultat
+            ligne_brier = (
+                f"Score de Brier : {brier_score:.3f} (skill score vs climatologie : {skill:.2f})."
+            )
+        seuil_opt = self.seuil_optimal(points, critere="youden")
+        if seuil_opt is None:
+            ligne_seuil_opt = (
+                "Seuil optimal (Youden) : non défini (classe unique ou aucun point exploitable)."
+            )
+        else:
+            valeur_seuil, matrice_opt = seuil_opt
+            precision_opt_txt = (
+                f"{matrice_opt.precision:.2f}"
+                if matrice_opt.precision is not None
+                else "non définie"
+            )
+            rappel_opt_txt = (
+                f"{matrice_opt.rappel:.2f}" if matrice_opt.rappel is not None else "non défini"
+            )
+            ligne_seuil_opt = (
+                f"Seuil optimal (Youden) : H > {valeur_seuil:g}"
+                f" (précision {precision_opt_txt}, rappel {rappel_opt_txt})."
+            )
         lignes = [
             f"Calibration prédiction/réalité — projet {project_id},"
             f" horizon {horizon_weeks} semaine(s), seuil H > {seuil:g}.",
@@ -392,6 +727,9 @@ class CalibrationService:
             f" FN={matrice.fn}, VN={matrice.vn}.",
             ligne_precision,
             ligne_rappel,
+            ligne_auc,
+            ligne_brier,
+            ligne_seuil_opt,
         ]
         if n < _MIN_POINTS_CONCLUSION:
             lignes.append(
