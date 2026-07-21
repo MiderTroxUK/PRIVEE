@@ -19,6 +19,27 @@ import _common
 from _common import PROJECT_ID, SNAPSHOTS
 
 
+def _blocs_kpi(service, node) -> dict[str, float | None] | None:
+    """Décomposition {u_time, u_cap, ...} du Ur_local du nœud, ou None si incalculable.
+
+    Même contexte temporel que le pipeline (horloge du PROJET, jalons du
+    registre, cf. supplyscore/services/explain.py) ; un bloc sans KPI reste
+    None — jamais imputé.
+    """
+    from supplyscore.core.clock import project_hours
+    from supplyscore.core.explain import explain_ur_local
+
+    try:
+        project = service.registry.get_project(PROJECT_ID)
+        t0_ts = project.origin_ts if project is not None else 0.0
+        t_h = project_hours(service.clock_for(PROJECT_ID).now(), t0_ts) if project else 0.0
+        milestones = service.registry.list_milestones(node.id)
+        blocs = explain_ur_local(t_h, node.kpis, milestones, service.ur_model, t0_ts=t0_ts)
+        return {f"u_{bloc.block}": bloc.u for bloc in blocs}
+    except Exception:  # noqa: BLE001 — snapshot best-effort : bloc absent plutôt qu'échec
+        return None
+
+
 def snapshot(db_dir: str, service, tour: int | None) -> dict:
     """Construit et écrit le snapshot du réseau à l'instant courant."""
     from supplyscore.services.criticite import ServiceCriticite
@@ -40,7 +61,22 @@ def snapshot(db_dir: str, service, tour: int | None) -> dict:
             "hidden_risk": u.hidden_risk,
             "ud_local": u.ud_local,
             "ur_local": u.ur_local,
+            "blocs": _blocs_kpi(service, node),
         }
+
+    # Criticité probabiliste best-effort : par nœud, None si le calcul échoue.
+    proba: dict[str, dict] = {}
+    try:
+        proba = {
+            p.node_id: {
+                "p_impact_final": p.p_impact_final,
+                "q50_ell": p.q50_ell,
+                "q90_ell": p.q90_ell,
+            }
+            for p in ServiceCriticite(service).criticite_probabiliste(PROJECT_ID)
+        }
+    except Exception as exc:  # noqa: BLE001 — snapshot best-effort, consigné
+        print(f"  [criticité probabiliste ÉCHEC] {type(exc).__name__}: {exc}")
 
     try:
         criticite = [
@@ -49,7 +85,12 @@ def snapshot(db_dir: str, service, tour: int | None) -> dict:
                 "rank": p.rank,
                 "delta_ur_final": p.delta_ur_final,
                 "delta_ur_max": p.delta_ur_max,
+                "delta_ell_final": p.delta_ell_final,
+                "delta_ell_max": p.delta_ell_max,
                 "nb_impactes": p.nb_impactes,
+                "p_impact_final": proba.get(p.node_id, {}).get("p_impact_final"),
+                "q50_ell": proba.get(p.node_id, {}).get("q50_ell"),
+                "q90_ell": proba.get(p.node_id, {}).get("q90_ell"),
             }
             for p in ServiceCriticite(service).indice_criticite(PROJECT_ID)
         ]

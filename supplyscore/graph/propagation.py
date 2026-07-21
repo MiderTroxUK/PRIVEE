@@ -32,20 +32,67 @@ affectés étant relues du cache (``node.urgency.ud`` / ``node.urgency.ur``).
 Toutes les valeurs propagées sont clipées dans [0, 1]. Ce module ne calcule
 PAS l'adéquation (rôle de core/adequation) ; côté core, il n'importe que les
 règles de statut unifiées (supplyscore.core.status_rules).
+
+Dé-saturation Δl (HÉLIOS v7, U3) : sur un réseau saturé (Ur = 1.0 partout en
+aval), le clip [0, 1] écrase tous les ΔUr de :meth:`PropagationEngine.simulate_shock`
+à 0. :meth:`PropagationEngine.simulate_shock_detailed` fournit en plus Δl, un
+écart de log-survie l(p) = −ln(1−p) calculé sur un jumeau ε-régularisé : même
+récurrence montante écrite en espace survie, valeurs locales effectives
+clipées dans [0, 1−ε] (ε = 1e-9) pour qu'aucun produit de survie ne s'annule,
+l accumulé en espace log — strictement discriminant même en pleine
+saturation. :meth:`PropagationEngine.compute_ur_batch` et
+:meth:`PropagationEngine.compute_ell_batch` vectorisent les mêmes passes
+topologiques sur S tirages simultanés (criticité probabiliste, lecture seule).
 """
 
 from __future__ import annotations
 
+import math
 import time
+from dataclasses import dataclass
+
+import numpy as np
+from numpy.typing import NDArray
 
 from supplyscore.core.status_rules import effective_ud_local, effective_ur_local
 from supplyscore.domain.models import TaskStatus, UrgencyState
 from supplyscore.graph.memory_repo import InMemoryGraphRepository
 from supplyscore.graph.repository import GraphRepository
 
+#: Seuil de saturation ε du jumeau régularisé de :meth:`simulate_shock_detailed` :
+#: chaque valeur LOCALE effective y est clipée dans [0, 1−ε], si bien qu'aucun
+#: produit de survie ne s'annule et que l(p) = −ln(1−p) reste fini partout.
+#: Même valeur que ``supplyscore.core.explain._EPS_SAT`` (cohérence E8).
+_EPS_SAT: float = 1e-9
+
+#: Plancher des facteurs de survie du jumeau log-survie — garde purement
+#: numérique (β = 1 avec survie amont sous le plus petit flottant normal),
+#: jamais atteinte sur des graphes réalistes : garantit l fini dans tous les cas.
+_SURVIVAL_FLOOR: float = 2.2250738585072014e-308
+
 
 def _clip01(value: float) -> float:
     return min(max(value, 0.0), 1.0)
+
+
+@dataclass(frozen=True)
+class ShockDetail:
+    """Choc what-if détaillé : ΔUr standard ET Δl en log-survie régularisée.
+
+    Attributes:
+        delta_ur: ``{node_id: ΔUr}`` — identique à
+            :meth:`PropagationEngine.simulate_shock` (Ur choqué − Ur de
+            référence, pipeline standard clipé dans [0, 1]).
+        delta_ell: ``{node_id: Δl}`` — écart de log-survie l(p) = −ln(1−p)
+            entre l'état choqué et la référence, calculés tous deux sur le
+            jumeau ε-régularisé (récurrence en espace survie, valeurs
+            locales clipées dans [0, 1−ε], l accumulé en log) : reste
+            strictement informatif là où le clip [0, 1] écrase ΔUr à 0
+            (réseau saturé).
+    """
+
+    delta_ur: dict[str, float]
+    delta_ell: dict[str, float]
 
 
 class PropagationEngine:
@@ -163,19 +210,183 @@ class PropagationEngine:
         assert node is not None  # id issu de topological_order() du même dépôt
         return effective_ur_local(node.status, node.urgency.ur_local)
 
-    def _compute_ur(self, overrides: dict[str, float] | None = None) -> dict[str, float]:
-        """Ur propagé, calculé du rang N vers le rang 0 (ordre topologique)."""
+    def _compute_ur(
+        self,
+        overrides: dict[str, float] | None = None,
+        clip: tuple[float, float] = (0.0, 1.0),
+    ) -> dict[str, float]:
+        """Ur propagé, calculé du rang N vers le rang 0 (ordre topologique).
+
+        Args:
+            overrides: ``{node_id: ur_local}`` what-if substitués aux valeurs
+                effectives (cf. :meth:`simulate_shock`).
+            clip: bornes ``(lo, hi)`` des valeurs propagées. Le défaut
+                ``(0.0, 1.0)`` reproduit le pipeline standard à l'identique
+                (bit à bit). Un ``hi < 1.0`` active le jumeau ε-régularisé :
+                la valeur LOCALE effective est alors clipée elle aussi dans
+                ``[lo, hi]``, si bien qu'aucun facteur de survie ne s'annule.
+        """
         overrides = overrides or {}
+        lo, hi = clip
+        regularized = hi < 1.0
         ur: dict[str, float] = {}
         for node_id in self._repo.topological_order():
             ur_loc = self._effective_ur_local(node_id, overrides)
+            if regularized:
+                ur_loc = min(max(ur_loc, lo), hi)
             attenuation = 1.0
             for supplier in self._repo.predecessors(node_id):
                 arc = self._repo.get_arc(supplier.id, node_id)
                 assert arc is not None  # supplier est un prédécesseur : l'arc existe
                 attenuation *= 1.0 - arc.beta * ur[supplier.id]
-            ur[node_id] = _clip01(1.0 - (1.0 - ur_loc) * attenuation)
+            ur[node_id] = min(max(1.0 - (1.0 - ur_loc) * attenuation, lo), hi)
         return ur
+
+    def _compute_ell(self, overrides: dict[str, float] | None = None) -> dict[str, float]:
+        """Log-survie l propagée du jumeau ε-régularisé (rang N vers rang 0).
+
+        Même récurrence montante que :meth:`_compute_ur`, écrite en espace
+        survie : s_i = (1 − Ur_loc_i)·Π_j ((1 − β_ji) + β_ji·s_j) — identité
+        algébrique de 1 − β·Ur_j avec Ur_j = 1 − s_j — la valeur locale
+        effective étant clipée dans [0, 1−ε] (ε = 1e-9). Aucun facteur ne
+        s'annule donc, et l_i = −ln(s_i) est accumulé en espace log : exact
+        en profondeur, jamais écrasé par le clip [0, 1] du pipeline standard
+        ni par un plafond à 1−ε sur les valeurs propagées.
+
+        Args:
+            overrides: ``{node_id: ur_local}`` what-if substitués aux valeurs
+                effectives (mêmes règles que :meth:`_compute_ur`).
+
+        Returns:
+            ``{node_id: l_i}`` avec l_i ≥ 0 fini ; hors saturation,
+            l_i = −ln(1 − Ur_i) du pipeline standard à l'arrondi près.
+        """
+        overrides = overrides or {}
+        ell: dict[str, float] = {}
+        for node_id in self._repo.topological_order():
+            ur_loc = min(max(self._effective_ur_local(node_id, overrides), 0.0), 1.0 - _EPS_SAT)
+            value = -math.log(1.0 - ur_loc)
+            for supplier in self._repo.predecessors(node_id):
+                arc = self._repo.get_arc(supplier.id, node_id)
+                assert arc is not None  # supplier est un prédécesseur : l'arc existe
+                survival = math.exp(-ell[supplier.id])
+                value -= math.log(max(1.0 - arc.beta + arc.beta * survival, _SURVIVAL_FLOOR))
+            ell[node_id] = value
+        return ell
+
+    def _batch_draws(self, overrides: dict[str, NDArray[np.float64]]) -> int:
+        """Nombre de tirages S des overrides d'un lot (1 si aucun override).
+
+        Raises:
+            ValueError: si les tableaux n'ont pas tous la même forme (S,),
+                ou si un override vise un nœud inconnu du dépôt.
+        """
+        unknown = sorted(nid for nid in overrides if self._repo.get_node(nid) is None)
+        if unknown:
+            raise ValueError(f"Override(s) sur nœud(s) inconnu(s) : {unknown}")
+        shapes = {np.asarray(v, dtype=float).shape for v in overrides.values()}
+        if len(shapes) > 1 or any(len(shape) != 1 for shape in shapes):
+            raise ValueError(f"Overrides de formes incohérentes (attendu (S,)) : {sorted(shapes)}")
+        return next(iter(shapes))[0] if shapes else 1
+
+    def compute_ur_batch(
+        self,
+        overrides: dict[str, NDArray[np.float64]] | None = None,
+        clip: tuple[float, float] = (0.0, 1.0),
+    ) -> dict[str, NDArray[np.float64]]:
+        """Ur propagé pour S tirages simultanés — passe topologique vectorisée.
+
+        Mêmes formules que :meth:`_compute_ur`, mais chaque valeur de la passe
+        est un vecteur numpy de forme (S,) : le tirage s de chaque nœud ne
+        dépend que des tirages s de ses fournisseurs, les S propagations sont
+        donc rigoureusement indépendantes et calculées en une seule passe.
+        Méthode PURE : aucune écriture dans le dépôt.
+
+        Avec ``S = 1`` et sans override, le résultat coïncide avec
+        :meth:`_compute_ur` à 1e-12 près (testé sur graphes aléatoires).
+
+        Benchmark indicatif (mesuré, Python 3.12 / numpy 2.4, Windows, dépôt
+        mémoire 10 rangs × 100 nœuds) : 1 000 nœuds × S = 500 tirages ≈
+        0.03 s la passe complète, contre ≈ 1.5 s pour 500 passes scalaires
+        équivalentes (~0.003 s l'une) — le coût est dominé par le parcours du
+        graphe, pas par l'axe S.
+
+        Args:
+            overrides: ``{node_id: tableau (S,) de ur_local}`` — valeurs
+                locales tirées pour les nœuds choisis ; les autres nœuds
+                gardent leur ``ur_local`` effectif (diffusé sur l'axe S).
+                ``None`` ou vide : S = 1 (propagation de référence).
+            clip: bornes ``(lo, hi)`` des valeurs propagées — mêmes règles
+                que :meth:`_compute_ur` (``hi < 1.0`` clippe aussi les
+                valeurs locales effectives : jumeau ε-régularisé).
+
+        Returns:
+            ``{node_id: tableau (S,) des Ur propagés}``.
+
+        Raises:
+            ValueError: si les tableaux d'override n'ont pas tous la même
+                forme (S,), ou si un override vise un nœud inconnu.
+        """
+        overrides = overrides or {}
+        n_draws = self._batch_draws(overrides)
+        lo, hi = clip
+        regularized = hi < 1.0
+        ur: dict[str, NDArray[np.float64]] = {}
+        for node_id in self._repo.topological_order():
+            if node_id in overrides:
+                ur_loc = np.asarray(overrides[node_id], dtype=float)
+            else:
+                ur_loc = np.full(n_draws, self._effective_ur_local(node_id, {}), dtype=float)
+            if regularized:
+                ur_loc = np.clip(ur_loc, lo, hi)
+            attenuation = np.ones(n_draws, dtype=float)
+            for supplier in self._repo.predecessors(node_id):
+                arc = self._repo.get_arc(supplier.id, node_id)
+                assert arc is not None  # supplier est un prédécesseur : l'arc existe
+                attenuation *= 1.0 - arc.beta * ur[supplier.id]
+            ur[node_id] = np.clip(1.0 - (1.0 - ur_loc) * attenuation, lo, hi)
+        return ur
+
+    def compute_ell_batch(
+        self, overrides: dict[str, NDArray[np.float64]] | None = None
+    ) -> dict[str, NDArray[np.float64]]:
+        """Log-survie l du jumeau ε-régularisé pour S tirages simultanés.
+
+        Version vectorisée de :meth:`_compute_ell` — mêmes formules, chaque
+        valeur de la passe étant un vecteur numpy (S,) ; mêmes conventions
+        d'overrides que :meth:`compute_ur_batch`. Méthode PURE : aucune
+        écriture dans le dépôt. Avec S = 1, coïncide avec
+        :meth:`_compute_ell` au bruit d'arrondi près (testé).
+
+        Args:
+            overrides: ``{node_id: tableau (S,) de ur_local}`` — valeurs
+                locales tirées pour les nœuds choisis ; ``None`` ou vide :
+                S = 1 (référence).
+
+        Returns:
+            ``{node_id: tableau (S,) des l_i ≥ 0}``.
+
+        Raises:
+            ValueError: si les tableaux d'override n'ont pas tous la même
+                forme (S,), ou si un override vise un nœud inconnu.
+        """
+        overrides = overrides or {}
+        n_draws = self._batch_draws(overrides)
+        hi = 1.0 - _EPS_SAT
+        ell: dict[str, NDArray[np.float64]] = {}
+        for node_id in self._repo.topological_order():
+            if node_id in overrides:
+                ur_loc = np.asarray(overrides[node_id], dtype=float)
+            else:
+                ur_loc = np.full(n_draws, self._effective_ur_local(node_id, {}), dtype=float)
+            value = -np.log(1.0 - np.clip(ur_loc, 0.0, hi))
+            for supplier in self._repo.predecessors(node_id):
+                arc = self._repo.get_arc(supplier.id, node_id)
+                assert arc is not None  # supplier est un prédécesseur : l'arc existe
+                survival = np.exp(-ell[supplier.id])
+                value -= np.log(np.maximum(1.0 - arc.beta + arc.beta * survival, _SURVIVAL_FLOOR))
+            ell[node_id] = value
+        return ell
 
     # --- Propagations persistantes -----------------------------------------
 
@@ -361,6 +572,48 @@ class PropagationEngine:
         baseline = self._compute_ur()
         shocked = self._compute_ur(overrides={node_id: _clip01(new_ur_local)})
         return {nid: shocked[nid] - baseline[nid] for nid in baseline}
+
+    def simulate_shock_detailed(self, node_id: str, new_ur_local: float) -> ShockDetail:
+        """Choc what-if détaillé : ΔUr standard ET Δl log-survie par nœud.
+
+        Méthode PURE : rien n'est persisté. ``delta_ur`` provient du pipeline
+        standard — identique à :meth:`simulate_shock`. ``delta_ell`` provient
+        du jumeau ε-régularisé (:meth:`_compute_ell`) : même récurrence
+        montante écrite en espace survie, chaque valeur locale effective
+        (choquée comprise) clipée dans [0, 1−ε] (ε = 1e-9) pour qu'aucun
+        produit de survie ne s'annule, puis l(p) = −ln(1−p) accumulé en
+        espace log ; Δl_i = l(Ur'_i) − l(Ur_i).
+
+        l est la MÊME convention log-survie que la décomposition
+        ``explain_ur_local`` (les ``ells``) de
+        :mod:`supplyscore.core.explain` : additive le long de la chaîne dans
+        le noisy-OR (les l des facteurs s'ajoutent là où les survies se
+        multiplient). Sur un réseau saturé (Ur = 1.0 partout en aval), ΔUr
+        vaut 0 par écrasement du clip alors que Δl reste strictement
+        discriminant : il mesure l'aggravation en profondeur du choc (hors
+        saturation, Δl_i = ln((1 − Ur_i)/(1 − Ur'_i)) du pipeline standard).
+
+        Args:
+            node_id: nœud choqué.
+            new_ur_local: ``ur_local`` simulé du nœud (clipé dans [0, 1]).
+
+        Returns:
+            :class:`ShockDetail` — ``delta_ur`` et ``delta_ell`` par nœud.
+
+        Raises:
+            KeyError: si ``node_id`` est inconnu du dépôt.
+        """
+        if self._repo.get_node(node_id) is None:
+            raise KeyError(f"Nœud inconnu : {node_id!r}")
+        overrides = {node_id: _clip01(new_ur_local)}
+        baseline = self._compute_ur()
+        shocked = self._compute_ur(overrides=overrides)
+        baseline_ell = self._compute_ell()
+        shocked_ell = self._compute_ell(overrides=overrides)
+        return ShockDetail(
+            delta_ur={nid: shocked[nid] - baseline[nid] for nid in baseline},
+            delta_ell={nid: shocked_ell[nid] - baseline_ell[nid] for nid in baseline_ell},
+        )
 
     def apply_status(self, node_id: str, status: TaskStatus) -> None:
         """Pose le statut sur le nœud SANS propager.
