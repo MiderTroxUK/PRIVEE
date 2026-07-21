@@ -19,6 +19,12 @@ Séquence d'un tour :
 En campagne réelle, l'étape 4 est remplacée par la fenêtre de réponse humaine :
 lancer SANS ``--dry-run-ahp``, attendre la couverture 8/8, puis relancer avec
 ``--advance-only`` pour clore le tour.
+
+``_load_tour_files`` et ``_submit_synthetic_ahp`` sont réutilisées telles
+quelles par le runner headless (``run_campaign.py``, U5) : la seconde y gagne
+un callback ``respond`` optionnel (contrat 2 du plan v7) qui remplace les
+profils synthétiques par une déclaration pilotée nœud par nœud, sans changer
+le comportement CLI par défaut de ce script.
 """
 
 from __future__ import annotations
@@ -26,20 +32,31 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import math
 import random
 import sys
+from pathlib import Path
 
 import _common
 from _common import FACILITATOR, PREPARED, PROJECT_ID, scenario
 
+from supplyscore.core.ahp import bipolar_to_saaty, run_ahp, score_6_to_9
 
-def _load_tour_files(tour: int) -> tuple[list[dict], list[dict], list[dict]]:
+#: Paires de critères comparées par le questionnaire AHP (ordre fixe UI) —
+#: contrat 2 du plan v7 : ``bipolar[k]`` juge la paire ``_AHP_PAIRS[k]``.
+_AHP_PAIRS: list[tuple[int, int]] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
+
+
+def _load_tour_files(
+    tour: int, prepared_dir: Path = PREPARED
+) -> tuple[list[dict], list[dict], list[dict]]:
+    prepared_dir = Path(prepared_dir)
     kpi_rows: list[dict] = []
-    with (PREPARED / f"tour_{tour:02d}.csv").open(encoding="utf-8") as f:
+    with (prepared_dir / f"tour_{tour:02d}.csv").open(encoding="utf-8") as f:
         kpi_rows = list(csv.DictReader(f))
-    events = json.loads((PREPARED / f"events_{tour:02d}.json").read_text(encoding="utf-8"))
+    events = json.loads((prepared_dir / f"events_{tour:02d}.json").read_text(encoding="utf-8"))
     milestones = json.loads(
-        (PREPARED / f"milestones_{tour:02d}.json").read_text(encoding="utf-8")
+        (prepared_dir / f"milestones_{tour:02d}.json").read_text(encoding="utf-8")
     )
     return kpi_rows, events, milestones
 
@@ -62,9 +79,7 @@ def _inject_milestones(service, milestones: list[dict]) -> int:
     week_s = 168 * 3600.0
     changed = 0
     for m in milestones:
-        found = [
-            ms for ms in service.registry.list_milestones(m["node"]) if ms.name == m["name"]
-        ]
+        found = [ms for ms in service.registry.list_milestones(m["node"]) if ms.name == m["name"]]
         if not found:
             print(f"  [!] jalon introuvable : {m['node']} / {m['name']}")
             continue
@@ -87,52 +102,221 @@ def _inject_events(service, events: list[dict]) -> int:
     engine = EventEngine(service)
     for ev in events:
         applied = engine.apply(
-            ev["node"], ev["type"], ev["params"], operator_id=FACILITATOR,
+            ev["node"],
+            ev["type"],
+            ev["params"],
+            operator_id=FACILITATOR,
             notes=ev.get("note", ""),
         )
         print(f"  [event] {ev['node']}: {ev['type']} -> {len(applied.impacts)} impact(s)")
     return len(events)
 
 
-def _submit_synthetic_ahp(service, tour: int) -> None:
-    """Soumet 8 évaluations synthétiques (profils biaisés, cohérence garantie).
+def _kpi_series(prepared_dir: Path, node_id: str, upto_tour: int) -> dict[str, dict[int, float]]:
+    """Série ``{kpi_path: {tour: valeur}}`` du nœud, tours 0..upto_tour, reportée en avant.
 
-    Les comparaisons sont neutres (matrice unitaire, CR = 0) ; le biais du
-    profil passe par les scores locaux des 4 critères, ancrés sur l'urgence
-    réelle LOCALE du nœud (score nominal = 1 + 8·Ur_local — pas l'urgence
-    propagée, qui rendrait le Ud synthétique circulairement saturé),
-    déterministe par (nœud, tour) pour la reproductibilité.
+    Combine la baseline T0 (``scenario.BASELINE_KPIS``) et les deltas
+    injectés (``tour_NN.csv``) : un chemin non modifié à un tour garde sa
+    dernière valeur connue — un KPI ne revient jamais à zéro entre deux
+    tours faute de changement explicite (comportement réel du modèle).
+    """
+    prepared_dir = Path(prepared_dir)
+    current: dict[str, float] = dict(scenario.BASELINE_KPIS.get(node_id, {}))
+    series: dict[str, dict[int, float]] = {}
+    for path, val in current.items():
+        series.setdefault(path, {})[0] = val
+    for t in range(0, upto_tour + 1):
+        csv_path = prepared_dir / f"tour_{t:02d}.csv"
+        if csv_path.exists():
+            with csv_path.open(encoding="utf-8") as f:
+                for row in csv.DictReader(f):
+                    if row["node_id"] == node_id:
+                        current[row["kpi_path"]] = float(row["valeur"])
+        for path, val in current.items():
+            series.setdefault(path, {})[t] = val
+    return series
+
+
+def _node_features(
+    prepared_dir: Path, node_id: str, tour: int, events: list[dict], press_flag: bool
+) -> dict:
+    """Construit ``features`` pour le rappel ``respond`` (contrat 2, plan v7).
+
+    9 chemins KPI de ``make_briefings.FIELD_LABELS`` -> ``{val, d1, d2}`` :
+    ``val`` vaut 0.0 si le nœud n'a jamais eu ce KPI (absence de signal, pas
+    une vraie mesure) ; ``d1``/``d2`` restent None tant que l'historique est
+    insuffisant (moins de 2, resp. 3, points). ``event_flag`` : un événement
+    touche CE nœud ce tour. ``press_flag`` : la revue de presse du tour n'est
+    pas vide.
+    """
+    import make_briefings
+
+    series = _kpi_series(prepared_dir, node_id, tour)
+    features: dict = {}
+    for path in make_briefings.FIELD_LABELS:
+        by_tour = series.get(path, {})
+        val = by_tour.get(tour)
+        prev1 = by_tour.get(tour - 1) if tour >= 1 else None
+        prev2 = by_tour.get(tour - 2) if tour >= 2 else None
+        d1 = (val - prev1) if (val is not None and prev1 is not None) else None
+        d1_prev = (prev1 - prev2) if (prev1 is not None and prev2 is not None) else None
+        d2 = (d1 - d1_prev) if (d1 is not None and d1_prev is not None) else None
+        features[path] = {"val": val if val is not None else 0.0, "d1": d1, "d2": d2}
+    features["event_flag"] = any(ev.get("node") == node_id for ev in events)
+    features["press_flag"] = press_flag
+    return features
+
+
+def _most_inconsistent_pair(comparisons: dict[tuple[int, int], float], weights) -> tuple[int, int]:
+    """Paire ``(i, j)`` dont le jugement de Saaty s'écarte le plus de wi/wj.
+
+    Diagnostic AHP standard : ``|log(A[i,j]) - log(wi/wj)|`` maximal.
+    """
+    return max(
+        _AHP_PAIRS,
+        key=lambda p: abs(math.log(comparisons[p]) - math.log(weights[p[0]] / weights[p[1]])),
+    )
+
+
+def _nudge_bipolar(v: int, target_saaty: float) -> int:
+    """Décale ``v`` d'un cran (±1, borné à [-8, 8]) vers le jugement Saaty cible."""
+    candidates = [c for c in (v - 1, v + 1) if -8 <= c <= 8]
+    if not candidates:
+        return v
+    return min(
+        candidates,
+        key=lambda c: abs(math.log(bipolar_to_saaty(c)) - math.log(target_saaty)),
+    )
+
+
+def _resolve_consistency(
+    bipolar: list[int], scores_ui: list[int]
+) -> tuple[dict[tuple[int, int], float], list[float], bool]:
+    """Convertit une réponse brute (bipolaire + notes UI) en jugements Saaty.
+
+    Règle CR (contrat 2, plan v7) : si l'AHP est incohérent (CR >= seuil de
+    Saaty), une correction est tentée UNE fois — la paire la plus divergente
+    est identifiée puis sa valeur bipolaire rapprochée d'un cran de la
+    cohérence. Retourne ``(comparisons, criteria_scores, is_consistent)`` ;
+    ``is_consistent`` à False signale à l'appelant de retomber sur la
+    déclaration du tour précédent (règle de repli).
+    """
+    criteria_scores = [score_6_to_9(float(s)) for s in scores_ui]
+    comparisons = {pair: bipolar_to_saaty(v) for pair, v in zip(_AHP_PAIRS, bipolar, strict=True)}
+    res = run_ahp(comparisons, n=4)
+    if res.is_consistent:
+        return comparisons, criteria_scores, True
+
+    i, j = _most_inconsistent_pair(comparisons, res.weights)
+    idx = _AHP_PAIRS.index((i, j))
+    target = float(res.weights[i] / res.weights[j])
+    nudged = list(bipolar)
+    nudged[idx] = _nudge_bipolar(bipolar[idx], target)
+    comparisons = {pair: bipolar_to_saaty(v) for pair, v in zip(_AHP_PAIRS, nudged, strict=True)}
+    res = run_ahp(comparisons, n=4)
+    return comparisons, criteria_scores, res.is_consistent
+
+
+def _submit_synthetic_ahp(
+    service,
+    tour: int,
+    respond=None,
+    prepared_dir: Path = PREPARED,
+    seed: int | None = None,
+) -> None:
+    """Soumet une évaluation AHP par nœud (8 au total).
+
+    Sans ``respond`` (défaut, comportement CLI inchangé) : profils
+    synthétiques biaisés, cohérence garantie par construction (matrice
+    unitaire, CR = 0) ; le biais du profil passe par les scores locaux des 4
+    critères, ancrés sur l'urgence réelle LOCALE du nœud (score nominal =
+    1 + 8·Ur_local — pas l'urgence propagée, qui rendrait le Ud synthétique
+    circulairement saturé), déterministe par (nœud, tour) pour la
+    reproductibilité.
+
+    Avec ``respond`` (contrat 2, plan v7 — utilisé par ``run_campaign.py``,
+    U5) : pour chaque nœud, ``respond(node_id, tour, features, rng)`` fournit
+    ``{"bipolar": [6 valeurs -8..8], "scores_ui": [4 valeurs 1..6]}`` ; en cas
+    d'incohérence persistante après la correction d'un cran
+    (:func:`_resolve_consistency`), la déclaration du tour précédent du nœud
+    est reconduite (``latest_assessment``), ou une déclaration neutre si
+    aucun historique n'existe (T0).
     """
     from supplyscore.services.orchestrator import SupplyScoreService
 
-    profile_by_node: dict[str, float] = {}
-    for profile in scenario.SYNTHETIC_PROFILES.values():
-        for node_id in profile["nodes"]:
-            profile_by_node[node_id] = profile["bias"]
+    if respond is None:
+        profile_by_node: dict[str, float] = {}
+        for profile in scenario.SYNTHETIC_PROFILES.values():
+            for node_id in profile["nodes"]:
+                profile_by_node[node_id] = profile["bias"]
 
-    states = service.evaluate_all(persist=False)
-    comparisons = {(i, j): 1.0 for i in range(4) for j in range(i + 1, 4)}
+        states = service.evaluate_all(persist=False)
+        comparisons = {(i, j): 1.0 for i in range(4) for j in range(i + 1, 4)}
+        for spec in scenario.NODES:
+            node_id = spec["id"]
+            rng = random.Random(f"{node_id}-{tour}")
+            state = states.get(node_id)
+            ur = state.ur_local if state is not None and state.ur_local is not None else 0.0
+            nominal = 1.0 + 8.0 * min(max(ur, 0.0), 1.0)
+            bias = profile_by_node.get(node_id, 0.0)
+            scores = [min(max(nominal + bias + rng.uniform(-0.5, 0.5), 1.0), 9.0) for _ in range(4)]
+            assessment = SupplyScoreService.build_assessment(
+                node_id=node_id,
+                project_id=PROJECT_ID,
+                operator_id=f"synth_{_common.OPERATORS[node_id]}",
+                comparisons=comparisons,
+                criteria_scores=scores,
+                notes=f"dry-run tour {tour}",
+            )
+            service.submit_assessment(assessment)
+        print("  [ahp] 8 évaluations synthétiques soumises")
+        return
+
+    prepared_dir = Path(prepared_dir)
+    events = json.loads((prepared_dir / f"events_{tour:02d}.json").read_text(encoding="utf-8"))
+    press_flag = bool(scenario.NARRATIVE.get(tour, {}).get("presse", ""))
     for spec in scenario.NODES:
         node_id = spec["id"]
-        rng = random.Random(f"{node_id}-{tour}")
-        state = states.get(node_id)
-        ur = (state.ur_local if state is not None and state.ur_local is not None
-              else 0.0)
-        nominal = 1.0 + 8.0 * min(max(ur, 0.0), 1.0)
-        bias = profile_by_node.get(node_id, 0.0)
-        scores = [
-            min(max(nominal + bias + rng.uniform(-0.5, 0.5), 1.0), 9.0) for _ in range(4)
-        ]
+        rng = (
+            random.Random((seed, node_id, tour))
+            if seed is not None
+            else random.Random(f"{node_id}-{tour}")
+        )
+        features = _node_features(prepared_dir, node_id, tour, events, press_flag)
+        raw = respond(node_id, tour, features, rng)
+        bipolar = list(raw["bipolar"])
+        scores_ui = list(raw["scores_ui"])
+        if len(bipolar) != 6 or len(scores_ui) != 4:
+            raise ValueError(
+                f"Réponse du déclarant invalide pour {node_id!r} (tour {tour}) : "
+                f"attendu 6 valeurs bipolaires + 4 notes UI, reçu "
+                f"{len(bipolar)} + {len(scores_ui)}."
+            )
+        comparisons, criteria_scores, ok = _resolve_consistency(bipolar, scores_ui)
+        notes = f"tour {tour} — déclarant"
+        if not ok:
+            prev = service.client_db(node_id).latest_assessment(node_id)
+            if prev is not None:
+                comparisons = prev.comparisons
+                criteria_scores = prev.criteria_scores
+                notes = (
+                    f"tour {tour} — repli (CR incohérent après correction) : "
+                    "déclaration du tour précédent reconduite"
+                )
+            else:
+                comparisons = {pair: 1.0 for pair in _AHP_PAIRS}
+                criteria_scores = [score_6_to_9(3.0)] * 4
+                notes = f"tour {tour} — repli neutre (CR incohérent, pas d'historique T0)"
         assessment = SupplyScoreService.build_assessment(
             node_id=node_id,
             project_id=PROJECT_ID,
-            operator_id=f"synth_{_common.OPERATORS[node_id]}",
+            operator_id=_common.OPERATORS[node_id],
             comparisons=comparisons,
-            criteria_scores=scores,
-            notes=f"dry-run tour {tour}",
+            criteria_scores=criteria_scores,
+            notes=notes,
         )
         service.submit_assessment(assessment)
-    print("  [ahp] 8 évaluations synthétiques soumises")
+    print("  [ahp] 8 évaluations soumises (déclarant)")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -140,11 +324,13 @@ def main(argv: list[str] | None = None) -> int:
     _common.require_db_dir(parser)
     parser.add_argument("--tour", type=int, required=True, help="Numéro de tour (0..18)")
     parser.add_argument(
-        "--dry-run-ahp", action="store_true",
+        "--dry-run-ahp",
+        action="store_true",
         help="Soumet des AHP synthétiques (dry run) au lieu d'attendre les humains",
     )
     parser.add_argument(
-        "--advance-only", action="store_true",
+        "--advance-only",
+        action="store_true",
         help="Clôture seulement : advance_week après la fenêtre de réponse humaine",
     )
     args = parser.parse_args(argv)
