@@ -1,0 +1,71 @@
+{
+  "tour": 5,
+  "horodatage": 1783303000.0,
+  "couverture": {"a_jour": 3, "total_actifs": 3},
+  "nodes": {
+    "novafab": {
+      "name": "NovaFab Semiconductors",
+      "rank": 1,
+      "status": "active",
+      "ud": 0.23,
+      "ur": 0.35,
+      "adequation": 52.0,
+      "false_urgency": 0.0,
+      "hidden_risk": 0.10,
+      "ud_local": 0.15,
+      "ur_local": 0.28,
+      "blocs": {"u_time": 0.32, "u_cap": 0.13, "u_perf": 0.06, "u_risk": 0.22, "u_cost": 0.03, "u_co2": 0.0},
+      "forecast": {
+        "1": {"p_issue": 0.09, "se_mc": 0.01, "spread": 0.06, "p_jalon_rate": 0.72, "p_impact_client": 0.11},
+        "2": {"p_issue": 0.13, "se_mc": 0.015, "spread": 0.09, "p_jalon_rate": 0.70, "p_impact_client": 0.15},
+        "3": {"p_issue": 0.16, "se_mc": 0.018, "spread": 0.11, "p_jalon_rate": 0.68, "p_impact_client": 0.19},
+        "4": {"p_issue": 0.19, "se_mc": 0.02, "spread": 0.13, "p_jalon_rate": 0.66, "p_impact_client": 0.22}
+      }
+    },
+    "meridian": {
+      "name": "Meridian Semi",
+      "rank": 0,
+      "status": "active",
+      "ud": 0.05,
+      "ur": 0.045,
+      "adequation": 98.2,
+      "false_urgency": 0.005,
+      "hidden_risk": 0.0,
+      "ud_local": 0.05,
+      "ur_local": 0.045,
+      "blocs": {"u_time": 0.04, "u_cap": 0.015, "u_perf": 0.01, "u_risk": 0.02, "u_cost": 0.0, "u_co2": 0.0},
+      "forecast": {
+        "1": {"p_issue": 0.007, "se_mc": 0.003, "spread": 0.012, "p_jalon_rate": 0.97, "p_impact_client": 0.006},
+        "2": {"p_issue": 0.009, "se_mc": 0.004, "spread": 0.018, "p_jalon_rate": 0.95, "p_impact_client": 0.008},
+        "3": {"p_issue": 0.012, "se_mc": 0.005, "spread": 0.025, "p_jalon_rate": 0.94, "p_impact_client": 0.01},
+        "4": {"p_issue": 0.015, "se_mc": 0.006, "spread": 0.03, "p_jalon_rate": 0.93, "p_impact_client": 0.012}
+      }
+    },
+    "silpure": {
+      "name": "SilPure Materials",
+      "rank": 0,
+      "status": "active",
+      "ud": 0.10,
+      "ur": 0.114,
+      "adequation": 67.2,
+      "false_urgency": 0.0,
+      "hidden_risk": 0.0,
+      "ud_local": 0.10,
+      "ur_local": 0.114
+    }
+  },
+  "criticite": [
+    {
+      "node_id": "novafab", "rank": 1, "delta_ur_final": 0.15, "delta_ur_max": 0.30, "nb_impactes": 2,
+      "delta_ell_final": 0.20, "delta_ell_max": 0.50, "p_impact_final": 0.30, "q50_ell": 0.18, "q90_ell": 0.55
+    },
+    {
+      "node_id": "meridian", "rank": 3, "delta_ur_final": 0.015, "delta_ur_max": 0.04, "nb_impactes": 0,
+      "delta_ell_final": 0.01, "delta_ell_max": 0.03, "p_impact_final": 0.015, "q50_ell": 0.008, "q90_ell": 0.035
+    },
+    {
+      "node_id": "silpure", "rank": 2, "delta_ur_final": 0.055, "delta_ur_max": 0.095, "nb_impactes": 0,
+      "delta_ell_final": 0.055, "delta_ell_max": 0.10, "p_impact_final": 0.075, "q50_ell": 0.055, "q90_ell": 0.12
+    }
+  ]
+}

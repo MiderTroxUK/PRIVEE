@@ -1,0 +1,8 @@
+{
+  "a": 0.82,
+  "b": 0.15,
+  "p_choc": 0.05,
+  "sigma": 0.12,
+  "dgp_params_id": "dgp_test_A",
+  "macro_series_id": "synthetic_v1"
+}

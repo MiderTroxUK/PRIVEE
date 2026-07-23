@@ -1,0 +1,34 @@
+{
+  "tour": 2,
+  "horodatage": 1783201200.0,
+  "couverture": {"a_jour": 2, "total_actifs": 2},
+  "nodes": {
+    "aviosys": {
+      "name": "AvioSys Intégration",
+      "rank": 0,
+      "status": "active",
+      "ud": 0.26,
+      "ur": 0.33,
+      "adequation": 60.0,
+      "false_urgency": 0.0,
+      "hidden_risk": 0.06,
+      "ud_local": 0.19,
+      "ur_local": 0.22
+    },
+    "electis": {
+      "name": "Électis EMS",
+      "rank": 1,
+      "status": "active",
+      "ud": 0.20,
+      "ur": 0.45,
+      "adequation": 45.0,
+      "false_urgency": 0.0,
+      "hidden_risk": 0.22,
+      "ud_local": 0.16,
+      "ur_local": 0.40
+    }
+  },
+  "criticite": [
+    {"erreur": "ValueError: matrice singulière lors du calcul de criticité probabiliste"}
+  ]
+}

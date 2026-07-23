@@ -1,0 +1,443 @@
+{
+  "schema_version": 1,
+  "generated_by": "projects/factory/build_dataset.py:build_feature_schema",
+  "dataset": {
+    "group_columns": [
+      "chain_id",
+      "node_id",
+      "dgp_params_id"
+    ],
+    "label_columns": [
+      "y1",
+      "y4"
+    ],
+    "horizon": 4,
+    "columns": [
+      {
+        "name": "chain_id",
+        "dtype": "string",
+        "nullable": false,
+        "role": "group",
+        "semantics": "Identifiant de la chaîne/run (nom du dossier) — jamais une feature."
+      },
+      {
+        "name": "node_id",
+        "dtype": "string",
+        "nullable": false,
+        "role": "group",
+        "semantics": "Identifiant du nœud — jamais une feature."
+      },
+      {
+        "name": "dgp_params_id",
+        "dtype": "string",
+        "nullable": false,
+        "role": "group",
+        "semantics": "Identifiant des paramètres du DGP (« helios » si le run ne fournit pas de dgp_manifest.json) — jamais une feature."
+      },
+      {
+        "name": "y1",
+        "dtype": "int",
+        "nullable": true,
+        "role": "label",
+        "semantics": "1 si un événement vérité (gravité critique|defaut) touche le nœud exactement à t+1, sinon 0 ; vide si t+1 dépasse le dernier tour observé de la chaîne (censure explicite, jamais 0 silencieux)."
+      },
+      {
+        "name": "y4",
+        "dtype": "int",
+        "nullable": true,
+        "role": "label",
+        "semantics": "1 si un événement vérité touche le nœud dans (t, t+4], 0 si la fenêtre est entièrement observée sans événement, vide (censuré) si la fenêtre dépasse le dernier tour observé sans qu'aucun événement n'y ait été trouvé — jamais mis à 0 silencieusement."
+      },
+      {
+        "name": "ud",
+        "dtype": "float",
+        "nullable": true,
+        "role": "feature",
+        "semantics": "Urgence déclarée globale du nœud (Ud, propagée)."
+      },
+      {
+        "name": "ur",
+        "dtype": "float",
+        "nullable": true,
+        "role": "feature",
+        "semantics": "Urgence réelle globale du nœud (Ur, propagée)."
+      },
+      {
+        "name": "ud_local",
+        "dtype": "float",
+        "nullable": true,
+        "role": "feature",
+        "semantics": "Composante locale d'Ud (hors propagation amont/aval)."
+      },
+      {
+        "name": "ur_local",
+        "dtype": "float",
+        "nullable": true,
+        "role": "feature",
+        "semantics": "Composante locale d'Ur (hors propagation amont/aval)."
+      },
+      {
+        "name": "hidden_risk",
+        "dtype": "float",
+        "nullable": true,
+        "role": "feature",
+        "semantics": "Risque caché : Ur excède Ud (besoin sous-déclaré)."
+      },
+      {
+        "name": "false_urgency",
+        "dtype": "float",
+        "nullable": true,
+        "role": "feature",
+        "semantics": "Fausse urgence : Ud excède Ur (besoin sur-déclaré)."
+      },
+      {
+        "name": "adequation",
+        "dtype": "float",
+        "nullable": true,
+        "role": "feature",
+        "semantics": "Score d'adéquation Ud/Ur du nœud (0-100)."
+      },
+      {
+        "name": "u_time",
+        "dtype": "float",
+        "nullable": true,
+        "role": "feature",
+        "semantics": "Bloc KPI « time » de la décomposition log-survie de ur_local (explain_ur_local) ; vide si bloc inactif ou décomposition indisponible pour ce tour."
+      },
+      {
+        "name": "u_cap",
+        "dtype": "float",
+        "nullable": true,
+        "role": "feature",
+        "semantics": "Bloc KPI « cap » de la décomposition log-survie de ur_local (explain_ur_local) ; vide si bloc inactif ou décomposition indisponible pour ce tour."
+      },
+      {
+        "name": "u_perf",
+        "dtype": "float",
+        "nullable": true,
+        "role": "feature",
+        "semantics": "Bloc KPI « perf » de la décomposition log-survie de ur_local (explain_ur_local) ; vide si bloc inactif ou décomposition indisponible pour ce tour."
+      },
+      {
+        "name": "u_risk",
+        "dtype": "float",
+        "nullable": true,
+        "role": "feature",
+        "semantics": "Bloc KPI « risk » de la décomposition log-survie de ur_local (explain_ur_local) ; vide si bloc inactif ou décomposition indisponible pour ce tour."
+      },
+      {
+        "name": "u_cost",
+        "dtype": "float",
+        "nullable": true,
+        "role": "feature",
+        "semantics": "Bloc KPI « cost » de la décomposition log-survie de ur_local (explain_ur_local) ; vide si bloc inactif ou décomposition indisponible pour ce tour."
+      },
+      {
+        "name": "u_co2",
+        "dtype": "float",
+        "nullable": true,
+        "role": "feature",
+        "semantics": "Bloc KPI « co2 » de la décomposition log-survie de ur_local (explain_ur_local) ; vide si bloc inactif ou décomposition indisponible pour ce tour."
+      },
+      {
+        "name": "d1_ur_local",
+        "dtype": "float",
+        "nullable": true,
+        "role": "feature",
+        "semantics": "Différence arrière à 1 tour(s) de ur_local : ur_local(t) − ur_local(t−1) ; vide si l'historique est insuffisant."
+      },
+      {
+        "name": "d2_ur_local",
+        "dtype": "float",
+        "nullable": true,
+        "role": "feature",
+        "semantics": "Différence arrière à 2 tour(s) de ur_local : ur_local(t) − ur_local(t−2) ; vide si l'historique est insuffisant."
+      },
+      {
+        "name": "d3_ur_local",
+        "dtype": "float",
+        "nullable": true,
+        "role": "feature",
+        "semantics": "Différence arrière à 3 tour(s) de ur_local : ur_local(t) − ur_local(t−3) ; vide si l'historique est insuffisant."
+      },
+      {
+        "name": "d4_ur_local",
+        "dtype": "float",
+        "nullable": true,
+        "role": "feature",
+        "semantics": "Différence arrière à 4 tour(s) de ur_local : ur_local(t) − ur_local(t−4) ; vide si l'historique est insuffisant."
+      },
+      {
+        "name": "d1_H",
+        "dtype": "float",
+        "nullable": true,
+        "role": "feature",
+        "semantics": "Différence arrière à 1 tour(s) de hidden_risk (« H ») ; vide si l'historique est insuffisant."
+      },
+      {
+        "name": "d2_H",
+        "dtype": "float",
+        "nullable": true,
+        "role": "feature",
+        "semantics": "Différence arrière à 2 tour(s) de hidden_risk (« H ») ; vide si l'historique est insuffisant."
+      },
+      {
+        "name": "d3_H",
+        "dtype": "float",
+        "nullable": true,
+        "role": "feature",
+        "semantics": "Différence arrière à 3 tour(s) de hidden_risk (« H ») ; vide si l'historique est insuffisant."
+      },
+      {
+        "name": "d4_H",
+        "dtype": "float",
+        "nullable": true,
+        "role": "feature",
+        "semantics": "Différence arrière à 4 tour(s) de hidden_risk (« H ») ; vide si l'historique est insuffisant."
+      },
+      {
+        "name": "ema_ur_local",
+        "dtype": "float",
+        "nullable": false,
+        "role": "feature",
+        "semantics": "Moyenne mobile exponentielle de ur_local (rho=0.3), lissée sur les tours réellement observés pour ce nœud (les tours manquants ne comptent pas comme des zéros)."
+      },
+      {
+        "name": "event_recent",
+        "dtype": "int",
+        "nullable": false,
+        "role": "feature",
+        "semantics": "1 si un événement vérité (gravité critique|defaut) a touché ce nœud dans [t−2, t], sinon 0."
+      },
+      {
+        "name": "weeks_since_event",
+        "dtype": "int",
+        "nullable": true,
+        "role": "feature",
+        "semantics": "Nombre de tours depuis le dernier événement vérité sur ce nœud, jusqu'à t inclus ; vide si aucun événement observé."
+      },
+      {
+        "name": "beta_mean",
+        "dtype": "float",
+        "nullable": false,
+        "role": "feature",
+        "semantics": "Moyenne du postérieur Beta-Bernoulli du taux d'événement hebdomadaire du nœud (prior partagé sur tout le dossier --runs, force N0=26)."
+      },
+      {
+        "name": "beta_var",
+        "dtype": "float",
+        "nullable": false,
+        "role": "feature",
+        "semantics": "Variance du postérieur Beta-Bernoulli."
+      },
+      {
+        "name": "beta_n",
+        "dtype": "int",
+        "nullable": false,
+        "role": "feature",
+        "semantics": "Nombre de tours réellement observés pour ce nœud jusqu'à t inclus (hors pseudo-observations du prior)."
+      },
+      {
+        "name": "p_retard_jalon",
+        "dtype": "float",
+        "nullable": true,
+        "role": "feature",
+        "semantics": "Réservée (aucune unité ne la produit encore) — toujours vide dans ce schéma v1."
+      },
+      {
+        "name": "p_impact_final",
+        "dtype": "float",
+        "nullable": true,
+        "role": "feature",
+        "semantics": "P(impact final) de la criticité probabiliste ; vide si non calculée pour ce tour."
+      },
+      {
+        "name": "delta_ell_final",
+        "dtype": "float",
+        "nullable": true,
+        "role": "feature",
+        "semantics": "Δℓ final (log-survie) de la criticité probabiliste ; vide si non calculé."
+      },
+      {
+        "name": "delta_ell_max",
+        "dtype": "float",
+        "nullable": true,
+        "role": "feature",
+        "semantics": "Δℓ maximal observé de la criticité probabiliste ; vide si non calculé."
+      },
+      {
+        "name": "p_rollout",
+        "dtype": "float",
+        "nullable": true,
+        "role": "feature",
+        "semantics": "p_issue du rollout Monte Carlo à l'horizon 4 (forecast['4']['p_issue']) ; vide si absent."
+      },
+      {
+        "name": "spread",
+        "dtype": "float",
+        "nullable": true,
+        "role": "feature",
+        "semantics": "Étalement (spread) du rollout Monte Carlo à l'horizon 4 ; vide si absent."
+      },
+      {
+        "name": "depth_frac",
+        "dtype": "float",
+        "nullable": false,
+        "role": "feature",
+        "semantics": "rank / max(rank) parmi les nœuds du même tour ; 0.0 si tous les rangs sont à 0."
+      },
+      {
+        "name": "in_deg",
+        "dtype": "int",
+        "nullable": true,
+        "role": "feature",
+        "semantics": "Degré entrant (nombre de prédécesseurs), déduit d'une liste d'arcs optionnelle du manifeste ; vide si les arcs sont inconnus."
+      },
+      {
+        "name": "out_deg",
+        "dtype": "int",
+        "nullable": true,
+        "role": "feature",
+        "semantics": "Degré sortant ; vide si les arcs sont inconnus."
+      },
+      {
+        "name": "log_n_nodes",
+        "dtype": "float",
+        "nullable": false,
+        "role": "feature",
+        "semantics": "Logarithme népérien du nombre de nœuds présents dans le tour."
+      },
+      {
+        "name": "impact_frac",
+        "dtype": "float",
+        "nullable": true,
+        "role": "feature",
+        "semantics": "nb_impactes / n_nodes (criticité) ; vide si la criticité n'a pas pu être calculée pour ce tour."
+      },
+      {
+        "name": "mean_ur_pred",
+        "dtype": "float",
+        "nullable": true,
+        "role": "feature",
+        "semantics": "Moyenne de 'ur' des prédécesseurs directs (arcs connus) au même tour ; vide si arcs inconnus ou aucun prédécesseur."
+      },
+      {
+        "name": "max_ur_pred",
+        "dtype": "float",
+        "nullable": true,
+        "role": "feature",
+        "semantics": "Maximum de 'ur' des prédécesseurs directs ; vide si arcs inconnus ou aucun prédécesseur."
+      },
+      {
+        "name": "frac_pred_satures",
+        "dtype": "float",
+        "nullable": true,
+        "role": "feature",
+        "semantics": "Fraction des prédécesseurs directs saturés (ur >= 0.999) ; vide si arcs inconnus ou aucun prédécesseur."
+      },
+      {
+        "name": "mean_beta_in",
+        "dtype": "float",
+        "nullable": true,
+        "role": "feature",
+        "semantics": "Moyenne de beta_mean des prédécesseurs directs (même tour) ; vide si arcs inconnus ou aucun prédécesseur."
+      }
+    ],
+    "excluded": {
+      "stress_latent": "Confondeur latent de l'usine synthétique (U6), définition gelée D32 : jamais une feature. Absent par construction de ce schéma (n'apparaît que dans interventions.csv, marqué VALIDATION_ONLY)."
+    }
+  },
+  "interventions": {
+    "columns": [
+      {
+        "name": "chain_id",
+        "dtype": "string",
+        "nullable": false,
+        "semantics": "Identifiant de la chaîne/run."
+      },
+      {
+        "name": "node_id",
+        "dtype": "string",
+        "nullable": false,
+        "semantics": "Nœud ciblé par l'intervention."
+      },
+      {
+        "name": "tour",
+        "dtype": "int",
+        "nullable": true,
+        "semantics": "Tour d'ouverture de l'intervention."
+      },
+      {
+        "name": "action_id",
+        "dtype": "string",
+        "nullable": false,
+        "semantics": "Identifiant de l'action du catalogue (U15)."
+      },
+      {
+        "name": "decidee",
+        "dtype": "int",
+        "nullable": false,
+        "semantics": "1 si l'action a été décidée, 0 sinon."
+      },
+      {
+        "name": "executee",
+        "dtype": "int",
+        "nullable": false,
+        "semantics": "1 si l'action décidée a effectivement été exécutée, 0 sinon."
+      },
+      {
+        "name": "date_effet",
+        "dtype": "int",
+        "nullable": true,
+        "semantics": "Tour d'effet, vide si non défini."
+      },
+      {
+        "name": "resultat_operationnel",
+        "dtype": "string",
+        "nullable": true,
+        "semantics": "resolu|partiel|echec|en_cours (label causal opérationnel, définition gelée) — vide si non renseigné."
+      },
+      {
+        "name": "succes",
+        "dtype": "int",
+        "nullable": true,
+        "semantics": "1 si resultat_operationnel=resolu, 0 si echec, vide sinon (partiel/en_cours/absent)."
+      },
+      {
+        "name": "ea_*",
+        "dtype": "mixed",
+        "nullable": true,
+        "semantics": "Features observables de etat_avant, aplaties avec le préfixe 'ea_' — union triée des clés vues sur l'ensemble des runs ingérés ; vide quand une intervention ne renseigne pas la clé."
+      },
+      {
+        "name": "effet_vrai_param",
+        "dtype": "float",
+        "nullable": true,
+        "semantics": "VALIDATION_ONLY — effet vrai paramétrique de l'usine, jamais une feature du modèle d'effet."
+      },
+      {
+        "name": "delta_u_vrai",
+        "dtype": "float",
+        "nullable": true,
+        "semantics": "VALIDATION_ONLY — delta_u vrai (paire CRN de l'usine), jamais une feature du modèle d'effet."
+      },
+      {
+        "name": "stress_latent",
+        "dtype": "float",
+        "nullable": true,
+        "semantics": "VALIDATION_ONLY — confondeur latent (définition gelée D32), jamais une feature du modèle d'effet ; sert uniquement à scorer/valider ce modèle."
+      }
+    ],
+    "ea_prefix": "ea_",
+    "validation_only": [
+      "stress_latent",
+      "delta_u_vrai",
+      "effet_vrai_param"
+    ]
+  },
+  "notes": {
+    "csv_empty": "Toute cellule CSV vide signifie 'nullable=true' et non calculable — jamais imputée à 0.",
+    "event_definition": "« événement » = entrée events_truth de gravité dans {critique, defaut} ; définition unique réutilisée pour les labels, la dynamique et le postérieur bayésien.",
+    "last_tour": "La censure des labels utilise le dernier tour_NN.json RÉELLEMENT présent pour la chaîne, jamais l'étendue déclarée d'events_truth."
+  }
+}
