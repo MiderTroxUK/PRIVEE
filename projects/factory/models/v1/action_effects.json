@@ -1,0 +1,2383 @@
+{
+  "schema_version": 2,
+  "label_causal": "effet causal ESTIMÉ sous hypothèse de confusion observable ; sensibilité : e_value",
+  "base_rate_resolution": 0.3573735199138859,
+  "actions": {
+    "promouvoir_arc_secours": {
+      "p_execution": {
+        "alpha": 307.5,
+        "beta": 53.5,
+        "n": 360
+      },
+      "segments": {
+        "proche__nonsat__autre": {
+          "posteriors": {
+            "prior_sim": {
+              "alpha": 39.85898815931109,
+              "beta": 45.14101184068891,
+              "n": 77,
+              "p_resolution": {
+                "mean": 0.4689292724624834,
+                "lo80": 0.39985549190249364,
+                "hi80": 0.5383214609867961
+              }
+            },
+            "prior_faible": {
+              "alpha": 37.5,
+              "beta": 40.5,
+              "n": 77,
+              "p_resolution": {
+                "mean": 0.4807692307692308,
+                "lo80": 0.40852901063635144,
+                "hi80": 0.5532245349721011
+              }
+            },
+            "donnees_seules": {
+              "alpha": 37.5,
+              "beta": 40.5,
+              "n": 77,
+              "p_resolution": {
+                "mean": 0.4807692307692308,
+                "lo80": 0.40852901063635144,
+                "hi80": 0.5532245349721011
+              }
+            }
+          },
+          "delta_causal_ipw": {
+            "est": 0.0984901446791208,
+            "lo80": 0.02665127651038529,
+            "hi80": 0.15444910778133414,
+            "n_eff": 331.251920120499
+          },
+          "delta_causal_aipw": {
+            "est": 0.08872898899889445,
+            "lo80": 0.016699601278583366,
+            "hi80": 0.15016257563372337
+          },
+          "p0_risque_non_traite": 0.21868246197401503,
+          "p1_risque_traite": 0.12019231729489423,
+          "e_value": 3.0404688440656313,
+          "overlap_ok": false,
+          "part_hors_overlap": 0.37325038880248834,
+          "propensity_converged": true,
+          "label": "effet causal ESTIMÉ sous hypothèse de confusion observable ; sensibilité : e_value"
+        },
+        "proche__nonsat__utime": {
+          "posteriors": {
+            "prior_sim": {
+              "alpha": 13.858988159311087,
+              "beta": 22.14101184068891,
+              "n": 28,
+              "p_resolution": {
+                "mean": 0.38497189331419684,
+                "lo80": 0.283037717512898,
+                "hi80": 0.48975269394609705
+              }
+            },
+            "prior_faible": {
+              "alpha": 11.5,
+              "beta": 17.5,
+              "n": 28,
+              "p_resolution": {
+                "mean": 0.39655172413793105,
+                "lo80": 0.28251713516718674,
+                "hi80": 0.5137942699418483
+              }
+            },
+            "donnees_seules": {
+              "alpha": 11.5,
+              "beta": 17.5,
+              "n": 28,
+              "p_resolution": {
+                "mean": 0.39655172413793105,
+                "lo80": 0.28251713516718674,
+                "hi80": 0.5137942699418483
+              }
+            }
+          },
+          "delta_causal_ipw": {
+            "est": 0.018054825849318473,
+            "lo80": -0.10180893113909384,
+            "hi80": 0.12691443961973137,
+            "n_eff": 139.7317946324887
+          },
+          "delta_causal_aipw": {
+            "est": 0.02040042198972597,
+            "lo80": -0.10226641021017278,
+            "hi80": 0.1352380528658836
+          },
+          "p0_risque_non_traite": 0.1630763104646852,
+          "p1_risque_traite": 0.14502148461536674,
+          "e_value": 1.498659649847217,
+          "overlap_ok": false,
+          "part_hors_overlap": 0.1783783783783784,
+          "propensity_converged": true,
+          "label": "effet causal ESTIMÉ sous hypothèse de confusion observable ; sensibilité : e_value"
+        },
+        "proche__sature__autre": {
+          "posteriors": {
+            "prior_sim": {
+              "alpha": 11.858988159311087,
+              "beta": 16.14101184068891,
+              "n": 20,
+              "p_resolution": {
+                "mean": 0.4235352914039674,
+                "lo80": 0.30586842682769977,
+                "hi80": 0.543662437673497
+              }
+            },
+            "prior_faible": {
+              "alpha": 9.5,
+              "beta": 11.5,
+              "n": 20,
+              "p_resolution": {
+                "mean": 0.4523809523809524,
+                "lo80": 0.31538108569605494,
+                "hi80": 0.5914577632380597
+              }
+            },
+            "donnees_seules": {
+              "alpha": 9.5,
+              "beta": 11.5,
+              "n": 20,
+              "p_resolution": {
+                "mean": 0.4523809523809524,
+                "lo80": 0.31538108569605494,
+                "hi80": 0.5914577632380597
+              }
+            }
+          },
+          "delta_causal_ipw": {
+            "est": 0.1242306000358333,
+            "lo80": -0.16841437274699148,
+            "hi80": 0.3160146011639745,
+            "n_eff": 48.67170889455291
+          },
+          "delta_causal_aipw": {
+            "est": 0.057024858592056304,
+            "lo80": -0.19004757627238228,
+            "hi80": 0.3080838646932456
+          },
+          "p0_risque_non_traite": 0.4369364919798684,
+          "p1_risque_traite": 0.3127058919440351,
+          "e_value": 2.142329547420919,
+          "overlap_ok": false,
+          "part_hors_overlap": 0.3162393162393162,
+          "propensity_converged": true,
+          "label": "effet causal ESTIMÉ sous hypothèse de confusion observable ; sensibilité : e_value"
+        },
+        "proche__sature__utime": {
+          "posteriors": {
+            "prior_sim": {
+              "alpha": 7.858988159311087,
+              "beta": 10.141011840688913,
+              "n": 10,
+              "p_resolution": {
+                "mean": 0.4366104532950604,
+                "lo80": 0.28992451333718317,
+                "hi80": 0.5865570600942163
+              }
+            },
+            "prior_faible": {
+              "alpha": 5.5,
+              "beta": 5.5,
+              "n": 10,
+              "p_resolution": {
+                "mean": 0.5,
+                "lo80": 0.3098920281295369,
+                "hi80": 0.6901079718704631
+              }
+            },
+            "donnees_seules": {
+              "alpha": 5.5,
+              "beta": 5.5,
+              "n": 10,
+              "p_resolution": {
+                "mean": 0.5,
+                "lo80": 0.3098920281295369,
+                "hi80": 0.6901079718704631
+              }
+            }
+          },
+          "delta_causal_ipw": null,
+          "e_value": null,
+          "overlap_ok": false
+        },
+        "profond__nonsat__autre": {
+          "posteriors": {
+            "prior_sim": {
+              "alpha": 31.85898815931109,
+              "beta": 71.14101184068892,
+              "n": 95,
+              "p_resolution": {
+                "mean": 0.3093105646535057,
+                "lo80": 0.25189838737735143,
+                "hi80": 0.36833043497272827
+              }
+            },
+            "prior_faible": {
+              "alpha": 29.5,
+              "beta": 66.5,
+              "n": 95,
+              "p_resolution": {
+                "mean": 0.3072916666666667,
+                "lo80": 0.24798527504517132,
+                "hi80": 0.3683429773625728
+              }
+            },
+            "donnees_seules": {
+              "alpha": 29.5,
+              "beta": 66.5,
+              "n": 95,
+              "p_resolution": {
+                "mean": 0.3072916666666667,
+                "lo80": 0.24798527504517132,
+                "hi80": 0.3683429773625728
+              }
+            }
+          },
+          "delta_causal_ipw": {
+            "est": -0.004677409560874368,
+            "lo80": -0.07623135545463242,
+            "hi80": 0.06145682356391711,
+            "n_eff": 530.9069487002021
+          },
+          "delta_causal_aipw": {
+            "est": -0.0014164479872229296,
+            "lo80": -0.06845303919068854,
+            "hi80": 0.06333636464881998
+          },
+          "p0_risque_non_traite": 0.21816020671801198,
+          "p1_risque_traite": 0.22283761627888635,
+          "e_value": 1.1694265178719243,
+          "overlap_ok": false,
+          "part_hors_overlap": 0.38219326818675353,
+          "propensity_converged": true,
+          "label": "effet causal ESTIMÉ sous hypothèse de confusion observable ; sensibilité : e_value"
+        },
+        "profond__nonsat__utime": {
+          "posteriors": {
+            "prior_sim": {
+              "alpha": 20.85898815931109,
+              "beta": 20.14101184068891,
+              "n": 33,
+              "p_resolution": {
+                "mean": 0.5087558087636851,
+                "lo80": 0.40900662131168825,
+                "hi80": 0.6083156132967236
+              }
+            },
+            "prior_faible": {
+              "alpha": 18.5,
+              "beta": 15.5,
+              "n": 33,
+              "p_resolution": {
+                "mean": 0.5441176470588235,
+                "lo80": 0.434623042960202,
+                "hi80": 0.6524534250382577
+              }
+            },
+            "donnees_seules": {
+              "alpha": 18.5,
+              "beta": 15.5,
+              "n": 33,
+              "p_resolution": {
+                "mean": 0.5441176470588235,
+                "lo80": 0.434623042960202,
+                "hi80": 0.6524534250382577
+              }
+            }
+          },
+          "delta_causal_ipw": {
+            "est": 0.23886115806121522,
+            "lo80": 0.14406531651950885,
+            "hi80": 0.3248470776715328,
+            "n_eff": 125.04846904589668
+          },
+          "delta_causal_aipw": {
+            "est": 0.24819612265639654,
+            "lo80": 0.14766876635645623,
+            "hi80": 0.33778034369121773
+          },
+          "p0_risque_non_traite": 0.3313209895034488,
+          "p1_risque_traite": 0.09245983144223359,
+          "e_value": 6.6259996245803805,
+          "overlap_ok": false,
+          "part_hors_overlap": 0.5286624203821656,
+          "propensity_converged": true,
+          "label": "effet causal ESTIMÉ sous hypothèse de confusion observable ; sensibilité : e_value"
+        },
+        "profond__sature__autre": {
+          "posteriors": {
+            "prior_sim": {
+              "alpha": 17.85898815931109,
+              "beta": 26.14101184068891,
+              "n": 36,
+              "p_resolution": {
+                "mean": 0.40588609452979746,
+                "lo80": 0.31236034492557135,
+                "hi80": 0.5013040774779363
+              }
+            },
+            "prior_faible": {
+              "alpha": 15.5,
+              "beta": 21.5,
+              "n": 36,
+              "p_resolution": {
+                "mean": 0.4189189189189189,
+                "lo80": 0.31645510352183986,
+                "hi80": 0.5233331441493374
+              }
+            },
+            "donnees_seules": {
+              "alpha": 15.5,
+              "beta": 21.5,
+              "n": 36,
+              "p_resolution": {
+                "mean": 0.4189189189189189,
+                "lo80": 0.31645510352183986,
+                "hi80": 0.5233331441493374
+              }
+            }
+          },
+          "delta_causal_ipw": {
+            "est": 0.05893043669626441,
+            "lo80": -0.07529088440979584,
+            "hi80": 0.19462022268350715,
+            "n_eff": 184.64191681629
+          },
+          "delta_causal_aipw": {
+            "est": 0.06093364258309003,
+            "lo80": -0.07086753271317468,
+            "hi80": 0.20287275309239775
+          },
+          "p0_risque_non_traite": 0.3931631396010821,
+          "p1_risque_traite": 0.3342327029048177,
+          "e_value": 1.631730544267393,
+          "overlap_ok": true,
+          "part_hors_overlap": 0.01507537688442211,
+          "propensity_converged": true,
+          "label": "effet causal ESTIMÉ sous hypothèse de confusion observable ; sensibilité : e_value"
+        },
+        "profond__sature__utime": {
+          "posteriors": {
+            "prior_sim": {
+              "alpha": 5.858988159311087,
+              "beta": 10.141011840688913,
+              "n": 8,
+              "p_resolution": {
+                "mean": 0.36618675995694294,
+                "lo80": 0.21784238097203948,
+                "hi80": 0.5223438995101506
+              }
+            },
+            "prior_faible": {
+              "alpha": 3.5,
+              "beta": 5.5,
+              "n": 8,
+              "p_resolution": {
+                "mean": 0.3888888888888889,
+                "lo80": 0.191659204491743,
+                "hi80": 0.5984076459543821
+              }
+            },
+            "donnees_seules": {
+              "alpha": 3.5,
+              "beta": 5.5,
+              "n": 8,
+              "p_resolution": {
+                "mean": 0.3888888888888889,
+                "lo80": 0.191659204491743,
+                "hi80": 0.5984076459543821
+              }
+            }
+          },
+          "delta_causal_ipw": null,
+          "e_value": null,
+          "overlap_ok": false
+        }
+      }
+    },
+    "replanifier_jalon": {
+      "p_execution": {
+        "alpha": 324.5,
+        "beta": 55.5,
+        "n": 379
+      },
+      "segments": {
+        "proche__nonsat__autre": {
+          "posteriors": {
+            "prior_sim": {
+              "alpha": 29.85898815931109,
+              "beta": 35.14101184068891,
+              "n": 57,
+              "p_resolution": {
+                "mean": 0.459369048604786,
+                "lo80": 0.380630854648673,
+                "hi80": 0.5386545500384762
+              }
+            },
+            "prior_faible": {
+              "alpha": 27.5,
+              "beta": 30.5,
+              "n": 57,
+              "p_resolution": {
+                "mean": 0.47413793103448276,
+                "lo80": 0.3905475358821224,
+                "hi80": 0.5581197711221519
+              }
+            },
+            "donnees_seules": {
+              "alpha": 27.5,
+              "beta": 30.5,
+              "n": 57,
+              "p_resolution": {
+                "mean": 0.47413793103448276,
+                "lo80": 0.3905475358821224,
+                "hi80": 0.5581197711221519
+              }
+            }
+          },
+          "delta_causal_ipw": {
+            "est": 0.03432019399276981,
+            "lo80": -0.08428074522035137,
+            "hi80": 0.16952371529645952,
+            "n_eff": 214.47097937902475
+          },
+          "delta_causal_aipw": {
+            "est": 0.02339234581039265,
+            "lo80": -0.11490659239783224,
+            "hi80": 0.16145572130571437
+          },
+          "p0_risque_non_traite": 0.25205529800876164,
+          "p1_risque_traite": 0.21773510401599183,
+          "e_value": 1.5847873036101336,
+          "overlap_ok": false,
+          "part_hors_overlap": 0.5280898876404494,
+          "propensity_converged": true,
+          "label": "effet causal ESTIMÉ sous hypothèse de confusion observable ; sensibilité : e_value"
+        },
+        "proche__nonsat__utime": {
+          "posteriors": {
+            "prior_sim": {
+              "alpha": 18.85898815931109,
+              "beta": 21.14101184068891,
+              "n": 32,
+              "p_resolution": {
+                "mean": 0.47147470398277724,
+                "lo80": 0.37106248197216174,
+                "hi80": 0.5725198746275613
+              }
+            },
+            "prior_faible": {
+              "alpha": 16.5,
+              "beta": 16.5,
+              "n": 32,
+              "p_resolution": {
+                "mean": 0.5,
+                "lo80": 0.3890155723226295,
+                "hi80": 0.6109844276773705
+              }
+            },
+            "donnees_seules": {
+              "alpha": 16.5,
+              "beta": 16.5,
+              "n": 32,
+              "p_resolution": {
+                "mean": 0.5,
+                "lo80": 0.3890155723226295,
+                "hi80": 0.6109844276773705
+              }
+            }
+          },
+          "delta_causal_ipw": {
+            "est": -0.09722871007270445,
+            "lo80": -0.2715896508302933,
+            "hi80": 0.05254421437766966,
+            "n_eff": 120.73737196914732
+          },
+          "delta_causal_aipw": {
+            "est": -0.07746914486615869,
+            "lo80": -0.2302957490643231,
+            "hi80": 0.048625262146656044
+          },
+          "p0_risque_non_traite": 0.15713989319661054,
+          "p1_risque_traite": 0.254368603269315,
+          "e_value": 2.6195289124425116,
+          "overlap_ok": false,
+          "part_hors_overlap": 0.25396825396825395,
+          "propensity_converged": true,
+          "label": "effet causal ESTIMÉ sous hypothèse de confusion observable ; sensibilité : e_value"
+        },
+        "proche__sature__autre": {
+          "posteriors": {
+            "prior_sim": {
+              "alpha": 12.858988159311087,
+              "beta": 24.14101184068891,
+              "n": 29,
+              "p_resolution": {
+                "mean": 0.3475402205219213,
+                "lo80": 0.2496616399317586,
+                "hi80": 0.449085448159356
+              }
+            },
+            "prior_faible": {
+              "alpha": 10.5,
+              "beta": 19.5,
+              "n": 29,
+              "p_resolution": {
+                "mean": 0.35,
+                "lo80": 0.24148276694014043,
+                "hi80": 0.4630056460208171
+              }
+            },
+            "donnees_seules": {
+              "alpha": 10.5,
+              "beta": 19.5,
+              "n": 29,
+              "p_resolution": {
+                "mean": 0.35,
+                "lo80": 0.24148276694014043,
+                "hi80": 0.4630056460208171
+              }
+            }
+          },
+          "delta_causal_ipw": {
+            "est": 0.12470334476672162,
+            "lo80": -0.005693829062805934,
+            "hi80": 0.23210662445198893,
+            "n_eff": 106.97609392047596
+          },
+          "delta_causal_aipw": {
+            "est": 0.12398319059024554,
+            "lo80": 0.020915024985599065,
+            "hi80": 0.228729052151479
+          },
+          "p0_risque_non_traite": 0.35517375241012844,
+          "p1_risque_traite": 0.23047040764340682,
+          "e_value": 2.454236411228467,
+          "overlap_ok": true,
+          "part_hors_overlap": 0.007936507936507936,
+          "propensity_converged": true,
+          "label": "effet causal ESTIMÉ sous hypothèse de confusion observable ; sensibilité : e_value"
+        },
+        "proche__sature__utime": {
+          "posteriors": {
+            "prior_sim": {
+              "alpha": 4.858988159311087,
+              "beta": 10.141011840688913,
+              "n": 7,
+              "p_resolution": {
+                "mean": 0.32393254395407245,
+                "lo80": 0.177245566382937,
+                "hi80": 0.48163890686222
+              }
+            },
+            "prior_faible": {
+              "alpha": 2.5,
+              "beta": 5.5,
+              "n": 7,
+              "p_resolution": {
+                "mean": 0.3125,
+                "lo80": 0.12166084706241674,
+                "hi80": 0.5270021917486664
+              }
+            },
+            "donnees_seules": {
+              "alpha": 2.5,
+              "beta": 5.5,
+              "n": 7,
+              "p_resolution": {
+                "mean": 0.3125,
+                "lo80": 0.12166084706241674,
+                "hi80": 0.5270021917486664
+              }
+            }
+          },
+          "delta_causal_ipw": null,
+          "e_value": null,
+          "overlap_ok": false
+        },
+        "profond__nonsat__autre": {
+          "posteriors": {
+            "prior_sim": {
+              "alpha": 67.85898815931108,
+              "beta": 45.14101184068891,
+              "n": 105,
+              "p_resolution": {
+                "mean": 0.6005220191089476,
+                "lo80": 0.5411856887719682,
+                "hi80": 0.6590867119188542
+              }
+            },
+            "prior_faible": {
+              "alpha": 65.5,
+              "beta": 40.5,
+              "n": 105,
+              "p_resolution": {
+                "mean": 0.6179245283018868,
+                "lo80": 0.557072328633782,
+                "hi80": 0.6778109338958166
+              }
+            },
+            "donnees_seules": {
+              "alpha": 65.5,
+              "beta": 40.5,
+              "n": 105,
+              "p_resolution": {
+                "mean": 0.6179245283018868,
+                "lo80": 0.557072328633782,
+                "hi80": 0.6778109338958166
+              }
+            }
+          },
+          "delta_causal_ipw": {
+            "est": 0.11381873864657305,
+            "lo80": 0.06759308057954298,
+            "hi80": 0.15586462306724672,
+            "n_eff": 613.1492988028851
+          },
+          "delta_causal_aipw": {
+            "est": 0.11516643068824949,
+            "lo80": 0.06910503208621574,
+            "hi80": 0.1570389143715927
+          },
+          "p0_risque_non_traite": 0.19585587562615875,
+          "p1_risque_traite": 0.0820371369795857,
+          "e_value": 4.20737699186669,
+          "overlap_ok": false,
+          "part_hors_overlap": 0.30182599355531686,
+          "propensity_converged": true,
+          "label": "effet causal ESTIMÉ sous hypothèse de confusion observable ; sensibilité : e_value"
+        },
+        "profond__nonsat__utime": {
+          "posteriors": {
+            "prior_sim": {
+              "alpha": 12.858988159311087,
+              "beta": 45.14101184068891,
+              "n": 50,
+              "p_resolution": {
+                "mean": 0.2217066924019153,
+                "lo80": 0.15443051579383069,
+                "hi80": 0.2931919152288606
+              }
+            },
+            "prior_faible": {
+              "alpha": 10.5,
+              "beta": 40.5,
+              "n": 50,
+              "p_resolution": {
+                "mean": 0.20588235294117646,
+                "lo80": 0.13654178331430364,
+                "hi80": 0.28029741651006457
+              }
+            },
+            "donnees_seules": {
+              "alpha": 10.5,
+              "beta": 40.5,
+              "n": 50,
+              "p_resolution": {
+                "mean": 0.20588235294117646,
+                "lo80": 0.13654178331430364,
+                "hi80": 0.28029741651006457
+              }
+            }
+          },
+          "delta_causal_ipw": {
+            "est": 0.04948937231673867,
+            "lo80": -0.08556959371705883,
+            "hi80": 0.14561794062359815,
+            "n_eff": 200.99577491513912
+          },
+          "delta_causal_aipw": {
+            "est": 0.0444663674121793,
+            "lo80": -0.06997015199833988,
+            "hi80": 0.14908763939961497
+          },
+          "p0_risque_non_traite": 0.28742706569417686,
+          "p1_risque_traite": 0.2379376933774382,
+          "e_value": 1.7092454954998924,
+          "overlap_ok": false,
+          "part_hors_overlap": 0.24471299093655588,
+          "propensity_converged": true,
+          "label": "effet causal ESTIMÉ sous hypothèse de confusion observable ; sensibilité : e_value"
+        },
+        "profond__sature__autre": {
+          "posteriors": {
+            "prior_sim": {
+              "alpha": 12.858988159311087,
+              "beta": 33.14101184068891,
+              "n": 38,
+              "p_resolution": {
+                "mean": 0.2795432208545888,
+                "lo80": 0.19743010221093069,
+                "hi80": 0.3658882854303882
+              }
+            },
+            "prior_faible": {
+              "alpha": 10.5,
+              "beta": 28.5,
+              "n": 38,
+              "p_resolution": {
+                "mean": 0.2692307692307692,
+                "lo80": 0.18159616794496689,
+                "hi80": 0.36211819377840804
+              }
+            },
+            "donnees_seules": {
+              "alpha": 10.5,
+              "beta": 28.5,
+              "n": 38,
+              "p_resolution": {
+                "mean": 0.2692307692307692,
+                "lo80": 0.18159616794496689,
+                "hi80": 0.36211819377840804
+              }
+            }
+          },
+          "delta_causal_ipw": {
+            "est": -0.05070133695035367,
+            "lo80": -0.2316426340596845,
+            "hi80": 0.1314500076396573,
+            "n_eff": 116.90177139057282
+          },
+          "delta_causal_aipw": {
+            "est": -0.08215997512943729,
+            "lo80": -0.2616159503675148,
+            "hi80": 0.11526325589575247
+          },
+          "p0_risque_non_traite": 0.4190775886904216,
+          "p1_risque_traite": 0.4697789256407753,
+          "e_value": 1.4892495218376922,
+          "overlap_ok": false,
+          "part_hors_overlap": 0.22885572139303484,
+          "propensity_converged": true,
+          "label": "effet causal ESTIMÉ sous hypothèse de confusion observable ; sensibilité : e_value"
+        },
+        "profond__sature__utime": {
+          "posteriors": {
+            "prior_sim": {
+              "alpha": 2.858988159311087,
+              "beta": 11.141011840688913,
+              "n": 6,
+              "p_resolution": {
+                "mean": 0.20421343995079194,
+                "lo80": 0.08095450700325603,
+                "hi80": 0.34733687229013877
+              }
+            },
+            "prior_faible": {
+              "alpha": 0.5,
+              "beta": 6.5,
+              "n": 6,
+              "p_resolution": {
+                "mean": 0.07142857142857142,
+                "lo80": 0.001261454115083956,
+                "hi80": 0.19435828157500987
+              }
+            },
+            "donnees_seules": {
+              "alpha": 0.5,
+              "beta": 6.5,
+              "n": 6,
+              "p_resolution": {
+                "mean": 0.07142857142857142,
+                "lo80": 0.001261454115083956,
+                "hi80": 0.19435828157500987
+              }
+            }
+          },
+          "delta_causal_ipw": null,
+          "e_value": null,
+          "overlap_ok": false
+        }
+      }
+    },
+    "expedition_express": {
+      "p_execution": {
+        "alpha": 299.5,
+        "beta": 61.5,
+        "n": 360
+      },
+      "segments": {
+        "proche__nonsat__autre": {
+          "posteriors": {
+            "prior_sim": {
+              "alpha": 35.85898815931109,
+              "beta": 34.14101184068891,
+              "n": 62,
+              "p_resolution": {
+                "mean": 0.5122712594187299,
+                "lo80": 0.4358090609134897,
+                "hi80": 0.5885802067335202
+              }
+            },
+            "prior_faible": {
+              "alpha": 33.5,
+              "beta": 29.5,
+              "n": 62,
+              "p_resolution": {
+                "mean": 0.5317460317460317,
+                "lo80": 0.451169932824366,
+                "hi80": 0.6118806215650177
+              }
+            },
+            "donnees_seules": {
+              "alpha": 33.5,
+              "beta": 29.5,
+              "n": 62,
+              "p_resolution": {
+                "mean": 0.5317460317460317,
+                "lo80": 0.451169932824366,
+                "hi80": 0.6118806215650177
+              }
+            }
+          },
+          "delta_causal_ipw": {
+            "est": 0.08752596381573939,
+            "lo80": 0.028380821894857616,
+            "hi80": 0.14706209541939969,
+            "n_eff": 349.53742389020476
+          },
+          "delta_causal_aipw": {
+            "est": 0.08635710424346724,
+            "lo80": 0.031126871670021972,
+            "hi80": 0.14327506278042504
+          },
+          "p0_risque_non_traite": 0.20329913896629348,
+          "p1_risque_traite": 0.11577317515055409,
+          "e_value": 2.9082135430547775,
+          "overlap_ok": false,
+          "part_hors_overlap": 0.40764331210191085,
+          "propensity_converged": true,
+          "label": "effet causal ESTIMÉ sous hypothèse de confusion observable ; sensibilité : e_value"
+        },
+        "proche__nonsat__utime": {
+          "posteriors": {
+            "prior_sim": {
+              "alpha": 13.858988159311087,
+              "beta": 20.14101184068891,
+              "n": 26,
+              "p_resolution": {
+                "mean": 0.40761729880326725,
+                "lo80": 0.30142371942179585,
+                "hi80": 0.5162372617768064
+              }
+            },
+            "prior_faible": {
+              "alpha": 11.5,
+              "beta": 15.5,
+              "n": 26,
+              "p_resolution": {
+                "mean": 0.42592592592592593,
+                "lo80": 0.306022197861081,
+                "hi80": 0.5483058516700884
+              }
+            },
+            "donnees_seules": {
+              "alpha": 11.5,
+              "beta": 15.5,
+              "n": 26,
+              "p_resolution": {
+                "mean": 0.42592592592592593,
+                "lo80": 0.306022197861081,
+                "hi80": 0.5483058516700884
+              }
+            }
+          },
+          "delta_causal_ipw": {
+            "est": 0.11856843694960027,
+            "lo80": 0.060493914582863496,
+            "hi80": 0.17799796639858,
+            "n_eff": 111.02492816254141
+          },
+          "delta_causal_aipw": {
+            "est": 0.11420363630074423,
+            "lo80": 0.03166042705957234,
+            "hi80": 0.20663796818206087
+          },
+          "p0_risque_non_traite": 0.1649273184005587,
+          "p1_risque_traite": 0.046358881450958414,
+          "e_value": 6.5740830155401,
+          "overlap_ok": false,
+          "part_hors_overlap": 0.2568306010928962,
+          "propensity_converged": true,
+          "label": "effet causal ESTIMÉ sous hypothèse de confusion observable ; sensibilité : e_value"
+        },
+        "proche__sature__autre": {
+          "posteriors": {
+            "prior_sim": {
+              "alpha": 11.858988159311087,
+              "beta": 24.14101184068891,
+              "n": 28,
+              "p_resolution": {
+                "mean": 0.3294163377586413,
+                "lo80": 0.23181909454553562,
+                "hi80": 0.4312341119863487
+              }
+            },
+            "prior_faible": {
+              "alpha": 9.5,
+              "beta": 19.5,
+              "n": 28,
+              "p_resolution": {
+                "mean": 0.3275862068965517,
+                "lo80": 0.2195202696327386,
+                "hi80": 0.4409968814931016
+              }
+            },
+            "donnees_seules": {
+              "alpha": 9.5,
+              "beta": 19.5,
+              "n": 28,
+              "p_resolution": {
+                "mean": 0.3275862068965517,
+                "lo80": 0.2195202696327386,
+                "hi80": 0.4409968814931016
+              }
+            }
+          },
+          "delta_causal_ipw": {
+            "est": 0.23556614845395463,
+            "lo80": 0.08195275147041274,
+            "hi80": 0.3809796657697483,
+            "n_eff": 38.503781019390765
+          },
+          "delta_causal_aipw": {
+            "est": 0.1961192818554196,
+            "lo80": 0.07203563727321635,
+            "hi80": 0.3383395048698069
+          },
+          "p0_risque_non_traite": 0.5038363564899161,
+          "p1_risque_traite": 0.26827020803596147,
+          "e_value": 3.1622812481265754,
+          "overlap_ok": false,
+          "part_hors_overlap": 0.168,
+          "propensity_converged": true,
+          "label": "effet causal ESTIMÉ sous hypothèse de confusion observable ; sensibilité : e_value"
+        },
+        "proche__sature__utime": {
+          "posteriors": {
+            "prior_sim": {
+              "alpha": 3.858988159311087,
+              "beta": 10.141011840688913,
+              "n": 6,
+              "p_resolution": {
+                "mean": 0.27564201137936334,
+                "lo80": 0.13370054887179042,
+                "hi80": 0.4327037128308353
+              }
+            },
+            "prior_faible": {
+              "alpha": 1.5,
+              "beta": 5.5,
+              "n": 6,
+              "p_resolution": {
+                "mean": 0.21428571428571427,
+                "lo80": 0.04963070426851066,
+                "hi80": 0.4204635190597362
+              }
+            },
+            "donnees_seules": {
+              "alpha": 1.5,
+              "beta": 5.5,
+              "n": 6,
+              "p_resolution": {
+                "mean": 0.21428571428571427,
+                "lo80": 0.04963070426851066,
+                "hi80": 0.4204635190597362
+              }
+            }
+          },
+          "delta_causal_ipw": null,
+          "e_value": null,
+          "overlap_ok": false
+        },
+        "profond__nonsat__autre": {
+          "posteriors": {
+            "prior_sim": {
+              "alpha": 49.85898815931109,
+              "beta": 67.14101184068892,
+              "n": 109,
+              "p_resolution": {
+                "mean": 0.42614519794282985,
+                "lo80": 0.36791674334581387,
+                "hi80": 0.4849209741529724
+              }
+            },
+            "prior_faible": {
+              "alpha": 47.5,
+              "beta": 62.5,
+              "n": 109,
+              "p_resolution": {
+                "mean": 0.4318181818181818,
+                "lo80": 0.3716576729647771,
+                "hi80": 0.49251654432049
+              }
+            },
+            "donnees_seules": {
+              "alpha": 47.5,
+              "beta": 62.5,
+              "n": 109,
+              "p_resolution": {
+                "mean": 0.4318181818181818,
+                "lo80": 0.3716576729647771,
+                "hi80": 0.49251654432049
+              }
+            }
+          },
+          "delta_causal_ipw": {
+            "est": 0.02330923043840355,
+            "lo80": -0.03229835964274911,
+            "hi80": 0.07280791327985729,
+            "n_eff": 630.4052317483593
+          },
+          "delta_causal_aipw": {
+            "est": 0.023833648004842528,
+            "lo80": -0.031068977870264778,
+            "hi80": 0.07238539151376755
+          },
+          "p0_risque_non_traite": 0.1865982617170788,
+          "p1_risque_traite": 0.16328903127867525,
+          "e_value": 1.5466361086280287,
+          "overlap_ok": false,
+          "part_hors_overlap": 0.2887700534759358,
+          "propensity_converged": true,
+          "label": "effet causal ESTIMÉ sous hypothèse de confusion observable ; sensibilité : e_value"
+        },
+        "profond__nonsat__utime": {
+          "posteriors": {
+            "prior_sim": {
+              "alpha": 17.85898815931109,
+              "beta": 22.14101184068891,
+              "n": 32,
+              "p_resolution": {
+                "mean": 0.4464747039827772,
+                "lo80": 0.34676783184804366,
+                "hi80": 0.5473692253250108
+              }
+            },
+            "prior_faible": {
+              "alpha": 15.5,
+              "beta": 17.5,
+              "n": 32,
+              "p_resolution": {
+                "mean": 0.4696969696969697,
+                "lo80": 0.3593345677712375,
+                "hi80": 0.5808804887681417
+              }
+            },
+            "donnees_seules": {
+              "alpha": 15.5,
+              "beta": 17.5,
+              "n": 32,
+              "p_resolution": {
+                "mean": 0.4696969696969697,
+                "lo80": 0.3593345677712375,
+                "hi80": 0.5808804887681417
+              }
+            }
+          },
+          "delta_causal_ipw": {
+            "est": 0.07187249337769264,
+            "lo80": -0.05046992392399032,
+            "hi80": 0.21942112486783386,
+            "n_eff": 179.5099382341178
+          },
+          "delta_causal_aipw": {
+            "est": 0.0717756308186773,
+            "lo80": -0.040564312436714475,
+            "hi80": 0.22154010657230971
+          },
+          "p0_risque_non_traite": 0.31045146249685646,
+          "p1_risque_traite": 0.23857896911916382,
+          "e_value": 1.927355813486211,
+          "overlap_ok": false,
+          "part_hors_overlap": 0.3993610223642173,
+          "propensity_converged": true,
+          "label": "effet causal ESTIMÉ sous hypothèse de confusion observable ; sensibilité : e_value"
+        },
+        "profond__sature__autre": {
+          "posteriors": {
+            "prior_sim": {
+              "alpha": 13.858988159311087,
+              "beta": 23.14101184068891,
+              "n": 29,
+              "p_resolution": {
+                "mean": 0.3745672475489483,
+                "lo80": 0.27466762913346593,
+                "hi80": 0.47748381678429336
+              }
+            },
+            "prior_faible": {
+              "alpha": 11.5,
+              "beta": 18.5,
+              "n": 29,
+              "p_resolution": {
+                "mean": 0.38333333333333336,
+                "lo80": 0.27208065835341944,
+                "hi80": 0.4980775267642176
+              }
+            },
+            "donnees_seules": {
+              "alpha": 11.5,
+              "beta": 18.5,
+              "n": 29,
+              "p_resolution": {
+                "mean": 0.38333333333333336,
+                "lo80": 0.27208065835341944,
+                "hi80": 0.4980775267642176
+              }
+            }
+          },
+          "delta_causal_ipw": {
+            "est": 0.08562178503483109,
+            "lo80": -0.08497643974549517,
+            "hi80": 0.25506202422466695,
+            "n_eff": 123.65412443977601
+          },
+          "delta_causal_aipw": {
+            "est": 0.1028356740058392,
+            "lo80": -0.06715636450095738,
+            "hi80": 0.28215635672311096
+          },
+          "p0_risque_non_traite": 0.40066868052319793,
+          "p1_risque_traite": 0.31504689548836684,
+          "e_value": 1.8596830855485513,
+          "overlap_ok": false,
+          "part_hors_overlap": 0.28125,
+          "propensity_converged": true,
+          "label": "effet causal ESTIMÉ sous hypothèse de confusion observable ; sensibilité : e_value"
+        },
+        "profond__sature__utime": {
+          "posteriors": {
+            "prior_sim": {
+              "alpha": 5.858988159311087,
+              "beta": 9.141011840688913,
+              "n": 7,
+              "p_resolution": {
+                "mean": 0.39059921062073916,
+                "lo80": 0.23476354855301027,
+                "hi80": 0.5532879036700455
+              }
+            },
+            "prior_faible": {
+              "alpha": 3.5,
+              "beta": 4.5,
+              "n": 7,
+              "p_resolution": {
+                "mean": 0.4375,
+                "lo80": 0.2220664268040574,
+                "hi80": 0.6608533464787925
+              }
+            },
+            "donnees_seules": {
+              "alpha": 3.5,
+              "beta": 4.5,
+              "n": 7,
+              "p_resolution": {
+                "mean": 0.4375,
+                "lo80": 0.2220664268040574,
+                "hi80": 0.6608533464787925
+              }
+            }
+          },
+          "delta_causal_ipw": null,
+          "e_value": null,
+          "overlap_ok": false
+        }
+      }
+    },
+    "boost_capacite": {
+      "p_execution": {
+        "alpha": 319.5,
+        "beta": 50.5,
+        "n": 369
+      },
+      "segments": {
+        "proche__nonsat__autre": {
+          "posteriors": {
+            "prior_sim": {
+              "alpha": 27.85898815931109,
+              "beta": 52.14101184068891,
+              "n": 72,
+              "p_resolution": {
+                "mean": 0.3482373519913886,
+                "lo80": 0.2809937510447939,
+                "hi80": 0.41713494222607317
+              }
+            },
+            "prior_faible": {
+              "alpha": 25.5,
+              "beta": 47.5,
+              "n": 72,
+              "p_resolution": {
+                "mean": 0.3493150684931507,
+                "lo80": 0.27892418202812264,
+                "hi80": 0.42150873104753556
+              }
+            },
+            "donnees_seules": {
+              "alpha": 25.5,
+              "beta": 47.5,
+              "n": 72,
+              "p_resolution": {
+                "mean": 0.3493150684931507,
+                "lo80": 0.27892418202812264,
+                "hi80": 0.42150873104753556
+              }
+            }
+          },
+          "delta_causal_ipw": {
+            "est": 0.012783995146062266,
+            "lo80": -0.06859036396409428,
+            "hi80": 0.0899990548980579,
+            "n_eff": 413.8113191702255
+          },
+          "delta_causal_aipw": {
+            "est": 0.006473661530999875,
+            "lo80": -0.07781165729527237,
+            "hi80": 0.08769131940455982
+          },
+          "p0_risque_non_traite": 0.1943678086639013,
+          "p1_risque_traite": 0.18158381351783903,
+          "e_value": 1.3449191495919484,
+          "overlap_ok": false,
+          "part_hors_overlap": 0.274294670846395,
+          "propensity_converged": true,
+          "label": "effet causal ESTIMÉ sous hypothèse de confusion observable ; sensibilité : e_value"
+        },
+        "proche__nonsat__utime": {
+          "posteriors": {
+            "prior_sim": {
+              "alpha": 15.858988159311087,
+              "beta": 12.141011840688913,
+              "n": 20,
+              "p_resolution": {
+                "mean": 0.5663924342611103,
+                "lo80": 0.44606204397967836,
+                "hi80": 0.6845865713011303
+              }
+            },
+            "prior_faible": {
+              "alpha": 13.5,
+              "beta": 7.5,
+              "n": 20,
+              "p_resolution": {
+                "mean": 0.6428571428571429,
+                "lo80": 0.5071604349588013,
+                "hi80": 0.7723259292533848
+              }
+            },
+            "donnees_seules": {
+              "alpha": 13.5,
+              "beta": 7.5,
+              "n": 20,
+              "p_resolution": {
+                "mean": 0.6428571428571429,
+                "lo80": 0.5071604349588013,
+                "hi80": 0.7723259292533848
+              }
+            }
+          },
+          "delta_causal_ipw": {
+            "est": 0.08842129483729075,
+            "lo80": 0.007950605378494974,
+            "hi80": 0.14492108573835796,
+            "n_eff": 135.62457312905318
+          },
+          "delta_causal_aipw": {
+            "est": 0.08888129752981899,
+            "lo80": -0.006546396988468663,
+            "hi80": 0.1582935707040851
+          },
+          "p0_risque_non_traite": 0.14545479629143007,
+          "p1_risque_traite": 0.057033501454139324,
+          "e_value": 4.538779273359343,
+          "overlap_ok": false,
+          "part_hors_overlap": 0.192090395480226,
+          "propensity_converged": true,
+          "label": "effet causal ESTIMÉ sous hypothèse de confusion observable ; sensibilité : e_value"
+        },
+        "proche__sature__autre": {
+          "posteriors": {
+            "prior_sim": {
+              "alpha": 11.858988159311087,
+              "beta": 22.14101184068891,
+              "n": 26,
+              "p_resolution": {
+                "mean": 0.3487937693915026,
+                "lo80": 0.24672830768805767,
+                "hi80": 0.45482977112145356
+              }
+            },
+            "prior_faible": {
+              "alpha": 9.5,
+              "beta": 17.5,
+              "n": 26,
+              "p_resolution": {
+                "mean": 0.35185185185185186,
+                "lo80": 0.23752722394159434,
+                "hi80": 0.47112734144212526
+              }
+            },
+            "donnees_seules": {
+              "alpha": 9.5,
+              "beta": 17.5,
+              "n": 26,
+              "p_resolution": {
+                "mean": 0.35185185185185186,
+                "lo80": 0.23752722394159434,
+                "hi80": 0.47112734144212526
+              }
+            }
+          },
+          "delta_causal_ipw": {
+            "est": 0.10738852947105793,
+            "lo80": -0.11938445274361124,
+            "hi80": 0.295150874150814,
+            "n_eff": 89.68512518476042
+          },
+          "delta_causal_aipw": {
+            "est": 0.15888658490974392,
+            "lo80": -0.056084318898755335,
+            "hi80": 0.31063211387817036
+          },
+          "p0_risque_non_traite": 0.37078465489117657,
+          "p1_risque_traite": 0.26339612542011864,
+          "e_value": 2.1652907097387484,
+          "overlap_ok": false,
+          "part_hors_overlap": 0.12195121951219512,
+          "propensity_converged": true,
+          "label": "effet causal ESTIMÉ sous hypothèse de confusion observable ; sensibilité : e_value"
+        },
+        "proche__sature__utime": {
+          "posteriors": {
+            "prior_sim": {
+              "alpha": 4.858988159311087,
+              "beta": 10.141011840688913,
+              "n": 7,
+              "p_resolution": {
+                "mean": 0.32393254395407245,
+                "lo80": 0.177245566382937,
+                "hi80": 0.48163890686222
+              }
+            },
+            "prior_faible": {
+              "alpha": 2.5,
+              "beta": 5.5,
+              "n": 7,
+              "p_resolution": {
+                "mean": 0.3125,
+                "lo80": 0.12166084706241674,
+                "hi80": 0.5270021917486664
+              }
+            },
+            "donnees_seules": {
+              "alpha": 2.5,
+              "beta": 5.5,
+              "n": 7,
+              "p_resolution": {
+                "mean": 0.3125,
+                "lo80": 0.12166084706241674,
+                "hi80": 0.5270021917486664
+              }
+            }
+          },
+          "delta_causal_ipw": null,
+          "e_value": null,
+          "overlap_ok": false
+        },
+        "profond__nonsat__autre": {
+          "posteriors": {
+            "prior_sim": {
+              "alpha": 45.85898815931109,
+              "beta": 81.14101184068892,
+              "n": 119,
+              "p_resolution": {
+                "mean": 0.3610943949552054,
+                "lo80": 0.30703777495269724,
+                "hi80": 0.4160984066481628
+              }
+            },
+            "prior_faible": {
+              "alpha": 43.5,
+              "beta": 76.5,
+              "n": 119,
+              "p_resolution": {
+                "mean": 0.3625,
+                "lo80": 0.3068561237848578,
+                "hi80": 0.4191370367406368
+              }
+            },
+            "donnees_seules": {
+              "alpha": 43.5,
+              "beta": 76.5,
+              "n": 119,
+              "p_resolution": {
+                "mean": 0.3625,
+                "lo80": 0.3068561237848578,
+                "hi80": 0.4191370367406368
+              }
+            }
+          },
+          "delta_causal_ipw": {
+            "est": -0.025156621543581753,
+            "lo80": -0.07952188337283903,
+            "hi80": 0.031108957254132093,
+            "n_eff": 704.7476332509223
+          },
+          "delta_causal_aipw": {
+            "est": -0.027225600865452143,
+            "lo80": -0.0822195387925646,
+            "hi80": 0.030205561843110598
+          },
+          "p0_risque_non_traite": 0.17648628157871546,
+          "p1_risque_traite": 0.2016429031222972,
+          "e_value": 1.5461001769632605,
+          "overlap_ok": false,
+          "part_hors_overlap": 0.20846560846560847,
+          "propensity_converged": true,
+          "label": "effet causal ESTIMÉ sous hypothèse de confusion observable ; sensibilité : e_value"
+        },
+        "profond__nonsat__utime": {
+          "posteriors": {
+            "prior_sim": {
+              "alpha": 20.85898815931109,
+              "beta": 28.14101184068891,
+              "n": 41,
+              "p_resolution": {
+                "mean": 0.4256936359043079,
+                "lo80": 0.3361674053189818,
+                "hi80": 0.5165570671132627
+              }
+            },
+            "prior_faible": {
+              "alpha": 18.5,
+              "beta": 23.5,
+              "n": 41,
+              "p_resolution": {
+                "mean": 0.44047619047619047,
+                "lo80": 0.3433383244682919,
+                "hi80": 0.5388697959845703
+              }
+            },
+            "donnees_seules": {
+              "alpha": 18.5,
+              "beta": 23.5,
+              "n": 41,
+              "p_resolution": {
+                "mean": 0.44047619047619047,
+                "lo80": 0.3433383244682919,
+                "hi80": 0.5388697959845703
+              }
+            }
+          },
+          "delta_causal_ipw": {
+            "est": 0.041931906426385945,
+            "lo80": -0.09588109836599047,
+            "hi80": 0.16366965918118373,
+            "n_eff": 198.610482926825
+          },
+          "delta_causal_aipw": {
+            "est": 0.03617402697849614,
+            "lo80": -0.11010435457103138,
+            "hi80": 0.15787938672640547
+          },
+          "p0_risque_non_traite": 0.26645950338669405,
+          "p1_risque_traite": 0.2245275969603081,
+          "e_value": 1.6575363291459313,
+          "overlap_ok": false,
+          "part_hors_overlap": 0.3167701863354037,
+          "propensity_converged": true,
+          "label": "effet causal ESTIMÉ sous hypothèse de confusion observable ; sensibilité : e_value"
+        },
+        "profond__sature__autre": {
+          "posteriors": {
+            "prior_sim": {
+              "alpha": 10.858988159311087,
+              "beta": 25.14101184068891,
+              "n": 28,
+              "p_resolution": {
+                "mean": 0.30163855998086353,
+                "lo80": 0.20681467158544195,
+                "hi80": 0.4013694479187158
+              }
+            },
+            "prior_faible": {
+              "alpha": 8.5,
+              "beta": 20.5,
+              "n": 28,
+              "p_resolution": {
+                "mean": 0.29310344827586204,
+                "lo80": 0.18906949602449674,
+                "hi80": 0.40354928613425994
+              }
+            },
+            "donnees_seules": {
+              "alpha": 8.5,
+              "beta": 20.5,
+              "n": 28,
+              "p_resolution": {
+                "mean": 0.29310344827586204,
+                "lo80": 0.18906949602449674,
+                "hi80": 0.40354928613425994
+              }
+            }
+          },
+          "delta_causal_ipw": {
+            "est": 0.06494746698438231,
+            "lo80": -0.08058011297953259,
+            "hi80": 0.19805558754131272,
+            "n_eff": 145.11388869119787
+          },
+          "delta_causal_aipw": {
+            "est": 0.05940077078740541,
+            "lo80": -0.08673971152623058,
+            "hi80": 0.20657228678609532
+          },
+          "p0_risque_non_traite": 0.3914801616951834,
+          "p1_risque_traite": 0.3265326947108011,
+          "e_value": 1.6872257509303208,
+          "overlap_ok": false,
+          "part_hors_overlap": 0.16230366492146597,
+          "propensity_converged": true,
+          "label": "effet causal ESTIMÉ sous hypothèse de confusion observable ; sensibilité : e_value"
+        },
+        "profond__sature__utime": {
+          "posteriors": {
+            "prior_sim": {
+              "alpha": 4.858988159311087,
+              "beta": 9.141011840688913,
+              "n": 6,
+              "p_resolution": {
+                "mean": 0.3470705828079348,
+                "lo80": 0.19192019843268684,
+                "hi80": 0.5125445138572811
+              }
+            },
+            "prior_faible": {
+              "alpha": 2.5,
+              "beta": 4.5,
+              "n": 6,
+              "p_resolution": {
+                "mean": 0.35714285714285715,
+                "lo80": 0.14348632065838451,
+                "hi80": 0.5918934207930441
+              }
+            },
+            "donnees_seules": {
+              "alpha": 2.5,
+              "beta": 4.5,
+              "n": 6,
+              "p_resolution": {
+                "mean": 0.35714285714285715,
+                "lo80": 0.14348632065838451,
+                "hi80": 0.5918934207930441
+              }
+            }
+          },
+          "delta_causal_ipw": null,
+          "e_value": null,
+          "overlap_ok": false
+        }
+      }
+    },
+    "revue_declaration": {
+      "p_execution": {
+        "alpha": 313.5,
+        "beta": 65.5,
+        "n": 378
+      },
+      "segments": {
+        "proche__nonsat__autre": {
+          "posteriors": {
+            "prior_sim": {
+              "alpha": 28.85898815931109,
+              "beta": 47.14101184068891,
+              "n": 68,
+              "p_resolution": {
+                "mean": 0.37972352841198803,
+                "lo80": 0.30925769439505346,
+                "hi80": 0.45157054253412066
+              }
+            },
+            "prior_faible": {
+              "alpha": 26.5,
+              "beta": 42.5,
+              "n": 68,
+              "p_resolution": {
+                "mean": 0.38405797101449274,
+                "lo80": 0.3099690876433868,
+                "hi80": 0.4596161168597267
+              }
+            },
+            "donnees_seules": {
+              "alpha": 26.5,
+              "beta": 42.5,
+              "n": 68,
+              "p_resolution": {
+                "mean": 0.38405797101449274,
+                "lo80": 0.3099690876433868,
+                "hi80": 0.4596161168597267
+              }
+            }
+          },
+          "delta_causal_ipw": {
+            "est": -0.043396517529955436,
+            "lo80": -0.12422371735620058,
+            "hi80": 0.03174237329245506,
+            "n_eff": 442.4219174597334
+          },
+          "delta_causal_aipw": {
+            "est": -0.04265330876838477,
+            "lo80": -0.11562161894025966,
+            "hi80": 0.030432442278324322
+          },
+          "p0_risque_non_traite": 0.18953013709250807,
+          "p1_risque_traite": 0.2329266546224635,
+          "e_value": 1.7594364268282714,
+          "overlap_ok": false,
+          "part_hors_overlap": 0.2444794952681388,
+          "propensity_converged": true,
+          "label": "effet causal ESTIMÉ sous hypothèse de confusion observable ; sensibilité : e_value"
+        },
+        "proche__nonsat__utime": {
+          "posteriors": {
+            "prior_sim": {
+              "alpha": 16.85898815931109,
+              "beta": 15.141011840688913,
+              "n": 24,
+              "p_resolution": {
+                "mean": 0.5268433799784715,
+                "lo80": 0.41394960183543084,
+                "hi80": 0.6389860589043126
+              }
+            },
+            "prior_faible": {
+              "alpha": 14.5,
+              "beta": 10.5,
+              "n": 24,
+              "p_resolution": {
+                "mean": 0.58,
+                "lo80": 0.4529727885797031,
+                "hi80": 0.7041271340227018
+              }
+            },
+            "donnees_seules": {
+              "alpha": 14.5,
+              "beta": 10.5,
+              "n": 24,
+              "p_resolution": {
+                "mean": 0.58,
+                "lo80": 0.4529727885797031,
+                "hi80": 0.7041271340227018
+              }
+            }
+          },
+          "delta_causal_ipw": {
+            "est": 0.07346949238977545,
+            "lo80": -0.04442574268674343,
+            "hi80": 0.16631673097122304,
+            "n_eff": 98.65981660142164
+          },
+          "delta_causal_aipw": {
+            "est": 0.06737818251414843,
+            "lo80": -0.060377704991880575,
+            "hi80": 0.1951045067116856
+          },
+          "p0_risque_non_traite": 0.1761599337212739,
+          "p1_risque_traite": 0.10269044133149845,
+          "e_value": 2.8232863297127957,
+          "overlap_ok": false,
+          "part_hors_overlap": 0.34806629834254144,
+          "propensity_converged": true,
+          "label": "effet causal ESTIMÉ sous hypothèse de confusion observable ; sensibilité : e_value"
+        },
+        "proche__sature__autre": {
+          "posteriors": {
+            "prior_sim": {
+              "alpha": 18.85898815931109,
+              "beta": 13.141011840688913,
+              "n": 24,
+              "p_resolution": {
+                "mean": 0.5893433799784715,
+                "lo80": 0.47728909683919907,
+                "hi80": 0.6988980159932091
+              }
+            },
+            "prior_faible": {
+              "alpha": 16.5,
+              "beta": 8.5,
+              "n": 24,
+              "p_resolution": {
+                "mean": 0.66,
+                "lo80": 0.536830128521397,
+                "hi80": 0.7773720873253618
+              }
+            },
+            "donnees_seules": {
+              "alpha": 16.5,
+              "beta": 8.5,
+              "n": 24,
+              "p_resolution": {
+                "mean": 0.66,
+                "lo80": 0.536830128521397,
+                "hi80": 0.7773720873253618
+              }
+            }
+          },
+          "delta_causal_ipw": {
+            "est": 0.2545184310766261,
+            "lo80": 0.16673040499627703,
+            "hi80": 0.3596383715789432,
+            "n_eff": 86.40820534075282
+          },
+          "delta_causal_aipw": {
+            "est": 0.2461131963957675,
+            "lo80": 0.15544961688461215,
+            "hi80": 0.363540905857746
+          },
+          "p0_risque_non_traite": 0.3489684134679777,
+          "p1_risque_traite": 0.09444998239135162,
+          "e_value": 6.850116690838306,
+          "overlap_ok": true,
+          "part_hors_overlap": 0.06611570247933884,
+          "propensity_converged": true,
+          "label": "effet causal ESTIMÉ sous hypothèse de confusion observable ; sensibilité : e_value"
+        },
+        "proche__sature__utime": {
+          "posteriors": {
+            "prior_sim": {
+              "alpha": 5.858988159311087,
+              "beta": 10.141011840688913,
+              "n": 8,
+              "p_resolution": {
+                "mean": 0.36618675995694294,
+                "lo80": 0.21784238097203948,
+                "hi80": 0.5223438995101506
+              }
+            },
+            "prior_faible": {
+              "alpha": 3.5,
+              "beta": 5.5,
+              "n": 8,
+              "p_resolution": {
+                "mean": 0.3888888888888889,
+                "lo80": 0.191659204491743,
+                "hi80": 0.5984076459543821
+              }
+            },
+            "donnees_seules": {
+              "alpha": 3.5,
+              "beta": 5.5,
+              "n": 8,
+              "p_resolution": {
+                "mean": 0.3888888888888889,
+                "lo80": 0.191659204491743,
+                "hi80": 0.5984076459543821
+              }
+            }
+          },
+          "delta_causal_ipw": null,
+          "e_value": null,
+          "overlap_ok": false
+        },
+        "profond__nonsat__autre": {
+          "posteriors": {
+            "prior_sim": {
+              "alpha": 34.85898815931109,
+              "beta": 92.14101184068892,
+              "n": 119,
+              "p_resolution": {
+                "mean": 0.274480221726859,
+                "lo80": 0.22462729643374477,
+                "hi80": 0.32587109663007596
+              }
+            },
+            "prior_faible": {
+              "alpha": 32.5,
+              "beta": 87.5,
+              "n": 119,
+              "p_resolution": {
+                "mean": 0.2708333333333333,
+                "lo80": 0.21981094584784877,
+                "hi80": 0.3235107610795484
+              }
+            },
+            "donnees_seules": {
+              "alpha": 32.5,
+              "beta": 87.5,
+              "n": 119,
+              "p_resolution": {
+                "mean": 0.2708333333333333,
+                "lo80": 0.21981094584784877,
+                "hi80": 0.3235107610795484
+              }
+            }
+          },
+          "delta_causal_ipw": {
+            "est": -0.049395072590212474,
+            "lo80": -0.12044687828953007,
+            "hi80": 0.017227540582156562,
+            "n_eff": 568.2089353044927
+          },
+          "delta_causal_aipw": {
+            "est": -0.04843066809800947,
+            "lo80": -0.11352818031354513,
+            "hi80": 0.016629094989895298
+          },
+          "p0_risque_non_traite": 0.20751926390306502,
+          "p1_risque_traite": 0.2569143364932775,
+          "e_value": 1.780873599094872,
+          "overlap_ok": false,
+          "part_hors_overlap": 0.33015873015873015,
+          "propensity_converged": true,
+          "label": "effet causal ESTIMÉ sous hypothèse de confusion observable ; sensibilité : e_value"
+        },
+        "profond__nonsat__utime": {
+          "posteriors": {
+            "prior_sim": {
+              "alpha": 15.858988159311087,
+              "beta": 22.14101184068891,
+              "n": 30,
+              "p_resolution": {
+                "mean": 0.41734179366608126,
+                "lo80": 0.316282286976059,
+                "hi80": 0.5203353862383635
+              }
+            },
+            "prior_faible": {
+              "alpha": 13.5,
+              "beta": 17.5,
+              "n": 30,
+              "p_resolution": {
+                "mean": 0.43548387096774194,
+                "lo80": 0.32294106122066335,
+                "hi80": 0.5498926651218501
+              }
+            },
+            "donnees_seules": {
+              "alpha": 13.5,
+              "beta": 17.5,
+              "n": 30,
+              "p_resolution": {
+                "mean": 0.43548387096774194,
+                "lo80": 0.32294106122066335,
+                "hi80": 0.5498926651218501
+              }
+            }
+          },
+          "delta_causal_ipw": {
+            "est": 0.08598331292842809,
+            "lo80": -0.025406676203971426,
+            "hi80": 0.20161128005973922,
+            "n_eff": 141.32026648045112
+          },
+          "delta_causal_aipw": {
+            "est": 0.08394730002944703,
+            "lo80": -0.030639930081277755,
+            "hi80": 0.20219150477206935
+          },
+          "p0_risque_non_traite": 0.29455041360356504,
+          "p1_risque_traite": 0.20856710067513695,
+          "e_value": 2.1752864159389027,
+          "overlap_ok": false,
+          "part_hors_overlap": 0.5048231511254019,
+          "propensity_converged": true,
+          "label": "effet causal ESTIMÉ sous hypothèse de confusion observable ; sensibilité : e_value"
+        },
+        "profond__sature__autre": {
+          "posteriors": {
+            "prior_sim": {
+              "alpha": 11.858988159311087,
+              "beta": 20.14101184068891,
+              "n": 24,
+              "p_resolution": {
+                "mean": 0.37059337997847147,
+                "lo80": 0.26370314785405324,
+                "hi80": 0.4811036738771764
+              }
+            },
+            "prior_faible": {
+              "alpha": 9.5,
+              "beta": 15.5,
+              "n": 24,
+              "p_resolution": {
+                "mean": 0.38,
+                "lo80": 0.2587807975516233,
+                "hi80": 0.505568617327785
+              }
+            },
+            "donnees_seules": {
+              "alpha": 9.5,
+              "beta": 15.5,
+              "n": 24,
+              "p_resolution": {
+                "mean": 0.38,
+                "lo80": 0.2587807975516233,
+                "hi80": 0.505568617327785
+              }
+            }
+          },
+          "delta_causal_ipw": {
+            "est": 0.3578490540762842,
+            "lo80": 0.2691051554204082,
+            "hi80": 0.45412570612350345,
+            "n_eff": 129.0792447676475
+          },
+          "delta_causal_aipw": {
+            "est": 0.3534104585347092,
+            "lo80": 0.2586378058868286,
+            "hi80": 0.4579547370396273
+          },
+          "p0_risque_non_traite": 0.42353569708123495,
+          "p1_risque_traite": 0.06568664300495072,
+          "e_value": 12.374588056360963,
+          "overlap_ok": false,
+          "part_hors_overlap": 0.25668449197860965,
+          "propensity_converged": true,
+          "label": "effet causal ESTIMÉ sous hypothèse de confusion observable ; sensibilité : e_value"
+        },
+        "profond__sature__utime": {
+          "posteriors": {
+            "prior_sim": {
+              "alpha": 12.858988159311087,
+              "beta": 11.141011840688913,
+              "n": 16,
+              "p_resolution": {
+                "mean": 0.5357911733046287,
+                "lo80": 0.405579974690987,
+                "hi80": 0.6646475892064101
+              }
+            },
+            "prior_faible": {
+              "alpha": 10.5,
+              "beta": 6.5,
+              "n": 16,
+              "p_resolution": {
+                "mean": 0.6176470588235294,
+                "lo80": 0.46521166150743304,
+                "hi80": 0.7636484916218497
+              }
+            },
+            "donnees_seules": {
+              "alpha": 10.5,
+              "beta": 6.5,
+              "n": 16,
+              "p_resolution": {
+                "mean": 0.6176470588235294,
+                "lo80": 0.46521166150743304,
+                "hi80": 0.7636484916218497
+              }
+            }
+          },
+          "delta_causal_ipw": {
+            "est": 0.07221030324972072,
+            "lo80": -0.2835357065460465,
+            "hi80": 0.34991471384246825,
+            "n_eff": 40.75617417718441
+          },
+          "delta_causal_aipw": {
+            "est": 0.03891418008423475,
+            "lo80": -0.4223060614528053,
+            "hi80": 0.3593854304240473
+          },
+          "p0_risque_non_traite": 0.36411918870770593,
+          "p1_risque_traite": 0.2919088854579852,
+          "e_value": 1.8028599442897346,
+          "overlap_ok": true,
+          "part_hors_overlap": 0.017543859649122806,
+          "propensity_converged": true,
+          "label": "effet causal ESTIMÉ sous hypothèse de confusion observable ; sensibilité : e_value"
+        }
+      }
+    },
+    "ne_rien_faire": {
+      "p_execution": {
+        "alpha": 2154.5,
+        "beta": 0.5,
+        "n": 2154
+      },
+      "segments": {
+        "proche__nonsat__autre": {
+          "posteriors": {
+            "prior_sim": {
+              "alpha": 201.85898815931108,
+              "beta": 372.1410118406889,
+              "n": 566,
+              "p_resolution": {
+                "mean": 0.35167071107893916,
+                "lo80": 0.3262498893282538,
+                "hi80": 0.37731341660976503
+              }
+            },
+            "prior_faible": {
+              "alpha": 199.5,
+              "beta": 367.5,
+              "n": 566,
+              "p_resolution": {
+                "mean": 0.35185185185185186,
+                "lo80": 0.326272234663069,
+                "hi80": 0.37765582472866166
+              }
+            },
+            "donnees_seules": {
+              "alpha": 199.5,
+              "beta": 367.5,
+              "n": 566,
+              "p_resolution": {
+                "mean": 0.35185185185185186,
+                "lo80": 0.326272234663069,
+                "hi80": 0.37765582472866166
+              }
+            }
+          },
+          "delta_causal_ipw": null,
+          "e_value": null,
+          "overlap_ok": false
+        },
+        "proche__nonsat__utime": {
+          "posteriors": {
+            "prior_sim": {
+              "alpha": 62.85898815931109,
+              "beta": 102.14101184068892,
+              "n": 157,
+              "p_resolution": {
+                "mean": 0.3809635646018854,
+                "lo80": 0.3328831711209698,
+                "hi80": 0.4296672519247794
+              }
+            },
+            "prior_faible": {
+              "alpha": 60.5,
+              "beta": 97.5,
+              "n": 157,
+              "p_resolution": {
+                "mean": 0.3829113924050633,
+                "lo80": 0.33373330289186964,
+                "hi80": 0.4327299853177646
+              }
+            },
+            "donnees_seules": {
+              "alpha": 60.5,
+              "beta": 97.5,
+              "n": 157,
+              "p_resolution": {
+                "mean": 0.3829113924050633,
+                "lo80": 0.33373330289186964,
+                "hi80": 0.4327299853177646
+              }
+            }
+          },
+          "delta_causal_ipw": null,
+          "e_value": null,
+          "overlap_ok": false
+        },
+        "proche__sature__autre": {
+          "posteriors": {
+            "prior_sim": {
+              "alpha": 30.85898815931109,
+              "beta": 74.14101184068892,
+              "n": 97,
+              "p_resolution": {
+                "mean": 0.29389512532677226,
+                "lo80": 0.23792802930103324,
+                "hi80": 0.35156628701574
+              }
+            },
+            "prior_faible": {
+              "alpha": 28.5,
+              "beta": 69.5,
+              "n": 97,
+              "p_resolution": {
+                "mean": 0.29081632653061223,
+                "lo80": 0.23312593929596362,
+                "hi80": 0.350361535743156
+              }
+            },
+            "donnees_seules": {
+              "alpha": 28.5,
+              "beta": 69.5,
+              "n": 97,
+              "p_resolution": {
+                "mean": 0.29081632653061223,
+                "lo80": 0.23312593929596362,
+                "hi80": 0.350361535743156
+              }
+            }
+          },
+          "delta_causal_ipw": null,
+          "e_value": null,
+          "overlap_ok": false
+        },
+        "proche__sature__utime": {
+          "posteriors": {
+            "prior_sim": {
+              "alpha": 9.858988159311087,
+              "beta": 21.14101184068891,
+              "n": 23,
+              "p_resolution": {
+                "mean": 0.3180318761068093,
+                "lo80": 0.21435824276064233,
+                "hi80": 0.42696600686689884
+              }
+            },
+            "prior_faible": {
+              "alpha": 7.5,
+              "beta": 16.5,
+              "n": 23,
+              "p_resolution": {
+                "mean": 0.3125,
+                "lo80": 0.1961363021073084,
+                "hi80": 0.43595548002956874
+              }
+            },
+            "donnees_seules": {
+              "alpha": 7.5,
+              "beta": 16.5,
+              "n": 23,
+              "p_resolution": {
+                "mean": 0.3125,
+                "lo80": 0.1961363021073084,
+                "hi80": 0.43595548002956874
+              }
+            }
+          },
+          "delta_causal_ipw": null,
+          "e_value": null,
+          "overlap_ok": false
+        },
+        "profond__nonsat__autre": {
+          "posteriors": {
+            "prior_sim": {
+              "alpha": 265.8589881593111,
+              "beta": 568.1410118406889,
+              "n": 826,
+              "p_resolution": {
+                "mean": 0.31877576517903006,
+                "lo80": 0.2981956670583007,
+                "hi80": 0.33954229543268855
+              }
+            },
+            "prior_faible": {
+              "alpha": 263.5,
+              "beta": 563.5,
+              "n": 826,
+              "p_resolution": {
+                "mean": 0.3186215235792019,
+                "lo80": 0.297957718277323,
+                "hi80": 0.33947350177371177
+              }
+            },
+            "donnees_seules": {
+              "alpha": 263.5,
+              "beta": 563.5,
+              "n": 826,
+              "p_resolution": {
+                "mean": 0.3186215235792019,
+                "lo80": 0.297957718277323,
+                "hi80": 0.33947350177371177
+              }
+            }
+          },
+          "delta_causal_ipw": null,
+          "e_value": null,
+          "overlap_ok": false
+        },
+        "profond__nonsat__utime": {
+          "posteriors": {
+            "prior_sim": {
+              "alpha": 96.85898815931108,
+              "beta": 192.14101184068892,
+              "n": 281,
+              "p_resolution": {
+                "mean": 0.33515220816370617,
+                "lo80": 0.2998412964718788,
+                "hi80": 0.370954094791599
+              }
+            },
+            "prior_faible": {
+              "alpha": 94.5,
+              "beta": 187.5,
+              "n": 281,
+              "p_resolution": {
+                "mean": 0.3351063829787234,
+                "lo80": 0.29936501984996416,
+                "hi80": 0.37135110988239234
+              }
+            },
+            "donnees_seules": {
+              "alpha": 94.5,
+              "beta": 187.5,
+              "n": 281,
+              "p_resolution": {
+                "mean": 0.3351063829787234,
+                "lo80": 0.29936501984996416,
+                "hi80": 0.37135110988239234
+              }
+            }
+          },
+          "delta_causal_ipw": null,
+          "e_value": null,
+          "overlap_ok": false
+        },
+        "profond__sature__autre": {
+          "posteriors": {
+            "prior_sim": {
+              "alpha": 30.85898815931109,
+              "beta": 140.14101184068892,
+              "n": 163,
+              "p_resolution": {
+                "mean": 0.18046191906029876,
+                "lo80": 0.14370588394108338,
+                "hi80": 0.21883138561875382
+              }
+            },
+            "prior_faible": {
+              "alpha": 28.5,
+              "beta": 135.5,
+              "n": 163,
+              "p_resolution": {
+                "mean": 0.17378048780487804,
+                "lo80": 0.13685954099443312,
+                "hi80": 0.2124194478128318
+              }
+            },
+            "donnees_seules": {
+              "alpha": 28.5,
+              "beta": 135.5,
+              "n": 163,
+              "p_resolution": {
+                "mean": 0.17378048780487804,
+                "lo80": 0.13685954099443312,
+                "hi80": 0.2124194478128318
+              }
+            }
+          },
+          "delta_causal_ipw": null,
+          "e_value": null,
+          "overlap_ok": false
+        },
+        "profond__sature__utime": {
+          "posteriors": {
+            "prior_sim": {
+              "alpha": 11.858988159311087,
+              "beta": 37.14101184068891,
+              "n": 41,
+              "p_resolution": {
+                "mean": 0.2420201665165528,
+                "lo80": 0.16653563603667448,
+                "hi80": 0.3221440121157843
+              }
+            },
+            "prior_faible": {
+              "alpha": 9.5,
+              "beta": 32.5,
+              "n": 41,
+              "p_resolution": {
+                "mean": 0.2261904761904762,
+                "lo80": 0.14717418790577796,
+                "hi80": 0.310977251414411
+              }
+            },
+            "donnees_seules": {
+              "alpha": 9.5,
+              "beta": 32.5,
+              "n": 41,
+              "p_resolution": {
+                "mean": 0.2261904761904762,
+                "lo80": 0.14717418790577796,
+                "hi80": 0.310977251414411
+              }
+            }
+          },
+          "delta_causal_ipw": null,
+          "e_value": null,
+          "overlap_ok": false
+        }
+      }
+    }
+  },
+  "segments": {
+    "profond__sature__utime": {
+      "profondeur": "profond (ea_depth ≥ 2)",
+      "saturation": "sature (ea_ur_local ≥ 0.9)",
+      "dominante": "utime (ea_u_time domine les composantes d'urgence)"
+    },
+    "profond__sature__autre": {
+      "profondeur": "profond (ea_depth ≥ 2)",
+      "saturation": "sature (ea_ur_local ≥ 0.9)",
+      "dominante": "autre (ea_u_time domine les composantes d'urgence)"
+    },
+    "profond__nonsat__utime": {
+      "profondeur": "profond (ea_depth ≥ 2)",
+      "saturation": "nonsat",
+      "dominante": "utime (ea_u_time domine les composantes d'urgence)"
+    },
+    "profond__nonsat__autre": {
+      "profondeur": "profond (ea_depth ≥ 2)",
+      "saturation": "nonsat",
+      "dominante": "autre (ea_u_time domine les composantes d'urgence)"
+    },
+    "proche__sature__utime": {
+      "profondeur": "proche",
+      "saturation": "sature (ea_ur_local ≥ 0.9)",
+      "dominante": "utime (ea_u_time domine les composantes d'urgence)"
+    },
+    "proche__sature__autre": {
+      "profondeur": "proche",
+      "saturation": "sature (ea_ur_local ≥ 0.9)",
+      "dominante": "autre (ea_u_time domine les composantes d'urgence)"
+    },
+    "proche__nonsat__utime": {
+      "profondeur": "proche",
+      "saturation": "nonsat",
+      "dominante": "utime (ea_u_time domine les composantes d'urgence)"
+    },
+    "proche__nonsat__autre": {
+      "profondeur": "proche",
+      "saturation": "nonsat",
+      "dominante": "autre (ea_u_time domine les composantes d'urgence)"
+    }
+  },
+  "validation": {
+    "dgp": {
+      "DGP1": {
+        "n_cellules_scorees": 320,
+        "n_segments_decises": 7,
+        "couverture_ic80": 0.65625,
+        "critere_couverture_70_90": false,
+        "biais_moyen_ipw": -0.05903985521227621,
+        "biais_absolu_ipw": 0.08964345987588589,
+        "biais_absolu_naif": 0.15575166311048222,
+        "critere_naif_pire_que_ipw": true,
+        "taux_reco_correcte_agrege": 0.8571428571428571,
+        "taux_reco_correcte_par_rep": 0.5373134328358209,
+        "critere_reco_min_070": true,
+        "regret_decisionnel_moyen": 0.01169952270198254,
+        "critere_regret_max_002": true,
+        "verdict_dgp": false
+      },
+      "DGP2": {
+        "n_cellules_scorees": 333,
+        "n_segments_decises": 8,
+        "couverture_ic80": 0.5675675675675675,
+        "critere_couverture_70_90": false,
+        "biais_moyen_ipw": -0.07233494545805702,
+        "biais_absolu_ipw": 0.0958685692933226,
+        "biais_absolu_naif": 0.1694564435406402,
+        "critere_naif_pire_que_ipw": true,
+        "taux_reco_correcte_agrege": 1.0,
+        "taux_reco_correcte_par_rep": 0.5882352941176471,
+        "critere_reco_min_070": true,
+        "regret_decisionnel_moyen": 0.0,
+        "critere_regret_max_002": true,
+        "verdict_dgp": false
+      }
+    },
+    "verdict_global": false,
+    "n_rep": 10,
+    "n_boot": 200
+  }
+}
