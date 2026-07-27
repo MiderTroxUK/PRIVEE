@@ -1,0 +1,35 @@
+{
+  "tour": 1,
+  "horodatage": 1783200600.0,
+  "couverture": {"a_jour": 2, "total_actifs": 2},
+  "nodes": {
+    "aviosys": {
+      "name": "AvioSys Intégration",
+      "rank": 0,
+      "status": "active",
+      "ud": 0.27,
+      "ur": 0.35,
+      "adequation": 58.0,
+      "false_urgency": 0.0,
+      "hidden_risk": 0.08,
+      "ud_local": 0.19,
+      "ur_local": 0.24
+    },
+    "electis": {
+      "name": "Électis EMS",
+      "rank": 1,
+      "status": "active",
+      "ud": 0.15,
+      "ur": 0.18,
+      "adequation": 76.0,
+      "false_urgency": 0.0,
+      "hidden_risk": 0.03,
+      "ud_local": 0.15,
+      "ur_local": 0.18
+    }
+  },
+  "criticite": [
+    {"node_id": "aviosys", "rank": 1, "delta_ur_final": 0.13, "delta_ur_max": 0.19, "nb_impactes": 1},
+    {"node_id": "electis", "rank": 2, "delta_ur_final": 0.06, "delta_ur_max": 0.09, "nb_impactes": 1}
+  ]
+}

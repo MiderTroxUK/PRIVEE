@@ -1,0 +1,48 @@
+{
+  "tour": 0,
+  "horodatage": 1783300000.0,
+  "couverture": {"a_jour": 3, "total_actifs": 3},
+  "nodes": {
+    "novafab": {
+      "name": "NovaFab Semiconductors",
+      "rank": 1,
+      "status": "active",
+      "ud": 0.15,
+      "ur": 0.20,
+      "adequation": 70.0,
+      "false_urgency": 0.0,
+      "hidden_risk": 0.03,
+      "ud_local": 0.10,
+      "ur_local": 0.12
+    },
+    "meridian": {
+      "name": "Meridian Semi",
+      "rank": 0,
+      "status": "active",
+      "ud": 0.045,
+      "ur": 0.04,
+      "adequation": 98.6,
+      "false_urgency": 0.006,
+      "hidden_risk": 0.0,
+      "ud_local": 0.045,
+      "ur_local": 0.04
+    },
+    "silpure": {
+      "name": "SilPure Materials",
+      "rank": 0,
+      "status": "active",
+      "ud": 0.09,
+      "ur": 0.11,
+      "adequation": 68.0,
+      "false_urgency": 0.0,
+      "hidden_risk": 0.0,
+      "ud_local": 0.09,
+      "ur_local": 0.11
+    }
+  },
+  "criticite": [
+    {"node_id": "novafab", "rank": 1, "delta_ur_final": 0.18, "delta_ur_max": 0.22, "nb_impactes": 1},
+    {"node_id": "meridian", "rank": 3, "delta_ur_final": 0.02, "delta_ur_max": 0.05, "nb_impactes": 0},
+    {"node_id": "silpure", "rank": 2, "delta_ur_final": 0.05, "delta_ur_max": 0.09, "nb_impactes": 0}
+  ]
+}

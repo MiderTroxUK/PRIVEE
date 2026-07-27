@@ -15,6 +15,7 @@ commencer selon le besoin.
 | [guide_developpeur.md](guide_developpeur.md) | développeur | organisation du code et correspondance entre les formules du modèle et leur implémentation |
 | [presentation/](presentation/) | animateur | déroulés de démonstration 6 et 20 minutes, captures d'écran, artefacts du scénario AERIS |
 | [benchmarks/](benchmarks/) | développeur | rapports de performance archivés par les bancs de la CI locale |
+| [../projects/factory/PIPELINE.md](../projects/factory/PIPELINE.md) | développeur | orchestrateur bout-en-bout HÉLIOS (prévision + prescription contrefactuelle) : schéma de flux, décisions, coûts |
 
 Les liens internes entre documents sont relatifs : la documentation se lit aussi bien
 dans le dépôt que dans une copie locale du dossier `docs/`.

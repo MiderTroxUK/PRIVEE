@@ -16,3 +16,4 @@ exports/
 .ruff_cache/
 *.pyc
 coverage.xml
+projects/factory/factory_work/
