@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "feature_names": ["ur_local", "hidden_risk", "rang"],
+  "scaler_mean": [0.5, 0.5, 1.0],
+  "scaler_std": [0.5, 0.5, 1.0],
+  "coef": [1.0, 1.0, -1.0],
+  "intercept": 0.0,
+  "calibrator_x": [0.0, 1.0],
+  "calibrator_y": [0.0, 1.0],
+  "coef_boot": [
+    [1.0, 1.0, -1.0],
+    [0.0, 1.0, -1.0],
+    [2.0, 1.0, -1.0],
+    [1.0, 0.0, -1.0],
+    [1.0, 2.0, -1.0]
+  ]
+}
