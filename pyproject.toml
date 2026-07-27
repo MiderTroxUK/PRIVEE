@@ -30,6 +30,7 @@ dev = [
     "pre-commit>=4.0",
     "dash[testing]>=4.2,<5",
 ]
+research = ["scikit-learn>=1.5,<2", "matplotlib>=3.9,<4", "pyarrow>=17,<20"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
