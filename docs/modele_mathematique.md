@@ -25,6 +25,7 @@
 10. [Table des cas de référence chiffrés](#10-table-des-cas-de-référence-chiffrés)
 11. [Références](#11-références)
 12. [Limites honnêtes du modèle](#12-limites-honnêtes-du-modèle)
+13. [Définitions gelées : rupture, résultat opérationnel, état de risque](#13-définitions-gelées--rupture-résultat-opérationnel-état-de-risque)
 
 La correspondance formule vers code (fichier, classe, fonction pour chaque équation) se
 trouve dans [le guide développeur](guide_developpeur.md), sections 3 à 5.
@@ -931,3 +932,121 @@ Condensé du PLAN §2 — ce que le système ne fera PAS :
 10. **Le branchement du temps réel fait bouger les scores** : dès que
     l'horloge vit, les deadlines saisies deviennent « vraies » ; le mode par
     projet (réel/jeu) maîtrise la transition.
+
+---
+
+## 13. Définitions gelées : rupture, résultat opérationnel, état de risque
+
+Section normative (HÉLIOS v7, journal des interventions — contrat n°9).
+Code : `supplyscore/services/calibration.py` (fonction `issues_defavorables`,
+extraite de `CalibrationService._causes`) et
+`supplyscore/services/interventions.py` (`InterventionJournal`). Ces trois
+définitions sont GELÉES : elles ne se redéfinissent nulle part ailleurs dans
+le système — tout code qui a besoin de l'une d'elles importe la fonction ou
+le module cité, il ne duplique jamais la logique.
+
+**Rupture (« issue défavorable »)** : la définition EXISTANTE de
+`CalibrationService` — jalon raté OU nœud abandonné OU événement
+critique/défaut non annulé dans la fenêtre. Une seule définition dans tout
+le système (le module fait référence, la logique n'est jamais dupliquée —
+`CalibrationService._causes` délègue à la fonction pure
+`issues_defavorables`, réutilisée telle quelle par
+`InterventionJournal.proposer_resultat`).
+
+**Résultat opérationnel** (label causal, model-free), fenêtre
+`[date_effet, +4 sem.]` : `'resolu'` = aucune issue défavorable ET
+l'objectif opérationnel déclaré à l'ouverture est atteint ; `'partiel'` =
+amélioration du KPI cible sans atteinte ; `'echec'` = issue défavorable ou
+aucune amélioration ; `'en_cours'`.
+
+**État de risque** (sortie d'alerte, ΔP, ΔUr) : information d'interface,
+JAMAIS un label d'apprentissage.
+
+### 13.1 Implémentation — `issues_defavorables` (rupture, réutilisée telle quelle)
+
+`issues_defavorables(node, debut_ts, fin_ts, milestones, now_ts, evenements)`
+est la fonction PURE extraite de `CalibrationService._causes` (§7, §11.1) —
+elle applique EXACTEMENT les trois critères figés du lot 11.1 sur une fenêtre
+temporelle brute `[debut_ts, fin_ts[` (bornes en secondes epoch, pas
+nécessairement alignées sur un lundi ISO) :
+
+```
+(a) jalon raté   : deadline_ts ∈ [debut_ts, fin_ts[ ET
+                    (statut = ABANDONED OU (statut = ACTIVE ET deadline_ts < min(fin_ts, now_ts)))
+(b) nœud abandonné : node.status = ABANDONED (statut COURANT, proxy — même
+                      limite documentée qu'en §7/CalibrationService)
+(c) événement       : occurred_at ∈ [debut_ts, fin_ts[, reverted_at = NULL,
+                       gravité ∈ {"critique", "defaut"}
+```
+
+`CalibrationService._causes` calcule sa fenêtre ISO-semaine `[lundi(S+1),
+lundi(S+horizon+1)[` puis délègue à `issues_defavorables` — comportement
+INCHANGÉ (§7, §11.1). `InterventionJournal.proposer_resultat` calcule sa
+fenêtre directement depuis `date_effet_ts` (§13.2) et délègue à la MÊME
+fonction : la rupture d'une intervention et la rupture mesurée par la
+calibration sont, au sens strict, LA MÊME définition appliquée à deux
+fenêtres différentes.
+
+### 13.2 Implémentation — résultat opérationnel de l'intervention
+
+`InterventionJournal.proposer_resultat` calcule la fenêtre
+`[date_effet_ts, date_effet_ts + 4 × 604 800[` (4 semaines pleines, ancrée
+sur `date_effet_ts` — PAS sur un lundi ISO, à la différence de la
+calibration) puis applique la table de décision suivante, dans l'ordre :
+
+```
+1. executee = False (explicite)              -> 'echec'
+2. date_effet_ts = None                       -> 'en_cours' (fenêtre pas ouverte)
+3. issues_defavorables(...) non vide           -> 'echec' (causes = la liste)
+4. now_ts < fin_ts (fenêtre pas close)         -> 'en_cours'
+5. sinon : jalons du nœud dont l'échéance ∈ fenêtre
+     - au moins un DONE                        -> 'resolu'
+     - sinon                                   -> 'partiel'
+```
+
+**Proxy model-free de l'atteinte de l'objectif (étape 5)** : le contrat n°9
+ne fige pas de représentation structurée de l'objectif opérationnel
+(`objectif_operationnel` est un texte libre saisi à l'ouverture) — il n'existe
+donc pas d'oracle qui vérifie automatiquement qu'un texte libre est «
+atteint ». `proposer_resultat` utilise le seul signal FACTUEL et model-free
+disponible via les jalons/événements de la façade : un jalon du nœud livré
+(DONE) dont l'échéance tombe DANS la fenêtre de l'intervention. C'est une
+LIMITE ASSUMÉE, dans l'esprit de la limite (b) de `issues_defavorables` :
+faute de mieux, un proxy explicite et documenté plutôt qu'un silence — un
+nœud sans jalon exploitable dans la fenêtre ne peut jamais se voir proposer
+`'resolu'` automatiquement, seulement `'partiel'` (avec une cause explicite
+invitant l'opérateur à trancher). L'étape 5 ne peut structurellement PAS
+laisser subsister de jalon ACTIVE dans la fenêtre une fois qu'elle est close
+sans issue défavorable : un tel jalon aurait déjà déclenché la cause « jalon
+non livré à son échéance » à l'étape 3 (même définition, §13.1) — seuls des
+jalons DONE peuvent donc rester à l'étape 5.
+
+**Ce que `proposer_resultat` NE fait JAMAIS** : lire `Ud`, `Ur`, `H`
+(`hidden_risk`), `false_urgency` ou `adequation` — même indirectement. Le
+résultat opérationnel est un label CAUSAL construit uniquement à partir de
+faits vérifiables (jalons, événements, statut du nœud, déclaration explicite
+`executee`). C'est la contrepartie directe de la définition suivante.
+
+### 13.3 État de risque — séparation stricte de colonnes
+
+Le contrat n°9 porte DEUX paires de colonnes distinctes sur la table
+`interventions` :
+
+- `etat_avant_json` / `etat_apres_json` — état OBSERVABLE (`ur_local`,
+  `ud_local`, `hidden_risk`, `false_urgency`, et `p_issue` si fourni par
+  l'appelant) capturé à l'ouverture et à la clôture ; c'est le contexte
+  chiffré de l'intervention, jamais consulté par `proposer_resultat` ;
+- `etat_risque_avant_json` / `etat_risque_apres_json` — snapshot COMPLET de
+  `node.urgency` (`ud_local`, `ur_local`, `ud`, `ur`, `adequation`,
+  `false_urgency`, `hidden_risk`), capturé AUTOMATIQUEMENT (jamais
+  surchargeable par l'appelant), destiné à l'AFFICHAGE (sortie d'alerte,
+  ΔP, ΔUr entre ouverture et clôture) — jamais lu pour calculer le résultat.
+
+Ces deux paires peuvent porter des valeurs proches (les deux dérivent de
+`node.urgency` à l'instant de la capture), mais leur RÔLE diffère
+strictement : la première est le contexte de la décision, la seconde est une
+mesure d'interface. Le stockage en colonnes séparées rend la séparation
+vérifiable au niveau du schéma — et pas seulement d'une convention de code —
+et empêche une évolution future de `proposer_resultat` de « glisser » vers
+une lecture de l'état de risque par accident (`tests/test_services_interventions.py`
+couvre explicitement ce garde-fou).

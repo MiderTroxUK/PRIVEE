@@ -136,7 +136,7 @@ class TestClientV3Migration:
 
         conn = sqlite3.connect(str(db_file))
         assert conn.execute("PRAGMA user_version").fetchone()[0] == 2
-        assert apply_migrations(conn, "client") == 6
+        assert apply_migrations(conn, "client") == 7
 
         # Table d'audit et index présents.
         assert "audit_log" in _table_names(conn)
@@ -159,17 +159,17 @@ class TestClientV3Migration:
         _build_v2_client(db_file)
         conn = sqlite3.connect(str(db_file))
 
-        assert apply_migrations(conn, "client") == 6
+        assert apply_migrations(conn, "client") == 7
         # Re-application : no-op, données intactes.
-        assert apply_migrations(conn, "client") == 6
-        assert conn.execute("PRAGMA user_version").fetchone()[0] == 6
+        assert apply_migrations(conn, "client") == 7
+        assert conn.execute("PRAGMA user_version").fetchone()[0] == 7
         assert conn.execute("SELECT COUNT(*) FROM assessments").fetchone()[0] == 1
         assert conn.execute("SELECT COUNT(*) FROM kpi_snapshots").fetchone()[0] == 1
         conn.close()
 
     def test_fresh_client_reaches_v3(self, tmp_path):
         conn = sqlite3.connect(str(tmp_path / "client.sqlite"))
-        assert apply_migrations(conn, "client") == 6
+        assert apply_migrations(conn, "client") == 7
         assert "audit_log" in _table_names(conn)
         assert "replaces_id" in _column_names(conn, "assessments")
         conn.close()

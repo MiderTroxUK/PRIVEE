@@ -1408,3 +1408,118 @@ class ClientDatabase(_SQLiteDatabase):
                 }
                 for row in rows
             ]
+
+    # -- journal des interventions (contrat n°9, HÉLIOS v7) --
+
+    #: colonnes de la table ``interventions``, dans l'ordre du contrat n°9.
+    _INTERVENTION_COLUMNS: tuple[str, ...] = (
+        "id",
+        "node_id",
+        "date_ts",
+        "etat_avant_json",
+        "action_id",
+        "acteur",
+        "objectif_operationnel",
+        "decidee_ts",
+        "executee",
+        "executee_ts",
+        "date_effet_ts",
+        "resultat",
+        "etat_apres_json",
+        "etat_risque_avant_json",
+        "etat_risque_apres_json",
+        "succes",
+        "effets_voisins_json",
+        "notes",
+    )
+
+    #: colonnes modifiables par :meth:`update_intervention` (tout sauf ``id``,
+    #: la clé d'identité de la ligne) — sert de liste blanche : les noms de
+    #: colonnes de ``changes`` sont interpolés dans le SQL (impossible de les
+    #: paramétrer avec « ? »), donc validés contre cet ensemble fixe avant
+    #: toute construction de requête.
+    _INTERVENTION_UPDATABLE_COLUMNS: frozenset[str] = frozenset(_INTERVENTION_COLUMNS) - {"id"}
+
+    def insert_intervention(self, row: dict[str, Any]) -> str:
+        """Insère une ligne du journal des interventions et retourne son id.
+
+        ``row`` porte EXACTEMENT les colonnes de la table (voir
+        :data:`_INTERVENTION_COLUMNS`), les champs ``*_json`` déjà sérialisés
+        par l'appelant — la couche data reste opaque à leur contenu, comme
+        pour ``scenarios`` (:meth:`RegistryDatabase.save_scenario`).
+
+        Args:
+            row: valeurs de la ligne à insérer, indexées par nom de colonne.
+
+        Returns:
+            L'id de la ligne insérée (``row["id"]``).
+        """
+        with self._lock, self._conn:
+            self._conn.execute(
+                """
+                INSERT INTO interventions (
+                    id, node_id, date_ts, etat_avant_json, action_id, acteur,
+                    objectif_operationnel, decidee_ts, executee, executee_ts,
+                    date_effet_ts, resultat, etat_apres_json,
+                    etat_risque_avant_json, etat_risque_apres_json, succes,
+                    effets_voisins_json, notes
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                tuple(row[col] for col in self._INTERVENTION_COLUMNS),
+            )
+        return str(row["id"])
+
+    def update_intervention(self, intervention_id: str, changes: dict[str, Any]) -> None:
+        """Met à jour PARTIELLEMENT la ligne (seules les colonnes de ``changes``).
+
+        Args:
+            intervention_id: id de la ligne à modifier.
+            changes: valeurs à écraser, indexées par nom de colonne — doit
+                être un sous-ensemble non vide des colonnes modifiables de la
+                table (:data:`_INTERVENTION_UPDATABLE_COLUMNS`).
+
+        Raises:
+            ValueError: ``changes`` est vide, ou contient une clé qui n'est
+                pas une colonne modifiable de la table ``interventions``.
+        """
+        if not changes:
+            raise ValueError("update_intervention : 'changes' ne peut pas être vide.")
+        inconnues = sorted(set(changes) - self._INTERVENTION_UPDATABLE_COLUMNS)
+        if inconnues:
+            raise ValueError(f"update_intervention : colonnes inconnues {inconnues}")
+        colonnes = sorted(changes)  # ordre déterministe
+        assignation = ", ".join(f"{col} = ?" for col in colonnes)
+        with self._lock, self._conn:
+            self._conn.execute(
+                f"UPDATE interventions SET {assignation} WHERE id = ?",
+                (*(changes[col] for col in colonnes), intervention_id),
+            )
+
+    def list_interventions(self, node_id: str, only_open: bool = False) -> list[dict[str, Any]]:
+        """Liste les interventions du nœud, ordonnées par ``date_ts`` croissant.
+
+        Args:
+            node_id: identifiant du nœud.
+            only_open: si True, ne retourne que les interventions dont le
+                résultat opérationnel est encore ``'en_cours'``.
+
+        Returns:
+            Chaque intervention comme dict (clés = colonnes de la table).
+        """
+        with self._lock:
+            if only_open:
+                rows = self._conn.execute(
+                    """
+                    SELECT * FROM interventions
+                    WHERE node_id = ? AND resultat = 'en_cours'
+                    ORDER BY date_ts, id
+                    """,
+                    (node_id,),
+                ).fetchall()
+            else:
+                rows = self._conn.execute(
+                    "SELECT * FROM interventions WHERE node_id = ? ORDER BY date_ts, id",
+                    (node_id,),
+                ).fetchall()
+            return [dict(row) for row in rows]

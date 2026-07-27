@@ -38,10 +38,10 @@ from __future__ import annotations
 
 import json
 from collections import defaultdict
-from collections.abc import Callable
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 from numpy.typing import NDArray
@@ -112,6 +112,90 @@ def _rangs_moyens(valeurs: NDArray[np.float64]) -> NDArray[np.float64]:
     rangs: NDArray[np.float64] = np.empty(n, dtype=np.float64)
     rangs[ordre] = rangs_tries
     return rangs
+
+
+def issues_defavorables(
+    *,
+    node: SupplyNode,
+    debut_ts: float,
+    fin_ts: float,
+    milestones: list[Milestone],
+    now_ts: float,
+    evenements: Iterable[Mapping[str, Any]],
+) -> list[str]:
+    """Issues défavorables constatées dans la fenêtre ``[debut_ts, fin_ts[``.
+
+    Définition FIGÉE du lot 11.1 (voir le docstring du module), extraite ici
+    en fonction PURE et réutilisable — notamment par
+    :class:`~supplyscore.services.interventions.InterventionJournal` pour le
+    résultat opérationnel des interventions (docs/modele_mathematique.md,
+    §13) — de sorte qu'il n'existe qu'UNE SEULE définition de la rupture
+    dans tout le système. :meth:`CalibrationService._causes` délègue à cette
+    fonction pour les fenêtres ISO-semaine qu'elle calcule elle-même.
+
+    Args:
+        node: nœud observé (son statut COURANT sert de proxy pour le critère
+            « nœud abandonné », limite documentée ci-dessous).
+        debut_ts: borne inférieure de la fenêtre, incluse (epoch s).
+        fin_ts: borne supérieure de la fenêtre, EXCLUE (epoch s).
+        milestones: jalons courants du nœud (ordre quelconque).
+        now_ts: instant courant de l'horloge du projet — borne les jalons
+            ACTIVE dont l'échéance est dans la fenêtre mais qui pourrait
+            encore être livrée si ``now_ts`` ne l'a pas encore dépassée.
+        evenements: lignes d'événements CANDIDATES (même forme que
+            :meth:`~supplyscore.data.db.ClientDatabase.list_events` — dicts
+            avec ``occurred_at``, ``reverted_at``, ``event_type``,
+            ``params_json``) ; seules celles dont ``occurred_at`` tombe dans
+            la fenêtre sont retenues, les autres sont ignorées (l'appelant
+            peut donc fournir un sur-ensemble sans filtrage préalable).
+
+    Returns:
+        Les descriptions françaises des issues constatées (``[]`` sinon) :
+
+        (a) un jalon dont l'échéance tombe dans la fenêtre est ABANDONED, ou
+            ACTIVE avec l'échéance dépassée à la fin de la fenêtre (bornée
+            par ``now_ts`` si la fenêtre déborde sur le futur) ;
+        (b) le statut COURANT du nœud est ABANDONED (proxy — l'horodatage du
+            passage n'est pas persisté, limite documentée) ;
+        (c) un événement non annulé (``reverted_at`` NULL), dont
+            ``occurred_at`` tombe dans la fenêtre, de gravité ``"critique"``
+            ou ``"defaut"``.
+    """
+    causes: list[str] = []
+
+    # (a) jalon raté : deadline dans la fenêtre, jamais livré.
+    for milestone in milestones:
+        if not debut_ts <= milestone.deadline_ts < fin_ts:
+            continue
+        echeance = iso_week(milestone.deadline_ts)
+        if milestone.status is MilestoneStatus.ABANDONED:
+            causes.append(f"jalon « {milestone.name} » abandonné (échéance {echeance})")
+        elif milestone.status is MilestoneStatus.ACTIVE and milestone.deadline_ts < min(
+            fin_ts, now_ts
+        ):
+            causes.append(f"jalon « {milestone.name} » non livré à son échéance ({echeance})")
+
+    # (b) nœud abandonné — l'horodatage du passage n'étant pas persisté, le
+    # statut COURANT sert de proxy (limite documentée dans le module).
+    if node.status is TaskStatus.ABANDONED:
+        causes.append(
+            "nœud au statut « abandonné » (statut courant utilisé comme proxy :"
+            " horodatage du passage indisponible)"
+        )
+
+    # (c) événement non annulé de gravité critique/défaut dans la fenêtre.
+    for row in evenements:
+        if not debut_ts <= row["occurred_at"] < fin_ts:
+            continue
+        if row["reverted_at"] is not None:
+            continue  # événement annulé : déclaré par erreur
+        gravite = json.loads(row["params_json"]).get("gravite")
+        if gravite in _GRAVITES_DEFAVORABLES:
+            causes.append(
+                f"événement {row['event_type']} de gravité « {gravite} »"
+                f" (semaine {iso_week(row['occurred_at'])})"
+            )
+    return causes
 
 
 @dataclass(frozen=True)
@@ -292,9 +376,12 @@ class CalibrationService:
     ) -> list[str]:
         """Issues défavorables constatées dans la fenêtre [S+1, S+horizon] du nœud.
 
-        Applique les trois critères figés du module : (a) jalon raté (sur les
-        timestamps de deadline), (b) nœud abandonné (statut courant en proxy),
-        (c) événement non annulé de gravité critique/défaut.
+        Calcule la fenêtre ISO-semaine puis délègue à la définition FIGÉE et
+        partagée :func:`issues_defavorables` (jalon raté, nœud abandonné,
+        événement critique/défaut) — voir son docstring pour le détail des
+        trois critères. Les événements sont rassemblés semaine par semaine
+        (sert l'index ``idx_events_node_week``) puis filtrés par la fonction
+        partagée sur leur ``occurred_at`` réel.
 
         Args:
             node: nœud observé (lecture fraîche du registre).
@@ -309,42 +396,19 @@ class CalibrationService:
         lundi_s = _lundi(semaine)
         debut_ts = (lundi_s + timedelta(weeks=1)).timestamp()
         fin_ts = (lundi_s + timedelta(weeks=horizon_weeks + 1)).timestamp()
-        causes: list[str] = []
-
-        # (a) jalon raté : deadline dans la fenêtre, jamais livré.
-        for milestone in milestones:
-            if not debut_ts <= milestone.deadline_ts < fin_ts:
-                continue
-            echeance = iso_week(milestone.deadline_ts)
-            if milestone.status is MilestoneStatus.ABANDONED:
-                causes.append(f"jalon « {milestone.name} » abandonné (échéance {echeance})")
-            elif milestone.status is MilestoneStatus.ACTIVE and milestone.deadline_ts < min(
-                fin_ts, now_ts
-            ):
-                causes.append(f"jalon « {milestone.name} » non livré à son échéance ({echeance})")
-
-        # (b) nœud abandonné — l'horodatage du passage n'étant pas persisté,
-        # le statut COURANT sert de proxy (limite documentée dans le module).
-        if node.status is TaskStatus.ABANDONED:
-            causes.append(
-                "nœud au statut « abandonné » (statut courant utilisé comme proxy :"
-                " horodatage du passage indisponible)"
-            )
-
-        # (c) événement non annulé de gravité critique/défaut dans la fenêtre.
         client = self._service.client_db(node.id)
+        evenements: list[Mapping[str, Any]] = []
         for offset in range(1, horizon_weeks + 1):
             semaine_fenetre = _semaine_decalee(semaine, offset)
-            for row in client.list_events(node.id, semaine_fenetre):
-                if row["reverted_at"] is not None:
-                    continue  # événement annulé : déclaré par erreur
-                gravite = json.loads(row["params_json"]).get("gravite")
-                if gravite in _GRAVITES_DEFAVORABLES:
-                    causes.append(
-                        f"événement {row['event_type']} de gravité « {gravite} »"
-                        f" (semaine {semaine_fenetre})"
-                    )
-        return causes
+            evenements.extend(client.list_events(node.id, semaine_fenetre))
+        return issues_defavorables(
+            node=node,
+            debut_ts=debut_ts,
+            fin_ts=fin_ts,
+            milestones=milestones,
+            now_ts=now_ts,
+            evenements=evenements,
+        )
 
     # -- agrégats --
 
