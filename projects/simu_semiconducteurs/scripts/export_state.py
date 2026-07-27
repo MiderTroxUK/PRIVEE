@@ -14,6 +14,7 @@ import argparse
 import json
 import sys
 import time
+from pathlib import Path
 
 import _common
 from _common import PROJECT_ID, SNAPSHOTS
@@ -40,12 +41,25 @@ def _blocs_kpi(service, node) -> dict[str, float | None] | None:
         return None
 
 
-def snapshot(db_dir: str, service, tour: int | None) -> dict:
-    """Construit et écrit le snapshot du réseau à l'instant courant."""
+def snapshot(db_dir: str, service, tour: int | None, out_dir: Path | None = None) -> dict:
+    """Construit et écrit le snapshot du réseau à l'instant courant.
+
+    Args:
+        db_dir: dossier des bases SQLite de la campagne (pour la sauvegarde
+            zip, cf. ``ServiceSauvegarde``).
+        service: façade ``SupplyScoreService`` déjà ouverte sur ``db_dir``.
+        tour: numéro de tour (nomme le fichier ``tour_NN.json``), ou None
+            pour un instantané ad hoc (``adhoc_<horodatage>.json``).
+        out_dir: dossier de dépôt de ``tour_NN.json`` ; ``SNAPSHOTS`` (dossier
+            de campagne standard) par défaut. Redirigeable par le runner de
+            campagne headless (``run_campaign.py``, U5) vers un dossier de run
+            dédié, sans dupliquer la logique de snapshot.
+    """
     from supplyscore.services.criticite import ServiceCriticite
     from supplyscore.services.weekly import CycleHebdomadaire
 
-    SNAPSHOTS.mkdir(parents=True, exist_ok=True)
+    dest = Path(out_dir) if out_dir is not None else SNAPSHOTS
+    dest.mkdir(parents=True, exist_ok=True)
 
     nodes_out: dict[str, dict] = {}
     for node in service.repo.nodes_by_project(PROJECT_ID):
@@ -107,7 +121,7 @@ def snapshot(db_dir: str, service, tour: int | None) -> dict:
         "criticite": criticite,
     }
     name = f"tour_{tour:02d}.json" if tour is not None else f"adhoc_{int(time.time())}.json"
-    path = SNAPSHOTS / name
+    path = dest / name
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"  [snapshot] {path}")
 
