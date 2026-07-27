@@ -489,6 +489,24 @@ appliqué AVANT la propagation.
   exactement nuls (lot 9.3). La non-additivité des chocs combinés est une
   propriété assumée du OU probabiliste (cf. cas E15 : chocs B et C sur la
   chaîne C→B→A, ΔUr_A(B∪C) ≠ ΔUr_A(B) + ΔUr_A(C)).
+- **Limite de saturation — dé-saturation Δℓ (HÉLIOS v7, U3)** : sur un
+  réseau saturé (Ur = 1.0 partout en aval, 9 tours sur 19 de la campagne
+  HÉLIOS), le clip [0, 1] écrase tous les ΔUr de `simulate_shock` à 0 — le
+  « what-if » devient aveugle précisément pendant les crises.
+  `simulate_shock_detailed` retourne en plus **Δℓ**, l'écart de log-survie
+  ℓ(p) = −ln(1−p) d'un **jumeau ε-régularisé** : même récurrence montante
+  écrite en espace survie s_i = (1 − Ur_loc_i)·Π_j ((1 − β_ji) + β_ji·s_j)
+  (identité algébrique de 1 − β·Ur_j avec Ur_j = 1 − s_j), urgences locales
+  effectives clipées dans [0, 1−ε] (ε = 10⁻⁹) — aucun produit de survie ne
+  s'annule — et ℓ_i = −ln(s_i) accumulé en espace log. Même convention
+  log-survie que la décomposition E8 ci-dessous. Hors saturation,
+  Δℓ = ln((1−Ur)/(1−Ur′)) induit exactement le même classement que ΔUr au
+  client final (propriété testée sur DAG aléatoires) ; en saturation, Δℓ
+  mesure l'aggravation **en profondeur** du choc et reste strictement
+  discriminant — le tri de criticité `(-ΔUr_final, -Δℓ_final, nom)` ne
+  s'éteint plus. `compute_ur_batch` / `compute_ell_batch` vectorisent les
+  mêmes passes sur S tirages simultanés (criticité probabiliste, lecture
+  seule, seedée).
 - **`apply_status`** pose un statut **sans** propager ; la propagation est
   re-déclenchée par l'orchestrateur (`evaluate_all`), unique point de
   propagation.

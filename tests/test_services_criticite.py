@@ -1,10 +1,14 @@
-"""Tests du ServiceCriticite (Lot 15.2) — criticité systématique des nœuds.
+"""Tests du ServiceCriticite (Lot 15.2 ; Δl et criticité probabiliste, U3).
 
 Couvre : valeurs analytiques sur la chaîne historique C→B→A (β=(0.5, 0.7),
-ur_loc=(0.6, 0.3, 0.1)), classement (B avant C, client final en tête),
+ur_loc=(0.6, 0.3, 0.1)), classement (B avant C, client final en tête, tri
+``(-ΔUr_final, -Δl_final, nom)``), dé-saturation Δl (chaîne totalement
+saturée : ΔUr_final tous nuls mais Δl_final classe encore les nœuds),
 exclusions (autre projet, DONE/ABANDONED, onboarding draft), ``nb_impactes``,
-``top``, erreurs françaises (projet inconnu, aucun actif), pureté (états
-d'urgence du dépôt inchangés) et perf indicative non bloquante sur seed_demo.
+``top``, ``criticite_probabiliste`` (déterminisme seedé, sévérités calibrées,
+bornes, pureté), erreurs françaises (projet inconnu, aucun actif, n_draws),
+pureté (états d'urgence du dépôt inchangés) et perf indicative non bloquante
+sur seed_demo.
 """
 
 from __future__ import annotations
@@ -122,7 +126,7 @@ def test_client_final_delta_final_egal_son_propre_delta(chaine: SupplyScoreServi
 
 
 def test_noeud_deja_sature_donne_delta_nul(chaine: SupplyScoreService) -> None:
-    # CHOIX DOCUMENTÉ : ur_local déjà >= 1.0 → choc à vide, deltas nuls partout.
+    # CHOIX DOCUMENTÉ : ur_local déjà >= 1.0 → choc à vide, ΔUr ET Δl nuls partout.
     node_b = chaine.repo.get_node("B")
     assert node_b is not None
     node_b.urgency.ur_local = 1.0
@@ -131,8 +135,60 @@ def test_noeud_deja_sature_donne_delta_nul(chaine: SupplyScoreService) -> None:
     point_b = _point(points, "B")
     assert point_b.delta_ur_final == pytest.approx(0.0, abs=1e-12)
     assert point_b.delta_ur_max == pytest.approx(0.0, abs=1e-12)
+    assert point_b.delta_ell_final == pytest.approx(0.0, abs=1e-12)
+    assert point_b.delta_ell_max == pytest.approx(0.0, abs=1e-12)
     assert point_b.nb_impactes == 0
     assert point_b.rank == len(points)  # queue de classement
+
+
+# --- Dé-saturation Δl (U3) ------------------------------------------------------------
+
+
+def test_delta_ell_coherent_hors_saturation(chaine: SupplyScoreService) -> None:
+    # Hors saturation, Δl_final ordonne comme ΔUr_final (transformée monotone
+    # de l'urgence choquée du client final, référence commune).
+    points = ServiceCriticite(chaine).indice_criticite(PROJECT_ID)
+    assert all(p.delta_ell_final > 0.0 for p in points)
+    assert all(p.delta_ell_max >= p.delta_ell_final for p in points)
+    ordre_ur = sorted(points, key=lambda p: -p.delta_ur_final)
+    ordre_ell = sorted(points, key=lambda p: -p.delta_ell_final)
+    assert [p.node_id for p in ordre_ur] == [p.node_id for p in ordre_ell]
+
+
+def test_chaine_saturee_classee_par_delta_ell(service: SupplyScoreService) -> None:
+    """Chaîne TOTALEMENT saturée (β=1, C→1.0) : ΔUr nuls, Δl classe A > B > C."""
+    ranks = {"A": 0, "B": 1, "C": 2}
+    ur_local = {"A": 0.1, "B": 0.3, "C": 1.0}
+    nodes = [
+        SupplyNode(
+            id=node_id,
+            name=f"Node {node_id}",
+            rank=ranks[node_id],
+            project_id="proj-sature",
+            urgency=UrgencyState(ud_local=0.2, ur_local=ur_local[node_id]),
+        )
+        for node_id in ("A", "B", "C")
+    ]
+    arcs = [
+        SupplyArc(source_id=s, target_id=t, gamma=0.5, beta=1.0)
+        for s, t in (("C", "B"), ("B", "A"))
+    ]
+    project = Project(id="proj-sature", name="Chaîne saturée", owner_node_id="A", t0_ts=_NOW)
+    service.create_project(project, nodes, arcs)
+    states = service.propagation.propagate_all()
+    assert all(states[node_id].ur == 1.0 for node_id in ("A", "B", "C"))  # saturation totale
+
+    points = ServiceCriticite(service).indice_criticite("proj-sature")
+
+    # L'ancien indicateur est aveugle : tous les ΔUr_final sont nuls…
+    assert all(p.delta_ur_final == pytest.approx(0.0, abs=1e-12) for p in points)
+    # … mais Δl_final classe encore, non trivialement : A > B > C (= 0, choc à vide).
+    par_id = {p.node_id: p for p in points}
+    assert par_id["A"].delta_ell_final > par_id["B"].delta_ell_final
+    assert par_id["B"].delta_ell_final > par_id["C"].delta_ell_final
+    assert par_id["C"].delta_ell_final == pytest.approx(0.0, abs=1e-12)
+    assert [p.node_id for p in points] == ["A", "B", "C"]
+    assert [p.rank for p in points] == [1, 2, 3]
 
 
 # --- Périmètre : projet, statuts, onboarding -------------------------------------------
@@ -208,6 +264,84 @@ def test_projet_sans_noeud_actif_leve_valueerror(chaine: SupplyScoreService) -> 
         _set_status(chaine, node_id, TaskStatus.DONE)
     with pytest.raises(ValueError, match="actif"):
         ServiceCriticite(chaine).indice_criticite(PROJECT_ID)
+
+
+# --- Criticité probabiliste (U3) -------------------------------------------------------
+
+
+def test_criticite_probabiliste_deterministe_et_triee(chaine: SupplyScoreService) -> None:
+    crit = ServiceCriticite(chaine)
+    points_1 = crit.criticite_probabiliste(PROJECT_ID, n_draws=200, seed=42)
+    points_2 = crit.criticite_probabiliste(PROJECT_ID, n_draws=200, seed=42)
+    assert points_1 == points_2  # même graine ⇒ résultat bit à bit identique
+    assert {p.node_id for p in points_1} == {"A", "B", "C"}
+    probas = [p.p_impact_final for p in points_1]
+    assert probas == sorted(probas, reverse=True)
+    for p in points_1:
+        assert 0.0 <= p.p_impact_final <= 1.0
+        assert 0.0 <= p.q50_ell <= p.q90_ell
+
+
+def test_criticite_probabiliste_severites_calibrees(chaine: SupplyScoreService) -> None:
+    """Valeurs attendues des p_impact sur la chaîne (sévérités calibrées, cliquet).
+
+    Analytique : le choc en cliquet ``max(ur_local, sévérité)`` donne au client
+    final A un ΔUr > 0.2 pour A dès sévérité >= 0.6 (p = 0.4), pour B dès
+    sévérité >= 0.9 (p = 0.1), jamais pour C (ΔUr_A max = 0.0882 < 0.2).
+    """
+    points = ServiceCriticite(chaine).criticite_probabiliste(PROJECT_ID, n_draws=4000, seed=7)
+    par_id = {p.node_id: p for p in points}
+    assert par_id["A"].p_impact_final == pytest.approx(0.4, abs=0.05)
+    assert par_id["B"].p_impact_final == pytest.approx(0.1, abs=0.05)
+    assert par_id["C"].p_impact_final == 0.0
+    assert [p.node_id for p in points] == ["A", "B", "C"]  # tri par p décroissant
+    # Les quantiles Δl suivent la même hiérarchie au client final.
+    assert par_id["A"].q90_ell > par_id["C"].q90_ell
+
+
+def test_criticite_probabiliste_pure(chaine: SupplyScoreService) -> None:
+    chaine.evaluate_all()
+    avant = {node.id: copy.deepcopy(node.urgency) for node in chaine.repo.nodes()}
+
+    ServiceCriticite(chaine).criticite_probabiliste(PROJECT_ID, n_draws=50)
+
+    for node in chaine.repo.nodes():
+        assert node.urgency == avant[node.id], f"UrgencyState modifié sur {node.id!r}"
+
+
+def test_criticite_sans_client_final_donne_deltas_finaux_nuls(
+    service: SupplyScoreService,
+) -> None:
+    # Projet sans nœud de rang 0 : deltas finaux nuls par convention, pas d'erreur.
+    project = Project(id="proj-sans-final", name="Sans rang 0", owner_node_id="X", t0_ts=_NOW)
+    noeud = SupplyNode(
+        id="X",
+        name="Node X",
+        rank=3,
+        project_id="proj-sans-final",
+        urgency=UrgencyState(ud_local=0.2, ur_local=0.4),
+    )
+    service.create_project(project, [noeud], [])
+    crit = ServiceCriticite(service)
+
+    points = crit.indice_criticite("proj-sans-final")
+    assert [(p.delta_ur_final, p.delta_ell_final) for p in points] == [(0.0, 0.0)]
+    assert points[0].delta_ur_max > 0.0  # le choc bouge bien le nœud lui-même
+
+    proba = crit.criticite_probabiliste("proj-sans-final", n_draws=20)
+    assert [(p.p_impact_final, p.q50_ell, p.q90_ell) for p in proba] == [(0.0, 0.0, 0.0)]
+
+
+def test_criticite_probabiliste_erreurs(chaine: SupplyScoreService) -> None:
+    crit = ServiceCriticite(chaine)
+    with pytest.raises(ValueError, match="n_draws"):
+        crit.criticite_probabiliste(PROJECT_ID, n_draws=0)
+    with pytest.raises(ValueError, match="inconnu"):
+        crit.criticite_probabiliste("fantome")
+    for node_id in ("A", "B", "C"):
+        _set_status(chaine, node_id, TaskStatus.DONE)
+    with pytest.raises(ValueError, match="actif"):
+        crit.criticite_probabiliste(PROJECT_ID)
 
 
 # --- Pureté ---------------------------------------------------------------------------
