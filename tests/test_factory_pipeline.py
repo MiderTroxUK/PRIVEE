@@ -471,10 +471,16 @@ def test_full_default_pipeline_happy_path(tmp_path: Path, monkeypatch: pytest.Mo
     assert stages["action_effects"]["status"] == "ok"
     assert stages["action_effects"]["published"] is True
     assert stages["train"]["status"] == "ok"
-    # U11/U12 sont réellement absents de supplyscore.tools -> toléré, statut partiel.
-    assert stages["smoke"]["status"] == "partiel"
-    assert stages["smoke"]["results"]["predict"] == "absent"
-    assert stages["smoke"]["results"]["insights"] == "absent"
+    # Smoke best-effort (toléré) : depuis la fusion des 18 unités, les CLIs
+    # supplyscore.tools.predict/insights (U11/U12) EXISTENT et sont réellement
+    # invoquées. La chaîne de smoke produite par U6 n'expose que des snapshots
+    # JSON (db-dir jetable), donc predict/insights ne peuvent pas s'y connecter
+    # (statut « partiel », résultat « echec:N ») — jamais « absent ». Rendre ce
+    # smoke pleinement vert demanderait à U6 de persister une base ≥ 4 semaines
+    # d'historique et à U14 de la cibler (suite notée, hors périmètre de fusion).
+    assert stages["smoke"]["status"] in ("ok", "partiel")
+    assert stages["smoke"]["results"]["predict"] != "absent"
+    assert stages["smoke"]["results"]["insights"] != "absent"
 
     assert (work / "models" / "models" / "v1" / "artifact.json").exists()
     assert (work / "models" / "action_effects.json").exists()
