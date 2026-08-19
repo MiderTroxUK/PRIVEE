@@ -1,11 +1,11 @@
-"""Modèles de domaine — contrat partagé entre core math, graphe, persistance et UI.
+"""Modeles de domaine - contrat partage entre core math, graphe, persistance et UI.
 
 Conventions :
-- Toutes les urgences (Ud, Ur, locales ou propagées) vivent dans [0, 1]
-  (Ur peut dépasser 1.0 pour une tâche en retard, voir core.ur_model).
-- L'adéquation A vit dans [0, 100].
+- Toutes les urgences (Ud, Ur, locales ou propagees) vivent dans [0, 1]
+  (Ur peut depasser 1.0 pour une tache en retard, voir core.ur_model).
+- L'adequation A vit dans [0, 100].
 - Les KPIs optionnels valent None quand le client ne les a pas fournis ;
-  le modèle Ur ignore alors le bloc correspondant.
+  le modele Ur ignore alors le bloc correspondant.
 """
 
 from __future__ import annotations
@@ -16,26 +16,26 @@ from enum import StrEnum
 
 
 class NodeKind(StrEnum):
-    """Nature d'un élément du réseau : nœud physique ou arc de transport."""
+    """Nature d'un element du reseau : noeud physique ou arc de transport."""
 
-    NODE = "node"  # entrepôt, usine, atelier, client...
-    ARC = "arc"  # transport (camion, bateau...) — porté par SupplyArc
+    NODE = "node"  # entrepot, usine, atelier, client...
+    ARC = "arc"  # transport (camion, bateau...) - porte par SupplyArc
 
 
 class TaskStatus(StrEnum):
-    """Statut du cycle de vie d'une tâche ou d'un nœud."""
+    """Statut du cycle de vie d'une tache ou d'un noeud."""
 
     ACTIVE = "active"
     DONE = "done"
     ABANDONED = "abandoned"
 
 
-# --- Blocs KPI (cf. dictionnaire de données client) -------------------------
+# Blocs KPI (cf. dictionnaire de donnees client)
 
 
 @dataclass
 class NetworkKPIs:
-    """KPIs réseau : produit, distance et demande."""
+    """KPIs reseau : produit, distance et demande."""
 
     product: str | None = None
     distance_km: float | None = None
@@ -44,7 +44,7 @@ class NetworkKPIs:
 
 @dataclass
 class InventoryKPIs:
-    """KPIs de stock : capacités maximales, niveaux courants et débit."""
+    """KPIs de stock : capacites maximales, niveaux courants et debit."""
 
     max_volume_m3: float | None = None
     max_weight_kg: float | None = None
@@ -54,7 +54,7 @@ class InventoryKPIs:
 
     @property
     def remaining_volume_m3(self) -> float | None:
-        """Volume restant disponible (m³), ou None si non calculable."""
+        """Volume restant disponible (m^3), ou None si non calculable."""
         if self.max_volume_m3 is None or self.current_volume_m3 is None:
             return None
         return max(self.max_volume_m3 - self.current_volume_m3, 0.0)
@@ -69,7 +69,7 @@ class InventoryKPIs:
 
 @dataclass
 class TimeKPIs:
-    """KPIs temporels : vitesse, autonomie, lead time et échéance."""
+    """KPIs temporels : vitesse, autonomie, lead time et echeance."""
 
     speed_kmh: float | None = None
     distance_range_km: float | None = None
@@ -81,15 +81,15 @@ class TimeKPIs:
     lead_time_mode_h: float | None = None  # distribution triangulaire (mode Monte Carlo E13)
     lead_time_max_h: float | None = None  # distribution triangulaire (mode Monte Carlo E13)
     delay_h: float | None = None  # extension en cas de risque
-    deadline_h: float | None = None  # échéance d_i (heures depuis t0 projet)
+    deadline_h: float | None = None  # echeance d_i (heures depuis t0 projet)
 
 
 @dataclass
 class CostKPIs:
-    """KPIs de coût : produit, tarif, opérations, carburant, risque et stockage."""
+    """KPIs de cout : produit, tarif, operations, carburant, risque et stockage."""
 
     product_cost: float | None = None
-    tariff: float | None = None  # multiplicateur sur le coût produit
+    tariff: float | None = None  # multiplicateur sur le cout produit
     nominal_op_cost: float | None = None
     op_cost: float | None = None
     fuel_cost: float | None = None
@@ -99,7 +99,7 @@ class CostKPIs:
 
 @dataclass
 class CO2KPIs:
-    """KPIs d'émissions CO2 : carburant, opérations, mix énergétique et cibles."""
+    """KPIs d'emissions CO2 : carburant, operations, mix energetique et cibles."""
 
     fuel_emission_g_km: float | None = None
     op_emission_g_h: float | None = None
@@ -109,14 +109,14 @@ class CO2KPIs:
 
     @property
     def total_g_h(self) -> float | None:
-        """Émissions horaires totales (g/h), ou None si aucune composante fournie."""
+        """Emissions horaires totales (g/h), ou None si aucune composante fournie."""
         parts = [v for v in (self.op_emission_g_h, self.energy_mix_g_h) if v is not None]
         return sum(parts) if parts else None
 
 
 @dataclass
 class OEEKPIs:
-    """KPIs de rendement synthétique (OEE) : disponibilité, performance et qualité."""
+    """KPIs de rendement synthetique (OEE) : disponibilite, performance et qualite."""
 
     production_time_h: float | None = None
     operating_time_h: float | None = None
@@ -126,7 +126,7 @@ class OEEKPIs:
 
     @property
     def oee(self) -> float | None:
-        """Taux de rendement synthétique (produit des trois composantes), ou None."""
+        """Taux de rendement synthetique (produit des trois composantes), ou None."""
         if self.availability is None or self.performance is None or self.quality is None:
             return None
         return self.availability * self.performance * self.quality
@@ -134,7 +134,7 @@ class OEEKPIs:
 
 @dataclass
 class RiskKPIs:
-    """KPIs de risque : défaillance, récupération, sévérité et expositions."""
+    """KPIs de risque : defaillance, recuperation, severite et expositions."""
 
     failure_probability: float | None = None  # %/time, dans [0, 1]
     recovery_time_h: float | None = None
@@ -146,7 +146,7 @@ class RiskKPIs:
 
 @dataclass
 class KPIBundle:
-    """Regroupe tous les blocs KPI d'un nœud ou d'un arc."""
+    """Regroupe tous les blocs KPI d'un noeud ou d'un arc."""
 
     network: NetworkKPIs = field(default_factory=NetworkKPIs)
     inventory: InventoryKPIs = field(default_factory=InventoryKPIs)
@@ -157,28 +157,28 @@ class KPIBundle:
     risk: RiskKPIs = field(default_factory=RiskKPIs)
 
 
-# --- Urgences ----------------------------------------------------------------
+# Urgences
 
 
 @dataclass
 class UrgencyState:
-    """État d'urgence d'un nœud à une date t."""
+    """Etat d'urgence d'un noeud a une date t."""
 
     ud_local: float | None = None  # questionnaire humain
     ur_local: float | None = None  # KPIs
-    ud: float | None = None  # propagé (descendant, rang 0 -> N)
-    ur: float | None = None  # propagé (montant, rang N -> 0)
+    ud: float | None = None  # propage (descendant, rang 0 -> N)
+    ur: float | None = None  # propage (montant, rang N -> 0)
     adequation: float | None = None  # [0, 100]
     false_urgency: float | None = None  # F = [Ud - Ur]+
     hidden_risk: float | None = None  # H = [Ur - Ud]+
     timestamp: float = field(default_factory=_time.time)
 
 
-# --- Graphe ------------------------------------------------------------------
+# Graphe
 
 
 class ArcKind(StrEnum):
-    """Nature d'un arc : nominal (flux réel) ou backup (secours, purement visuel)."""
+    """Nature d'un arc : nominal (flux reel) ou backup (secours, purement visuel)."""
 
     NOMINAL = "nominal"
     BACKUP = "backup"
@@ -186,7 +186,7 @@ class ArcKind(StrEnum):
 
 @dataclass
 class SupplyNode:
-    """Nœud du réseau logistique (entrepôt, usine, atelier, client...)."""
+    """Noeud du reseau logistique (entrepot, usine, atelier, client...)."""
 
     id: str
     name: str
@@ -206,33 +206,33 @@ class SupplyNode:
 
 @dataclass
 class SupplyArc:
-    """Arête orientée fournisseur -> client (j alimente i)."""
+    """Arete orientee fournisseur -> client (j alimente i)."""
 
     source_id: str  # fournisseur (rang r+1)
     target_id: str  # client (rang r)
     label: str = "Truck"
-    gamma: float = 0.5  # intensité de dépendance Ud (descendante)
+    gamma: float = 0.5  # intensite de dependance Ud (descendante)
     beta: float = 0.5  # coefficient de propagation Ur (montante)
-    delta: float = 1.0  # criticité pour la propagation de choc
+    delta: float = 1.0  # criticite pour la propagation de choc
     kind_arc: ArcKind = ArcKind.NOMINAL  # backup = inerte dans tous les calculs
     kpis: KPIBundle = field(default_factory=KPIBundle)
 
     @property
     def id(self) -> str:
-        """Identifiant dérivé de l'arc, au format ``source_id->target_id``."""
+        """Identifiant derive de l'arc, au format ``source_id->target_id``."""
         return f"{self.source_id}->{self.target_id}"
 
 
-# --- Projet / évaluation -------------------------------------------------------
+# Projet / evaluation
 
 
 @dataclass
 class Project:
-    """Projet d'évaluation porté par un nœud client."""
+    """Projet d'evaluation porte par un noeud client."""
 
     id: str
     name: str
-    owner_node_id: str  # nœud du client qui porte le projet
+    owner_node_id: str  # noeud du client qui porte le projet
     description: str = ""
     created_at: float = field(default_factory=_time.time)
     t0_ts: float | None = None  # origine temporelle du projet (epoch s) ; None -> created_at
@@ -245,17 +245,17 @@ class Project:
 
 @dataclass
 class AHPAssessment:
-    """Résultat d'un questionnaire AHP hebdomadaire pour un nœud."""
+    """Resultat d'un questionnaire AHP hebdomadaire pour un noeud."""
 
     node_id: str
     project_id: str
     operator_id: str
     comparisons: dict[tuple[int, int], float]  # jugements Saaty par paire
-    criteria_scores: list[float]  # notes [1, 9] par critère
+    criteria_scores: list[float]  # notes [1, 9] par critere
     weights: list[float]
     consistency_ratio: float
     is_consistent: bool
     ud: float  # [0, 1]
     notes: str = ""
     timestamp: float = field(default_factory=_time.time)
-    iso_week: str = ""  # semaine ISO « AAAA-Sxx » de l'évaluation ("" = à calculer)
+    iso_week: str = ""  # semaine ISO " AAAA-Sxx " de l'evaluation ("" = a calculer)

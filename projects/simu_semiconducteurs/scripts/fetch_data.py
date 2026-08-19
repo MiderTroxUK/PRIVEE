@@ -1,14 +1,14 @@
-"""Acquisition des séries publiques de la campagne HÉLIOS (U2-U4).
+"""Acquisition des series publiques de la campagne HELIOS (U2-U4).
 
-Télécharge les séries INSEE (API BDM, SDMX-ML, sans authentification) et les
-écrit en CSV bruts sous ``data/raw/``, avec un MANIFEST.md de provenance.
-Le rapport WSTS (xls) est téléchargé si l'URL directe répond ; sinon le
-MANIFEST consigne l'étape manuelle.
+Telecharge les series INSEE (API BDM, SDMX-ML, sans authentification) et les
+ecrit en CSV bruts sous ``data/raw/``, avec un MANIFEST.md de provenance.
+Le rapport WSTS (xls) est telecharge si l'URL directe repond ; sinon le
+MANIFEST consigne l'etape manuelle.
 
 Usage :
     python fetch_data.py [--out DIR]
 
-Fenêtre de campagne : 2020-09 -> 2022-02 (+ marge baseline 2020-07/08).
+Fenetre de campagne : 2020-09 -> 2022-02 (+ marge baseline 2020-07/08).
 """
 
 from __future__ import annotations
@@ -25,7 +25,7 @@ from pathlib import Path
 
 BASE_BDM = "https://api.insee.fr/series/BDM/V1/data/SERIES_BDM/{idbank}"
 
-#: Séries INSEE de la campagne : idbank -> (slug, description, granularité).
+#: Series INSEE de la campagne : idbank -> (slug, description, granularite).
 INSEE_SERIES: dict[str, tuple[str, str, str]] = {
     "010768009": (
         "insee_ipi_naf261",
@@ -61,7 +61,7 @@ INSEE_SERIES: dict[str, tuple[str, str, str]] = {
     ),
 }
 
-#: Fenêtre utile (bornes incluses, format AAAA-MM).
+#: Fenetre utile (bornes incluses, format AAAA-MM).
 WINDOW_START = "2020-07"
 WINDOW_END = "2022-02"
 
@@ -75,7 +75,7 @@ def _fetch(url: str, timeout: int = 30) -> bytes:
 
 
 def fetch_insee_series(idbank: str) -> list[tuple[str, float]]:
-    """Télécharge une série BDM et renvoie [(période, valeur)] trié croissant."""
+    """Telecharge une serie BDM et renvoie [(periode, valeur)] trie croissant."""
     raw = _fetch(BASE_BDM.format(idbank=idbank))
     root = ET.fromstring(raw)
     obs: list[tuple[str, float]] = []
@@ -93,7 +93,7 @@ def fetch_insee_series(idbank: str) -> list[tuple[str, float]]:
 
 
 def in_window(period: str) -> bool:
-    """Vrai si la période (AAAA-MM ou AAAA-QN) touche la fenêtre de campagne."""
+    """Vrai si la periode (AAAA-MM ou AAAA-QN) touche la fenetre de campagne."""
     if re.fullmatch(r"\d{4}-Q\d", period):
         year, q = int(period[:4]), int(period[-1])
         month = 3 * q - 2  # premier mois du trimestre
@@ -124,7 +124,7 @@ def main(argv: list[str] | None = None) -> int:
     for idbank, (slug, desc, gran) in INSEE_SERIES.items():
         try:
             obs = fetch_insee_series(idbank)
-        except Exception as exc:  # noqa: BLE001 — on consigne et on continue
+        except Exception as exc:  # noqa: BLE001 - on consigne et on continue
             failures.append(f"{slug} ({idbank}) : {type(exc).__name__}: {exc}")
             continue
         window = [o for o in obs if in_window(o[0])]
@@ -153,7 +153,7 @@ def main(argv: list[str] | None = None) -> int:
         )
         print(f"[ok] {slug}: {len(obs)} points, {len(window)} dans la fenêtre")
 
-    # --- WSTS : tentative de découverte du lien xls sur la page publique ---------
+    # WSTS : tentative de decouverte du lien xls sur la page publique
     wsts_note = "Téléchargement manuel requis (page consultée)."
     try:
         page = _fetch(WSTS_PAGE).decode("utf-8", errors="ignore")
@@ -174,7 +174,7 @@ def main(argv: list[str] | None = None) -> int:
         wsts_note = f"Échec automatique ({type(exc).__name__}) — étape manuelle."
         print(f"[!] WSTS: {exc}")
 
-    # --- MANIFEST -----------------------------------------------------------------
+    # MANIFEST
     lines = [
         "# MANIFEST des données brutes — campagne HÉLIOS",
         "",

@@ -1,29 +1,29 @@
-"""Ferme de sous-agents LLM (palier 2, U7) — déclarants ``claude -p`` par persona.
+"""Ferme de sous-agents LLM (palier 2, U7) - declarants ``claude -p`` par persona.
 
-:class:`ClaudeCliDeclarant` implémente le MÊME contrat gelé que
+:class:`ClaudeCliDeclarant` implemente le MEME contrat gele que
 ``declarants.RidgeDeclarant`` (palier 1) : ``respond(node_id, tour,
 features, rng) -> {"bipolar": list[int], "scores_ui": list[int]}``. Chaque
-appel construit un prompt AUTONOME — rien au-delà du dossier du persona
-lui-même (son identité structurelle, ses 9 indicateurs jusqu'au tour
-courant, ses 6 dernières déclarations) — puis invoque ``claude -p`` en
+appel construit un prompt AUTONOME - rien au-dela du dossier du persona
+lui-meme (son identite structurelle, ses 9 indicateurs jusqu'au tour
+courant, ses 6 dernieres declarations) - puis invoque ``claude -p`` en
 sous-processus.
 
-Anti-fuite (impératif du plan U7) : ce module n'importe JAMAIS
+Anti-fuite (imperatif du plan U7) : ce module n'importe JAMAIS
 ``scenario.PERSONAS`` / ``NARRATIVE`` / ``SOURCES`` / ``TOUR_TO_MONTH`` /
-``PLACEBO`` — ce contenu est explicitement INTERNE au facilitateur (cf.
-l'en-tête de ``scenario.py``) et ne doit pas fuiter dans un prompt envoyé à
-un tiers. Seule l'identité STRUCTURELLE du nœud (id, nom, rang, label) est
-lue depuis ``scenario.NODES`` pour nommer le rôle joué ; la « mission » est
-un gabarit générique, indépendant du scénario HÉLIOS, pour que la ferme
-reste réutilisable hors de cette campagne.
+``PLACEBO`` - ce contenu est explicitement INTERNE au facilitateur (cf.
+l'en-tete de ``scenario.py``) et ne doit pas fuiter dans un prompt envoye a
+un tiers. Seule l'identite STRUCTURELLE du noeud (id, nom, rang, label) est
+lue depuis ``scenario.NODES`` pour nommer le role joue ; la " mission " est
+un gabarit generique, independant du scenario HELIOS, pour que la ferme
+reste reutilisable hors de cette campagne.
 
-Validation d'une réponse : schéma + plages, puis cohérence AHP (CR < 0.10,
-cf. ``supplyscore.core.ahp``). Une incohérence déclenche UNE relance
-nommant la paire la plus contradictoire (``max |log(A_ij) − log(w_i/w_j)|``)
-en demandant de ne réviser QUE cette paire ; un échec de format déclenche
-une relance générique. Deuxième échec (quelle qu'en soit la cause) -> repli
-sur un ``RidgeDeclarant`` (palier 1) si fourni, sinon report de la dernière
-déclaration connue — compté dans ``fallback_count`` et journalisé par trace.
+Validation d'une reponse : schema + plages, puis coherence AHP (CR < 0.10,
+cf. ``supplyscore.core.ahp``). Une incoherence declenche UNE relance
+nommant la paire la plus contradictoire (``max |log(A_ij) - log(w_i/w_j)|``)
+en demandant de ne reviser QUE cette paire ; un echec de format declenche
+une relance generique. Deuxieme echec (quelle qu'en soit la cause) -> repli
+sur un ``RidgeDeclarant`` (palier 1) si fourni, sinon report de la derniere
+declaration connue - compte dans ``fallback_count`` et journalise par trace.
 
 Usage :
     python llm_farm.py --dry-run
@@ -57,8 +57,8 @@ for _p in (str(_REPO_ROOT), str(_FACTORY_DIR), str(_SCRIPTS_DIR), str(_SCENARIO_
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
-import make_briefings  # noqa: E402  (FIELD_LABELS + _fmt_value : même formatage que les fiches)
-import scenario  # noqa: E402  (NODES uniquement : id/name/rank/label — JAMAIS PERSONAS/NARRATIVE)
+import make_briefings  # noqa: E402  (FIELD_LABELS + _fmt_value : meme formatage que les fiches)
+import scenario  # noqa: E402  (NODES uniquement : id/name/rank/label - JAMAIS PERSONAS/NARRATIVE)
 from declarants import (  # noqa: E402
     KPI_PATHS,
     RidgeDeclarant,
@@ -72,13 +72,10 @@ from supplyscore.core import (  # noqa: E402
     run_ahp,
 )
 
-#: Les 6 paires (i, j) comparées par le questionnaire AHP — dupliqué de
-#: ``supplyscore.web_ui.pages.questionnaire.PAIRS`` (on évite d'importer
-#: web_ui, qui tire Dash, depuis un script CLI batch). Ordre VÉRIFIÉ contre
-#: les traces pilotes (poids AHP recalculés à l'identique, cf. rapport U7).
+#: Les 6 paires (i, j) comparees par le questionnaire AHP - duplique de ``supplyscore.web_ui.pages.questionnaire.PAIRS`` (on evite d'importer web_ui, qui tire Dash, depuis un script CLI batch). Ordre VERIFIE contre les traces pilotes (poids AHP recalcules a l'identique, cf. rapport U7).
 PAIRS: list[tuple[int, int]] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
 
-#: Nombre de déclarations passées gardées dans le prompt (contrat U7).
+#: Nombre de declarations passees gardees dans le prompt (contrat U7).
 HISTORY_LEN = 6
 
 _RETRY_TECHNICAL_MSG = (
@@ -94,21 +91,21 @@ _RETRY_FORMAT_MSG = (
 )
 
 
-# --- Identité structurelle (anti-fuite : jamais PERSONAS/NARRATIVE) ----------------
+# Identite structurelle (anti-fuite : jamais PERSONAS/NARRATIVE)
 
 
 def _node_identity() -> dict[str, dict[str, Any]]:
-    """``{node_id: {"name", "rank", "label"}}`` — structurel uniquement."""
+    """``{node_id: {"name", "rank", "label"}}`` - structurel uniquement."""
     return {
         n["id"]: {"name": n["name"], "rank": n["rank"], "label": n["label"]} for n in scenario.NODES
     }
 
 
-# --- Construction du prompt autonome ------------------------------------------------
+# Construction du prompt autonome
 
 
 def _role_card(node_id: str, meta: dict[str, Any]) -> str:
-    """Carte de rôle GÉNÉRIQUE (gabarit procédural, pas le texte PERSONAS)."""
+    """Carte de role GENERIQUE (gabarit procedural, pas le texte PERSONAS)."""
     name = meta.get("name", node_id)
     label = meta.get("label", "")
     rank = meta.get("rank")
@@ -125,17 +122,17 @@ def _role_card(node_id: str, meta: dict[str, Any]) -> str:
 
 
 def _recent_points(entry: dict) -> list[tuple[int, float]]:
-    """Reconstruit jusqu'à 3 points récents (offsets 0, -1, -2) depuis val/d1/d2.
+    """Reconstruit jusqu'a 3 points recents (offsets 0, -1, -2) depuis val/d1/d2.
 
-    Le contrat gelé remplit ``val`` à 0.0 (jamais ``None``) quand un KPI n'a
-    jamais été observé pour ce nœud (cf. ``declarants.reconstruct_features``)
-    — la distinction « jamais observé » vs « vaut vraiment 0.0 » est donc
+    Le contrat gele remplit ``val`` a 0.0 (jamais ``None``) quand un KPI n'a
+    jamais ete observe pour ce noeud (cf. ``declarants.reconstruct_features``)
+    - la distinction " jamais observe " vs " vaut vraiment 0.0 " est donc
     perdue dans ``features`` seul. On la retrouve par une heuristique
-    documentée : val=0.0 ET d1=None ET d2=None ne peut survenir QUE via ce
-    remplissage, sauf le cas rare (accepté) d'une toute première observation
+    documentee : val=0.0 ET d1=None ET d2=None ne peut survenir QUE via ce
+    remplissage, sauf le cas rare (accepte) d'une toute premiere observation
     qui vaudrait PILE 0.0. Sans ce filtre, la fiche afficherait un faux
-    « 0.0 » pour un indicateur qui ne s'applique tout simplement pas à ce
-    nœud — trompeur pour le modèle interrogé.
+    " 0.0 " pour un indicateur qui ne s'applique tout simplement pas a ce
+    noeud - trompeur pour le modele interroge.
     """
     val = entry.get("val")
     d1 = entry.get("d1")
@@ -153,14 +150,14 @@ def _recent_points(entry: dict) -> list[tuple[int, float]]:
 
 
 def _tour_sheet(tour: int, features: dict) -> str:
-    """Table des indicateurs (T-2/T-1/T), libellés et formatage de make_briefings."""
+    """Table des indicateurs (T-2/T-1/T), libelles et formatage de make_briefings."""
     lines = ["| Indicateur | T-2 | T-1 | T (courant) |", "|---|---|---|---|"]
     any_row = False
     for path in KPI_PATHS:
         entry = features.get(path) or {}
         pts = _recent_points(entry)
         if not pts:
-            continue  # KPI jamais observé pour ce nœud (cf. declarants.reconstruct_features)
+            continue  # KPI jamais observe pour ce noeud (cf. declarants.reconstruct_features)
         any_row = True
         by_offset = dict(pts)
         cells = [
@@ -216,7 +213,7 @@ def _instructions_section() -> str:
 def build_prompt(
     node_id: str, tour: int, features: dict, history: list[dict], node_meta: dict[str, dict]
 ) -> str:
-    """Prompt AUTONOME pour une persona/tour — rien au-delà de son propre dossier."""
+    """Prompt AUTONOME pour une persona/tour - rien au-dela de son propre dossier."""
     meta = node_meta.get(node_id, {})
     return "\n\n".join(
         [
@@ -228,31 +225,31 @@ def build_prompt(
     )
 
 
-# --- Appel CLI + extraction robuste du JSON -----------------------------------------
+# Appel CLI + extraction robuste du JSON
 
 
 def _call_claude(prompt: str, model: str, claude_bin: str, timeout: float) -> str:
     """Appelle ``claude -p <prompt> --output-format json --model <model>``.
 
-    ATTENTION (risque documenté, observé en testant ce module) : si
-    ``claude_bin`` résout vers un script ``.cmd``/``.bat`` sur Windows (cas
-    fréquent d'une CLI installée via ``npm install -g`` — ``claude.cmd``),
-    Windows route l'appel via ``cmd.exe /c``, dont le parseur est orienté
+    ATTENTION (risque documente, observe en testant ce module) : si
+    ``claude_bin`` resout vers un script ``.cmd``/``.bat`` sur Windows (cas
+    frequent d'une CLI installee via ``npm install -g`` - ``claude.cmd``),
+    Windows route l'appel via ``cmd.exe /c``, dont le parseur est oriente
     LIGNE : un saut de ligne dans un argument entre guillemets TRONQUE
-    l'argument à la première ligne. ``prompt`` étant multi-paragraphe, un tel
-    shim recevrait un prompt tronqué SANS ERREUR visible. Une vraie ``.exe``
-    (CreateProcess direct, jamais retokenisée par un shell) n'a pas ce
-    problème — c'est le chemin attendu pour le binaire ``claude`` réel, mais
+    l'argument a la premiere ligne. ``prompt`` etant multi-paragraphe, un tel
+    shim recevrait un prompt tronque SANS ERREUR visible. Une vraie ``.exe``
+    (CreateProcess direct, jamais retokenisee par un shell) n'a pas ce
+    probleme - c'est le chemin attendu pour le binaire ``claude`` reel, mais
     si ce risque se confirme en production, transmettre le prompt par
-    fichier temporaire ou stdin plutôt qu'en argument positionnel.
+    fichier temporaire ou stdin plutot qu'en argument positionnel.
 
     Returns:
         Le texte brut de stdout (enveloppe JSON de la CLI).
 
     Raises:
-        FileNotFoundError: binaire introuvable (déclenche un repli immédiat,
-            sans nouvelle tentative — cf. :meth:`ClaudeCliDeclarant._try_respond`).
-        RuntimeError: process en erreur ou délai dépassé.
+        FileNotFoundError: binaire introuvable (declenche un repli immediat,
+            sans nouvelle tentative - cf. :meth:`ClaudeCliDeclarant._try_respond`).
+        RuntimeError: process en erreur ou delai depasse.
     """
     try:
         proc = subprocess.run(
@@ -284,9 +281,9 @@ _FENCE_RE = re.compile(r"```(?:json)?\s*(\{.*?\})\s*```", re.DOTALL)
 
 
 def _extract_json_payload(raw_result_text: str) -> dict:
-    """Extrait ``{"bipolar":..., "scores_ui":...}`` du texte du modèle.
+    """Extrait ``{"bipolar":..., "scores_ui":...}`` du texte du modele.
 
-    Tolère : JSON direct, bloc de code ```(json)```, JSON entouré de texte.
+    Tolere : JSON direct, bloc de code ```(json)```, JSON entoure de texte.
     """
     text = raw_result_text.strip()
     try:
@@ -319,7 +316,7 @@ def _checked_int(value: Any, lo: int, hi: int, field: str) -> int:
 
 
 def _validate_payload(payload: dict) -> tuple[list[int], list[int], str]:
-    """Valide schéma + plages ; lève ``ValueError`` (déclenche une relance) sinon."""
+    """Valide schema + plages ; leve ``ValueError`` (declenche une relance) sinon."""
     if not isinstance(payload, dict):
         raise ValueError("La réponse n'est pas un objet JSON.")
     bipolar_raw = payload.get("bipolar")
@@ -365,15 +362,15 @@ def _reask_message(pair: tuple[int, int]) -> str:
     )
 
 
-# --- Déclarant palier 2 ---------------------------------------------------------------
+# Declarant palier 2
 
 
 class ClaudeCliDeclarant:
-    """Palier 2 — déclarant ``claude -p`` par persona (contrat gelé ``respond()``).
+    """Palier 2 - declarant ``claude -p`` par persona (contrat gele ``respond()``).
 
     Attributes:
-        fallback_count: nombre de replis déclenchés (échec persistant).
-        traces: une entrée par appel à :meth:`respond` (journal complet,
+        fallback_count: nombre de replis declenches (echec persistant).
+        traces: une entree par appel a :meth:`respond` (journal complet,
             format proche des ``sandbox_<node>/results.jsonl`` pilotes).
     """
 
@@ -386,21 +383,21 @@ class ClaudeCliDeclarant:
         max_calls: int | None = None,
         node_meta: dict[str, dict] | None = None,
     ) -> None:
-        """Construit le déclarant palier 2.
+        """Construit le declarant palier 2.
 
         Args:
-            model: modèle passé à ``--model``.
-            claude_bin: nom/chemin du binaire ``claude`` — pointer vers un
+            model: modele passe a ``--model``.
+            claude_bin: nom/chemin du binaire ``claude`` - pointer vers un
                 binaire inexistant force le chemin de repli (tests).
-            fallback: :class:`RidgeDeclarant` optionnel utilisé en repli ;
-                à défaut, la dernière déclaration connue est reportée (ou
-                une réponse neutre si le nœud n'a encore aucun historique).
-            timeout: délai (s) par appel sous-processus.
-            max_calls: plafond GLOBAL d'appels ``claude`` réels (thread-safe) ;
-                ``None`` = illimité. Une fois épuisé, ``respond`` va
+            fallback: :class:`RidgeDeclarant` optionnel utilise en repli ;
+                a defaut, la derniere declaration connue est reportee (ou
+                une reponse neutre si le noeud n'a encore aucun historique).
+            timeout: delai (s) par appel sous-processus.
+            max_calls: plafond GLOBAL d'appels ``claude`` reels (thread-safe) ;
+                ``None`` = illimite. Une fois epuise, ``respond`` va
                 directement au repli sans tenter d'appel.
-            node_meta: identité structurelle ``{node_id: {...}}`` ; par
-                défaut :func:`_node_identity` (scenario.NODES, sans PERSONAS).
+            node_meta: identite structurelle ``{node_id: {...}}`` ; par
+                defaut :func:`_node_identity` (scenario.NODES, sans PERSONAS).
         """
         self.model = model
         self.claude_bin = claude_bin
@@ -417,7 +414,7 @@ class ClaudeCliDeclarant:
     def respond(
         self, node_id: str, tour: int, features: dict, rng: random.Random
     ) -> dict[str, list[int]]:
-        """Contrat gelé — cf. docstring de module pour le détail du flux."""
+        """Contrat gele - cf. docstring de module pour le detail du flux."""
         history = list(self._history.get(node_id, []))
         prompt = build_prompt(node_id, tour, features, history, self.node_meta)
         trace: dict[str, Any] = {
@@ -449,7 +446,7 @@ class ClaudeCliDeclarant:
             return True
 
     def _try_respond(self, prompt: str, trace: dict) -> tuple[list[int], list[int], str] | None:
-        """Jusqu'à 2 tentatives ; renvoie ``None`` si aucune n'aboutit (-> repli)."""
+        """Jusqu'a 2 tentatives ; renvoie ``None`` si aucune n'aboutit (-> repli)."""
         current_prompt = prompt
         reason = "budget épuisé"
         for attempt in (1, 2):
@@ -508,11 +505,11 @@ class ClaudeCliDeclarant:
         return [0, 0, 0, 0, 0, 0], [3, 3, 3, 3], "(repli neutre : aucun historique)"
 
 
-# --- Rapport de fidélité palier 2 vs palier 1 ----------------------------------------
+# Rapport de fidelite palier 2 vs palier 1
 
 
 def _ud_from_declaration(rec: dict) -> float:
-    """Ud (0..1) recalculé depuis bipolar+scores_ui, mêmes formules que le moteur."""
+    """Ud (0..1) recalcule depuis bipolar+scores_ui, memes formules que le moteur."""
     comparisons = {pair: bipolar_to_saaty(v) for pair, v in zip(PAIRS, rec["bipolar"], strict=True)}
     result = run_ahp(comparisons, n=4)
     scores9 = np.array([1.0 + (s - 1.0) * 8.0 / 5.0 for s in rec["scores_ui"]])
@@ -531,21 +528,21 @@ def _rank_bucket(rank: int) -> str:
 def compare_tiers(
     t1_samples: list[dict], t2_traces: list[dict], node_ranks: dict[str, int] | None = None
 ) -> dict:
-    """Rapport de fidélité palier 2 (LLM) vs palier 1 (ridge).
+    """Rapport de fidelite palier 2 (LLM) vs palier 1 (ridge).
 
-    Trois volets, imprimés ET retournés :
+    Trois volets, imprimes ET retournes :
         - KS (Kolmogorov-Smirnov) sur les distributions de Ud, par palier de
-          rang (aval/milieu/amont) — cible ``p > 0.05`` (pas de différence
+          rang (aval/milieu/amont) - cible ``p > 0.05`` (pas de difference
           significative entre les deux paliers) ;
-        - autocorrélation lag-1 des déclarations (Ud), moyennée par nœud ;
-        - taux d'échec CR persistant (palier 2 uniquement, ``cr_echec``).
+        - autocorrelation lag-1 des declarations (Ud), moyennee par noeud ;
+        - taux d'echec CR persistant (palier 2 uniquement, ``cr_echec``).
 
     Args:
         t1_samples: sorties ``RidgeDeclarant.respond`` enrichies de
             ``{"node_id", "tour"}`` : ``[{"node_id","tour","bipolar","scores_ui"}, ...]``.
-        t2_traces: traces :attr:`ClaudeCliDeclarant.traces` (même forme +
+        t2_traces: traces :attr:`ClaudeCliDeclarant.traces` (meme forme +
             ``cr_echec`` optionnel).
-        node_ranks: rang par nœud ; défaut = ``scenario.NODES``.
+        node_ranks: rang par noeud ; defaut = ``scenario.NODES``.
 
     Returns:
         ``{"ks": {bucket: {statistic, pvalue, pass}}, "autocorr":
@@ -605,7 +602,7 @@ def compare_tiers(
     return {"ks": ks_report, "autocorr": {"tier1": ac1, "tier2": ac2}, "cr_echec_rate": cr_rate}
 
 
-# --- CLI --------------------------------------------------------------------------------
+# CLI
 
 
 def _run_campaign(
@@ -618,7 +615,7 @@ def _run_campaign(
     n_tours: int,
     fallback: RidgeDeclarant | None,
 ) -> ClaudeCliDeclarant:
-    """Rejoue toute la campagne (tous nœuds x tous tours), 8 personas en parallèle."""
+    """Rejoue toute la campagne (tous noeuds x tous tours), 8 personas en parallele."""
     features_by_nt = reconstruct_features(runs_dir, node_ids, n_tours)
     declarant = ClaudeCliDeclarant(
         model=model, claude_bin=claude_bin, fallback=fallback, max_calls=max_calls
@@ -641,7 +638,7 @@ def _run_campaign(
 
 
 def main(argv: list[str] | None = None) -> int:
-    """CLI : ``--dry-run`` (affiche un prompt) ou rejoue une campagne complète."""
+    """CLI : ``--dry-run`` (affiche un prompt) ou rejoue une campagne complete."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--runs-dir", type=Path, help="Dossier data/prepared (lecture seule)")
     parser.add_argument(

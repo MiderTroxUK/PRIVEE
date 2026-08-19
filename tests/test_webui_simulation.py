@@ -1,10 +1,10 @@
-"""Tests de la page Simulation refondue (Lot 15.4) — sans serveur, seedé, FixedClock.
+"""Tests de la page Simulation refondue (Lot 15.4) - sans serveur, seede, FixedClock.
 
-Couvre : ids historiques conservés, figure tornado (duck-typing), ajout de
-lignes dynamiques (chocs, arcs, presets), évaluation d'un scénario composite
-(tableau cohérent avec MoteurScenario direct, ΔUr nuls → message, pureté des
-UrgencyState), criticité systématique, sauvegarde/chargement/suppression de
-scénarios nommés (round-trip des lignes, doublon de nom en français).
+Couvre : ids historiques conserves, figure tornado (duck-typing), ajout de
+lignes dynamiques (chocs, arcs, presets), evaluation d'un scenario composite
+(tableau coherent avec MoteurScenario direct, DeltaUr nuls -> message, purete des
+UrgencyState), criticite systematique, sauvegarde/chargement/suppression de
+scenarios nommes (round-trip des lignes, doublon de nom en francais).
 """
 
 from __future__ import annotations
@@ -27,13 +27,13 @@ from supplyscore.web_ui import set_service
 from supplyscore.web_ui.components.figures import criticite_tornado_figure
 from supplyscore.web_ui.pages import simulation
 
-#: Mercredi 2026-06-10 12:00 locale — instant figé des tests.
+#: Mercredi 2026-06-10 12:00 locale - instant fige des tests.
 _NOW = datetime(2026, 6, 10, 12, 0).timestamp()
 
 
 @pytest.fixture
 def service(tmp_path):
-    """Service seedé (démo aléatoire déterministe) sur horloge figée."""
+    """Service seede (demo aleatoire deterministe) sur horloge figee."""
     svc = SupplyScoreService(db_dir=tmp_path / "store", clock=FixedClock(_NOW))
     svc.seed_demo(n_ranks=2, seed=1)
     set_service(svc)
@@ -47,7 +47,7 @@ def project_id(service):
     return service.registry.list_projects()[0].id
 
 
-# --- Aides ---------------------------------------------------------------------------
+# Aides
 
 
 def _find_components(component, type_name):
@@ -87,7 +87,7 @@ def _ids(type_name, indexes):
 
 
 def _fournisseurs(service, project_id):
-    """Les nœuds fournisseurs (rang > 0) du projet, triés par id (déterminisme)."""
+    """Les noeuds fournisseurs (rang > 0) du projet, tries par id (determinisme)."""
     nodes = [n for n in service.repo.nodes() if n.project_id == project_id and n.rank > 0]
     assert len(nodes) >= 2, "le seed doit fournir au moins 2 fournisseurs"
     return sorted(nodes, key=lambda n: n.id)
@@ -106,7 +106,7 @@ def _premier_arc_nominal(service, project_id):
 
 
 def _states_2_chocs_1_arc(service, project_id):
-    """States « 2 chocs + 1 rupture d'arc » et le Scenario équivalent attendu."""
+    """States " 2 chocs + 1 rupture d'arc " et le Scenario equivalent attendu."""
     n1, n2 = _fournisseurs(service, project_id)[:2]
     arc = _premier_arc_nominal(service, project_id)
     states = (
@@ -127,7 +127,7 @@ def _states_2_chocs_1_arc(service, project_id):
     return states, attendu
 
 
-# --- Layout : ids historiques ET nouveaux ----------------------------------------------
+# Layout : ids historiques ET nouveaux
 
 
 def test_layout_conserve_les_ids_historiques(service):
@@ -171,7 +171,7 @@ def test_layout_expose_les_nouvelles_cartes(service):
         assert component_id in tree, f"id manquant : {component_id}"
 
 
-# --- Choc unitaire historique (conservé intact) ------------------------------------------
+# Choc unitaire historique (conserve intact)
 
 
 def test_triggered_id_retourne_none_hors_contexte_dash():
@@ -190,7 +190,7 @@ def test_simulate_callback_historique_intact(service, project_id):
     assert len(dag.data) >= 2
     assert bars.data
     assert "choc sur" in str(message)
-    # Sans nœud sélectionné : message d'aide, figures vides.
+    # Sans noeud selectionne : message d'aide, figures vides.
     _dag, _bars, message = simulation.simulate_callback(1, None, 1.0, {"project_id": project_id})
     assert "Sélectionnez" in str(message)
 
@@ -200,12 +200,12 @@ def test_apply_status_callback_persiste(service, project_id):
     message = simulation.apply_status_callback(1, node.id, str(TaskStatus.DONE))
     assert "appliqué" in str(message)
     assert service.repo.get_node(node.id).status == TaskStatus.DONE
-    # Sans statut choisi : message d'aide, rien n'est modifié.
+    # Sans statut choisi : message d'aide, rien n'est modifie.
     message = simulation.apply_status_callback(1, node.id, None)
     assert "ET un statut" in str(message)
 
 
-# --- Figure tornado (duck-typing) -------------------------------------------------------
+# Figure tornado (duck-typing)
 
 
 def _points_criticite():
@@ -225,11 +225,11 @@ def test_tornado_barres_decroissantes_et_hover():
     fig = criticite_tornado_figure(_points_criticite())
     barre = fig.data[0]
     assert barre.orientation == "h"
-    assert list(barre.x) == [0.4, 0.3, 0.2, 0.1]  # delta_ur_final décroissant
+    assert list(barre.x) == [0.4, 0.3, 0.2, 0.1]  # delta_ur_final decroissant
     assert list(barre.y) == ["N2", "N3", "N4", "N1"]
     assert "impacte 2 nœud(s)" in barre.hovertext[0]
     assert "ΔUr max = +0.500" in barre.hovertext[0]
-    # Rouge dégradé : la couleur des barres encode la valeur, bornée sur [0, max].
+    # Rouge degrade : la couleur des barres encode la valeur, bornee sur [0, max].
     assert barre.marker.colorscale is not None
     assert barre.marker.cmin == 0.0
     assert barre.marker.cmax == pytest.approx(0.4)
@@ -240,7 +240,7 @@ def test_tornado_tronque_au_top():
     assert list(fig.data[0].x) == [0.4, 0.3]
 
 
-# --- Presets : mapping des 14 événements calibrés ----------------------------------------
+# Presets : mapping des 14 evenements calibres
 
 
 def test_preset_chocs_couvre_les_14_evenements():
@@ -253,7 +253,7 @@ def test_preset_chocs_couvre_les_14_evenements():
         assert 0.0 <= valeur <= 1.0
 
 
-# --- Lignes dynamiques --------------------------------------------------------------------
+# Lignes dynamiques
 
 
 def test_add_choc_ajoute_une_ligne_pattern(service, project_id, monkeypatch):
@@ -262,7 +262,7 @@ def test_add_choc_ajoute_une_ligne_pattern(service, project_id, monkeypatch):
     assert len(rows) == 1
     for type_name in ("sim-choc-node", "sim-choc-kind", "sim-choc-val"):
         assert len(_find_components(rows[0], type_name)) == 1
-    # Type par défaut : Ur forcé, slider visible.
+    # Type par defaut : Ur force, slider visible.
     assert _find_components(rows[0], "sim-choc-kind")[0].value == simulation.CHOC_UR
     wrap = _find_components(rows[0], "sim-choc-val-wrap")[0]
     assert wrap.style == {"display": "inline-block"}
@@ -273,7 +273,7 @@ def test_add_arc_ajoute_une_ligne_rupture(service, project_id, monkeypatch):
     rows = simulation.rows_callback(1, None, None, None, [], None, None, {"project_id": project_id})
     monkeypatch.setattr(simulation, "_triggered_id", lambda: "sim-add-arc-btn")
     rows = simulation.rows_callback(1, 1, None, None, rows, None, None, {"project_id": project_id})
-    assert len(rows) == 2  # la ligne de choc existante est conservée
+    assert len(rows) == 2  # la ligne de choc existante est conservee
     arc_dd = _find_components(rows[1], "sim-arc-del")[0]
     options = list(arc_dd.options)
     assert options, "le dropdown des arcs doit proposer les arcs du projet"
@@ -305,17 +305,17 @@ def test_preset_alerte_defaut_preregle_abandon(service, project_id, monkeypatch)
         {"project_id": project_id},
     )
     assert _find_components(rows[0], "sim-choc-kind")[0].value == str(TaskStatus.ABANDONED)
-    # Slider masqué : le statut simulé n'a pas de valeur d'Ur à régler.
+    # Slider masque : le statut simule n'a pas de valeur d'Ur a regler.
     assert _find_components(rows[0], "sim-choc-val-wrap")[0].style == {"display": "none"}
 
 
 @pytest.mark.parametrize(
     ("triggered", "preset", "scn"),
     [
-        (None, None, None),  # hors contexte Dash : rien à faire
+        (None, None, None),  # hors contexte Dash : rien a faire
         ("sim-preset-add-btn", None, None),  # preset non choisi
-        ("sim-scn-load-btn", None, None),  # aucun scénario sélectionné
-        ("sim-scn-load-btn", None, "fantome"),  # scénario inconnu
+        ("sim-scn-load-btn", None, None),  # aucun scenario selectionne
+        ("sim-scn-load-btn", None, "fantome"),  # scenario inconnu
     ],
 )
 def test_rows_callback_prevent_update(service, project_id, monkeypatch, triggered, preset, scn):
@@ -330,7 +330,7 @@ def test_toggle_slider_visible_uniquement_pour_ur_force():
     assert simulation.toggle_choc_val_callback(str(TaskStatus.ABANDONED)) == {"display": "none"}
 
 
-# --- Évaluation du scénario composite ------------------------------------------------------
+# Evaluation du scenario composite
 
 
 def test_evaluation_sans_clic_prevent_update(service, project_id):
@@ -341,7 +341,7 @@ def test_evaluation_sans_clic_prevent_update(service, project_id):
 
 
 def test_evaluation_sans_ligne_complete_message(service, project_id):
-    # Une ligne de choc SANS nœud choisi : incomplète, donc ignorée.
+    # Une ligne de choc SANS noeud choisi : incomplete, donc ignoree.
     data, _fig, message = simulation.evaluate_scenario_callback(
         1,
         [None],
@@ -380,15 +380,15 @@ def test_evaluation_2_chocs_coherente_avec_moteur_direct(service, project_id):
         for n in retenus
     ]
     assert data == attendu
-    # Le nœud abandonné simulé doit aggraver son propre Ur (ur_local → 1.0)...
+    # Le noeud abandonne simule doit aggraver son propre Ur (ur_local -> 1.0)...
     assert any(ligne["ΔUr"] > 0 for ligne in data)
-    # ... et la figure DAG est bien construite (arêtes + nœuds au minimum).
+    # ... et la figure DAG est bien construite (aretes + noeuds au minimum).
     assert len(fig.data) >= 2
     assert "impacté" in str(message)
 
 
 def test_evaluation_deltas_nuls_message(service, project_id):
-    # Surcharge Ur == ur_local mesuré d'un nœud ACTIF : scénario sans effet.
+    # Surcharge Ur == ur_local mesure d'un noeud ACTIF : scenario sans effet.
     candidats = [
         n
         for n in service.repo.nodes()
@@ -433,7 +433,7 @@ def test_evaluation_noeud_inconnu_message_invalide(service, project_id):
 
 
 def test_evaluation_est_pure_urgences_inchangees(service, project_id):
-    """PURETÉ : aucun UrgencyState ni statut ne bouge après évaluation via callback."""
+    """PURETE : aucun UrgencyState ni statut ne bouge apres evaluation via callback."""
     states, _scenario = _states_2_chocs_1_arc(service, project_id)
     avant = {n.id: (copy.deepcopy(n.urgency), n.status) for n in service.repo.nodes()}
     nb_arcs = len(service.repo.arcs())
@@ -442,7 +442,7 @@ def test_evaluation_est_pure_urgences_inchangees(service, project_id):
 
     apres = {n.id: (n.urgency, n.status) for n in service.repo.nodes()}
     assert apres == avant
-    assert len(service.repo.arcs()) == nb_arcs  # l'arc « rompu » n'a pas été supprimé
+    assert len(service.repo.arcs()) == nb_arcs  # l'arc " rompu " n'a pas ete supprime
 
 
 def test_scenario_from_rows_derniere_ligne_par_noeud_l_emporte(service, project_id):
@@ -458,12 +458,12 @@ def test_scenario_from_rows_derniere_ligne_par_noeud_l_emporte(service, project_
         [],
         [],
     )
-    # La ligne d'index « b2 » (statut terminé) écrase la surcharge « a1 ».
+    # La ligne d'index " b2 " (statut termine) ecrase la surcharge " a1 ".
     assert scenario.surcharges_ur == {}
     assert scenario.statuts == {n1.id: TaskStatus.DONE}
 
 
-# --- Criticité systématique -----------------------------------------------------------------
+# Criticite systematique
 
 
 def test_criticite_sans_clic_prevent_update(service, project_id):
@@ -492,7 +492,7 @@ def test_criticite_projet_inconnu_figure_message(service):
     assert "inconnu" in fig.layout.annotations[0].text.lower()
 
 
-# --- Scénarios enregistrés -------------------------------------------------------------------
+# Scenarios enregistres
 
 
 def test_sauvegarde_chargement_round_trip(service, project_id, monkeypatch):
@@ -506,7 +506,7 @@ def test_sauvegarde_chargement_round_trip(service, project_id, monkeypatch):
     assert [o["label"] for o in options] == ["Hiver rude"]
     scn_id = options[0]["value"]
 
-    # Persistance : payload JSON avec statuts en str, horodaté par FixedClock.
+    # Persistance : payload JSON avec statuts en str, horodate par FixedClock.
     enregistre = service.registry.get_scenario(scn_id)
     assert enregistre is not None
     assert enregistre["created_at"] == _NOW
@@ -514,7 +514,7 @@ def test_sauvegarde_chargement_round_trip(service, project_id, monkeypatch):
     assert enregistre["payload"]["statuts"] == {nid: str(st) for nid, st in attendu.statuts.items()}
     assert enregistre["payload"]["surcharges_ur"] == attendu.surcharges_ur
 
-    # Chargement : les lignes reconstruites redonnent le MÊME scénario.
+    # Chargement : les lignes reconstruites redonnent le MEME scenario.
     monkeypatch.setattr(simulation, "_triggered_id", lambda: "sim-scn-load-btn")
     rows = simulation.rows_callback(
         None, None, None, 1, [], None, scn_id, {"project_id": project_id}
@@ -536,7 +536,7 @@ def test_sauvegarde_doublon_message_francais(service, project_id, monkeypatch):
         2, None, {"project_id": project_id}, "Hiver", None, *states
     )
     assert "existe déjà" in str(message)
-    assert len(options) == 1  # pas de doublon enregistré
+    assert len(options) == 1  # pas de doublon enregistre
 
 
 def test_sauvegarde_sans_projet_ou_sans_nom(service, project_id, monkeypatch):
@@ -569,7 +569,7 @@ def test_suppression_de_scenario(service, project_id, monkeypatch):
     assert "supprimé" in str(message)
     assert service.registry.get_scenario(scn_id) is None
 
-    # Suppression sans sélection : message d'aide, rien ne casse.
+    # Suppression sans selection : message d'aide, rien ne casse.
     _options, message = simulation.scenario_registry_callback(
         None, 1, {"project_id": project_id}, "", None, [], [], [], [], [], [], [], []
     )
@@ -577,7 +577,7 @@ def test_suppression_de_scenario(service, project_id, monkeypatch):
 
 
 def test_dropdown_scenarios_peuple_au_changement_de_projet(service, project_id, monkeypatch):
-    # Déclencheur store-project (navigation) : options listées, message vide.
+    # Declencheur store-project (navigation) : options listees, message vide.
     states, _ = _states_2_chocs_1_arc(service, project_id)
     monkeypatch.setattr(simulation, "_triggered_id", lambda: "sim-scn-save-btn")
     simulation.scenario_registry_callback(

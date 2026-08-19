@@ -1,0 +1,125 @@
+[
+  {
+    "node": "airb_fal",
+    "name": "Jalon d'assemblage MSN-001",
+    "progress": 0.4286
+  },
+  {
+    "node": "airb_fal",
+    "name": "Jalon d'assemblage MSN-002",
+    "progress": 0.0
+  },
+  {
+    "node": "aerostruct",
+    "name": "Troncon central lot 1",
+    "progress": 0.75
+  },
+  {
+    "node": "aerostruct",
+    "name": "Troncon central lot 2",
+    "progress": 0.0
+  },
+  {
+    "node": "voilure",
+    "name": "Caisson de voilure lot 1",
+    "progress": 0.6667
+  },
+  {
+    "node": "voilure",
+    "name": "Caisson de voilure lot 2",
+    "progress": 0.0
+  },
+  {
+    "node": "sysintegra",
+    "name": "Integration systemes bloc A",
+    "progress": 0.5455
+  },
+  {
+    "node": "propulsia",
+    "name": "Nacelles serie 1",
+    "progress": 0.6
+  },
+  {
+    "node": "avionia",
+    "name": "Suite avionique v1",
+    "progress": 0.8571
+  },
+  {
+    "node": "avionia",
+    "name": "Suite avionique v2",
+    "progress": 0.0
+  },
+  {
+    "node": "atterral",
+    "name": "Trains lot de qualification",
+    "progress": 0.5
+  },
+  {
+    "node": "cabinova",
+    "name": "Amenagement cabine lot 1",
+    "progress": 1.0,
+    "status": "done"
+  },
+  {
+    "node": "cabinova",
+    "name": "Amenagement cabine lot 2",
+    "progress": 0.0
+  },
+  {
+    "node": "compolam",
+    "name": "Stratifies voilure lot 1",
+    "progress": 0.7906
+  },
+  {
+    "node": "compolam",
+    "name": "Stratifies voilure lot 2",
+    "progress": 0.0
+  },
+  {
+    "node": "usiforge",
+    "name": "Pieces usinees lot 1",
+    "progress": 1.0,
+    "status": "done"
+  },
+  {
+    "node": "usiforge",
+    "name": "Pieces usinees lot 2",
+    "progress": 0.0
+  },
+  {
+    "node": "harnetec",
+    "name": "Harnais cabine lot 1",
+    "progress": 1.0,
+    "status": "done"
+  },
+  {
+    "node": "harnetec",
+    "name": "Harnais cabine lot 2",
+    "progress": 0.13
+  },
+  {
+    "node": "hydralec",
+    "name": "Actionneurs lot 1",
+    "progress": 0.6667
+  },
+  {
+    "node": "titanor",
+    "name": "Contrat titane annuel",
+    "progress": 0.5445
+  },
+  {
+    "node": "titanor",
+    "name": "Contrat titane annee 2",
+    "progress": 0.0
+  },
+  {
+    "node": "fibrelia",
+    "name": "Fibre carbone campagne 1",
+    "progress": 0.75
+  },
+  {
+    "node": "translog",
+    "name": "Contrat de flux annuel",
+    "progress": 0.4615
+  }
+]

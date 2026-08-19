@@ -1,4 +1,4 @@
-"""Tests d'intégration de la phase E3 : toute écriture métier est auditée."""
+"""Tests d'integration de la phase E3 : toute ecriture metier est auditee."""
 
 import pytest
 
@@ -19,7 +19,7 @@ def test_facade_exposes_mutation_service(service):
 
 
 def test_questionnaire_save_path_is_audited(tmp_path):
-    """Le callback de sauvegarde du questionnaire écrit via MutationService (audit)."""
+    """Le callback de sauvegarde du questionnaire ecrit via MutationService (audit)."""
     from supplyscore import web_ui
     from supplyscore.data.audit import AuditTrail
     from supplyscore.web_ui.pages.questionnaire import save_assessment_callback
@@ -65,7 +65,7 @@ def test_questionnaire_save_path_is_audited(tmp_path):
 
 
 def test_kpi_rejected_by_constraints_blocks_save(tmp_path):
-    """Une valeur hors bornes est refusée par le chemin questionnaire (rien n'est écrit)."""
+    """Une valeur hors bornes est refusee par le chemin questionnaire (rien n'est ecrit)."""
     from supplyscore import web_ui
     from supplyscore.web_ui.pages.questionnaire import save_assessment_callback
 

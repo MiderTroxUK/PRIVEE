@@ -1,9 +1,9 @@
-"""Câblage hebdo de la page Projets (lot 4.3b) — aucun serveur lancé.
+"""Cablage hebdo de la page Projets (lot 4.3b) - aucun serveur lance.
 
-Couvre : colonne « Hebdo » du tableau des nœuds (texte_hebdo + synthese()
-appelée UNE fois), ``style_data_conditional`` posé sur la colonne, et bandeau
-« Projet actif » enrichi de la semaine ISO courante du projet selon SON
-horloge (temps réel ou temps de jeu après advance_week).
+Couvre : colonne " Hebdo " du tableau des noeuds (texte_hebdo + synthese()
+appelee UNE fois), ``style_data_conditional`` pose sur la colonne, et bandeau
+" Projet actif " enrichi de la semaine ISO courante du projet selon SON
+horloge (temps reel ou temps de jeu apres advance_week).
 """
 
 from __future__ import annotations
@@ -21,14 +21,14 @@ from supplyscore.web_ui import set_service
 from supplyscore.web_ui.components.badges import style_hebdo_conditionnel
 from supplyscore.web_ui.pages import projects
 
-#: Mercredi 2026-06-10 12:00 locale — semaine ISO « 2026-S24 ».
+#: Mercredi 2026-06-10 12:00 locale - semaine ISO " 2026-S24 ".
 _NOW = datetime(2026, 6, 10, 12, 0).timestamp()
 _WEEK = 604_800.0
 _STORE = {"project_id": "p1", "name": "Chaîne Alpha"}
 
 
 def _assessment(node_id: str, ts: float) -> AHPAssessment:
-    """Évaluation AHP minimale valide (iso_week dérivée du timestamp)."""
+    """Evaluation AHP minimale valide (iso_week derivee du timestamp)."""
     return AHPAssessment(
         node_id=node_id,
         project_id="p1",
@@ -44,7 +44,7 @@ def _assessment(node_id: str, ts: float) -> AHPAssessment:
 
 
 def _setup_projet(service: SupplyScoreService, node_ids: tuple[str, ...]) -> Project:
-    """Crée le projet « p1 » et ses nœuds actifs (aucun arc, aucun jalon)."""
+    """Cree le projet " p1 " et ses noeuds actifs (aucun arc, aucun jalon)."""
     project = Project(
         id="p1",
         name="Chaîne Alpha",
@@ -74,19 +74,19 @@ def service(tmp_path: Path, fixed_clock: FixedClock):
     svc.close()
 
 
-# --- Tableau : colonne « Hebdo » -------------------------------------------------------
+# Tableau : colonne " Hebdo "
 
 
 def test_tableau_colonne_hebdo(service: SupplyScoreService, fixed_clock: FixedClock) -> None:
     _setup_projet(service, ("n-a", "n-b", "n-c"))
 
-    # n-a : évalué cette semaine -> « À jour ».
+    # n-a : evalue cette semaine -> " A jour ".
     service.submit_assessment(_assessment("n-a", _NOW))
-    # n-b : évalué il y a 2 semaines (horloge reculée puis ré-avancée) -> « En retard ».
+    # n-b : evalue il y a 2 semaines (horloge reculee puis re-avancee) -> " En retard ".
     fixed_clock.set(_NOW - 2 * _WEEK)
     service.submit_assessment(_assessment("n-b", _NOW - 2 * _WEEK))
     fixed_clock.set(_NOW)
-    # n-c : jamais évalué -> « Manquant ».
+    # n-c : jamais evalue -> " Manquant ".
 
     _, _, _, rows, _ = projects.update_view_callback(_STORE, 0)
 
@@ -120,7 +120,7 @@ def test_layout_table_style_conditionnel_hebdo(service: SupplyScoreService) -> N
 
 
 def _find_component(component, component_id: str):
-    """Descente récursive dans l'arbre Dash jusqu'au composant d'id donné."""
+    """Descente recursive dans l'arbre Dash jusqu'au composant d'id donne."""
     if getattr(component, "id", None) == component_id:
         return component
     children = getattr(component, "children", None)
@@ -135,7 +135,7 @@ def _find_component(component, component_id: str):
     return None
 
 
-# --- Bandeau « Projet actif » : semaine ISO et mode d'horloge ---------------------------
+# Bandeau " Projet actif " : semaine ISO et mode d'horloge
 
 
 def test_bandeau_semaine_courante_temps_reel(service: SupplyScoreService) -> None:
@@ -149,7 +149,7 @@ def test_bandeau_semaine_courante_temps_reel(service: SupplyScoreService) -> Non
 
 def test_bandeau_mode_jeu_affiche_semaine_simulee(service: SupplyScoreService) -> None:
     _setup_projet(service, ("n-a",))
-    service.set_clock_mode("p1", "game")  # origine = _NOW (horloge réelle figée)
+    service.set_clock_mode("p1", "game")  # origine = _NOW (horloge reelle figee)
     service.advance_week("p1", 2)
 
     *_, active = projects.update_view_callback(_STORE, 0)
@@ -157,9 +157,9 @@ def test_bandeau_mode_jeu_affiche_semaine_simulee(service: SupplyScoreService) -
 
     semaine_simulee = iso_week(_NOW + 2 * _WEEK)
     assert semaine_simulee == "2026-S26"
-    assert semaine_simulee != iso_week(_NOW)  # on a avancé assez pour changer de semaine
+    assert semaine_simulee != iso_week(_NOW)  # on a avance assez pour changer de semaine
     assert f"semaine {semaine_simulee} [temps de jeu]." in bandeau
-    assert iso_week(_NOW) not in bandeau  # la semaine réelle n'apparaît plus
+    assert iso_week(_NOW) not in bandeau  # la semaine reelle n'apparait plus
 
 
 def test_bandeau_sans_projet(service: SupplyScoreService) -> None:

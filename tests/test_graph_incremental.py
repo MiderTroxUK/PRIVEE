@@ -1,17 +1,17 @@
-"""Propagation incrémentale (E14.4, Lot 14.4) — moteur, dépôt et orchestrateur.
+"""Propagation incrementale (E14.4, Lot 14.4) - moteur, depot et orchestrateur.
 
 Couverture :
-- ``InMemoryGraphRepository`` : cache de l'ordre topologique (invalidé sur
+- ``InMemoryGraphRepository`` : cache de l'ordre topologique (invalide sur
   mutation de structure, pas sur ``update_node``), ``descendants``/``ancestors``
-  (KeyError français), ``structure_version`` monotone ;
-- ``PropagationEngine.propagate_incremental`` : recalcul restreint aux cônes
-  des nœuds sales (espionné via les timestamps des ``UrgencyState``), valeurs
-  identiques à ``propagate_all`` sur un jumeau, délégation au complet
+  (KeyError francais), ``structure_version`` monotone ;
+- ``PropagationEngine.propagate_incremental`` : recalcul restreint aux cones
+  des noeuds sales (espionne via les timestamps des ``UrgencyState``), valeurs
+  identiques a ``propagate_all`` sur un jumeau, delegation au complet
   (``invalidate``, cache absent, mutation de structure hors orchestrateur),
-  nœud « frontière » d'un diamant, repli générique pour un dépôt non-mémoire ;
+  noeud " frontiere " d'un diamant, repli generique pour un depot non-memoire ;
 - ``SupplyScoreService`` : marquage ``dirty_ud``/``dirty_ur`` par
-  ``submit_assessment``/``refresh_ur_local``, équivalence
-  ``evaluate_all()`` (incrémental) == ``evaluate_all(incremental=False)``.
+  ``submit_assessment``/``refresh_ur_local``, equivalence
+  ``evaluate_all()`` (incremental) == ``evaluate_all(incremental=False)``.
 """
 
 from __future__ import annotations
@@ -29,7 +29,7 @@ from supplyscore.domain.models import (
 from supplyscore.graph import GraphRepository, InMemoryGraphRepository, PropagationEngine
 from supplyscore.services import SupplyScoreService
 
-# --- Aides -------------------------------------------------------------------------
+# Aides
 
 
 def _node(node_id: str, ud_local: float, ur_local: float) -> SupplyNode:
@@ -51,7 +51,7 @@ def _build(nodes: list[SupplyNode], arcs: list[SupplyArc]) -> InMemoryGraphRepos
 
 
 def _chain_specs() -> tuple[list[SupplyNode], list[SupplyArc]]:
-    """Chaîne C (rang 2) -> B (rang 1) -> A (rang 0), plus D isolé."""
+    """Chaine C (rang 2) -> B (rang 1) -> A (rang 0), plus D isole."""
     nodes = [
         _node("A", 0.2, 0.1),
         _node("B", 0.4, 0.3),
@@ -83,21 +83,21 @@ def _diamond_specs() -> tuple[list[SupplyNode], list[SupplyArc]]:
 
 
 def _values(repo: GraphRepository) -> tuple[dict[str, float | None], dict[str, float | None]]:
-    """Copies {id: ud} et {id: ur} (les UrgencyState sont mutées en place)."""
+    """Copies {id: ud} et {id: ur} (les UrgencyState sont mutees en place)."""
     ud = {node.id: node.urgency.ud for node in repo.nodes()}
     ur = {node.id: node.urgency.ur for node in repo.nodes()}
     return ud, ur
 
 
 def _reset_timestamps(repo: GraphRepository) -> None:
-    """Pose timestamp=0.0 partout — tout timestamp > 0 signale un recalcul."""
+    """Pose timestamp=0.0 partout - tout timestamp > 0 signale un recalcul."""
     for node in repo.nodes():
         node.urgency.timestamp = 0.0
         repo.update_node(node)
 
 
 def _recomputed_ids(repo: GraphRepository) -> set[str]:
-    """Ids dont l'UrgencyState a été réécrite depuis ``_reset_timestamps``."""
+    """Ids dont l'UrgencyState a ete reecrite depuis ``_reset_timestamps``."""
     return {node.id for node in repo.nodes() if node.urgency.timestamp != 0.0}
 
 
@@ -115,7 +115,7 @@ def _set_ud_local(repo: GraphRepository, node_id: str, value: float) -> None:
     repo.update_node(node)
 
 
-# --- Dépôt : cache topologique, descendants/ancestors, version de structure ----------
+# Depot : cache topologique, descendants/ancestors, version de structure
 
 
 class TestMemoryRepoIncremental:
@@ -134,7 +134,7 @@ class TestMemoryRepoIncremental:
             repo.descendants("inconnu")
         with pytest.raises(KeyError, match="Nœud inconnu"):
             repo.ancestors("inconnu")
-        # Même convention sur le voisinage direct (parcours des cônes).
+        # Meme convention sur le voisinage direct (parcours des cones).
         with pytest.raises(KeyError, match="Nœud inconnu"):
             repo.predecessors("inconnu")
         with pytest.raises(KeyError, match="Nœud inconnu"):
@@ -143,7 +143,7 @@ class TestMemoryRepoIncremental:
     def test_ordre_topologique_cache_et_copie_defensive(self):
         repo = _build(*_chain_specs())
         order = repo.topological_order()
-        order.append("intrus")  # la copie retournée ne corrompt pas le cache
+        order.append("intrus")  # la copie retournee ne corrompt pas le cache
         assert repo.topological_order() == order[:-1]
 
     def test_cache_invalide_sur_chaque_mutation_de_structure(self):
@@ -185,12 +185,12 @@ class TestMemoryRepoIncremental:
         assert repo.structure_version == version  # pas d'invalidation
 
 
-# --- Moteur : propagation incrémentale --------------------------------------------
+# Moteur : propagation incrementale
 
 
 class TestPropagateIncremental:
     def test_ur_sale_recalcule_seulement_le_cone_aval(self):
-        """Chaîne C -> B -> A : ur_local(C) change => C/B/A recalculés, D intact."""
+        """Chaine C -> B -> A : ur_local(C) change => C/B/A recalcules, D intact."""
         repo = _build(*_chain_specs())
         engine = PropagationEngine(repo)
         engine.propagate_all()
@@ -204,13 +204,13 @@ class TestPropagateIncremental:
         _reset_timestamps(repo)
         states = engine.propagate_incremental()
 
-        assert _recomputed_ids(repo) == {"A", "B", "C"}  # D (isolé) jamais réécrit
+        assert _recomputed_ids(repo) == {"A", "B", "C"}  # D (isole) jamais reecrit
         assert set(states) == {"A", "B", "C", "D"}
-        # Identité stricte (==) : mêmes opérations, mêmes entrées que le complet.
+        # Identite stricte (==) : memes operations, memes entrees que le complet.
         assert _values(repo) == _values(twin)
 
     def test_ud_sale_sur_le_puits_recalcule_les_ancetres(self):
-        """ud_local(A) change => Affectés_Ud = {A} + ancestors(A) = {A, B, C}."""
+        """ud_local(A) change => Affectes_Ud = {A} + ancestors(A) = {A, B, C}."""
         repo = _build(*_chain_specs())
         engine = PropagationEngine(repo)
         engine.propagate_all()
@@ -228,7 +228,7 @@ class TestPropagateIncremental:
         assert _values(repo) == _values(twin)
 
     def test_ud_sale_sur_fournisseur_profond_ne_recalcule_que_lui(self):
-        """ud_local(C) change => ancestors(C) = ∅, seul C est recalculé."""
+        """ud_local(C) change => ancestors(C) = ?, seul C est recalcule."""
         repo = _build(*_chain_specs())
         engine = PropagationEngine(repo)
         engine.propagate_all()
@@ -269,7 +269,7 @@ class TestPropagateIncremental:
         _reset_timestamps(repo)
         states = engine.propagate_incremental()
 
-        assert _recomputed_ids(repo) == {"A", "B", "C", "D"}  # tout est repassé
+        assert _recomputed_ids(repo) == {"A", "B", "C", "D"}  # tout est repasse
         assert set(states) == {"A", "B", "C", "D"}
 
     def test_dirty_vide_aucun_recalcul_etats_caches_retournes(self):
@@ -283,10 +283,10 @@ class TestPropagateIncremental:
 
         assert _recomputed_ids(repo) == set()  # aucun recalcul
         assert set(states) == set(before)
-        assert _values(repo) == snapshot  # états cachés inchangés, bit à bit
+        assert _values(repo) == snapshot  # etats caches inchanges, bit a bit
 
     def test_frontiere_diamant_relit_le_predecesseur_non_affecte_du_cache(self):
-        """UN seul prédécesseur du puits affecté : l'autre est relu du cache."""
+        """UN seul predecesseur du puits affecte : l'autre est relu du cache."""
         repo = _build(*_diamond_specs())
         engine = PropagationEngine(repo)
         engine.propagate_all()
@@ -301,32 +301,32 @@ class TestPropagateIncremental:
         engine.propagate_incremental()
 
         assert _recomputed_ids(repo) == {"A", "B"}  # C et D relus du cache
-        assert _values(repo) == _values(twin)  # identité stricte avec le complet
+        assert _values(repo) == _values(twin)  # identite stricte avec le complet
 
     def test_cache_absent_hors_zone_affectee_delegue_au_complet(self):
-        """Un nœud jamais propagé hors zone => délégation au complet (choix documenté)."""
+        """Un noeud jamais propage hors zone => delegation au complet (choix documente)."""
         repo = _build(*_chain_specs())
         engine = PropagationEngine(repo)
         engine.propagate_all()
 
         node_a = repo.get_node("A")
         assert node_a is not None
-        node_a.urgency.ud = None  # simule un nœud jamais propagé
+        node_a.urgency.ud = None  # simule un noeud jamais propage
         repo.update_node(node_a)
 
         _set_ur_local(repo, "D", 0.05)
-        engine.mark_dirty_ur("D")  # A n'est PAS dans la zone affectée
+        engine.mark_dirty_ur("D")  # A n'est PAS dans la zone affectee
         _reset_timestamps(repo)
         engine.propagate_incremental()
 
         assert _recomputed_ids(repo) == {"A", "B", "C", "D"}  # complet
-        assert node_a.urgency.ud is not None  # le cache absent a été reconstruit
+        assert node_a.urgency.ud is not None  # le cache absent a ete reconstruit
 
     def test_mutation_de_structure_hors_orchestrateur_detectee(self):
-        """Remplacement d'arc façon MutationService._sync_repo_arc (β modifié) :
+        """Remplacement d'arc facon MutationService._sync_repo_arc (beta modifie) :
 
-        ni invalidate() ni mark_dirty_* — la version de structure du dépôt
-        suffit à déclencher la délégation au complet.
+        ni invalidate() ni mark_dirty_* - la version de structure du depot
+        suffit a declencher la delegation au complet.
         """
         repo = _build(*_chain_specs())
         engine = PropagationEngine(repo)
@@ -342,18 +342,18 @@ class TestPropagateIncremental:
         _reset_timestamps(repo)
         engine.propagate_incremental()
 
-        assert _recomputed_ids(repo) == {"A", "B", "C", "D"}  # délégation au complet
+        assert _recomputed_ids(repo) == {"A", "B", "C", "D"}  # delegation au complet
         assert _values(repo) == _values(twin)
 
 
-# --- Repli générique pour un dépôt non-mémoire --------------------------------------
+# Repli generique pour un depot non-memoire
 
 
 class _DelegatingRepo(GraphRepository):
-    """Doublure NON-mémoire : force les replis génériques du moteur.
+    """Doublure NON-memoire : force les replis generiques du moteur.
 
-    Délègue tout à un :class:`InMemoryGraphRepository` interne, mais n'expose
-    ni ``descendants``/``ancestors`` ni ``structure_version`` — le moteur doit
+    Delegue tout a un :class:`InMemoryGraphRepository` interne, mais n'expose
+    ni ``descendants``/``ancestors`` ni ``structure_version`` - le moteur doit
     alors parcourir les voisins via le contrat abstrait.
     """
 
@@ -425,15 +425,15 @@ class TestRepliGeneriqueDepotNonMemoire:
         assert _values(repo) == _values(twin)
 
 
-# --- Orchestrateur : marquage des sales et équivalence de bout en bout ----------------
+# Orchestrateur : marquage des sales et equivalence de bout en bout
 
-#: Instant figé des tests service (epoch s) — refresh_ur_local reproductible.
+#: Instant fige des tests service (epoch s) - refresh_ur_local reproductible.
 _T0 = 1_790_000_000.0
 
 
 @pytest.fixture
 def service(tmp_path):
-    """Service à horloge figée, chargé avec la chaîne C -> B -> A (+ D isolé)."""
+    """Service a horloge figee, charge avec la chaine C -> B -> A (+ D isole)."""
     svc = SupplyScoreService(db_dir=tmp_path / "store", clock=FixedClock(_T0))
     project = Project(
         id="p1", name="Incremental", owner_node_id="A", created_at=_T0 - 7 * 24 * 3600.0
@@ -441,8 +441,7 @@ def service(tmp_path):
     nodes, arcs = _chain_specs()
     for node, proba in zip(nodes, (0.2, 0.5, 0.8, 0.4), strict=True):
         node.project_id = "p1"
-        # u_risk = 1 − exp(−p·t_réc·sév/T_ref) : p pilote le bloc, donc ur_local
-        # est non trivial dès la première passe et sensible aux éditions de KPI.
+        # u_risk = 1 - exp(-p-t_rec-sev/T_ref) : p pilote le bloc, donc ur_local est non trivial des la premiere passe et sensible aux editions de KPI.
         node.kpis.risk.failure_probability = proba
     svc.create_project(project, nodes, arcs)
     yield svc
@@ -451,7 +450,7 @@ def service(tmp_path):
 
 class TestOrchestrateurIncremental:
     def test_submit_assessment_marque_dirty_ud(self, service):
-        service.evaluate_all()  # première passe : complète, vide les sales
+        service.evaluate_all()  # premiere passe : complete, vide les sales
         assert service.propagation._dirty_ud == set()
 
         assessment = service.build_assessment(
@@ -468,32 +467,32 @@ class TestOrchestrateurIncremental:
         service.evaluate_all()
         assert service.propagation._dirty_ur == set()
 
-        # Horloge figée, KPIs inchangés : un refresh ne marque RIEN.
+        # Horloge figee, KPIs inchanges : un refresh ne marque RIEN.
         service.refresh_ur_local()
         assert service.propagation._dirty_ur == set()
 
-        # Un KPI change (via MutationService) : le ur_local recalculé diffère.
+        # Un KPI change (via MutationService) : le ur_local recalcule differe.
         service.mutations.update_kpis("C", {"risk.failure_probability": 0.95}, source="edit")
         service.refresh_ur_local()
         assert "C" in service.propagation._dirty_ur
 
     def test_set_status_via_evaluate_all_equivaut_au_complet(self, service):
         service.evaluate_all()
-        states_inc = service.set_status("B", TaskStatus.DONE)  # chemin incrémental
+        states_inc = service.set_status("B", TaskStatus.DONE)  # chemin incremental
         states_full = service.evaluate_all(incremental=False)
         for nid in states_full:
             assert states_inc[nid].ud == pytest.approx(states_full[nid].ud, abs=1e-12)
             assert states_inc[nid].ur == pytest.approx(states_full[nid].ur, abs=1e-12)
 
     def test_upsert_arc_via_mutations_equivaut_au_complet(self, service):
-        """β modifié par MutationService (hors orchestrateur) : non périmé."""
+        """beta modifie par MutationService (hors orchestrateur) : non perime."""
         service.evaluate_all()
         arc = service.registry.get_arc("C", "B")
         assert arc is not None
         arc.beta = 0.95
         service.mutations.upsert_arc(arc, source="edit")
 
-        states_inc = service.evaluate_all()  # incrémental par défaut
+        states_inc = service.evaluate_all()  # incremental par defaut
         states_full = service.evaluate_all(incremental=False)
         for nid in states_full:
             assert states_inc[nid].ud == pytest.approx(states_full[nid].ud, abs=1e-12)
@@ -501,7 +500,7 @@ class TestOrchestrateurIncremental:
 
     def test_remove_arc_invalide_la_propagation(self, service):
         service.evaluate_all()
-        service.remove_arc("C", "B")  # invalide puis réévalue (persist=True)
+        service.remove_arc("C", "B")  # invalide puis reevalue (persist=True)
         states_inc = service.evaluate_all()
         states_full = service.evaluate_all(incremental=False)
         for nid in states_full:

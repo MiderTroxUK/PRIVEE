@@ -1,22 +1,22 @@
-"""Tests E16 (Lots 16.4–16.6) — polissage des pages secondaires, sans serveur.
+"""Tests E16 (Lots 16.4-16.6) - polissage des pages secondaires, sans serveur.
 
 Couvre, pour les neuf pages du lot B (projects, onboarding, node_detail,
 explain, questionnaire, editor, graph_editor, admin_data, simulation) :
 
-- les ``dcc.Loading`` (type "circle") autour des zones lentes — l'id reste
-  posé sur le composant INTERNE (DataTable, Graph, Div), jamais sur le
-  Loading lui-même ;
-- les états vides : sans projet actif, layouts et callbacks ne lèvent pas et
-  affichent une invitation française claire ;
+- les ``dcc.Loading`` (type "circle") autour des zones lentes - l'id reste
+  pose sur le composant INTERNE (DataTable, Graph, Div), jamais sur le
+  Loading lui-meme ;
+- les etats vides : sans projet actif, layouts et callbacks ne levent pas et
+  affichent une invitation francaise claire ;
 - la chasse au texte anglais visible (DoD E16) : aucun mot de la liste
-  pragmatique ``MOTS_ANGLAIS`` dans les layouts. La vérification est
-  SENSIBLE à la casse — exclusion documentée : les ids techniques en
-  minuscules (« q-save-btn », « arc-del-dd »…) et les valeurs de données
-  (« nominal », « backup », labels métier stockés) ne sont pas des libellés
-  et ne déclenchent donc pas de faux positifs ;
-- le format français des messages (virgule décimale dans les PHRASES — pas
-  dans les inputs ni les colonnes numériques de DataTable) ;
-- la non-régression des ids critiques épinglés par les tests navigateur.
+  pragmatique ``MOTS_ANGLAIS`` dans les layouts. La verification est
+  SENSIBLE a la casse - exclusion documentee : les ids techniques en
+  minuscules (" q-save-btn ", " arc-del-dd "...) et les valeurs de donnees
+  (" nominal ", " backup ", labels metier stockes) ne sont pas des libelles
+  et ne declenchent donc pas de faux positifs ;
+- le format francais des messages (virgule decimale dans les PHRASES - pas
+  dans les inputs ni les colonnes numeriques de DataTable) ;
+- la non-regression des ids critiques epingles par les tests navigateur.
 """
 
 from __future__ import annotations
@@ -41,7 +41,7 @@ from supplyscore.web_ui.pages import (
     simulation,
 )
 
-#: Mercredi 2026-06-10 12:00 locale — semaine ISO « 2026-S24 ».
+#: Mercredi 2026-06-10 12:00 locale - semaine ISO " 2026-S24 ".
 _NOW = datetime(2026, 6, 10, 12, 0).timestamp()
 
 #: Liste pragmatique des mots anglais interdits dans les layouts (DoD E16).
@@ -59,7 +59,7 @@ MOTS_ANGLAIS = [
 
 @pytest.fixture
 def service(tmp_path):
-    """Service seedé avec une petite démo évaluée, partagé par les pages."""
+    """Service seede avec une petite demo evaluee, partage par les pages."""
     svc = SupplyScoreService(db_dir=tmp_path / "store", clock=FixedClock(_NOW))
     svc.seed_demo(n_ranks=2, seed=1)
     set_service(svc)
@@ -69,7 +69,7 @@ def service(tmp_path):
 
 
 def _demo_node(service):
-    """Premier nœud de la démo évalué (assessment + adéquation propagée)."""
+    """Premier noeud de la demo evalue (assessment + adequation propagee)."""
     for node in sorted(service.repo.nodes(), key=lambda n: (n.rank, n.name)):
         if (
             node.urgency.adequation is not None
@@ -79,7 +79,7 @@ def _demo_node(service):
     pytest.fail("la démo doit contenir un nœud évalué")
 
 
-# --- Aides de parcours de l'arbre de composants ---------------------------------------
+# Aides de parcours de l'arbre de composants
 
 
 def _subtree_contains_id(component, component_id: str) -> bool:
@@ -95,7 +95,7 @@ def _subtree_contains_id(component, component_id: str) -> bool:
 
 
 def _loading_de(component, component_id: str):
-    """Premier ``dcc.Loading`` de l'arbre dont le sous-arbre porte l'id donné."""
+    """Premier ``dcc.Loading`` de l'arbre dont le sous-arbre porte l'id donne."""
     if isinstance(component, dcc.Loading) and _subtree_contains_id(component, component_id):
         return component
     children = getattr(component, "children", None)
@@ -111,15 +111,15 @@ def _loading_de(component, component_id: str):
 
 
 def _assert_loading(tree, component_id: str, page: str) -> None:
-    """Assertion commune : un Loading « circle » entoure le composant d'id donné."""
+    """Assertion commune : un Loading " circle " entoure le composant d'id donne."""
     loading = _loading_de(tree, component_id)
     assert loading is not None, f"dcc.Loading absent autour de « {component_id} » ({page})"
     assert loading.type == "circle", f"Loading de « {component_id} » ({page}) : type != circle"
-    # L'id reste sur le composant INTERNE, jamais sur le Loading lui-même.
+    # L'id reste sur le composant INTERNE, jamais sur le Loading lui-meme.
     assert getattr(loading, "id", None) != component_id
 
 
-# --- 1) dcc.Loading autour des zones lentes -------------------------------------------
+# 1) dcc.Loading autour des zones lentes
 
 
 @pytest.mark.parametrize(
@@ -150,7 +150,7 @@ def test_loading_sur_les_zones_lentes(service, nom, ids):
 def test_loading_fiche_noeud(service):
     node = _demo_node(service)
     tree = node_detail.layout(node.id)
-    # Cartes éditables (corps re-rendus par les callbacks), jalons et audit.
+    # Cartes editables (corps re-rendus par les callbacks), jalons et audit.
     for component_id in (
         "fiche-identity-body",
         "fiche-cdc-body",
@@ -164,8 +164,7 @@ def test_loading_fiche_noeud(service):
 def test_loading_explication(service):
     node = _demo_node(service)
     tree = explain.layout(node.id)
-    # Les deux graphes de propagation sont TOUJOURS rendus ; les graphes Ud/Ur
-    # dépendent de l'état du nœud — s'ils sont montés, ils sont sous Loading.
+    # Les deux graphes de propagation sont TOUJOURS rendus ; les graphes Ud/Ur dependent de l'etat du noeud - s'ils sont montes, ils sont sous Loading.
     for component_id in ("explain-prop-ur-graph", "explain-prop-ud-graph"):
         _assert_loading(tree, component_id, "explain")
     for component_id in ("explain-ud-graph", "explain-ur-graph"):
@@ -173,7 +172,7 @@ def test_loading_explication(service):
             _assert_loading(tree, component_id, "explain")
 
 
-# --- 2) états vides : sans projet actif, invitation claire et aucun plantage -----------
+# 2) etats vides : sans projet actif, invitation claire et aucun plantage
 
 
 def test_etat_vide_projects(service):
@@ -193,7 +192,7 @@ def test_etat_vide_onboarding(service):
 def test_etat_vide_editor(service):
     _columns, rows = editor.refresh_table_callback(None, "Temps", [])
     assert rows == []
-    # Invitation statique de la page (le nombre de callbacks est épinglé à 3).
+    # Invitation statique de la page (le nombre de callbacks est epingle a 3).
     assert "Sélectionnez d'abord un projet" in str(editor.layout())
 
 
@@ -218,10 +217,10 @@ def test_etat_vide_simulation(service):
 def test_etat_vide_questionnaire(service):
     info, options = questionnaire.project_info_callback(None)
     assert "Aucun projet sélectionné" in str(info)
-    assert options  # tous les nœuds du graphe restent proposés
+    assert options  # tous les noeuds du graphe restent proposes
 
 
-# --- 3) chasse au texte anglais visible (DoD E16) ---------------------------------------
+# 3) chasse au texte anglais visible (DoD E16)
 
 
 def test_aucun_texte_anglais_visible(service):
@@ -247,13 +246,13 @@ def test_labels_metier_traduits_dans_les_dropdowns(service):
     options = projects.label_metier_options()
     assert {"label": "Usine (Factory)", "value": "Factory"} in options
     assert {"label": "Fournisseur (Supplier)", "value": "Supplier"} in options
-    assert {"label": "Client", "value": "Client"} in options  # déjà français
-    # Les deux pages affichent les libellés français, valeurs techniques intactes.
+    assert {"label": "Client", "value": "Client"} in options  # deja francais
+    # Les deux pages affichent les libelles francais, valeurs techniques intactes.
     assert "Entrepôt (Warehouse)" in str(projects.layout())
     assert "Atelier (Workshop)" in str(onboarding.layout())
 
 
-# --- 4) format français des messages (virgule décimale dans les phrases) ----------------
+# 4) format francais des messages (virgule decimale dans les phrases)
 
 
 def test_helpers_fr_virgule_decimale(service):
@@ -278,11 +277,11 @@ def test_message_simulation_en_francais(service):
     node = _demo_node(service)
     _dag, _bars, message = simulation.simulate_callback(1, node.id, 1.0, None)
     texte = str(message)
-    assert "Le choc sur" in texte  # préfixe épinglé par les tests navigateur
+    assert "Le choc sur" in texte  # prefixe epingle par les tests navigateur
     assert "Ur_local = 1,00" in texte
 
 
-# --- 5) libellés d'aide ------------------------------------------------------------------
+# 5) libelles d'aide
 
 
 def test_libelles_d_aide_gamma_beta_et_cartes(service):
@@ -295,7 +294,7 @@ def test_libelles_d_aide_gamma_beta_et_cartes(service):
     assert "Zone avancée : édition cellule par cellule, sous audit." in str(admin_data.layout())
 
 
-# --- 6) non-régression des ids critiques -------------------------------------------------
+# 6) non-regression des ids critiques
 
 
 def test_ids_critiques_inchanges(service):

@@ -1,9 +1,9 @@
 """Factory de l'application web Dash de SupplyScore.
 
-Aucun serveur n'est lancé à l'import : :func:`create_app` construit
+Aucun serveur n'est lance a l'import : :func:`create_app` construit
 l'application (pattern factory), enregistre les callbacks des 4 pages et
 retourne l'instance ``dash.Dash``. Le lancement (``app.run``) est du ressort
-de l'appelant (cf. ``run_app.py`` à la racine du dépôt).
+de l'appelant (cf. ``run_app.py`` a la racine du depot).
 """
 
 from __future__ import annotations
@@ -34,15 +34,15 @@ from supplyscore.web_ui.pages import (
 
 
 def route_callback(pathname: str | None):
-    """Routage : retourne le layout de la page correspondant à l'URL.
+    """Routage : retourne le layout de la page correspondant a l'URL.
 
-    Routes statiques + route paramétrée ``/node/<id>`` (fiche nœud 360°).
+    Routes statiques + route parametree ``/node/<id>`` (fiche noeud 360o).
 
     Args:
         pathname: chemin courant de ``dcc.Location`` (ex. "/dashboard").
 
     Returns:
-        L'arbre de composants de la page demandée, ou un message 404.
+        L'arbre de composants de la page demandee, ou un message 404.
     """
     path = pathname or "/"
     if path.startswith("/node/"):
@@ -76,15 +76,15 @@ def create_app(
     db_dir: str = "data_store",
     service: SupplyScoreService | None = None,
 ) -> dash.Dash:
-    """Construit l'application Dash complète (sans la lancer).
+    """Construit l'application Dash complete (sans la lancer).
 
     Args:
-        db_dir: répertoire des bases SQLite (utilisé si ``service`` est None).
-        service: instance de :class:`SupplyScoreService` à réutiliser
-            (tests, scripts) ; instanciée depuis ``db_dir`` sinon.
+        db_dir: repertoire des bases SQLite (utilise si ``service`` est None).
+        service: instance de :class:`SupplyScoreService` a reutiliser
+            (tests, scripts) ; instanciee depuis ``db_dir`` sinon.
 
     Returns:
-        L'application ``dash.Dash`` prête à être lancée via ``app.run``.
+        L'application ``dash.Dash`` prete a etre lancee via ``app.run``.
     """
     if service is None:
         service = SupplyScoreService(db_dir)
@@ -96,9 +96,7 @@ def create_app(
         suppress_callback_exceptions=True,
         title="SupplyScore",
     )
-    # Garde-fou E16.1 : AVANT tout enregistrement (routeur compris), chaque
-    # callback est automatiquement protégé — aucune exception n'atteint
-    # l'utilisateur sans message français (cf. supplyscore.web_ui.errors).
+    # Garde-fou E16.1 : AVANT tout enregistrement (routeur compris), chaque callback est automatiquement protege - aucune exception n'atteint l'utilisateur sans message francais (cf. supplyscore.web_ui.errors).
     proteger_app(app)
     app.layout = html.Div(
         [

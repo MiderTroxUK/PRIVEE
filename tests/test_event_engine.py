@@ -1,12 +1,12 @@
-"""Tests du Lot 6.1 : EventEngine — apply/revert transactionnels des événements.
+"""Tests du Lot 6.1 : EventEngine - apply/revert transactionnels des evenements.
 
-Couvre : le cas chiffré bout-en-bout (panne majeure 0.02 → 0.0563, audit
-``event:<id>`` puis ``revert:<id>``), le conflit après édition manuelle
-(ConflictError, aucune restauration partielle), la chaîne complète
-hausse_tarif → KPI → urgency, les erreurs (déjà annulé, événement inconnu),
-open_events/list_week, la décroissance hebdomadaire, la pureté de preview,
-l'horloge du PROJET (mode jeu) et la propriété Hypothesis « apply puis revert
-immédiat == identité sur le KPIBundle ».
+Couvre : le cas chiffre bout-en-bout (panne majeure 0.02 -> 0.0563, audit
+``event:<id>`` puis ``revert:<id>``), le conflit apres edition manuelle
+(ConflictError, aucune restauration partielle), la chaine complete
+hausse_tarif -> KPI -> urgency, les erreurs (deja annule, evenement inconnu),
+open_events/list_week, la decroissance hebdomadaire, la purete de preview,
+l'horloge du PROJET (mode jeu) et la propriete Hypothesis " apply puis revert
+immediat == identite sur le KPIBundle ".
 """
 
 from __future__ import annotations
@@ -27,15 +27,15 @@ from supplyscore.domain.models import Project, SupplyNode, TaskStatus
 from supplyscore.services import SupplyScoreService
 from supplyscore.services.events import ConflictError, EventEngine, SupplyEvent
 
-#: Mercredi 2026-06-10 12:00 locale — semaine ISO « 2026-S24 ».
+#: Mercredi 2026-06-10 12:00 locale - semaine ISO " 2026-S24 ".
 _NOW = datetime(2026, 6, 10, 12, 0).timestamp()
 _WEEK = 604_800.0
 TOL = 1e-4
 
-#: Paramètres de la panne machine du cas chiffré du PLAN.
+#: Parametres de la panne machine du cas chiffre du PLAN.
 PANNE_MAJEURE = {"duree_arret_h": 24.0, "gravite": "majeure"}
 
-#: Chemins de KPI touchés par au moins un type d'événement (cf. calibration).
+#: Chemins de KPI touches par au moins un type d'evenement (cf. calibration).
 TOUCHED_PATHS: tuple[str, ...] = (
     "network.demand",
     "inventory.flow_rate",
@@ -54,13 +54,13 @@ TOUCHED_PATHS: tuple[str, ...] = (
     "risk.political_risk",
 )
 
-#: Champs numériques strictement positifs (borne minimum=0 exclusive).
+#: Champs numeriques strictement positifs (borne minimum=0 exclusive).
 STRICT_POSITIVE = {"duree_arret_h", "retard_h", "duree_prevue_h", "nouvelle_demande"}
 
 EVENT_TYPES = sorted(EVENT_CALIBRATION)
 
 
-# --- Fixtures ---------------------------------------------------------------------
+# Fixtures
 
 
 @pytest.fixture
@@ -77,13 +77,13 @@ def service(tmp_path: Path, fixed_clock: FixedClock):
 
 @pytest.fixture
 def projet(service: SupplyScoreService) -> Project:
-    """Projet de démonstration reproductible (seed_demo)."""
+    """Projet de demonstration reproductible (seed_demo)."""
     return service.seed_demo(n_ranks=2, seed=1)
 
 
 @pytest.fixture
 def node_id(service: SupplyScoreService, projet: Project) -> str:
-    """Premier nœud actif (ordre déterministe) du projet de démo."""
+    """Premier noeud actif (ordre deterministe) du projet de demo."""
     nodes = sorted(service.repo.nodes(), key=lambda n: n.id)
     actifs = [
         n for n in nodes if n.status is TaskStatus.ACTIVE and n.onboarding_state == "complete"
@@ -97,7 +97,7 @@ def engine(service: SupplyScoreService) -> EventEngine:
     return EventEngine(service)
 
 
-# --- Helpers ----------------------------------------------------------------------
+# Helpers
 
 
 def _kpi(service: SupplyScoreService, node_id: str, path: str) -> float | None:
@@ -113,7 +113,7 @@ def _set_kpis(service: SupplyScoreService, node_id: str, changes: dict[str, floa
 
 
 def _latest_audit(service: SupplyScoreService, node_id: str, path: str) -> AuditEntry:
-    """Entrée d'audit la plus récente du KPI ``path`` dans la base client."""
+    """Entree d'audit la plus recente du KPI ``path`` dans la base client."""
     db = service.client_db(node_id)
     trail = AuditTrail(db.conn, FixedClock(_NOW), lock=db.lock)
     entries = trail.history("node_kpis", node_id, field=path, limit=10)
@@ -127,7 +127,7 @@ def _event_row(service: SupplyScoreService, node_id: str, event_id: str) -> dict
     return rows[0]
 
 
-# --- Cas chiffré bout-en-bout : panne majeure 0.02 → 0.0563 → revert ----------------
+# Cas chiffre bout-en-bout : panne majeure 0.02 -> 0.0563 -> revert
 
 
 class TestCasChiffreBoutEnBout:
@@ -136,7 +136,7 @@ class TestCasChiffreBoutEnBout:
     ) -> None:
         _set_kpis(service, node_id, {"risk.failure_probability": 0.02})
 
-        # --- preview : 0.02 → 0.0563, rien n'est écrit.
+        # preview : 0.02 -> 0.0563, rien n'est ecrit.
         impacts = engine.preview(node_id, "panne_machine", PANNE_MAJEURE)
         imp = next(i for i in impacts if i.kpi_path == "risk.failure_probability")
         assert imp.old == pytest.approx(0.02)
@@ -144,7 +144,7 @@ class TestCasChiffreBoutEnBout:
         assert _kpi(service, node_id, "risk.failure_probability") == pytest.approx(0.02)
         assert service.client_db(node_id).list_events(node_id) == []
 
-        # --- apply : KPI à 0.0563, ligne events, audit source="event:<id>".
+        # apply : KPI a 0.0563, ligne events, audit source="event:<id>".
         event = engine.apply(node_id, "panne_machine", PANNE_MAJEURE, "op-1", "ligne 3 en panne")
         assert isinstance(event, SupplyEvent)
         assert event.node_id == node_id
@@ -168,10 +168,10 @@ class TestCasChiffreBoutEnBout:
         assert entry.old_value == pytest.approx(0.02)
         assert entry.new_value == pytest.approx(0.0563, abs=TOL)
 
-        # La relecture (open_events) restitue l'événement à l'identique.
+        # La relecture (open_events) restitue l'evenement a l'identique.
         assert engine.open_events(node_id) == [event]
 
-        # --- revert immédiat : 0.02 restauré, audit source="revert:<id>", mark_reverted.
+        # revert immediat : 0.02 restaure, audit source="revert:<id>", mark_reverted.
         restored = engine.revert(event.id, node_id, operator_id="op-1")
         assert restored == impacts
         assert _kpi(service, node_id, "risk.failure_probability") == pytest.approx(0.02)
@@ -185,7 +185,7 @@ class TestCasChiffreBoutEnBout:
         assert engine.open_events(node_id) == []
 
 
-# --- Conflit : édition manuelle entre apply et revert --------------------------------
+# Conflit : edition manuelle entre apply et revert
 
 
 class TestConflit:
@@ -196,7 +196,7 @@ class TestConflit:
         event = engine.apply(node_id, "panne_machine", PANNE_MAJEURE)
         recovery_apres_event = _kpi(service, node_id, "risk.recovery_time_h")
 
-        # Édition manuelle du MÊME KPI : la valeur de l'événement est écrasée.
+        # Edition manuelle du MEME KPI : la valeur de l'evenement est ecrasee.
         _set_kpis(service, node_id, {"risk.failure_probability": 0.10})
 
         with pytest.raises(ConflictError) as exc_info:
@@ -204,8 +204,7 @@ class TestConflit:
         assert exc_info.value.champs == ["risk.failure_probability"]
         assert "risk.failure_probability" in str(exc_info.value)
 
-        # AUCUNE restauration partielle : le KPI édité reste à 0.10, les autres
-        # impacts de l'événement restent appliqués, l'événement reste ouvert.
+        # AUCUNE restauration partielle : le KPI edite reste a 0.10, les autres impacts de l'evenement restent appliques, l'evenement reste ouvert.
         assert _kpi(service, node_id, "risk.failure_probability") == pytest.approx(0.10)
         assert _kpi(service, node_id, "risk.recovery_time_h") == recovery_apres_event
         assert _event_row(service, node_id, event.id)["reverted_at"] is None
@@ -224,7 +223,7 @@ class TestConflit:
         assert _event_row(service, node_id, event.id)["reverted_at"] is None
 
 
-# --- hausse_tarif : chaîne complète jusqu'au score -----------------------------------
+# hausse_tarif : chaine complete jusqu'au score
 
 
 class TestHausseTarif:
@@ -240,14 +239,14 @@ class TestHausseTarif:
         engine.apply(node_id, "hausse_tarif", {"pct": 12.0})
 
         assert _kpi(service, node_id, "cost.tariff") == pytest.approx(1.176, abs=1e-9)
-        # evaluate_all a été appelé : l'urgency du nœud a bougé (u_cost recalculé).
+        # evaluate_all a ete appele : l'urgency du noeud a bouge (u_cost recalcule).
         node_apres = service.repo.get_node(node_id)
         assert node_apres is not None
         apres = (node_apres.urgency.ur_local, node_apres.urgency.ur)
         assert apres != avant
 
 
-# --- Erreurs : déjà annulé, événement inconnu, nœud inconnu ---------------------------
+# Erreurs : deja annule, evenement inconnu, noeud inconnu
 
 
 class TestErreurs:
@@ -279,7 +278,7 @@ class TestErreurs:
         assert service.client_db(node_id).list_events(node_id) == []
 
 
-# --- open_events / list_week ----------------------------------------------------------
+# open_events / list_week
 
 
 class TestRelecture:
@@ -291,7 +290,7 @@ class TestRelecture:
         fixed_clock: FixedClock,
     ) -> None:
         e1 = engine.apply(node_id, "pic_demande", {"nouvelle_demande": 250.0})
-        fixed_clock.set(_NOW + 3600.0)  # une heure plus tard, même semaine
+        fixed_clock.set(_NOW + 3600.0)  # une heure plus tard, meme semaine
         e2 = engine.apply(node_id, "instabilite_politique", {"niveau": 0.7})
 
         assert [e.id for e in engine.open_events(node_id)] == [e2.id, e1.id]
@@ -319,7 +318,7 @@ class TestRelecture:
         assert engine.list_week(node_id, "2026-S01") == []
 
 
-# --- Horloge du PROJET : mode jeu ------------------------------------------------------
+# Horloge du PROJET : mode jeu
 
 
 class TestHorlogeProjet:
@@ -341,7 +340,7 @@ class TestHorlogeProjet:
         assert _event_row(service, node_id, event.id)["reverted_at"] == _NOW + 2 * _WEEK
 
 
-# --- Événement sans aucun impact (tous « ignorer ») ------------------------------------
+# Evenement sans aucun impact (tous " ignorer ")
 
 
 class TestEvenementSansImpact:
@@ -358,21 +357,24 @@ class TestEvenementSansImpact:
         event = engine.apply(node_id, "pic_demande", {"nouvelle_demande": 250.0})
         assert event.impacts == []
 
-        # La trace du déclaratif existe, mais aucun KPI n'a été audité/écrit.
+        # La trace du declaratif existe, mais aucun KPI n'a ete audite/ecrit.
         assert [r["id"] for r in service.client_db(node_id).list_events(node_id)] == [event.id]
         db = service.client_db(node_id)
         trail = AuditTrail(db.conn, FixedClock(_NOW), lock=db.lock)
         assert trail.history("node_kpis", node_id, limit=200) == []
 
 
-# --- Décroissance hebdomadaire ----------------------------------------------------------
+# Decroissance hebdomadaire
 
 
 class TestWeeklyDecay:
     def test_decroissance_appliquee_source_weekly(
         self, service: SupplyScoreService, engine: EventEngine, node_id: str
     ) -> None:
-        _set_kpis(service, node_id, {"risk.failure_probability": 0.02})
+        # time.delay_h laisse a None : seule l'erosion du risque s'applique.
+        _set_kpis(
+            service, node_id, {"risk.failure_probability": 0.02, "time.delay_h": None}
+        )
 
         impacts = engine.apply_weekly_decay(node_id, operator_id="op-2")
         assert [i.kpi_path for i in impacts] == ["risk.failure_probability"]
@@ -386,11 +388,13 @@ class TestWeeklyDecay:
     def test_rien_a_eroder_si_kpi_non_renseigne(
         self, service: SupplyScoreService, engine: EventEngine, node_id: str
     ) -> None:
-        _set_kpis(service, node_id, {"risk.failure_probability": None})
+        _set_kpis(
+            service, node_id, {"risk.failure_probability": None, "time.delay_h": None}
+        )
         assert engine.apply_weekly_decay(node_id) == []
 
 
-# --- preview est pur ---------------------------------------------------------------------
+# preview est pur
 
 
 class TestPreviewPur:
@@ -412,11 +416,11 @@ class TestPreviewPur:
         assert service.client_db(node_id).list_events(node_id) == []
 
 
-# --- Hypothesis : apply puis revert immédiat == identité ---------------------------------
+# Hypothesis : apply puis revert immediat == identite
 
 
 def field_strategy(field: EventField) -> st.SearchStrategy:
-    """Valeur valide aléatoire pour un champ d'événement."""
+    """Valeur valide aleatoire pour un champ d'evenement."""
     if field.kind == "choice":
         return st.sampled_from(field.choices)
     lo = field.minimum if field.minimum is not None else 0.0
@@ -431,7 +435,7 @@ def field_strategy(field: EventField) -> st.SearchStrategy:
 
 
 def kpi_value_strategy(kpi_path: str) -> st.SearchStrategy:
-    """Valeur de KPI aléatoire (None ou valeur dans les bornes KPI_CONSTRAINTS)."""
+    """Valeur de KPI aleatoire (None ou valeur dans les bornes KPI_CONSTRAINTS)."""
     lo, hi, _unit = KPI_CONSTRAINTS[kpi_path]
     low = lo if lo is not None else 0.0
     high = hi if hi is not None else 1e6
@@ -443,7 +447,7 @@ def kpi_value_strategy(kpi_path: str) -> st.SearchStrategy:
 
 @pytest.fixture(scope="module")
 def moteur_hyp(tmp_path_factory: pytest.TempPathFactory):
-    """Service mono-nœud partagé entre les exemples Hypothesis (état remis à zéro)."""
+    """Service mono-noeud partage entre les exemples Hypothesis (etat remis a zero)."""
     svc = SupplyScoreService(db_dir=tmp_path_factory.mktemp("hyp_store"), clock=FixedClock(_NOW))
     project = Project(id="p-hyp", name="Hyp", owner_node_id="n-hyp", created_at=_NOW, t0_ts=_NOW)
     svc.create_project(project, [SupplyNode(id="n-hyp", name="Nœud Hyp", project_id="p-hyp")], [])
@@ -462,8 +466,7 @@ def test_apply_puis_revert_immediat_est_identite(
     params = {field.name: data.draw(field_strategy(field)) for field in spec.fields}
     baseline = {path: data.draw(kpi_value_strategy(path), label=path) for path in TOUCHED_PATHS}
 
-    # État de départ tiré au sort, posé sur TOUS les chemins touchables
-    # (réinitialise aussi les restes de l'exemple précédent).
+    # Etat de depart tire au sort, pose sur TOUS les chemins touchables (reinitialise aussi les restes de l'exemple precedent).
     svc.mutations.update_kpis("n-hyp", baseline, source="edit")
     node = svc.registry.get_node("n-hyp")
     assert node is not None
@@ -474,5 +477,5 @@ def test_apply_puis_revert_immediat_est_identite(
 
     node = svc.registry.get_node("n-hyp")
     assert node is not None
-    # Identité champ à champ : l'égalité des dataclasses compare chaque bloc/champ.
+    # Identite champ a champ : l'egalite des dataclasses compare chaque bloc/champ.
     assert node.kpis == avant

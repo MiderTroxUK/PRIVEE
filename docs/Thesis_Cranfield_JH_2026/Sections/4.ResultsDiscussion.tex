@@ -3,14 +3,25 @@
 \label{sec:res_intro}
 %% ═══════════════════════════════════════════════════════════════════════════
 
-This section reports what was measured, in five parts. The delivered system and its
-mechanical validation come first, establishing that the pipeline runs end to end. The blind
-declaration arm follows, giving the pre-registered hypothesis verdicts. The forecast layer
-is then scored against recorded outcomes, which produces the central negative result of this
-thesis and, through it, a diagnosis of the mechanism behind it. The forecast-assisted arm
-measures what happens when that same forecast is placed in front of the declarant. Finally,
-a short opening reports a separate system that addresses the freshness limitation the rest
-of this work documents about itself.
+This section reports what was measured, in six parts, and the order matters because the
+answer is not uniform across them. The delivered system and its mechanical validation come
+first, establishing that the pipeline runs end to end. The blind declaration arm follows,
+giving the pre-registered hypothesis verdicts. The adequacy signal is then scored on the
+decision it was built to support, choosing which nodes to attend to, where it performs well
+and early. The forecast layer built on top of that signal is scored next against recorded
+outcomes, which is where this thesis found its defect and, through it, a diagnosis of the
+mechanism behind it; the repair that followed is measured on the same frozen forecasts. The
+forecast-assisted arm measures what happens when a forecast is placed in front of the
+declarant. Finally, a short opening reports a separate system that addresses the freshness
+limitation the rest of this work documents about itself.
+
+Two claims are worth separating in advance, because conflating them is the easiest way to
+misread what follows. That the gap between declared and computed urgency carries information
+about which supplier will fail is supported by the campaign. That the gap can be converted
+into a well-calibrated probability attached to a named week is not, yet. The distance between
+those two statements is the subject of Sections~\ref{sec:res_armA_scored}
+and~\ref{sec:res_repair}, and the sample that bounds both is stated wherever a figure is
+given.
 
 Every number below is regenerated from raw artifacts by the derivation script described in
 Section~\ref{sec:methods_repro}.
@@ -21,8 +32,10 @@ Section~\ref{sec:methods_repro}.
 %% ═══════════════════════════════════════════════════════════════════════════
 
 SupplyScore is delivered as a standalone Python application: 73 modules across 10 packages,
-covered by 1\,779 automated test functions in 106 test files, driving a multi-page Dash web
-interface over a multi-tenant SQLite persistence layer. All of the mathematical objects of
+covered by 1\,831 automated test functions in 106 test files, driving a multi-page Dash web
+interface over a multi-tenant SQLite persistence layer. The suite expands to 2\,044 collected
+cases, of which 2\,028 pass and 15 are skipped for want of an optional dependency; one fails
+on two missing image files referenced by a presentation script outside the library. All of the mathematical objects of
 Section~\ref{sec:math_framework} are implemented and exercised: the six-block noisy-OR
 aggregation, the AHP elicitation with its consistency gate, the Fuzzy BWM weighting, the
 bidirectional DAG propagation, the asymmetric adequacy score, the Monte Carlo lead-time
@@ -192,6 +205,142 @@ correlated, $\rho = 1.00$, which is exactly the composite-indicator risk flagged
 Section~\ref{sec:lit_mcdm}.
 
 %% ═══════════════════════════════════════════════════════════════════════════
+\subsection{What the Adequacy Signal Gets Right: Node-Level Targeting}
+\label{sec:res_targeting}
+%% ═══════════════════════════════════════════════════════════════════════════
+
+The scoring that follows in Section~\ref{sec:res_armA_scored} asks whether the forecast layer
+attaches correct probabilities to node-weeks. That is the right question for a forecast and
+the wrong question for the instrument. A coordinator does not act on the proposition that
+node $X$ has a $0.14$ chance of an adverse outcome between weeks $t+1$ and $t+4$. They act on
+a shortlist: which of these suppliers do I look at this week. This subsection scores that,
+because it is the decision the adequacy signal was designed to support, and because the
+answer differs from the one below.
+
+\subsubsection{Protocol}
+
+At each turn the eight nodes are ranked by hidden risk $H = [U_r - U_d]_+$, and the set
+flagged at $H > 0.10$ is compared with the set of nodes that go on to miss at least one
+milestone at its originally committed deadline, the definition of
+Section~\ref{sec:res_target_trap}. Four of the eight nodes are positive under that definition:
+the satellite prime, the avionics integrator, the electronics manufacturer and the foundry.
+The comparison is at node level and prospective, since the flag at turn $t$ is confronted
+with misses occurring later in the campaign. Nothing in it uses the forecast layer.
+
+\subsubsection{Result}
+
+Table~\ref{tab:targeting} gives the two regimes the campaign separates, and the boundary
+between them is the turn on which the scenario's foundry freeze becomes public.
+
+\begin{table}[htbp]
+\centering
+\caption{Nodes flagged by hidden risk against nodes that later miss a commitment, arm A}
+\label{tab:targeting}
+\small
+\begin{tabularx}{\linewidth}{l >{\centering\arraybackslash}X >{\centering\arraybackslash}X >{\centering\arraybackslash}X >{\centering\arraybackslash}X}
+\toprule
+\textbf{Regime} & \textbf{Turns} & \textbf{Precision} & \textbf{Recall} &
+\textbf{False alarms per turn} \\
+\midrule
+Before the crisis is public & T0 to T5 & 1.00 & 0.75 & 0 \\
+After & T6 to T18 & $\le 0.50$ & 0.25 & 1 to 3 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+For six consecutive turns the signal flags exactly three nodes, all three of which later miss
+a commitment, with no false alarm on any of the six. The fourth positive node is never
+flagged early, so recall stops at three of four. On every one of those turns the worst-scoring
+node of the eight is the satellite prime, which misses its turn-8 delivery and delivers at
+turn 14: the flag precedes the miss by eight turns, and it is raised while that node's own
+manager is declaring an urgency of $0.001$.
+
+That last clause is the construction working as specified rather than a coincidence. The
+flag does not come from a pessimistic declaration; it comes from an optimistic declaration
+standing against a computed state that is not. A system aggregating indicators alone would
+have ranked that node on its indicators. A system collecting declarations alone would have
+believed it. Only the difference between the two carries this information, which is the
+proposition the thesis set out to test and the one the literature review of
+Section~\ref{sec:lit_gaps} found unaddressed.
+
+\subsubsection{Why the Signal Degrades, and Why That Is Not a Defect}
+
+From turn 6 the precision falls to $0.50$ and the recall to $0.25$. The mechanism is
+structural. Once the shortage is public every declarant raises their urgency, $U_d$ converges
+towards $U_r$, and a quantity defined as $[U_r - U_d]_+$ shrinks by construction. A
+perception-gap measure cannot survive the disappearance of the perception gap, and should not
+be expected to.
+
+The consequence is a scope statement rather than a limitation to be repaired. The instrument
+is an early-warning device and not a crisis-management one; its useful window is the interval
+in which a discrepancy between what is declared and what is computed still exists, which is
+also the interval in which acting is still cheap. Read that way, the campaign shows the
+signal at its sharpest precisely where its value is highest.
+
+\subsubsection{What the Repair Changes Here}
+
+The repair of Section~\ref{sec:res_repair} sharpens this flag without altering which nodes it
+selects. At turn 3 the satellite prime scores $26.6$ out of $100$ on the campaign as run,
+against $46.0$ for the next worst node; after repair the same turn gives $2.2$ against
+$44.6$. The ordering is identical, and the separation widens by an order of magnitude. The
+difference is one of legibility rather than of correctness: a node at $26.6$ in a field whose
+next value is $46.0$ is an anomaly a careful analyst notices, while a node at $2.2$ in a
+field whose next value is $44.6$ is one no dashboard can hide.
+
+\subsubsection{Statistical Standing}
+
+This result rests on eight nodes, four of them positive, over one scripted scenario. A
+precision of $1.00$ sustained over six turns on three flagged nodes is an encouraging
+observation and not an estimated rate; with four positives, no confidence interval worth
+printing can be attached to it. It is reported here because it is the outcome the instrument
+was built to produce and because it points the same way as the mechanism, not because the
+sample settles anything. Section~\ref{sec:future_work} states what would settle it, and the
+answer is more chains rather than a different model.
+
+\subsubsection{The Second Chain, and the Boundary It Draws}
+\label{sec:res_second_chain}
+
+A second chain was then built and run: AIRB, an airframer's supply base of fifteen nodes and
+thirty arcs over five ranks, with no exogenous shock at any point and three structurally
+central suppliers set to degrade endogenously. Its milestone truth is derived from the
+indicator trajectory rather than scripted, so a supplier that slows down misses its milestone
+because it slowed down. Fifteen declarants, one per node, each seeing only its own monthly
+sheet and its own past declarations, played all nineteen turns.
+
+On that chain the adequacy signal does not select the failing nodes at all. Across all
+nineteen turns, precision at rank three is $0.00$ for both $[U_r - U_d]_+$ and the adequacy
+score, against a base rate of $0.20$. The forecast layer, scored on the same runs, holds:
+precision at rank three of $0.56$.
+
+The mechanism is legible in the snapshots and is not a failure of aggregation. The three
+degrading suppliers declare the highest urgencies in the chain from turn~0 onwards, before
+their indicators have moved: $U_d = 0.94$, $0.88$ and $0.98$ at turn~0, still $0.97$ and
+$0.96$ at turn~16 against a computed $U_r$ of $1.00$. A quantity defined as $[U_r - U_d]_+$
+is then bounded by $0.03$. Nothing is concealed, so nothing is detected. The nodes that top
+the gap ranking at every turn are the downstream assemblers, whose local urgency is
+\emph{zero} and whose computed $U_r$ is inherited entirely through the graph from suppliers
+they cannot observe.
+
+This is a boundary rather than a refutation, and it is sharper than the scope statement above.
+The role cards of those three suppliers described concealers, and the declarants behaved as
+such in prose, turn after turn, writing that they would put off calling their customers and
+keep overtime in reserve. At the same turns they marked near-maximal severity on the
+questionnaire. They minimised in \emph{action} and maximised in \emph{measurement}. The
+questionnaire asks what an actor perceives; withholding is something an actor does. A gap
+defined between a computed state and a declared perception therefore detects blindness, not
+discretion. The synthetic declarants of the semiconductor campaign carried a bias applied to
+the number itself, so the gap opened and precision reached $1.00$; a declarant that reasons
+does not lower the number.
+
+The claim that survives both chains is therefore narrower than the one turn~14 supports on
+its own: the perception gap is informative where declarants misjudge their own state, and
+silent where they judge it correctly and simply do not escalate. Distinguishing those two
+failure modes requires an instrument that observes escalation behaviour and not only declared
+severity, which the present design does not provide. This is stated in
+Section~\ref{sec:future_work} as the first item rather than as a caveat, because it bears on
+what the instrument measures and not merely on how well.
+
+%% ═══════════════════════════════════════════════════════════════════════════
 \subsection{Arm A Rescored: Discrimination Without Calibration}
 \label{sec:res_armA_scored}
 %% ═══════════════════════════════════════════════════════════════════════════
@@ -270,10 +419,17 @@ marker's area proportional to the number of forecasts in its band and the diagon
 perfect calibration. Where the model announces a low probability, it is right: 74 forecasts
 announcing a mean of $0.070$ were followed by an adverse outcome $8.1\%$ of the time. Where it announces a high probability, it
 is wrong every single time. Twenty-one forecasts announced a mean probability of $0.948$, and
-none of the twenty-one was followed by the outcome it predicted. The confusion matrix at the
-pre-registered threshold of $0.5$ records this as 0 true positives, 21 false positives, 6
-false negatives and 93 true negatives, which is why H4 returns precision $0.00$ and recall
-$0.00$.
+none of the twenty-one was followed by the outcome it predicted under the production
+definition. The forecast's own confusion matrix at the threshold of $0.5$ records this as 0
+true positives, 21 false positives, 6 false negatives and 93 true negatives.
+
+Hypothesis H4 is stated on a different quantity and should not be read off that matrix: it
+tests the hidden risk $H$, not the four-week forecast, at its own threshold of $H \ge 0.5$.
+Measured on the campaign database through the production calibration service, that second
+matrix reads 0 true positives, 3 false positives, 8 false negatives and 141 true negatives
+over 152 node-weeks at four weeks. The two signals fail at the same threshold and for related
+reasons, and both return precision and recall of exactly zero, but they are separate
+measurements and the H4 verdict rests on the second.
 
 \begin{figure}[htbp]
     \centering
@@ -310,10 +466,23 @@ never differ by more than $0.020$. The confident tail is the milestone channel, 
 else contributes to it.
 
 Set against the registry, this is decisive. Of the eighteen milestones in the campaign, ten
-completed and eight remained active, and none was abandoned. Exactly one was actually
-missed at its deadline, the Orbitalys delivery of Table~\ref{tab:armA_snapshot}. The model
-announced near-certain misses for AvioSys, CompoDis, \'Electis, NovaFab, TransGlobal and
-Meridian, and all of them delivered.
+completed and eight remained active, and none was abandoned. Exactly one was still open past
+a deadline that had fallen inside the campaign, the Orbitalys delivery of
+Table~\ref{tab:armA_snapshot}. The model announced near-certain misses for AvioSys, CompoDis,
+\'Electis, NovaFab, TransGlobal and Meridian, and all of them delivered.
+
+That registry reading is more forgiving than it first appears, and the qualification matters
+enough to state here rather than in a footnote. The registry stores each milestone's
+\emph{current} deadline, and a replanning overwrites it, so a milestone that is re-dated and
+subsequently delivered is recorded as completed. Read instead against the deadline each node
+originally committed to, six of the eleven milestones whose original deadline fell inside the
+campaign were missed: five were delivered one to six turns late, and one was never delivered
+at all. Under that stricter reading, five of the twenty-one confident forecasts were followed
+by a missed original commitment within four weeks rather than none of them. The confident
+tail remains wrong far more often than right and the mechanism below is unaffected, but the
+distance between zero of twenty-one and five of twenty-one is produced entirely by which
+deadline the truth is read against, which is the subject of
+Section~\ref{sec:res_target_trap}.
 
 The same defect is visible directly in the state snapshots, from the opposite side. Reading
 the $u_{\text{time}}$ block at turn 6, the turn on which the scenario's one critical event
@@ -344,10 +513,13 @@ Six of the eight nodes read as numerically zero in the middle of a crisis, and t
 reads as saturated. The block behaves as a step function rather than as a risk gradient: it
 is either off or fully on, with almost nothing in between. The cause is structural. The
 block compares a lead-time distribution against the time remaining to the next deadline,
-and the scripted events act on capacity, cost and failure probability without acting on the
-lead time itself, so a shock never moves the quantity that the milestone probability is
-computed from. The block is blind to the crisis by construction, and because that block
-drives the entire confident tail, so is the forecast.
+and the scripted events act on capacity, cost and failure probability without acting on any
+quantity on the time axis, so a shock never moves the quantity that the milestone probability
+is computed from. The strongest form of the evidence is a count that depends on no scoring
+choice at all: across the whole campaign, eight nodes and 41 indicator snapshots each, the
+accumulated-delay field the block would need was written a non-zero value exactly zero times.
+The block is blind to the crisis by construction, and because that block drives the entire
+confident tail, so is the forecast.
 
 This is a defect in the model rather than a property of the scenario, and it is the single
 most actionable finding of the campaign. It also invalidates, for this run, the assumption
@@ -361,16 +533,19 @@ the aggregate. One block did not.
 
 The scores above depend on a choice that is easy to overlook: what counts as an adverse
 outcome. Section~\ref{sec:methods_scoring} uses the production definition, requiring a missed
-milestone, an abandoned node, or an event of gravity critical or defect. A plausible
-alternative, and the one an evaluator without access to the model's own definition would
-most likely reach for, is simply any event recorded on the node.
+milestone, an abandoned node, or an event of gravity critical or defect. Two alternatives are
+worth scoring the identical forecasts against. The first is the one an evaluator without
+access to the model's own definition would most likely reach for: any event recorded on the
+node. The second keeps the production definition of an adverse outcome intact but reads a
+missed milestone against the deadline the node originally committed to rather than against
+whatever deadline it currently carries, and drops the forecasts whose observation window runs
+past the last campaign turn.
 
-Scoring the identical forecasts against that naive target gives
-Table~\ref{tab:target_trap}.
+Table~\ref{tab:target_trap} gives the three.
 
 \begin{table}[htbp]
 \centering
-\caption{The same forecasts under two outcome definitions}
+\caption{The same forecasts under three outcome definitions}
 \label{tab:target_trap}
 \small
 \begin{tabularx}{\linewidth}{l >{\centering\arraybackslash}X >{\centering\arraybackslash}X >{\centering\arraybackslash}X >{\centering\arraybackslash}X}
@@ -381,15 +556,28 @@ Table~\ref{tab:target_trap}.
 Production definition (missed milestone, abandonment, or critical event) & 120 & 0.050 &
 0.485 & $-3.36$ \\
 Naive definition (any recorded event) & 75 & 0.387 & 0.484 & $-0.64$ \\
+Original-commitment definition (production outcome, deadline as first committed, censored
+points excluded) & 90 & 0.289 & 0.654 & $-0.55$ \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
 The model is identical, the forecasts are identical, and the horizon is identical. Only the
-definition of truth changes. The measured base rate moves from $5.0\%$ to $38.7\%$, and the
-Brier skill improves by a factor of more than five, from $-3.36$ to $-0.64$. An analyst
-choosing the easier target would report a system that appears five times better calibrated
-without a single line of the model having changed.
+definition of truth changes. Between the first two rows the measured base rate moves from
+$5.0\%$ to $38.7\%$ and the Brier skill improves by a factor of more than five, from $-3.36$
+to $-0.64$. An analyst choosing the easier target would report a system that appears five
+times better calibrated without a single line of the model having changed.
+
+The third row moves the answer in a different direction and for a defensible reason rather
+than a convenient one. Holding the definition of an adverse outcome fixed and only changing
+which deadline a milestone is judged against carries the Brier skill from $-3.36$ to $-0.55$
+and the AUC from $0.485$, indistinguishable from chance, to $0.654$. The argument for
+preferring it is about what a forecast is for rather than about statistics: a replanning is
+itself the formal admission of a slip, so a truth in which re-dating erases the miss scores
+the forecast against an outcome it was built to warn about before the re-dating happened. It
+is the definition used for the re-measurement of Section~\ref{sec:res_repair}, and stating
+which of the three any figure refers to is not pedantry: the three disagree by more than any
+modelling decision taken in this work.
 
 \begin{figure}[htbp]
     \centering
@@ -499,6 +687,177 @@ is precisely the input the adequacy layer consumes, this is a consequential effe
 measurement system even where it is not, on this evidence, an effect on behaviour.
 
 %% ═══════════════════════════════════════════════════════════════════════════
+\subsection{The Repair and Its Re-measurement}
+\label{sec:res_repair}
+%% ═══════════════════════════════════════════════════════════════════════════
+
+The campaign identified one defect and specified one repair. The repair was then carried out
+and re-measured against the identical frozen campaign, and this subsection reports that
+second measurement. The declarations, the scenario and the event script are unchanged; the
+same 120 forecasts are recomputed by the modified model, so every difference reported below
+belongs to the model and to nothing else.
+
+\subsubsection{The Repair That Was Recommended Does Not Work}
+
+Section~\ref{sec:res_discussion} proposed making the calibrated events write a lead-time
+impact alongside their existing effects. Implemented and measured, that repair fails, and the
+reason generalises beyond this system. A completion date estimated as a full production cycle
+beginning now multiplies the lead time by the fraction of work remaining, so any quantity
+routed into the lead time is multiplied by that fraction too. A shock therefore attenuates in
+proportion to how close a milestone is to completion, and vanishes altogether on the
+milestones nearest their deadline, which are precisely those on which a warning has value. On
+NovaFab, the node carrying the scenario's accident, the four-week probability fell from
+$0.846$ to $0.000$ on a milestone that was in fact missed.
+
+Lost production time is additive, not proportional: a four-week freeze costs four weeks
+whether the order is a tenth or nine tenths complete. The completion model was rewritten
+accordingly, identically in the three independent estimators the system carries for the same
+quantity, the analytic $u_{\text{time}}$ block, the Monte Carlo forecast rollout and the PERT
+lead-time simulator:
+\begin{equation}
+    C \;=\; t \;+\; (1 - p)\,L \;+\; R,
+    \label{eq:completion_repaired}
+\end{equation}
+where $p$ is the declared progress, $L$ the lead time and $R$ the time already lost. Five
+families of capacity-halting event, machine failure, accident, strike weighted by the share
+of workforce involved, material shortage weighted by criticality, and cyber incident, now
+accumulate their effective duration into $R$. Loss of storage capacity deliberately does not,
+since it removes space rather than production hours.
+
+The mechanical effect is unambiguous. Across the whole of arm A, eight nodes and 41 indicator
+snapshots each, the accumulated-delay field was written a non-zero value exactly zero times;
+this is the strongest available form of the blindness claim of
+Section~\ref{sec:res_mechanism}, since it does not depend on any scoring choice. After the
+repair, NovaFab accumulates $154.7$ engine hours at its first shock and $371.2$ over the
+campaign, carried in 27 of its 41 snapshots.
+
+\subsubsection{Two Further Defects Exposed by the First}
+
+With the time block responsive, a second defect became measurable. The milestone-miss
+probability returned exactly $0$ or exactly $1$ in $85.0\%$ of the 120 forecasts, leaving 14
+anywhere in between. That is a switch rather than a probability, and two declarants recorded
+as much in free text before it was measured. The cause is that the rollout drew the lead time
+at random while taking the declared progress as an exact value. Declared progress is the least
+reliable input the system receives, and it belongs to precisely the class of quantity the
+framework exists to doubt: the adequacy score is built on the premise that self-reported
+figures run optimistic, and the forecast layer was then treating one of them as certain.
+Progress is now drawn per replicate, with a standard deviation widened node by node in
+proportion to that node's own measured hidden risk $H$, so the system's adequacy measurement
+feeds its own forecast.
+
+The third defect was in the data rather than the model, and it would have invalidated any
+calibration performed before it was found. Indicator coverage on the campaign database was
+$25.6\%$: 24 of the 42 indicators were empty on all eight nodes, the carbon and cost blocks
+were inert everywhere, and only three of the six urgency blocks contributed. The lead time
+itself was present on five nodes of eight, and the remaining three received a risk floor of
+zero through the documented fallback for a missing lead time, which is an absence of data
+presenting itself as a reassuring prediction. Completing the indicators from public figures
+of the 2020 to 2022 shortage raised coverage to $49.1\%$ and made all six blocks active. One
+model bug was undetectable until then: a per-node recovery capability, a 26-week aerospace
+requalification time, was being read as production time already lost, pinning that node's
+time block at $1.0$ from the first turn. An empty database conceals the errors of the model
+that consumes it, which is a methodological point independent of this framework.
+
+\subsubsection{The Re-measurement}
+
+Table~\ref{tab:repair_scores} scores the recomputed forecasts against the original-commitment
+definition of Section~\ref{sec:res_target_trap}, at all four horizons, on the same censored
+samples of 112, 104, 96 and 90 observations. The middle column of each pair isolates the
+structural repair; the right-hand column adds the progress-uncertainty term.
+
+\begin{table}[htbp]
+\centering
+\caption{The frozen campaign rescored after repair, original-commitment target}
+\label{tab:repair_scores}
+\small
+\begin{tabularx}{\linewidth}{c *{6}{>{\centering\arraybackslash}X}}
+\toprule
+& \multicolumn{3}{c}{\textbf{Brier skill}} & \multicolumn{3}{c}{\textbf{AUC}} \\
+\cmidrule(lr){2-4}\cmidrule(lr){5-7}
+\textbf{Horizon} & before & structure & + uncertainty & before & structure & + uncertainty \\
+\midrule
+1 week  & $-1.278$ & $-0.646$ & $-0.687$ & 0.736 & 0.793 & 0.729 \\
+2 weeks & $-0.690$ & $-0.401$ & $-0.367$ & 0.636 & 0.671 & 0.634 \\
+3 weeks & $-0.654$ & $-0.360$ & $-0.286$ & 0.641 & 0.657 & 0.602 \\
+4 weeks & $-0.553$ & $-0.272$ & $-0.216$ & 0.654 & 0.721 & 0.584 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The structural repair improves both axes at every horizon. The Brier deficit is roughly
+halved and the area under the ROC curve rises, and neither is traded for the other, which is
+the clean result of this thesis's second measurement campaign. The progress-uncertainty term
+is a trade rather than a gain: it improves calibration at two weeks and beyond, degrades it
+slightly at one week, and lowers the AUC. That last movement is not interpretable. With 26
+positive observations the cluster-bootstrap interval on the four-week AUC runs from $0.21$ to
+$0.87$ and contains every value in its row, and the same objection that bounds the original
+discrimination claim of Section~\ref{sec:res_armA_scored} bounds this one. The term was
+retained on the calibration evidence and on the argument that a declared quantity should not
+enter a probabilistic forecast as a certainty, not on the AUC.
+
+Three qualifications belong beside the table. The Brier skill remains negative at every
+horizon, so the forecast is still worse calibrated than a forecaster that announces the base
+rate and stops; the repair moves the system from badly wrong to less wrong, not to useful.
+The milestone probability remains binary in $71.7\%$ of cases against $85.0\%$ before, so the
+over-confidence is reduced rather than removed. And the post-hoc calibration layer that
+Section~\ref{sec:res_discussion} recommended was trained, measured, and deliberately not
+connected: on the synthetic factory that produced its training data it improves the Brier
+skill by $30.8\%$ and the AUC from $0.792$ to $0.850$, but applied to the campaign it improves
+calibration at every horizon while dropping the four-week AUC from $0.721$ to $0.580$. Its
+training label is an event striking the node at exactly $t+1$; the product displays a missed
+milestone or a critical event cumulated over $(t, t+4]$. The layer cannot rank the cases
+driven by the milestone channel because it has never seen one. This is the trap of
+Section~\ref{sec:res_target_trap} encountered from the opposite direction: a calibration
+fitted against the wrong target degrades a system that works, exactly as an evaluation
+against the wrong target can condemn one. Connecting the layer requires the training label to
+be rebuilt on the product's target, which requires the synthetic factory's snapshots to
+record milestone truth, which they do not; that is the next concrete step rather than an
+open research question.
+
+\subsubsection{A Third Arm, and What It Does Not Show}
+
+The repaired system was then exercised through a full nineteen-turn campaign in closed loop,
+in which the same eight agents no longer only declared but also selected actions from a fixed
+catalogue, applied to the chain by the mutation service and recorded in the intervention
+journal: promote a backup arc, replan a milestone, expedite a shipment, raise capacity, revise
+a declaration, or do nothing. One hundred and fifty-two declarations were recorded with no
+unresolved consistency failure. The anti-contamination protocol of
+Section~\ref{sec:methods_controls} was tightened for this arm: every message reaching an agent
+is written by the tool into that agent's own sandbox, and a failed consistency check is
+answered with the interface's own guidance rather than with a coordinator's instruction.
+
+The headline figure flatters the framework and should not be used. Six of eleven milestones
+were missed in the frozen scenario and none was left unfinished in the closed loop, which
+reads as six saved. Against the original commitments it is not: five of eleven milestones
+were met on their original date in the frozen run, and five of eleven in the closed loop. The
+loop changed which milestone was met, not how many. One was genuinely saved, an electronics
+series delivered on its original date that had slipped in the frozen truth. Four late
+deliveries became replannings announced in advance rather than slips discovered at the
+deadline, which has value to a customer without being a save. One milestone was replanned
+that would have been met, which is the measurable cost of over-reaction. With eleven
+milestones neither the benefit nor the cost is statistically established, and both are
+reported as facts of one campaign rather than as results.
+
+Two observations from that arm do carry. The arm B disarming reproduced exactly, eight
+agents of eight at first exposure. And the causal chain the campaign showed to be broken now
+closes: where arm A's foundry manager recorded that the tool was holding a low position
+through a widely reported crisis and took no action, the repaired run moved the same node's
+four-week probability from $0.088$ to $0.214$ at the shock turn and the agent replanned its
+milestone. One reserve on internal validity must be stated: the model changed twice during
+that campaign, at turns 15 and 16, so turns 16 to 18 are not comparable with what precedes
+them. Every behavioural observation reported above is drawn from turns strictly earlier than
+15.
+
+\subsubsection{A Hypothesis That Became Measurable Again}
+
+The criticality index degenerates under saturation, which forced H3 to be judged on the ten informative turns of nineteen and the other nine to be excluded. That exclusion rule is no longer necessary. The ranking now carries a log-survival key, $\ell(p) = -\ln(1-p)$ computed on an $\varepsilon$-regularised twin of the same propagation, which orders identically to $\Delta U_r$ outside saturation, a property-based invariant with a test to match, and keeps separating nodes inside it.
+
+Re-measured on the repaired run, the two criteria decompose cleanly on the same data. The old criterion alone leaves 10 informative turns with NovaFab top-1 on 9 of them; adding the $\Delta \ell$ key leaves 17 informative turns of 19 with NovaFab top-1 on 16, a share of $94\%$ against a pre-registered threshold of $80\%$. Holding the criterion fixed instead and changing only the model, the frozen campaign gives $70\%$ and the repaired one $90\%$, so completing the indicators moves the figure as much as the new key does.
+
+This is reported as exploratory and does not re-decide H3, for the same reason given for H4 in Section~\ref{sec:hypothesis_status}: a hypothesis re-run against a changed model no longer tests what the register asked, and two things changed at once here. Only the comparison of the two criteria on one run isolates a single cause. The defensible claim is the narrow one: the degeneracy that made nearly half the campaign unreadable is largely gone, and the quantity H3 tests now sits above its threshold on the repaired system.
+
+
+%% ═══════════════════════════════════════════════════════════════════════════
 \subsection{Discussion}
 \label{sec:res_discussion}
 %% ═══════════════════════════════════════════════════════════════════════════
@@ -525,14 +884,20 @@ routinely corrected by a post-hoc layer without touching the underlying
 model~\autocite{niculescu2005predicting,guo2017calibration}. Poor discrimination is not, and
 would require the model to change.
 
-\paragraph{The specific defect is repairable and general.}
+\paragraph{The specific defect is repairable and general, but not in the obvious way.}
 The mechanism identified in Section~\ref{sec:res_mechanism} is not a scenario artefact. The
 $u_{\text{time}}$ block computes milestone risk from a lead-time distribution against a
 deadline, while the event engine writes to capacity, cost and failure probability. No path
-connects a shock to the lead time, so the block cannot respond to a disruption. Any
-deployment of this framework would inherit that gap. The repair is to make the calibrated
-events write a lead-time impact, which is a change to the event mapping rather than to the
-mathematics.
+connects a shock to any quantity on the time axis, so the block cannot respond to a
+disruption, and any deployment of this framework would inherit that gap. The natural repair
+is to make the calibrated events write a lead-time impact. Section~\ref{sec:res_repair}
+reports that this was implemented, measured, and found to be wrong: a quantity routed into
+the lead time is scaled by the fraction of work remaining and therefore vanishes on exactly
+the milestones nearest their deadline. Lost time has to be added to the completion date, not
+multiplied into it. The general form of the lesson is that a parameter describing a node's
+capacity to recover and a state accumulating what it has already lost carry the same units
+and are easy to confuse, and the confusion stays invisible while the database is
+incomplete.
 
 \paragraph{Communicating ignorance is a design requirement, not a nicety.}
 The arm B result reframes what an advisory layer owes its reader. Faced with an exogenous
@@ -900,24 +1265,38 @@ DAG propagation was specified, implemented and exercised on a nineteen-turn camp
 eight nodes. The construction works as designed and is exactly decomposable, which is what
 allowed its own defect to be found. The answer is qualified rather than clean: five of the
 six blocks behaved as intended, and the sixth, the time block, was shown to be structurally
-unable to respond to a disruption, because the event engine writes to no quantity it reads.
+unable to respond to a disruption, because the event engine wrote to no quantity it reads.
+That path was subsequently built and measured (Section~\ref{sec:res_repair}), which closes
+the defect without settling the question: the aggregation is only as informative as its
+inputs, and the campaign that produced the negative result ran with three of the six blocks
+inert for want of data.
 
 \paragraph{RQ2, cognitive adequacy formulation.} The asymmetric Prospect-Theory formulation
 produces a bounded, interpretable score whose every term can be reconstructed, as
-demonstrated on the Orbitalys node. Predictive validity was not demonstrated: at the
-pre-registered threshold the signal returns precision and recall of zero, and the underlying
-forecast layer shows no discrimination above chance on this campaign while being
-substantially worse calibrated than a base-rate forecaster.
-Section~\ref{sec:res_mechanism} attributes that failure to one identified and repairable
-cause rather than to the formulation itself.
+demonstrated on the Orbitalys node. Its answer splits by the granularity at which validity is
+asked. At node level the score discriminates and does so early:
+Section~\ref{sec:res_targeting} reports six consecutive turns on which the flagged set is a
+subset of the eventually failing set, with no false alarm, ahead of any public sign of the
+crisis. At the granularity of a probability attached to a node-week, predictive validity was
+not demonstrated: at the pre-registered threshold the signal returns precision and recall of
+zero, and the underlying forecast layer shows no discrimination above chance under the
+production outcome definition while being substantially worse calibrated than a base-rate
+forecaster. Section~\ref{sec:res_mechanism} attributes that second failure to one identified
+and repairable cause rather than to the formulation, and Section~\ref{sec:res_repair} reports
+the repair: the Brier deficit roughly halves at every horizon and the discrimination rises,
+while the skill remains negative. The formulation is therefore usable today for triage and
+not yet for probability, and the distance between the two is now measured rather than
+argued.
 
 \paragraph{RQ3, network prioritisation and criticality.} AHP and Fuzzy BWM elicitation,
 PROMETHEE~II outranking and systematic shock simulation were combined into a working
-ranking that placed the expected bottleneck at the top. Two documented behaviours bound it:
-the criticality index degenerates when many nodes saturate at once, which is common in
-precisely the network-wide crisis where it would be most useful, and the outranking
-inherited a perfect correlation between two of its criteria on this run, which the tool
-flagged on its own.
+ranking that placed the expected bottleneck at the top. Two documented behaviours bounded
+it. The criticality index degenerated when many nodes saturated at once, which is common in
+precisely the network-wide crisis where it would be most useful; that one has since been
+addressed by a log-survival sort key which leaves the ranking unchanged outside saturation
+and recovers 7 of the 9 saturated campaign turns, and the measurement is in
+Section~\ref{sec:res_repair}. The second stands: the outranking inherited a perfect
+correlation between two of its criteria on this run, which the tool flagged on its own.
 
 \paragraph{RQ4, operational validation and the effect of showing the forecast.} The framework
 was operationalised as a persistent digital twin and exercised through a pre-registered

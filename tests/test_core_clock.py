@@ -32,7 +32,7 @@ class TestIsoWeek:
         assert iso_week(ts_local(2026, 12, 28)) == "2026-S53"
 
     def test_rattachement_annee_iso_precedente(self):
-        # Le 1er janvier 2021 (vendredi) appartient à la semaine 53 de 2020.
+        # Le 1er janvier 2021 (vendredi) appartient a la semaine 53 de 2020.
         assert iso_week(ts_local(2021, 1, 1)) == "2020-S53"
 
     def test_premiere_semaine_zero_paddee(self):
@@ -40,7 +40,7 @@ class TestIsoWeek:
 
 
 class TestSystemClock:
-    """Mode « réel » : délégation à time.time()."""
+    """Mode " reel " : delegation a time.time()."""
 
     def test_now_proche_de_time_time(self):
         clock = SystemClock()
@@ -48,7 +48,7 @@ class TestSystemClock:
 
 
 class TestFixedClock:
-    """Horloge figée pilotable pour les tests."""
+    """Horloge figee pilotable pour les tests."""
 
     def test_now_renvoie_l_instant_fige(self):
         clock = FixedClock(1_000.0)
@@ -62,7 +62,7 @@ class TestFixedClock:
 
 
 class TestGameClock:
-    """Mode « jeu » : avancement par semaines entières."""
+    """Mode " jeu " : avancement par semaines entieres."""
 
     @pytest.fixture
     def t0(self) -> float:
@@ -107,7 +107,7 @@ class TestGameClock:
 
 
 class TestGameClockJson:
-    """Sérialisation JSON et round-trip strict."""
+    """Serialisation JSON et round-trip strict."""
 
     def test_to_json_forme_exacte(self):
         t0 = ts_local(2026, 6, 10)
@@ -154,7 +154,7 @@ class TestProtocol:
 
 
 class TestProjectHours:
-    """Pont epoch → heures projet."""
+    """Pont epoch -> heures projet."""
 
     def test_deux_heures(self):
         t0 = ts_local(2026, 6, 10)

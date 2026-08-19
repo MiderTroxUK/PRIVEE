@@ -1,5 +1,5 @@
 """Lance analyse_campagne.py sur les snapshots du pilote LLM, sans toucher au
-dossier partagé analysis/snapshots/ (celui du vrai dry run v6)."""
+dossier partage analysis/snapshots/ (celui du vrai dry run v6)."""
 
 from __future__ import annotations
 

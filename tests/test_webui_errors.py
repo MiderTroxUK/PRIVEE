@@ -1,11 +1,11 @@
 """Tests des garde-fous d'erreur de l'UI web (Lot 16.1).
 
-Aucun serveur n'est lancé : ``proteger_app`` remplace ``app.callback`` par
+Aucun serveur n'est lance : ``proteger_app`` remplace ``app.callback`` par
 une version qui enveloppe chaque fonction au point d'enregistrement, et le
-décorateur retourne la fonction ENVELOPPÉE — appelable directement ici.
+decorateur retourne la fonction ENVELOPPEE - appelable directement ici.
 Elle est aussi retrouvable via ``app.callback_map`` : Dash y range
 ``add_context`` construit avec ``functools.wraps(fn)``, donc
-``entry["callback"].__wrapped__`` est la fonction enregistrée (protégée).
+``entry["callback"].__wrapped__`` est la fonction enregistree (protegee).
 """
 
 import logging
@@ -30,7 +30,7 @@ LOGGER_NAME = "supplyscore.web_ui"
 
 @pytest.fixture
 def app_protegee():
-    """Application Dash factice dont les enregistrements sont protégés."""
+    """Application Dash factice dont les enregistrements sont proteges."""
     app = dash.Dash("test_webui_errors", suppress_callback_exceptions=True)
     proteger_app(app)
     return app
@@ -38,7 +38,7 @@ def app_protegee():
 
 @pytest.fixture
 def service(tmp_path):
-    """Service seedé avec une petite démo, partagé par les callbacks."""
+    """Service seede avec une petite demo, partage par les callbacks."""
     svc = SupplyScoreService(db_dir=tmp_path / "store")
     svc.seed_demo(n_ranks=2, seed=1)
     set_service(svc)
@@ -46,7 +46,7 @@ def service(tmp_path):
     set_service(None)
 
 
-# --- Callback 1 Output children : message français + log -----------------------------
+# Callback 1 Output children : message francais + log
 
 
 def test_un_output_children_retourne_message_francais(app_protegee, caplog):
@@ -63,11 +63,11 @@ def test_un_output_children_retourne_message_francais(app_protegee, caplog):
     assert "erreur" in texte
     assert "supplyscore.log" in texte
     assert "RuntimeError" in texte
-    assert "explosion volontaire" not in texte  # jamais le message brut à l'écran
+    assert "explosion volontaire" not in texte  # jamais le message brut a l'ecran
 
     erreurs = [r for r in caplog.records if r.name == LOGGER_NAME]
     assert len(erreurs) == 1
-    assert erreurs[0].exc_info is not None  # trace complète journalisée
+    assert erreurs[0].exc_info is not None  # trace complete journalisee
     assert "boum" in erreurs[0].getMessage()
 
 
@@ -82,7 +82,7 @@ def test_fonction_enregistree_retrouvable_via_callback_map(app_protegee):
     assert "supplyscore.log" in str(entree.__wrapped__(1))
 
 
-# --- Callback 3 Outputs : (message, no_update, no_update) ----------------------------
+# Callback 3 Outputs : (message, no_update, no_update)
 
 
 def test_trois_outputs_message_sur_le_premier_children(app_protegee, caplog):
@@ -101,8 +101,7 @@ def test_trois_outputs_message_sur_le_premier_children(app_protegee, caplog):
     assert isinstance(resultat, tuple)
     assert len(resultat) == 3
     assert "supplyscore.log" in str(resultat[0])
-    # Heuristique : une figure/un store qui recevrait un html.Div casserait
-    # le rendu côté client — ils reçoivent no_update.
+    # Heuristique : une figure/un store qui recevrait un html.Div casserait le rendu cote client - ils recoivent no_update.
     assert resultat[1] is dash.no_update
     assert resultat[2] is dash.no_update
     assert any(r.name == LOGGER_NAME for r in caplog.records)
@@ -124,7 +123,7 @@ def test_children_en_seconde_position_recoit_le_message(app_protegee):
     assert resultat[2] is dash.no_update  # SEUL le premier children est servi
 
 
-# --- PreventUpdate : flux normal de Dash, traverse sans être attrapé -----------------
+# PreventUpdate : flux normal de Dash, traverse sans etre attrape
 
 
 def test_prevent_update_traverse_sans_log(app_protegee, caplog):
@@ -138,7 +137,7 @@ def test_prevent_update_traverse_sans_log(app_protegee, caplog):
     assert not [r for r in caplog.records if r.name == LOGGER_NAME]
 
 
-# --- Callbacks sans Output children : tous no_update, le log est la seule trace ------
+# Callbacks sans Output children : tous no_update, le log est la seule trace
 
 
 def test_sans_children_tous_no_update_et_log(app_protegee, caplog):
@@ -172,7 +171,7 @@ def test_output_unique_non_children_no_update_scalaire(app_protegee, caplog):
 
 
 def test_output_unique_en_liste_retourne_tuple_de_un(app_protegee):
-    # Un Output unique passé DANS une liste : Dash attend une séquence de 1.
+    # Un Output unique passe DANS une liste : Dash attend une sequence de 1.
     @app_protegee.callback([Output("zone", "children")], Input("btn", "n_clicks"))
     def boum_liste(n_clicks):
         raise RuntimeError("liste d'un seul Output")
@@ -183,7 +182,7 @@ def test_output_unique_en_liste_retourne_tuple_de_un(app_protegee):
     assert "supplyscore.log" in str(resultat[0])
 
 
-# --- Décorateur seul (sans point d'enregistrement) et flux nominal --------------------
+# Decorateur seul (sans point d'enregistrement) et flux nominal
 
 
 def test_protege_callback_seul_suppose_children_unique(caplog):
@@ -218,14 +217,12 @@ def test_proteger_app_idempotente_et_compteur(app_protegee):
     assert unique("ok") == "ok"  # pas d'enveloppe en double
 
 
-# --- Application réelle : create_app protège TOUS les callbacks ----------------------
+# Application reelle : create_app protege TOUS les callbacks
 
 
 def test_create_app_protege_tous_les_callbacks(service):
     app = create_app(service=service)
-    # Égalité stricte : chaque appel app.callback(...) crée UNE entrée de
-    # callback_map (les sorties allow_duplicate reçoivent des clés uniques)
-    # et proteger_app est appelée avant le tout premier enregistrement.
+    # Egalite stricte : chaque appel app.callback(...) cree UNE entree de callback_map (les sorties allow_duplicate recoivent des cles uniques) et proteger_app est appelee avant le tout premier enregistrement.
     assert nombre_callbacks_proteges(app) == len(app.callback_map)
     assert nombre_callbacks_proteges(app) > 0
     for entree in app.callback_map.values():
@@ -240,7 +237,7 @@ def test_callback_reel_avec_service_casse_retourne_message(service, caplog):
     }
     update_dashboard = enveloppes["update_dashboard_callback"]
 
-    set_service(None)  # service CASSÉ : get_service() lève RuntimeError
+    set_service(None)  # service CASSE : get_service() leve RuntimeError
     with caplog.at_level(logging.ERROR, logger=LOGGER_NAME):
         resultat = update_dashboard(None, None, None)
 

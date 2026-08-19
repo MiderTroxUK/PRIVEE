@@ -1,12 +1,12 @@
-"""Tests de la page « Édition des KPIs » (Lot 10.3) — sans serveur Dash.
+"""Tests de la page " Edition des KPIs " (Lot 10.3) - sans serveur Dash.
 
-Les callbacks sont des fonctions nommées au niveau module : ils sont appelés
-directement, sur un service seedé à horloge figée partagé via ``set_service``
-(libéré en teardown). Couvre la construction du tableau (colonnes du bloc avec
-unités, row ids stables, filtre par tags), le diff de cellule par ROW ID
-(jamais par index — y compris lignes réordonnées), la coercition ``float()``,
-l'effacement (None), le rejet hors bornes (table rechargée, AUCUN audit) et
-les branches d'erreur (nœud inconnu, valeur non numérique, data_previous
+Les callbacks sont des fonctions nommees au niveau module : ils sont appeles
+directement, sur un service seede a horloge figee partage via ``set_service``
+(libere en teardown). Couvre la construction du tableau (colonnes du bloc avec
+unites, row ids stables, filtre par tags), le diff de cellule par ROW ID
+(jamais par index - y compris lignes reordonnees), la coercition ``float()``,
+l'effacement (None), le rejet hors bornes (table rechargee, AUCUN audit) et
+les branches d'erreur (noeud inconnu, valeur non numerique, data_previous
 absent).
 """
 
@@ -28,13 +28,13 @@ from supplyscore.services import SupplyScoreService
 from supplyscore.web_ui import set_service
 from supplyscore.web_ui.pages import editor
 
-#: Mercredi 2026-06-10 12:00 locale — semaine ISO « 2026-S24 ».
+#: Mercredi 2026-06-10 12:00 locale - semaine ISO " 2026-S24 ".
 _NOW = datetime(2026, 6, 10, 12, 0).timestamp()
 
 
 @pytest.fixture
 def service(tmp_path: Path):
-    """Service à horloge figée, seedé avec un projet « p1 » à 3 nœuds tagués."""
+    """Service a horloge figee, seede avec un projet " p1 " a 3 noeuds tagues."""
     svc = SupplyScoreService(db_dir=tmp_path / "store", clock=FixedClock(_NOW))
     _seed(svc)
     set_service(svc)
@@ -60,18 +60,18 @@ def _seed(service: SupplyScoreService) -> None:
 
 
 def _rows(block: str = "Temps", tags: list | None = None) -> list[dict]:
-    """Lignes courantes du tableau pour « p1 » (relues depuis la base)."""
+    """Lignes courantes du tableau pour " p1 " (relues depuis la base)."""
     _columns, rows = editor.refresh_table_callback("p1", block, tags or [])
     return rows
 
 
 def _trail(service: SupplyScoreService, node_id: str) -> AuditTrail:
-    """Journal d'audit de la base CLIENT du nœud."""
+    """Journal d'audit de la base CLIENT du noeud."""
     db = service.client_db(node_id)
     return AuditTrail(db.conn, service.clock, lock=db.lock)
 
 
-# --- refresh_table_callback ----------------------------------------------------------
+# refresh_table_callback
 
 
 def test_colonnes_du_bloc_temps_avec_unites(service):
@@ -83,8 +83,8 @@ def test_colonnes_du_bloc_temps_avec_unites(service):
     for column in by_id.values():
         assert column["type"] == "numeric"
         assert column["editable"] is True
-        assert "(h)" in column["name"]  # unité présente dans le libellé
-    # Lignes triées par rang/nom, chacune portant son row id stable == node_id.
+        assert "(h)" in column["name"]  # unite presente dans le libelle
+    # Lignes triees par rang/nom, chacune portant son row id stable == node_id.
     assert [r["id"] for r in rows] == ["n-a", "n-b", "n-c"]
     assert rows[0]["Nœud"] == "Atelier A"
     assert rows[0]["time.lead_time_h"] == 24.0
@@ -96,7 +96,7 @@ def test_colonne_sans_parenthese_suffixee_par_kpi_unit(service):
 
     names = {c["id"]: c["name"] for c in columns}
     assert names["cost.nominal_op_cost"] == "Coût opérationnel nominal (€)"
-    # Libellé déjà parenthésé : pas de double unité.
+    # Libelle deja parenthese : pas de double unite.
     assert names["cost.tariff"] == "Tarif (multiplicateur)"
 
 
@@ -122,7 +122,7 @@ def test_bloc_inconnu_retombe_sur_temps(service):
     assert "time.lead_time_h" in [c["id"] for c in columns]
 
 
-# --- tags_options_callback -----------------------------------------------------------
+# tags_options_callback
 
 
 def test_options_tags_du_projet_et_valeur_reinitialisee(service):
@@ -136,7 +136,7 @@ def test_options_tags_sans_projet_vides(service):
     assert editor.tags_options_callback(None) == ([], [])
 
 
-# --- edit_cell_callback : succès -------------------------------------------------------
+# edit_cell_callback : succes
 
 
 def test_edition_valide_persiste_audite_et_ne_reecrit_pas_la_table(service):
@@ -146,7 +146,7 @@ def test_edition_valide_persiste_audite_et_ne_reecrit_pas_la_table(service):
 
     table, msg = editor.edit_cell_callback(1, data, previous, {"name": "alice"}, "p1", "Temps", [])
 
-    assert table is no_update  # anti-scintillement : data non réécrite sur succès
+    assert table is no_update  # anti-scintillement : data non reecrite sur succes
     assert "KPI mis à jour — 1 entrée(s) d'audit" in str(msg)
     node = service.registry.get_node("n-a")
     assert node.kpis.time.lead_time_h == 48.0
@@ -161,7 +161,7 @@ def test_edition_valide_persiste_audite_et_ne_reecrit_pas_la_table(service):
 def test_coercition_chaine_numerique(service):
     previous = _rows()
     data = copy.deepcopy(previous)
-    data[0]["time.lead_time_h"] = "123.5"  # la DataTable renvoie parfois des chaînes
+    data[0]["time.lead_time_h"] = "123.5"  # la DataTable renvoie parfois des chaines
 
     table, msg = editor.edit_cell_callback(1, data, previous, None, "p1", "Temps", [])
 
@@ -184,7 +184,7 @@ def test_effacement_remet_le_kpi_a_none(service):
 
 def test_lignes_reordonnees_le_diff_par_id_trouve_la_bonne_cellule(service):
     previous = _rows()
-    data = copy.deepcopy(previous)[::-1]  # mêmes row ids, ordre inversé
+    data = copy.deepcopy(previous)[::-1]  # memes row ids, ordre inverse
     target = next(r for r in data if r["id"] == "n-a")
     target["time.lead_time_h"] = 72.0
 
@@ -193,11 +193,11 @@ def test_lignes_reordonnees_le_diff_par_id_trouve_la_bonne_cellule(service):
     assert table is no_update
     assert "KPI mis à jour" in str(msg)
     assert service.registry.get_node("n-a").kpis.time.lead_time_h == 72.0
-    # Les autres nœuds n'ont pas bougé (le diff par index aurait écrit n-c).
+    # Les autres noeuds n'ont pas bouge (le diff par index aurait ecrit n-c).
     assert service.registry.get_node("n-c").kpis.time.lead_time_h is None
 
 
-# --- edit_cell_callback : rejets et no-ops ---------------------------------------------
+# edit_cell_callback : rejets et no-ops
 
 
 def test_hors_bornes_table_rechargee_ancienne_valeur_et_aucun_audit(service):
@@ -269,10 +269,9 @@ def test_ligne_inconnue_de_data_previous_ignoree(service):
 
 
 def test_valeur_identique_a_la_base_aucune_ecriture(service):
-    # data diffère de data_previous mais vaut DÉJÀ la valeur en base (cas du
-    # re-déclenchement après restauration) : update_kpis ne diffe rien.
+    # data differe de data_previous mais vaut DEJA la valeur en base (cas du re-declenchement apres restauration) : update_kpis ne diffe rien.
     previous = _rows()
-    previous[0]["time.lead_time_h"] = 99.0  # data_previous désynchronisé simulé
+    previous[0]["time.lead_time_h"] = 99.0  # data_previous desynchronise simule
     data = _rows()  # valeurs de la base
 
     table, msg = editor.edit_cell_callback(1, data, previous, None, "p1", "Temps", [])
@@ -283,7 +282,7 @@ def test_valeur_identique_a_la_base_aucune_ecriture(service):
     assert journal == []
 
 
-# --- layout & register_callbacks --------------------------------------------------------
+# layout & register_callbacks
 
 
 def test_layout_contient_filtres_table_et_bandeau(service):

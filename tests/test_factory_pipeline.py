@@ -1,12 +1,12 @@
-"""Tests de l'orchestrateur HÉLIOS v7 (U14) : projects/factory/run_pipeline.py.
+"""Tests de l'orchestrateur HELIOS v7 (U14) : projects/factory/run_pipeline.py.
 
 Ce module de test vit hors de la couverture ``supplyscore`` (cf.
 ``pyproject.toml``, ``[tool.coverage.run] source = ["supplyscore"]``) mais
-reste découvert par ``pytest tests -q`` (``testpaths = ["tests"]``) : il
-vérifie la logique propre à U14 (reprise sur panne, porte causale, étapes
-optionnelles, parallélisme par ProcessPoolExecutor) contre de FAUX scripts
-sœurs minimaux, puisque les vraies unités U4-U18 n'existent pas dans ce
-worktree (U14 est codé contre leurs contrats gelés, pas contre leur code).
+reste decouvert par ``pytest tests -q`` (``testpaths = ["tests"]``) : il
+verifie la logique propre a U14 (reprise sur panne, porte causale, etapes
+optionnelles, parallelisme par ProcessPoolExecutor) contre de FAUX scripts
+soeurs minimaux, puisque les vraies unites U4-U18 n'existent pas dans ce
+worktree (U14 est code contre leurs contrats geles, pas contre leur code).
 """
 
 from __future__ import annotations
@@ -23,11 +23,9 @@ _FACTORY_DIR = Path(__file__).resolve().parent.parent / "projects" / "factory"
 if str(_FACTORY_DIR) not in sys.path:
     sys.path.insert(0, str(_FACTORY_DIR))
 
-import run_pipeline  # noqa: E402 -- après l'insertion sys.path ci-dessus, nécessaire
+import run_pipeline  # noqa: E402 -- apres l'insertion sys.path ci-dessus, necessaire
 
-# --------------------------------------------------------------------------
-# Faux scripts sœurs (sources minimales, ASCII, sans dépendance)
-# --------------------------------------------------------------------------
+# Faux scripts soeurs (sources minimales, ASCII, sans dependance)
 
 _FETCH_OPENDATA_SRC = """
     import argparse
@@ -174,7 +172,7 @@ def _write_script(path: Path, body: str) -> None:
 
 
 def _build_full_fake_repo(root: Path) -> None:
-    """Peuple ``root`` avec un script factice par contrat gelé + MANIFEST U13."""
+    """Peuple ``root`` avec un script factice par contrat gele + MANIFEST U13."""
     _write_script(root / "projects/factory/opendata/fetch_opendata.py", _FETCH_OPENDATA_SRC)
     manifest = root / "projects/factory/opendata/MANIFEST.md"
     manifest.parent.mkdir(parents=True, exist_ok=True)
@@ -198,9 +196,7 @@ def _config(repo_root: Path, work: Path, *extra_args: str) -> run_pipeline.Confi
     return run_pipeline.build_config(args)
 
 
-# --------------------------------------------------------------------------
 # Fonctions pures
-# --------------------------------------------------------------------------
 
 
 def test_parse_t1_verdict_recognises_both_lines():
@@ -254,9 +250,7 @@ def test_discover_db_project_fails_gracefully(tmp_path: Path):
     assert run_pipeline._discover_db_project(smoke_dir) is None
 
 
-# --------------------------------------------------------------------------
 # Maillon manquant / reset
-# --------------------------------------------------------------------------
 
 
 def test_missing_unit_fails_cleanly_naming_first_unit(tmp_path: Path):
@@ -266,9 +260,9 @@ def test_missing_unit_fails_cleanly_naming_first_unit(tmp_path: Path):
     code = run_pipeline.main(["--repo-root", str(fake_repo), "--work", str(work)])
     assert code == 1
     state = json.loads((work / "pipeline_state.json").read_text(encoding="utf-8"))
-    # opendata est optionnelle (MANIFEST.md absent) : sautée, pas bloquante.
+    # opendata est optionnelle (MANIFEST.md absent) : sautee, pas bloquante.
     assert state["stages"]["opendata"]["status"] == "sautee"
-    # U4 (variants) est le PREMIER maillon réellement manquant.
+    # U4 (variants) est le PREMIER maillon reellement manquant.
     assert state["blocked_stage"] == "variants"
     assert "maillon manquant : U4" in state["stages"]["variants"]["detail"]
     assert "variants.py" in state["stages"]["variants"]["detail"]
@@ -282,19 +276,17 @@ def test_reset_clears_previous_state(tmp_path: Path):
     state_path = work / "pipeline_state.json"
     assert state_path.exists()
     data = json.loads(state_path.read_text(encoding="utf-8"))
-    data["stages"]["variants"]["status"] = "ok"  # falsifie un succès
+    data["stages"]["variants"]["status"] = "ok"  # falsifie un succes
     state_path.write_text(json.dumps(data), encoding="utf-8")
 
     run_pipeline.main(["--repo-root", str(fake_repo), "--work", str(work), "--reset"])
     data2 = json.loads(state_path.read_text(encoding="utf-8"))
-    # état neuf : le pipeline a dû ré-échouer proprement, pas hériter du faux "ok".
+    # etat neuf : le pipeline a du re-echouer proprement, pas heriter du faux "ok".
     assert data2["stages"]["variants"]["status"] != "ok"
     assert data2["blocked_stage"] == "variants"
 
 
-# --------------------------------------------------------------------------
 # Porte de validation causale (D32)
-# --------------------------------------------------------------------------
 
 
 def test_causal_gate_fail_withholds_artifact(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
@@ -336,9 +328,7 @@ def test_causal_gate_pass_publishes_artifact(tmp_path: Path, monkeypatch: pytest
     assert (cfg.models_dir / "action_effects.json").exists()
 
 
-# --------------------------------------------------------------------------
-# Parallélisme + reprise fine par item (helios_runs)
-# --------------------------------------------------------------------------
+# Parallelisme + reprise fine par item (helios_runs)
 
 
 def test_helios_runs_resumes_only_failed_item(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
@@ -373,20 +363,18 @@ def test_helios_runs_resumes_only_failed_item(tmp_path: Path, monkeypatch: pytes
 
 
 def test_helios_runs_already_done_short_circuits(tmp_path: Path):
-    """Un item déjà dans done_items n'est jamais soumis au pool une seconde fois."""
+    """Un item deja dans done_items n'est jamais soumis au pool une seconde fois."""
     fake_repo = tmp_path / "repo"
     work = tmp_path / "work"
     cfg = _config(fake_repo, work)
     state = run_pipeline.new_state(cfg.profile.name)
     state["stages"]["helios_runs"] = {"status": "ok", "done_items": ["1"], "total": 1}
-    # Aucun script sœur nécessaire : le statut "ok" fait sauter l'étape entière.
+    # Aucun script soeur necessaire : le statut "ok" fait sauter l'etape entiere.
     run_pipeline.stage_helios_runs(cfg, state)
     assert state["stages"]["helios_runs"]["status"] == "ok"
 
 
-# --------------------------------------------------------------------------
-# amplified_runs conditionné au verdict T1
-# --------------------------------------------------------------------------
+# amplified_runs conditionne au verdict T1
 
 
 def test_amplified_runs_skipped_when_t1_not_retenu(tmp_path: Path):
@@ -395,7 +383,7 @@ def test_amplified_runs_skipped_when_t1_not_retenu(tmp_path: Path):
     cfg = _config(fake_repo, work)
     state = run_pipeline.new_state(cfg.profile.name)
     state["stages"]["t1_refit"] = {"status": "ok", "verdict": "NON RETENU"}
-    # Aucun script sœur requis : sautée avant même l'appel à _require.
+    # Aucun script soeur requis : sautee avant meme l'appel a _require.
     run_pipeline.stage_amplified_runs(cfg, state)
     assert state["stages"]["amplified_runs"]["status"] == "sautee"
 
@@ -433,15 +421,13 @@ def test_t1_refit_skipped_without_llm_traces(tmp_path: Path):
     work = tmp_path / "work"
     cfg = _config(fake_repo, work)
     state = run_pipeline.new_state(cfg.profile.name)
-    # llm_traces jamais passée à "ok" (état neuf) -> repli T1 compté, aucun script requis.
+    # llm_traces jamais passee a "ok" (etat neuf) -> repli T1 compte, aucun script requis.
     run_pipeline.stage_t1_refit(cfg, state)
     assert state["stages"]["t1_refit"]["status"] == "sautee"
     assert state["stages"]["t1_refit"]["verdict"] is None
 
 
-# --------------------------------------------------------------------------
-# Pipeline complet, profil par défaut, contre de faux scripts
-# --------------------------------------------------------------------------
+# Pipeline complet, profil par defaut, contre de faux scripts
 
 
 def test_full_default_pipeline_happy_path(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
@@ -462,7 +448,7 @@ def test_full_default_pipeline_happy_path(tmp_path: Path, monkeypatch: pytest.Mo
     assert stages["variants"]["status"] == "ok"
     assert stages["helios_runs"]["status"] == "ok"
     assert stages["random_chains"]["status"] == "ok"
-    # profil par défaut : --llm-runs 0 -> toute la chaîne T2/T1/amplification est sautée.
+    # profil par defaut : --llm-runs 0 -> toute la chaine T2/T1/amplification est sautee.
     assert stages["llm_traces"]["status"] == "sautee"
     assert stages["t1_refit"]["status"] == "sautee"
     assert stages["amplified_runs"]["status"] == "sautee"
@@ -471,13 +457,7 @@ def test_full_default_pipeline_happy_path(tmp_path: Path, monkeypatch: pytest.Mo
     assert stages["action_effects"]["status"] == "ok"
     assert stages["action_effects"]["published"] is True
     assert stages["train"]["status"] == "ok"
-    # Smoke best-effort (toléré) : depuis la fusion des 18 unités, les CLIs
-    # supplyscore.tools.predict/insights (U11/U12) EXISTENT et sont réellement
-    # invoquées. La chaîne de smoke produite par U6 n'expose que des snapshots
-    # JSON (db-dir jetable), donc predict/insights ne peuvent pas s'y connecter
-    # (statut « partiel », résultat « echec:N ») — jamais « absent ». Rendre ce
-    # smoke pleinement vert demanderait à U6 de persister une base ≥ 4 semaines
-    # d'historique et à U14 de la cibler (suite notée, hors périmètre de fusion).
+    # Smoke best-effort (tolere) : depuis la fusion des 18 unites, les CLIs supplyscore.tools.predict/insights (U11/U12) EXISTENT et sont reellement invoquees. La chaine de smoke produite par U6 n'expose que des snapshots JSON (db-dir jetable), donc predict/insights ne peuvent pas s'y connecter (statut " partiel ", resultat " echec:N ") - jamais " absent ". Rendre ce smoke pleinement vert demanderait a U6 de persister une base >= 4 semaines d'historique et a U14 de la cibler (suite notee, hors perimetre de fusion).
     assert stages["smoke"]["status"] in ("ok", "partiel")
     assert stages["smoke"]["results"]["predict"] != "absent"
     assert stages["smoke"]["results"]["insights"] != "absent"
@@ -491,7 +471,7 @@ def test_full_default_pipeline_happy_path(tmp_path: Path, monkeypatch: pytest.Mo
 def test_full_pipeline_second_run_resumes_and_skips(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    """Deuxième lancement (sans --reset) : toutes les étapes déjà « ok » sont sautées."""
+    """Deuxieme lancement (sans --reset) : toutes les etapes deja " ok " sont sautees."""
     fake_repo = tmp_path / "repo"
     _build_full_fake_repo(fake_repo)
     work = tmp_path / "work"
@@ -511,7 +491,7 @@ def test_full_pipeline_second_run_resumes_and_skips(
 
     for name in ("variants", "helios_runs", "random_chains", "dataset", "train"):
         assert state1["stages"][name]["status"] == state2["stages"][name]["status"] == "ok"
-        # "finished_at" du deuxième run doit être identique : l'étape n'a PAS été rejouée.
+        # "finished_at" du deuxieme run doit etre identique : l'etape n'a PAS ete rejouee.
         assert state1["stages"][name].get("finished_at") == state2["stages"][name].get(
             "finished_at"
         )

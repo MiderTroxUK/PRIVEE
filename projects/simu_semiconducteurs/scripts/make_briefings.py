@@ -1,18 +1,18 @@
-"""Générateur de fiches consultants (U7) — anti-lookahead structurel.
+"""Generateur de fiches consultants (U7) - anti-lookahead structurel.
 
 Usage :
     python make_briefings.py --tour N [--placebo]
     python make_briefings.py --role-cards
 
-Garantie anti-fuite (HC5) : ce script ne lit QUE les fichiers préparés des
-tours <= N. Aucune donnée future n'est présente en mémoire au moment de
-générer une fiche — l'exclusion est structurelle, pas une consigne.
+Garantie anti-fuite (HC5) : ce script ne lit QUE les fichiers prepares des
+tours <= N. Aucune donnee future n'est presente en memoire au moment de
+generer une fiche - l'exclusion est structurelle, pas une consigne.
 
-``--placebo`` : pour les couples (nœud, tour) définis dans scenario.PLACEBO,
-génère EN PLUS une variante ``<node>_placebo.md`` dont les canaux narratifs
-(presse/bilatéral/interne) racontent une continuation alternative plausible.
-Le tableau de données (<= N) reste identique : seul le récit est manipulé
-(contrôle HC4).
+``--placebo`` : pour les couples (noeud, tour) definis dans scenario.PLACEBO,
+genere EN PLUS une variante ``<node>_placebo.md`` dont les canaux narratifs
+(presse/bilateral/interne) racontent une continuation alternative plausible.
+Le tableau de donnees (<= N) reste identique : seul le recit est manipule
+(controle HC4).
 
 Sorties : ``briefings/tour_NN/<node>.md`` et ``briefings/cartes_de_role/``.
 """
@@ -30,8 +30,7 @@ from _common import PREPARED, PROJECT_DIR, scenario
 
 BRIEFINGS = PROJECT_DIR / "briefings"
 
-#: Champs montrés au consultant, par nœud : uniquement SES données pilotées.
-#: Libellés métier (jamais les chemins techniques).
+#: Champs montres au consultant, par noeud : uniquement SES donnees pilotees. Libelles metier (jamais les chemins techniques).
 FIELD_LABELS: dict[str, str] = {
     "network.demand": "Indice de demande client (base 100)",
     "inventory.flow_rate": "Indice de volume servi (base 100)",
@@ -58,7 +57,7 @@ def _fmt_value(path: str, value: float) -> str:
 
 
 def _node_data_upto(node_id: str, tour: int) -> dict[str, list[tuple[int, float]]]:
-    """Historique {kpi_path: [(tour, valeur)]} du nœud, tours 0..N UNIQUEMENT."""
+    """Historique {kpi_path: [(tour, valeur)]} du noeud, tours 0..N UNIQUEMENT."""
     series: dict[str, list[tuple[int, float]]] = {}
     for t in range(0, tour + 1):
         with (PREPARED / f"tour_{t:02d}.csv").open(encoding="utf-8") as f:

@@ -1,94 +1,94 @@
-"""Générateur de variantes du scénario HÉLIOS (U4) — perturbations reproductibles.
+"""Generateur de variantes du scenario HELIOS (U4) - perturbations reproductibles.
 
-Objectif : produire, à partir du pack gelé ``data/prepared/`` (source UNIQUE,
-jamais modifiée), des copies perturbées avec vérité terrain connue, pour
-rejouer des centaines de campagnes HÉLIOS-like en usine de simulation.
+Objectif : produire, a partir du pack gele ``data/prepared/`` (source UNIQUE,
+jamais modifiee), des copies perturbees avec verite terrain connue, pour
+rejouer des centaines de campagnes HELIOS-like en usine de simulation.
 
 Sortie par graine (dans ``--out/seed_NNN/``) : la mise en page EXACTE de
-``data/prepared/`` — ``tour_NN.csv``, ``events_NN.json``, ``milestones_NN.json``
-pour la même plage de tours que la source (0..N_TOURS) — plus
+``data/prepared/`` - ``tour_NN.csv``, ``events_NN.json``, ``milestones_NN.json``
+pour la meme plage de tours que la source (0..N_TOURS) - plus
 ``variant_manifest.json`` :
 
     {
       "seed": int,
-      "params": {...hyperparamètres FIXES des perturbations...},
+      "params": {...hyperparametres FIXES des perturbations...},
       "beta_scale": float,
       "gamma_scale": float,
       "events_truth": {"<tour>": [{"node": str, "type": str, "gravite": str}]}
     }
 
-``params`` documente les hyperparamètres (constants pour toute graine non
-nulle) — pas une trace de chaque tirage individuel : celle-ci est déjà
-intégralement reproductible via (graine + algorithme ci-dessous), et une
-trace complète (des centaines de tirages) n'apporterait rien de plus.
-``events_truth`` reflète le calendrier RÉSULTANT (perturbé), jamais le
-nominal ; seuls les tours avec au moins un événement y figurent. ``gravite``
-est lu dans ``params`` de chaque événement ; les types sans champ ``gravite``
+``params`` documente les hyperparametres (constants pour toute graine non
+nulle) - pas une trace de chaque tirage individuel : celle-ci est deja
+integralement reproductible via (graine + algorithme ci-dessous), et une
+trace complete (des centaines de tirages) n'apporterait rien de plus.
+``events_truth`` reflete le calendrier RESULTANT (perturbe), jamais le
+nominal ; seuls les tours avec au moins un evenement y figurent. ``gravite``
+est lu dans ``params`` de chaque evenement ; les types sans champ ``gravite``
 (cf. ``EVENT_CALIBRATION`` dans ``supplyscore/domain/events.py`` : seuls
 ``panne_machine``, ``accident``, ``alerte_financiere_fournisseur`` en ont un)
-reçoivent ``"n/a"`` — documenté, jamais inventé.
+recoivent ``"n/a"`` - documente, jamais invente.
 
-GRAINE 0 = IDENTITÉ STRICTE : aucun tirage, copie octet-à-octet du pack
-source (mêmes fichiers, même contenu). Voir ``--selftest``.
+GRAINE 0 = IDENTITE STRICTE : aucun tirage, copie octet-a-octet du pack
+source (memes fichiers, meme contenu). Voir ``--selftest``.
 
 Usage :
     python variants.py --seeds 1..20 --out DIR
     python variants.py --seeds 1,4,7 --out DIR
     python variants.py --selftest
 
---- Ordre FIXE des tirages (un seul `random.Random(seed)`, jamais recréé) ---
+--- Ordre FIXE des tirages (un seul `random.Random(seed)`, jamais recree) ---
 
-Toutes les perturbations puisent DANS CET ORDRE dans le même générateur, pour
-une reproductibilité bit-à-bit à graine fixée :
+Toutes les perturbations puisent DANS CET ORDRE dans le meme generateur, pour
+une reproductibilite bit-a-bit a graine fixee :
 
-1. KPIs (``_perturb_kpis``) — tours 0..N_TOURS croissants, puis lignes de
+1. KPIs (``_perturb_kpis``) - tours 0..N_TOURS croissants, puis lignes de
    ``tour_NN.csv`` dans l'ordre du fichier source : 1 tirage
    ``rng.gauss(0, KPI_NOISE_SIGMA)`` par ligne (bruit multiplicatif
-   log-normal ``exp(N(0, 0.1))``). Lissage EMA (rho=0.5) par clé
-   ``(node_id, kpi_path)`` au fil de ses apparitions réelles (une série qui
-   saute des tours se lisse entre ses apparitions, pas tour à tour). Bornes
-   physiques appliquées via ``supplyscore.domain.constraints.clamp_kpi_value``
-   (source de vérité unique des bornes — oee.*/risk.failure_probability dans
-   [0,1], jamais négatif) — sur la valeur ÉCRITE ET sur l'état EMA reporté,
-   pour qu'aucun état interne hors-bornes ne "contamine" les tours suivants.
+   log-normal ``exp(N(0, 0.1))``). Lissage EMA (rho=0.5) par cle
+   ``(node_id, kpi_path)`` au fil de ses apparitions reelles (une serie qui
+   saute des tours se lisse entre ses apparitions, pas tour a tour). Bornes
+   physiques appliquees via ``supplyscore.domain.constraints.clamp_kpi_value``
+   (source de verite unique des bornes - oee.*/risk.failure_probability dans
+   [0,1], jamais negatif) - sur la valeur ECRITE ET sur l'etat EMA reporte,
+   pour qu'aucun etat interne hors-bornes ne "contamine" les tours suivants.
 
-2. Événements (``_perturb_events``) — tours 1..N_TOURS croissants (T0 est le
-   tour d'entraînement fictif, toujours sans événement, jamais parcouru).
+2. Evenements (``_perturb_events``) - tours 1..N_TOURS croissants (T0 est le
+   tour d'entrainement fictif, toujours sans evenement, jamais parcouru).
    Pour chaque tour, DANS CET ORDRE :
-   a. les événements SOURCE de ce tour, dans l'ordre du fichier ; pour
+   a. les evenements SOURCE de ce tour, dans l'ordre du fichier ; pour
       chacun, DANS CET ORDRE : 1 tirage ``rng.randint(-1, 1)`` (jitter de
       tour, uniforme sur {-1,0,+1}) puis 1 tirage ``rng.random()`` (dropout,
-      abandonné si < 0.1). Un événement conservé est déplacé au tour
+      abandonne si < 0.1). Un evenement conserve est deplace au tour
       ``clamp(tour + jitter, 1, N_TOURS)`` avec ses ``params``/``note``
-      inchangés (seule sa date bouge).
-   b. 1 tirage ``rng.random()`` pour la probabilité d'événement
-      supplémentaire ce tour ; si < 0.05 : 1 tirage ``rng.choice`` sur le
-      pool trié des types présents dans le calendrier source, 1 tirage
-      ``rng.choice`` sur les nœuds (ordre ``scenario.NODES``), 1 tirage
+      inchanges (seule sa date bouge).
+   b. 1 tirage ``rng.random()`` pour la probabilite d'evenement
+      supplementaire ce tour ; si < 0.05 : 1 tirage ``rng.choice`` sur le
+      pool trie des types presents dans le calendrier source, 1 tirage
+      ``rng.choice`` sur les noeuds (ordre ``scenario.NODES``), 1 tirage
       ``rng.choice`` sur les occurrences source de ce type pour copier des
       ``params`` valides (gabarit).
-   ``events_truth`` (manifeste) est dérivé de ce calendrier RÉSULTANT.
+   ``events_truth`` (manifeste) est derive de ce calendrier RESULTANT.
 
-3. Arcs (``_perturb_arcs``) — 1 tirage ``rng.uniform(0.8, 1.2)`` pour
+3. Arcs (``_perturb_arcs``) - 1 tirage ``rng.uniform(0.8, 1.2)`` pour
    ``beta_scale``, PUIS 1 tirage ``rng.uniform(0.8, 1.2)`` pour
-   ``gamma_scale``. Écrits SEULEMENT dans le manifeste (le moteur de
+   ``gamma_scale``. Ecrits SEULEMENT dans le manifeste (le moteur de
    campagne les applique ; les arcs ne vivent pas dans ``prepared/``).
 
-4. Jalons (``_perturb_milestones``) — jalons dans l'ordre de première
-   apparition dans le pack source (tour croissant, ordre du fichier — pour
-   HÉLIOS, équivalent à l'ordre de ``scenario.MILESTONES`` puisque les 18
-   jalons apparaissent tous dès T0) ; pour chaque jalon, ses occurrences
+4. Jalons (``_perturb_milestones``) - jalons dans l'ordre de premiere
+   apparition dans le pack source (tour croissant, ordre du fichier - pour
+   HELIOS, equivalent a l'ordre de ``scenario.MILESTONES`` puisque les 18
+   jalons apparaissent tous des T0) ; pour chaque jalon, ses occurrences
    ACTIVES dans l'ordre croissant des tours : 1 tirage
    ``rng.uniform(0.7, 1.3)`` chacune, qui multiplie le DELTA de progression
-   par rapport à l'occurrence active précédente (delta = progress_source(t) -
-   progress_source(t-1)) ; la progression perturbée cumule ces deltas
-   mis à l'échelle, bornée à [0, 0.999[ (jamais 1.0 avant la transition
-   "done" réelle). Les occurrences "done" NE TIRENT RIEN : recopiées telles
-   quelles du pack source (même tour, même progress=1.0) — un jalon ne
-   redevient jamais actif après avoir été marqué terminé, et la transition
-   elle-même n'est jamais rejouée (règle explicite : "never un-finish a
-   milestone"). Le champ ``deadline_wk`` (re-planification), quand présent,
-   est recopié inchangé.
+   par rapport a l'occurrence active precedente (delta = progress_source(t) -
+   progress_source(t-1)) ; la progression perturbee cumule ces deltas
+   mis a l'echelle, bornee a [0, 0.999[ (jamais 1.0 avant la transition
+   "done" reelle). Les occurrences "done" NE TIRENT RIEN : recopiees telles
+   quelles du pack source (meme tour, meme progress=1.0) - un jalon ne
+   redevient jamais actif apres avoir ete marque termine, et la transition
+   elle-meme n'est jamais rejouee (regle explicite : "never un-finish a
+   milestone"). Le champ ``deadline_wk`` (re-planification), quand present,
+   est recopie inchange.
 """
 
 from __future__ import annotations
@@ -109,10 +109,10 @@ import scenario  # module voisin (projects/.../scenario/scenario.py)
 from supplyscore.domain.constraints import clamp_kpi_value
 
 PREPARED = Path(__file__).resolve().parent.parent / "data" / "prepared"
-N_TOURS = scenario.N_TOURS  # 18 (+ T0 d'entraînement = 19 tours au total)
+N_TOURS = scenario.N_TOURS  # 18 (+ T0 d'entrainement = 19 tours au total)
 NODE_IDS: list[str] = [n["id"] for n in scenario.NODES]  # ordre stable
 
-# --- Hyperparamètres des perturbations (constants, documentés au manifeste) -------
+# Hyperparametres des perturbations (constants, documentes au manifeste)
 
 KPI_NOISE_SIGMA = 0.1
 KPI_EMA_RHO = 0.5
@@ -137,7 +137,7 @@ def _manifest_params() -> dict[str, float]:
     }
 
 
-# --- Lecture du pack source (data/prepared/, lecture SEULE, jamais modifié) -------
+# Lecture du pack source (data/prepared/, lecture SEULE, jamais modifie)
 
 
 def _read_tour_csv(tour: int) -> list[dict[str, str]]:
@@ -152,14 +152,14 @@ def _read_json(name: str) -> list[dict]:
 def _load_all_sources() -> tuple[
     dict[int, list[dict[str, str]]], dict[int, list[dict]], dict[int, list[dict]]
 ]:
-    """Charge une seule fois le pack source (réutilisé pour toutes les graines)."""
+    """Charge une seule fois le pack source (reutilise pour toutes les graines)."""
     kpi_rows = {t: _read_tour_csv(t) for t in range(0, N_TOURS + 1)}
     events = {t: _read_json(f"events_{t:02d}.json") for t in range(0, N_TOURS + 1)}
     milestones = {t: _read_json(f"milestones_{t:02d}.json") for t in range(0, N_TOURS + 1)}
     return kpi_rows, events, milestones
 
 
-# --- 1. KPIs -----------------------------------------------------------------------
+# 1. KPIs
 
 
 def _perturb_kpis(
@@ -184,11 +184,11 @@ def _perturb_kpis(
     return out
 
 
-# --- 2. Événements -------------------------------------------------------------------
+# 2. Evenements
 
 
 def _event_type_pool(source_events: dict[int, list[dict]]) -> list[str]:
-    """Types distincts du calendrier source, triés (ordre déterministe)."""
+    """Types distincts du calendrier source, tries (ordre deterministe)."""
     return sorted({ev["type"] for evs in source_events.values() for ev in evs})
 
 
@@ -204,7 +204,7 @@ def _event_templates_by_type(source_events: dict[int, list[dict]]) -> dict[str, 
 def _perturb_events(
     rng: random.Random, source_events: dict[int, list[dict]]
 ) -> dict[int, list[dict]]:
-    """Jitter ±1 tour, dropout p=0.1, événement supplémentaire p=0.05/tour."""
+    """Jitter +/-1 tour, dropout p=0.1, evenement supplementaire p=0.05/tour."""
     type_pool = _event_type_pool(source_events)
     templates = _event_templates_by_type(source_events)
     perturbed: dict[int, list[dict]] = {t: [] for t in range(0, N_TOURS + 1)}
@@ -235,7 +235,7 @@ def _perturb_events(
 
 
 def _events_truth(perturbed_events: dict[int, list[dict]]) -> dict[str, list[dict]]:
-    """Vérité terrain dérivée du calendrier RÉSULTANT (jamais le nominal)."""
+    """Verite terrain derivee du calendrier RESULTANT (jamais le nominal)."""
     truth: dict[str, list[dict]] = {}
     for tour in sorted(perturbed_events):
         evs = perturbed_events[tour]
@@ -248,7 +248,7 @@ def _events_truth(perturbed_events: dict[int, list[dict]]) -> dict[str, list[dic
     return truth
 
 
-# --- 3. Arcs -------------------------------------------------------------------------
+# 3. Arcs
 
 
 def _perturb_arcs(rng: random.Random) -> tuple[float, float]:
@@ -257,11 +257,11 @@ def _perturb_arcs(rng: random.Random) -> tuple[float, float]:
     return beta_scale, gamma_scale
 
 
-# --- 4. Jalons -----------------------------------------------------------------------
+# 4. Jalons
 
 
 def _milestone_identity_order(source_milestones: dict[int, list[dict]]) -> list[tuple[str, str]]:
-    """Ordre de première apparition (tour croissant, ordre fichier) — déterministe."""
+    """Ordre de premiere apparition (tour croissant, ordre fichier) - deterministe."""
     seen: dict[tuple[str, str], None] = {}
     for tour in sorted(source_milestones):
         for m in source_milestones[tour]:
@@ -272,7 +272,7 @@ def _milestone_identity_order(source_milestones: dict[int, list[dict]]) -> list[
 def _perturb_milestones(
     rng: random.Random, source_milestones: dict[int, list[dict]]
 ) -> dict[int, list[dict]]:
-    """Delta de progression mis à l'échelle x U(0.7, 1.3), jalon par jalon."""
+    """Delta de progression mis a l'echelle x U(0.7, 1.3), jalon par jalon."""
     identity_order = _milestone_identity_order(source_milestones)
 
     trajectories: dict[tuple[str, str], list[tuple[int, dict]]] = {k: [] for k in identity_order}
@@ -287,7 +287,7 @@ def _perturb_milestones(
         by_tour: dict[int, dict] = {}
         for tour, entry in trajectories[key]:
             if entry.get("status") == "done":
-                by_tour[tour] = dict(entry)  # transition recopiée, jamais rejouée
+                by_tour[tour] = dict(entry)  # transition recopiee, jamais rejouee
                 continue
             orig_progress = float(entry["progress"])
             delta = orig_progress - prev_orig
@@ -309,7 +309,7 @@ def _perturb_milestones(
     return out
 
 
-# --- Écriture de la mise en page data/prepared/ -------------------------------------
+# Ecriture de la mise en page data/prepared/
 
 
 def _write_layout(
@@ -350,11 +350,11 @@ def _write_manifest(
     )
 
 
-# --- Génération par graine -----------------------------------------------------------
+# Generation par graine
 
 
 def _generate_identity(out_dir: Path, source_events: dict[int, list[dict]]) -> None:
-    """Graine 0 : copie octet-à-octet du pack source, AUCUN tirage."""
+    """Graine 0 : copie octet-a-octet du pack source, AUCUN tirage."""
     for tour in range(0, N_TOURS + 1):
         for name in (
             f"tour_{tour:02d}.csv",
@@ -374,7 +374,7 @@ def generate_seed(
     source_events: dict[int, list[dict]],
     source_milestones: dict[int, list[dict]],
 ) -> None:
-    """Génère une graine complète sous ``out_dir`` (créé si absent)."""
+    """Genere une graine complete sous ``out_dir`` (cree si absent)."""
     out_dir.mkdir(parents=True, exist_ok=True)
     if seed == 0:
         _generate_identity(out_dir, source_events)
@@ -382,7 +382,7 @@ def generate_seed(
 
     rng = random.Random(seed)
     kpi_by_tour = _perturb_kpis(rng, kpi_rows)  # 1. KPIs
-    events_by_tour = _perturb_events(rng, source_events)  # 2. Événements
+    events_by_tour = _perturb_events(rng, source_events)  # 2. Evenements
     beta_scale, gamma_scale = _perturb_arcs(rng)  # 3. Arcs
     milestones_by_tour = _perturb_milestones(rng, source_milestones)  # 4. Jalons
 
@@ -390,7 +390,7 @@ def generate_seed(
     _write_manifest(out_dir, seed, beta_scale, gamma_scale, _events_truth(events_by_tour))
 
 
-# --- CLI -------------------------------------------------------------------------------
+# CLI
 
 
 def _parse_seeds(spec: str) -> list[int]:
@@ -408,11 +408,11 @@ def _parse_seeds(spec: str) -> list[int]:
 
 
 def _selftest() -> int:
-    """Vérifie la graine 0 contre le pack source.
+    """Verifie la graine 0 contre le pack source.
 
-    Génère la graine 0 dans un dossier temporaire et diffe octet-à-octet
-    contre ``data/prepared/``. Message en français, code de sortie 0 (OK)
-    ou 1 (échec).
+    Genere la graine 0 dans un dossier temporaire et diffe octet-a-octet
+    contre ``data/prepared/``. Message en francais, code de sortie 0 (OK)
+    ou 1 (echec).
     """
     kpi_rows, source_events, source_milestones = _load_all_sources()
     with tempfile.TemporaryDirectory(prefix="helios_variants_selftest_") as tmp:
@@ -444,7 +444,7 @@ def _selftest() -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Point d'entrée CLI : ``--seeds``/``--out`` pour générer, ou ``--selftest``."""
+    """Point d'entree CLI : ``--seeds``/``--out`` pour generer, ou ``--selftest``."""
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")  # console Windows cp1252
 

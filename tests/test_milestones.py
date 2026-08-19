@@ -24,7 +24,7 @@ def make_milestone(
     progress: float = 0.0,
     mid: str = "m1",
 ) -> Milestone:
-    """Jalon de test ancré sur T0, échéances exprimées en heures."""
+    """Jalon de test ancre sur T0, echeances exprimees en heures."""
     return Milestone(
         id=mid,
         node_id="n1",
@@ -37,7 +37,7 @@ def make_milestone(
 
 
 class TestDeriveNodeStatus:
-    """Table de vérité du statut dérivé des jalons."""
+    """Table de verite du statut derive des jalons."""
 
     def test_liste_vide_statut_manuel_conserve(self):
         assert derive_node_status([]) is None
@@ -57,7 +57,7 @@ class TestDeriveNodeStatus:
         assert derive_node_status([done, done2]) is TaskStatus.DONE
 
     def test_mix_done_abandonne_est_abandonne(self):
-        """Règle PESSIMISTE : un jalon abandonné teinte le nœud (risque maximal aval)."""
+        """Regle PESSIMISTE : un jalon abandonne teinte le noeud (risque maximal aval)."""
         done = make_milestone(5.0, status=MilestoneStatus.DONE, mid="d")
         abandoned = make_milestone(8.0, status=MilestoneStatus.ABANDONED, mid="x")
         for combo in permutations([done, abandoned]):
@@ -71,7 +71,7 @@ class TestDeriveNodeStatus:
 
 
 class TestNextActiveMilestone:
-    """Sélection du prochain jalon actif (deadline minimale)."""
+    """Selection du prochain jalon actif (deadline minimale)."""
 
     def test_liste_vide(self):
         assert next_active_milestone([]) is None
@@ -97,7 +97,7 @@ class TestNextActiveMilestone:
 
 
 class TestTheoreticalProgress:
-    """Avancement théorique linéaire entre start_ts et deadline_ts."""
+    """Avancement theorique lineaire entre start_ts et deadline_ts."""
 
     def test_avant_start(self):
         m = make_milestone(100.0, start_h=10.0)
@@ -117,9 +117,9 @@ class TestTheoreticalProgress:
         assert theoretical_progress(m, T0 + 50.0 * H) == pytest.approx(0.4)
 
     def test_convention_deadline_avant_start(self):
-        # Fenêtre dégénérée (deadline == start) -> 1.0.
+        # Fenetre degeneree (deadline == start) -> 1.0.
         m = make_milestone(10.0, start_h=10.0)
         assert theoretical_progress(m, T0) == 1.0
-        # Fenêtre inversée (deadline < start) -> 1.0.
+        # Fenetre inversee (deadline < start) -> 1.0.
         m = make_milestone(5.0, start_h=10.0)
         assert theoretical_progress(m, T0 + 100.0 * H) == 1.0

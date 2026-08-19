@@ -1,6 +1,6 @@
-"""Page « Questionnaire » : évaluation AHP hebdomadaire + saisie des KPIs.
+"""Page " Questionnaire " : evaluation AHP hebdomadaire + saisie des KPIs.
 
-Les callbacks sont des fonctions nommées au niveau module (enregistrées dans
+Les callbacks sont des fonctions nommees au niveau module (enregistrees dans
 :func:`register_callbacks`) : la logique de sauvegarde est ainsi testable en
 appelant directement :func:`save_assessment_callback`, sans serveur Dash.
 """
@@ -37,11 +37,10 @@ from supplyscore.web_ui.components.layout import (
     node_options,
 )
 
-#: Les 6 paires (i, j) de comparaison des 4 critères AHP.
+#: Les 6 paires (i, j) de comparaison des 4 criteres AHP.
 PAIRS: list[tuple[int, int]] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
 
-#: Champs KPI optionnels saisissables, groupés par bloc d'affichage.
-#: Chaque clé "bloc.champ" pointe un attribut de ``KPIBundle``.
+#: Champs KPI optionnels saisissables, groupes par bloc d'affichage. Chaque cle "bloc.champ" pointe un attribut de ``KPIBundle``.
 KPI_FIELDS: list[tuple[str, list[tuple[str, str]]]] = [
     (
         "Temps",
@@ -104,16 +103,16 @@ _PAIR_MARKS = {-8: "-8", -4: "-4", 0: "0", 4: "+4", 8: "+8"}
 
 
 def _fr(value: float, digits: int = 3) -> str:
-    """Nombre formaté à la française (virgule décimale) pour les PHRASES.
+    """Nombre formate a la francaise (virgule decimale) pour les PHRASES.
 
-    Réservé aux messages français visibles — jamais aux inputs ni aux
-    colonnes numériques de DataTable (Dash exige le point).
+    Reserve aux messages francais visibles - jamais aux inputs ni aux
+    colonnes numeriques de DataTable (Dash exige le point).
     """
     return f"{value:.{digits}f}".replace(".", ",")
 
 
 def _pair_block(i: int, j: int) -> html.Div:
-    """Slider bipolaire (-8..+8) d'une paire de critères + libellé dynamique."""
+    """Slider bipolaire (-8..+8) d'une paire de criteres + libelle dynamique."""
     key = f"{i}-{j}"
     return html.Div(
         [
@@ -140,7 +139,7 @@ def _pair_block(i: int, j: int) -> html.Div:
 
 
 def _score_block(k: int) -> html.Div:
-    """Slider de note 1..6 d'un critère + libellé live (équivalent Saaty)."""
+    """Slider de note 1..6 d'un critere + libelle live (equivalent Saaty)."""
     return html.Div(
         [
             html.P(
@@ -163,7 +162,7 @@ def _score_block(k: int) -> html.Div:
 
 
 def _kpi_blocks() -> list:
-    """Inputs numériques optionnels groupés par bloc KPI."""
+    """Inputs numeriques optionnels groupes par bloc KPI."""
     children: list = []
     for block_title, fields in KPI_FIELDS:
         children.append(
@@ -193,7 +192,7 @@ def _kpi_blocks() -> list:
 
 
 def layout() -> html.Div:
-    """Construit la page Questionnaire (état du service relu à chaque navigation)."""
+    """Construit la page Questionnaire (etat du service relu a chaque navigation)."""
     service = get_service()
     return html.Div(
         [
@@ -292,7 +291,7 @@ def layout() -> html.Div:
     )
 
 
-# --- Helpers de conversion ------------------------------------------------------
+# Helpers de conversion
 
 
 def _comparisons_from_inputs(values, ids) -> dict[tuple[int, int], float]:
@@ -305,21 +304,21 @@ def _comparisons_from_inputs(values, ids) -> dict[tuple[int, int], float]:
 
 
 def _scores_from_inputs(values, ids) -> list[float]:
-    """Convertit les notes UI [1, 6] en notes Saaty [1, 9], ordonnées par critère."""
+    """Convertit les notes UI [1, 6] en notes Saaty [1, 9], ordonnees par critere."""
     ordered = sorted(zip(ids, values, strict=True), key=lambda pair: int(pair[0]["index"]))
     return [score_6_to_9(float(v if v is not None else 3)) for _, v in ordered]
 
 
-# --- Callbacks (fonctions nommées, testables sans serveur) ------------------------
+# Callbacks (fonctions nommees, testables sans serveur)
 
 
 def project_info_callback(project_data):
-    """Affiche le projet actif (avec sa semaine courante) et restreint le dropdown nœud.
+    """Affiche le projet actif (avec sa semaine courante) et restreint le dropdown noeud.
 
-    Avec un projet sélectionné, le bandeau mentionne la semaine ISO courante
-    selon l'horloge du projet (« Semaine 2026-S24 ») et chaque option du
-    dropdown porte le statut hebdo du nœud — « À jour », « En retard (n sem.) »
-    ou « Manquant » — calculé en UN appel à
+    Avec un projet selectionne, le bandeau mentionne la semaine ISO courante
+    selon l'horloge du projet (" Semaine 2026-S24 ") et chaque option du
+    dropdown porte le statut hebdo du noeud - " A jour ", " En retard (n sem.) "
+    ou " Manquant " - calcule en UN appel a
     :meth:`CycleHebdomadaire.synthese`.
     """
     service = get_service()
@@ -349,7 +348,7 @@ def project_info_callback(project_data):
 
 
 def pair_label_callback(value, id_):
-    """Libellé dynamique sous un slider de comparaison par paire."""
+    """Libelle dynamique sous un slider de comparaison par paire."""
     i, j = (int(x) for x in id_["index"].split("-", 1))
     v = int(value or 0)
     if v == 0:
@@ -360,13 +359,13 @@ def pair_label_callback(value, id_):
 
 
 def score_label_callback(value):
-    """Libellé live d'une note critère : « Note v/6 (≈ Saaty s) »."""
+    """Libelle live d'une note critere : " Note v/6 (~= Saaty s) "."""
     v = float(value if value is not None else 3)
     return f"Note {int(v)}/6 (≈ Saaty {score_6_to_9(v):.1f})"
 
 
 def preview_callback(pair_values, score_values, pair_ids, score_ids):
-    """Aperçu live : Ud, ratio de cohérence CR et figure des poids AHP."""
+    """Apercu live : Ud, ratio de coherence CR et figure des poids AHP."""
     comparisons = _comparisons_from_inputs(pair_values, pair_ids)
     scores = _scores_from_inputs(score_values, score_ids)
     result = run_ahp(comparisons, n=len(CRITERIA))
@@ -388,7 +387,7 @@ def preview_callback(pair_values, score_values, pair_ids, score_ids):
 
 
 def prefill_kpis_callback(node_id, kpi_ids):
-    """Pré-remplit les inputs KPI avec les valeurs actuelles du nœud sélectionné."""
+    """Pre-remplit les inputs KPI avec les valeurs actuelles du noeud selectionne."""
     service = get_service()
     if not node_id:
         raise PreventUpdate
@@ -415,10 +414,10 @@ def save_assessment_callback(
     kpi_values,
     kpi_ids,
 ):
-    """Valide et persiste l'évaluation hebdomadaire (AHP + KPIs renseignés).
+    """Valide et persiste l'evaluation hebdomadaire (AHP + KPIs renseignes).
 
-    Refuse l'enregistrement si le nœud ou l'opérateur manquent, ou si le
-    ratio de cohérence CR dépasse le seuil de Saaty (0.10).
+    Refuse l'enregistrement si le noeud ou l'operateur manquent, ou si le
+    ratio de coherence CR depasse le seuil de Saaty (0.10).
     """
     if not n_clicks:
         raise PreventUpdate
@@ -451,8 +450,7 @@ def save_assessment_callback(
 
     service.submit_assessment(assessment)
 
-    # KPIs : seuls les champs renseignés écrasent les valeurs du nœud —
-    # via MutationService (diff + validation + audit, source "weekly").
+    # KPIs : seuls les champs renseignes ecrasent les valeurs du noeud - via MutationService (diff + validation + audit, source "weekly").
     changes: dict[str, float | None] = {}
     for value, id_ in zip(kpi_values, kpi_ids, strict=True):
         if value is None or value == "":
@@ -467,7 +465,7 @@ def save_assessment_callback(
     updated = len(entries)
     service.evaluate_all(persist=True)
 
-    # submit_assessment a renseigné assessment.iso_week (horloge du projet).
+    # submit_assessment a renseigne assessment.iso_week (horloge du projet).
     return html.Span(
         f"Évaluation enregistrée pour « {node.name} » "
         f"(Ud = {_fr(assessment.ud)}, {updated} KPI mis à jour) "

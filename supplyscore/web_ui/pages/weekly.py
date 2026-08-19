@@ -1,26 +1,26 @@
-"""Page « /hebdo » : le rituel hebdomadaire guidé en quatre volets (Lot 6.5).
+"""Page " /hebdo " : le rituel hebdomadaire guide en quatre volets (Lot 6.5).
 
-Parcours nominal (budget 15-20 minutes PAR NŒUD, ≤ 12 clics) : choisir un
-nœud, puis dérouler les quatre volets de la revue
+Parcours nominal (budget 15-20 minutes PAR NOEUD, <= 12 clics) : choisir un
+noeud, puis derouler les quatre volets de la revue
 (:data:`supplyscore.services.weekly.VOLETS`) :
 
-1. **AHP** — sliders PRÉ-REMPLIS depuis la dernière évaluation
+1. **AHP** - sliders PRE-REMPLIS depuis la derniere evaluation
    (:func:`saaty_to_bipolar` / :func:`saaty_to_score6`, inverses exactes des
-   conversions du questionnaire) ; « Confirmer à l'identique » re-soumet la
-   dernière évaluation en un clic ;
-2. **KPIs** — tableau de diff semaine passée / valeur courante
+   conversions du questionnaire) ; " Confirmer a l'identique " re-soumet la
+   derniere evaluation en un clic ;
+2. **KPIs** - tableau de diff semaine passee / valeur courante
    (:meth:`WeeklyReview.kpi_diff`), avec garde-fou anti double comptage : un
-   KPI déjà touché par un événement de la semaine porte un avertissement ;
-3. **Jalons** — confirmation des jalons actifs, avancement déclaré vs
-   THÉORIQUE (:func:`~supplyscore.domain.milestones.theoretical_progress`) ;
-4. **Événements & décision** — déclaration calibrée (preview → apply),
-   relance des événements ouverts des semaines passées, journal de décision.
+   KPI deja touche par un evenement de la semaine porte un avertissement ;
+3. **Jalons** - confirmation des jalons actifs, avancement declare vs
+   THEORIQUE (:func:`~supplyscore.domain.milestones.theoretical_progress`) ;
+4. **Evenements & decision** - declaration calibree (preview -> apply),
+   relance des evenements ouverts des semaines passees, journal de decision.
 
-Quand les quatre volets sont ✓, « Clôturer la revue » pose ``completed_at``
-et affiche la durée. Les callbacks sont des fonctions nommées au niveau
-module (testables sans serveur) ; toutes les écritures sont estampillées par
-l'opérateur courant (:func:`~supplyscore.web_ui.components.operator.current_operator`)
-et datées par l'horloge du PROJET du nœud.
+Quand les quatre volets sont [ok], " Cloturer la revue " pose ``completed_at``
+et affiche la duree. Les callbacks sont des fonctions nommees au niveau
+module (testables sans serveur) ; toutes les ecritures sont estampillees par
+l'operateur courant (:func:`~supplyscore.web_ui.components.operator.current_operator`)
+et datees par l'horloge du PROJET du noeud.
 """
 
 from __future__ import annotations
@@ -67,7 +67,7 @@ from supplyscore.web_ui.components.layout import (
 from supplyscore.web_ui.components.operator import current_operator
 from supplyscore.web_ui.pages.questionnaire import KPI_FIELDS, PAIRS
 
-#: Titres français des quatre volets, dans l'ordre du déroulé.
+#: Titres francais des quatre volets, dans l'ordre du deroule.
 VOLET_TITLES: dict[str, str] = {
     "ahp": "Volet 1 — Évaluation AHP",
     "kpis": "Volet 2 — KPIs de la semaine",
@@ -75,29 +75,22 @@ VOLET_TITLES: dict[str, str] = {
     "evenements": "Volet 4 — Événements & décision",
 }
 
-#: Blocs KPI confirmés par « Rien n'a changé » (préfixes uniques de KPI_FIELDS).
+#: Blocs KPI confirmes par " Rien n'a change " (prefixes uniques de KPI_FIELDS).
 KPI_BLOCKS: list[str] = list(
     dict.fromkeys(path.split(".", 1)[0] for _bloc, fields in KPI_FIELDS for path, _ in fields)
 )
 
-#: Champs triangulaires du lead time (mode Monte Carlo E13) affichés au volet 2.
-#: POINT D'EXTENSION DOCUMENTÉ : ``KPI_FIELDS`` appartient au questionnaire
-#: PARTAGÉ (il pilote aussi l'éditeur, la fiche nœud 360 et le wizard) — ces
-#: champs, propres au mode Monte Carlo, sont donc ajoutés LOCALEMENT aux lignes
-#: du volet 2, en AVAL de :meth:`WeeklyReview.kpi_diff` (cf. :func:`_mc_kpi_rows`).
-#: La saisie réutilise le mécanisme existant tel quel : mêmes ids pattern-matchés
-#: ``{"type": "hebdo-kpi"}``, même :func:`kpi_save_callback`, validation par les
-#: bornes de ``KPI_CONSTRAINTS`` (domain.constraints).
+#: Champs triangulaires du lead time (mode Monte Carlo E13) affiches au volet 2. POINT D'EXTENSION DOCUMENTE : ``KPI_FIELDS`` appartient au questionnaire PARTAGE (il pilote aussi l'editeur, la fiche noeud 360 et le wizard) - ces champs, propres au mode Monte Carlo, sont donc ajoutes LOCALEMENT aux lignes du volet 2, en AVAL de :meth:`WeeklyReview.kpi_diff` (cf. :func:`_mc_kpi_rows`). La saisie reutilise le mecanisme existant tel quel : memes ids pattern-matches ``{"type": "hebdo-kpi"}``, meme :func:`kpi_save_callback`, validation par les bornes de ``KPI_CONSTRAINTS`` (domain.constraints).
 MC_TRIANGULAR_FIELDS: list[tuple[str, str]] = [
     ("time.lead_time_min_h", "Lead time min — triangulaire MC (h)"),
     ("time.lead_time_mode_h", "Lead time mode — triangulaire MC (h)"),
     ("time.lead_time_max_h", "Lead time max — triangulaire MC (h)"),
 ]
 
-#: Écart toléré (en points de progression) avant l'alerte rouge « en retard ».
+#: Ecart tolere (en points de progression) avant l'alerte rouge " en retard ".
 LATE_PROGRESS_MARGIN: float = 0.10
 
-#: Options françaises du dropdown de statut d'un jalon.
+#: Options francaises du dropdown de statut d'un jalon.
 _MS_STATUS_OPTIONS: list[dict] = [
     {"label": "Actif", "value": str(MilestoneStatus.ACTIVE)},
     {"label": "Terminé", "value": str(MilestoneStatus.DONE)},
@@ -107,7 +100,7 @@ _MS_STATUS_OPTIONS: list[dict] = [
 _PAIR_MARKS = {-8: "-8", -4: "-4", 0: "0", 4: "+4", 8: "+8"}
 _PROGRESS_MARKS = {0: "0 %", 25: "25", 50: "50", 75: "75", 100: "100 %"}
 
-# --- Styles locaux (alignés sur layout.py / badges.py) --------------------------------
+# Styles locaux (alignes sur layout.py / badges.py)
 
 _MUTED_STYLE = {"fontSize": "13px", "color": COLORS["muted"], "fontFamily": FONT_FAMILY}
 
@@ -161,7 +154,7 @@ _KPI_WARN_STYLE = {"fontSize": "12px", "color": COLORS["warn"], "marginTop": "3p
 
 _BUTTON_ROW_STYLE = {"marginTop": "14px", "display": "flex", "gap": "10px", "flexWrap": "wrap"}
 
-#: Bandeau d'invitation bleu (état vide : aucun nœud sélectionné, Lot 16.2).
+#: Bandeau d'invitation bleu (etat vide : aucun noeud selectionne, Lot 16.2).
 _EMPTY_BANNER_STYLE = {
     "backgroundColor": "#eef4f8",
     "border": f"1px solid {COLORS['primary']}",
@@ -174,7 +167,7 @@ _EMPTY_BANNER_STYLE = {
     "fontFamily": FONT_FAMILY,
 }
 
-#: Compteur de progression du volet 1 (« x/6 paires ajustées », Lot 16.3).
+#: Compteur de progression du volet 1 (" x/6 paires ajustees ", Lot 16.3).
 _PAIR_COUNT_STYLE = {
     "fontSize": "13px",
     "fontWeight": "600",
@@ -183,16 +176,16 @@ _PAIR_COUNT_STYLE = {
 }
 
 
-# --- Conversions inverses (Saaty -> UI) ------------------------------------------------
+# Conversions inverses (Saaty -> UI)
 
 
 def saaty_to_bipolar(a: float) -> int:
     """Position bipolaire UI [-8, +8] d'un jugement de Saaty (inverse exacte).
 
     Inverse de :func:`~supplyscore.core.bipolar_to_saaty` :
-    ``v = round(a) − 1`` si ``a >= 1``, sinon ``v = −(round(1/a) − 1)``.
-    Bijection exacte sur les 17 valeurs de l'échelle bipolaire ; le résultat
-    est borné sur [-8, +8] (garde-fou pour un jugement hors échelle).
+    ``v = round(a) - 1`` si ``a >= 1``, sinon ``v = -(round(1/a) - 1)``.
+    Bijection exacte sur les 17 valeurs de l'echelle bipolaire ; le resultat
+    est borne sur [-8, +8] (garde-fou pour un jugement hors echelle).
 
     Args:
         a: jugement de Saaty dans [1/9, 9].
@@ -207,31 +200,31 @@ def saaty_to_bipolar(a: float) -> int:
 def saaty_to_score6(s: float) -> int:
     """Note UI 1..6 (arrondie) d'une note Saaty [1, 9] (inverse de score_6_to_9).
 
-    ``score_6_to_9`` est linéaire (1 → 1, 6 → 9) : l'inverse vaut
-    ``v = 1 + (s − 1) · 5/8``, arrondi à l'entier et borné sur [1, 6].
+    ``score_6_to_9`` est lineaire (1 -> 1, 6 -> 9) : l'inverse vaut
+    ``v = 1 + (s - 1) - 5/8``, arrondi a l'entier et borne sur [1, 6].
 
     Args:
-        s: note sur l'échelle de Saaty [1, 9].
+        s: note sur l'echelle de Saaty [1, 9].
 
     Returns:
-        La note UI entière dans [1, 6].
+        La note UI entiere dans [1, 6].
     """
     return max(1, min(6, round(1.0 + (s - 1.0) * 5.0 / 8.0)))
 
 
 def ahp_prefill(service: SupplyScoreService, node_id: str) -> tuple[dict[str, int], dict[str, int]]:
-    """Valeurs initiales des sliders AHP depuis la DERNIÈRE évaluation du nœud.
+    """Valeurs initiales des sliders AHP depuis la DERNIERE evaluation du noeud.
 
-    Sans évaluation précédente, les défauts du questionnaire s'appliquent
-    (paires à 0 — importance égale —, notes à 3).
+    Sans evaluation precedente, les defauts du questionnaire s'appliquent
+    (paires a 0 - importance egale -, notes a 3).
 
     Args:
-        service: façade applicative.
-        node_id: identifiant du nœud.
+        service: facade applicative.
+        node_id: identifiant du noeud.
 
     Returns:
         ``({"i-j": bipolaire}, {"k": note 1..6})`` pour les 6 paires et les
-        4 critères.
+        4 criteres.
     """
     pairs = {f"{i}-{j}": 0 for i, j in PAIRS}
     scores = {str(k): 3 for k in range(len(CRITERIA))}
@@ -249,21 +242,21 @@ def ahp_prefill(service: SupplyScoreService, node_id: str) -> tuple[dict[str, in
     return pairs, scores
 
 
-# --- Petits helpers d'affichage --------------------------------------------------------
+# Petits helpers d'affichage
 
 
 def _nombre_fr(valeur: float, decimales: int = 3) -> str:
-    """Nombre en notation française (virgule décimale) pour les TEXTES affichés."""
+    """Nombre en notation francaise (virgule decimale) pour les TEXTES affiches."""
     return f"{valeur:.{decimales}f}".replace(".", ",")
 
 
 def _fmt_value(value: float | None) -> str:
-    """Formate une valeur de KPI : « non renseigné » si None, 4 décimales utiles.
+    """Formate une valeur de KPI : " non renseigne " si None, 4 decimales utiles.
 
-    CHOIX DOCUMENTÉ (Lot 16.2) : notation POINT conservée — la valeur sert
-    de ``placeholder`` aux ``dcc.Input`` numériques du volet 2 (la saisie se
-    fait en point) et de colonne de comparaison alignée sur ces inputs ; la
-    virgule française est réservée aux PHRASES (:func:`_nombre_fr`).
+    CHOIX DOCUMENTE (Lot 16.2) : notation POINT conservee - la valeur sert
+    de ``placeholder`` aux ``dcc.Input`` numeriques du volet 2 (la saisie se
+    fait en point) et de colonne de comparaison alignee sur ces inputs ; la
+    virgule francaise est reservee aux PHRASES (:func:`_nombre_fr`).
     """
     if value is None:
         return "non renseigné"
@@ -271,33 +264,33 @@ def _fmt_value(value: float | None) -> str:
 
 
 def _fmt_date(ts: float) -> str:
-    """Date locale « JJ/MM/AAAA » d'un epoch (« — » si non renseignée)."""
+    """Date locale " JJ/MM/AAAA " d'un epoch (" - " si non renseignee)."""
     if ts <= 0:
         return "—"
     return datetime.fromtimestamp(float(ts)).strftime("%d/%m/%Y")
 
 
 def _check_badge(done: bool) -> html.Span:
-    """Pilule d'état d'un volet : « ✓ » vert si traité, « à traiter » gris sinon."""
+    """Pilule d'etat d'un volet : " [ok] " vert si traite, " a traiter " gris sinon."""
     if done:
         return html.Span("✓", style=_PILL_OK)
     return html.Span("à traiter", style=_PILL_MUTED)
 
 
 def _progress_badge(status: dict[str, Any]) -> html.Span:
-    """Badge « x/4 volets » : vert quand la revue est complète, orange sinon."""
+    """Badge " x/4 volets " : vert quand la revue est complete, orange sinon."""
     done, total = status["done"], status["total"]
     return html.Span(f"{done}/{total} volets", style=_PILL_OK if done >= total else _PILL_WARN)
 
 
 def _volet_badges(status: dict[str, Any]) -> tuple[html.Span, ...]:
-    """Les quatre pilules d'état des volets, dans l'ordre de :data:`VOLETS`."""
+    """Les quatre pilules d'etat des volets, dans l'ordre de :data:`VOLETS`."""
     return tuple(_check_badge(bool(status["volets"][volet])) for volet in VOLETS)
 
 
 def _triggered_id() -> Any:
-    """Id du composant déclencheur (None hors contexte de requête Dash)."""
-    try:  # ctx indisponible hors requête Dash (appel direct en test)
+    """Id du composant declencheur (None hors contexte de requete Dash)."""
+    try:  # ctx indisponible hors requete Dash (appel direct en test)
         from dash import ctx
 
         return ctx.triggered_id
@@ -306,42 +299,42 @@ def _triggered_id() -> Any:
 
 
 def _store_node_id(hebdo_data: Any) -> str:
-    """Nœud mémorisé dans ``store-hebdo`` (chaîne vide si aucun)."""
+    """Noeud memorise dans ``store-hebdo`` (chaine vide si aucun)."""
     if isinstance(hebdo_data, dict):
         return str(hebdo_data.get("node_id") or "")
     return ""
 
 
 def _no_node_msg() -> html.Span:
-    """Message d'erreur standard quand aucun nœud n'est sélectionné."""
+    """Message d'erreur standard quand aucun noeud n'est selectionne."""
     return html.Span("Sélectionnez d'abord un nœud à passer en revue.", style=MSG_ALERT_STYLE)
 
 
 def _bandeau_selection() -> html.Div:
-    """Bandeau d'état vide : invite à choisir un nœud pour démarrer la revue."""
+    """Bandeau d'etat vide : invite a choisir un noeud pour demarrer la revue."""
     return html.Div("Sélectionnez un nœud pour démarrer la revue.", style=_EMPTY_BANNER_STYLE)
 
 
 def compte_paires_ajustees(valeurs) -> int:
-    """Nombre de paires AJUSTÉES : curseurs à une valeur non nulle (Lot 16.3).
+    """Nombre de paires AJUSTEES : curseurs a une valeur non nulle (Lot 16.3).
 
-    Fonction PURE (testable sans serveur) : une paire compte dès que son
-    curseur bipolaire vaut autre chose que 0 (« importance égale ») ; les
+    Fonction PURE (testable sans serveur) : une paire compte des que son
+    curseur bipolaire vaut autre chose que 0 (" importance egale ") ; les
     valeurs manquantes (None) ne comptent pas.
 
     Args:
         valeurs: valeurs courantes des sliders de paires (ordre quelconque).
 
     Returns:
-        Le nombre de valeurs renseignées et non nulles.
+        Le nombre de valeurs renseignees et non nulles.
     """
     return sum(1 for v in valeurs if v is not None and v != 0)
 
 
 def texte_paires_ajustees(valeurs) -> str:
-    """Texte du compteur « x/6 paires ajustées » du volet 1.
+    """Texte du compteur " x/6 paires ajustees " du volet 1.
 
-    Le dénominateur suit les sliders réellement montés (repli sur
+    Le denominateur suit les sliders reellement montes (repli sur
     :data:`PAIRS` tant qu'aucun volet n'est rendu).
     """
     valeurs = list(valeurs)
@@ -349,11 +342,11 @@ def texte_paires_ajustees(valeurs) -> str:
     return f"{compte_paires_ajustees(valeurs)}/{total} paires ajustées"
 
 
-# --- Corps des volets -------------------------------------------------------------------
+# Corps des volets
 
 
 def _pair_block(i: int, j: int, value: int) -> html.Div:
-    """Slider bipolaire (-8..+8) pré-rempli d'une paire de critères."""
+    """Slider bipolaire (-8..+8) pre-rempli d'une paire de criteres."""
     key = f"{i}-{j}"
     return html.Div(
         [
@@ -373,7 +366,7 @@ def _pair_block(i: int, j: int, value: int) -> html.Div:
 
 
 def _score_block(k: int, value: int) -> html.Div:
-    """Slider de note 1..6 pré-rempli d'un critère."""
+    """Slider de note 1..6 pre-rempli d'un critere."""
     return html.Div(
         [
             html.P(CRITERIA[k], style=_TITLE_STYLE),
@@ -391,7 +384,7 @@ def _score_block(k: int, value: int) -> html.Div:
 
 
 def _ahp_body(service: SupplyScoreService, node_id: str) -> html.Div:
-    """Volet 1 : sliders pré-remplis depuis la dernière évaluation + 2 boutons."""
+    """Volet 1 : sliders pre-remplis depuis la derniere evaluation + 2 boutons."""
     pairs, scores = ahp_prefill(service, node_id)
     latest = service.client_db(node_id).latest_assessment(node_id)
     if latest is None:
@@ -408,8 +401,7 @@ def _ahp_body(service: SupplyScoreService, node_id: str) -> html.Div:
     children: list = [
         intro,
         html.H4("Comparaisons par paires", style=_H4_STYLE),
-        # Compteur de progression (Lot 16.3), mis à jour LIVE par
-        # ahp_pair_count_callback à chaque mouvement de slider.
+        # Compteur de progression (Lot 16.3), mis a jour LIVE par ahp_pair_count_callback a chaque mouvement de slider.
         html.Div(
             texte_paires_ajustees(pairs[f"{i}-{j}"] for i, j in PAIRS),
             id="hebdo-ahp-pair-count",
@@ -439,10 +431,10 @@ def _ahp_body(service: SupplyScoreService, node_id: str) -> html.Div:
 
 
 def _kpis_touched_this_week(service: SupplyScoreService, node_id: str) -> dict[str, str]:
-    """KPIs déjà modifiés par un événement ACTIF de la semaine : chemin -> libellé.
+    """KPIs deja modifies par un evenement ACTIF de la semaine : chemin -> libelle.
 
-    Garde-fou anti double comptage : seuls les événements non annulés de la
-    semaine courante comptent (un événement reverté ne modifie plus rien).
+    Garde-fou anti double comptage : seuls les evenements non annules de la
+    semaine courante comptent (un evenement reverte ne modifie plus rien).
     """
     review = WeeklyReview(service)
     engine = EventEngine(service)
@@ -460,11 +452,11 @@ def _kpis_touched_this_week(service: SupplyScoreService, node_id: str) -> dict[s
 def _mc_kpi_rows(service: SupplyScoreService, node_id: str) -> list[KpiRow]:
     """Lignes du volet 2 pour les champs triangulaires (mode Monte Carlo E13).
 
-    Extension LOCALE de :meth:`WeeklyReview.kpi_diff` (cf. le choix documenté
-    sur :data:`MC_TRIANGULAR_FIELDS`), avec les MÊMES règles : valeur
-    précédente = dernier snapshot KPI antérieur au lundi 00:00 de la semaine
-    courante du projet (``kpis_at``), valeur courante = lecture fraîche du
-    registre, unité depuis ``KPI_CONSTRAINTS``.
+    Extension LOCALE de :meth:`WeeklyReview.kpi_diff` (cf. le choix documente
+    sur :data:`MC_TRIANGULAR_FIELDS`), avec les MEMES regles : valeur
+    precedente = dernier snapshot KPI anterieur au lundi 00:00 de la semaine
+    courante du projet (``kpis_at``), valeur courante = lecture fraiche du
+    registre, unite depuis ``KPI_CONSTRAINTS``.
     """
     node = service.registry.get_node(node_id)
     if node is None:
@@ -558,7 +550,7 @@ def _kpi_body(service: SupplyScoreService, node_id: str) -> html.Div:
 
 
 def _ms_row(milestone: Milestone, now_ts: float) -> html.Tr:
-    """Ligne d'un jalon actif : nom, échéance, statut, progression, théorique."""
+    """Ligne d'un jalon actif : nom, echeance, statut, progression, theorique."""
     progress_th = theoretical_progress(milestone, now_ts)
     late = milestone.progress < progress_th - LATE_PROGRESS_MARGIN
     th_style = {
@@ -600,7 +592,7 @@ def _ms_row(milestone: Milestone, now_ts: float) -> html.Tr:
 
 
 def _ms_body(service: SupplyScoreService, node_id: str) -> html.Div:
-    """Volet 3 : une ligne par jalon ACTIF + bouton « Confirmer les jalons »."""
+    """Volet 3 : une ligne par jalon ACTIF + bouton " Confirmer les jalons "."""
     node = service.registry.get_node(node_id)
     clock = (
         service.clock_for(node.project_id)
@@ -645,12 +637,12 @@ def _ms_body(service: SupplyScoreService, node_id: str) -> html.Div:
 
 
 def _week_events_children(engine: EventEngine, node_id: str, week: str) -> html.Div:
-    """Liste des événements déclarés pendant la semaine courante (annulés inclus)."""
+    """Liste des evenements declares pendant la semaine courante (annules inclus)."""
     return events_list(engine.list_week(node_id, week), ctx="ev")
 
 
 def _open_events_children(engine: EventEngine, node_id: str, week: str) -> Any:
-    """Relance des événements OUVERTS des semaines passées (« toujours en cours ? »)."""
+    """Relance des evenements OUVERTS des semaines passees (" toujours en cours ? ")."""
     past = [event for event in engine.open_events(node_id) if event.iso_week != week]
     if not past:
         return html.P("Aucun événement ouvert des semaines passées.", style=_MUTED_STYLE)
@@ -658,7 +650,7 @@ def _open_events_children(engine: EventEngine, node_id: str, week: str) -> Any:
 
 
 def _decisions_children(decisions: list[Decision]) -> Any:
-    """Liste des décisions de la semaine, avec leur snapshot de scores."""
+    """Liste des decisions de la semaine, avec leur snapshot de scores."""
     if not decisions:
         return html.P("Aucune décision consignée cette semaine.", style=_MUTED_STYLE)
     items = []
@@ -682,7 +674,7 @@ def _decisions_children(decisions: list[Decision]) -> Any:
 
 
 def _ev_body(service: SupplyScoreService, node_id: str) -> html.Div:
-    """Volet 4 : déclaration d'événement, relances, décision de la semaine."""
+    """Volet 4 : declaration d'evenement, relances, decision de la semaine."""
     review = WeeklyReview(service)
     engine = EventEngine(service)
     week = review.week_of(node_id)
@@ -745,11 +737,11 @@ def _ev_body(service: SupplyScoreService, node_id: str) -> html.Div:
     )
 
 
-# --- Layout -----------------------------------------------------------------------------
+# Layout
 
 
 def _volet_card(volet: str) -> html.Details:
-    """Carte pliante (accordéon) d'un volet : titre + badge ✓ + corps dynamique."""
+    """Carte pliante (accordeon) d'un volet : titre + badge [ok] + corps dynamique."""
     body_ids = {
         "ahp": "hebdo-ahp-body",
         "kpis": "hebdo-kpi-body",
@@ -765,8 +757,7 @@ def _volet_card(volet: str) -> html.Details:
                 ],
                 style=_SUMMARY_STYLE,
             ),
-            # dcc.Loading ENVELOPPE le corps : l'id du volet reste posé sur
-            # le Div interne (contrat des tests e2e et des callbacks).
+            # dcc.Loading ENVELOPPE le corps : l'id du volet reste pose sur le Div interne (contrat des tests e2e et des callbacks).
             dcc.Loading(
                 html.Div(
                     html.P("Sélectionnez un nœud pour démarrer la revue.", style=_MUTED_STYLE),
@@ -783,7 +774,7 @@ def _volet_card(volet: str) -> html.Details:
 
 
 def layout() -> html.Div:
-    """Construit la page Revue hebdomadaire (état du service relu à chaque navigation)."""
+    """Construit la page Revue hebdomadaire (etat du service relu a chaque navigation)."""
     service = get_service()
     return html.Div(
         [
@@ -831,15 +822,15 @@ def layout() -> html.Div:
     )
 
 
-# --- Callbacks (fonctions nommées, testables sans serveur) -------------------------------
+# Callbacks (fonctions nommees, testables sans serveur)
 
 
 def project_info_callback(project_data):
-    """Bandeau du projet actif (semaine ISO) + statuts hebdo dans le dropdown nœud.
+    """Bandeau du projet actif (semaine ISO) + statuts hebdo dans le dropdown noeud.
 
-    Même contrat que la page Questionnaire : avec un projet sélectionné, le
+    Meme contrat que la page Questionnaire : avec un projet selectionne, le
     bandeau mentionne la semaine courante de SON horloge et chaque option du
-    dropdown porte le statut hebdo du nœud (un seul appel à
+    dropdown porte le statut hebdo du noeud (un seul appel a
     :meth:`CycleHebdomadaire.synthese`).
     """
     service = get_service()
@@ -869,24 +860,24 @@ def project_info_callback(project_data):
 
 
 def empty_banner_callback(node_id):
-    """Bandeau d'état vide : visible tant qu'aucun nœud n'est sélectionné."""
+    """Bandeau d'etat vide : visible tant qu'aucun noeud n'est selectionne."""
     if node_id:
         return None
     return _bandeau_selection()
 
 
 def ahp_pair_count_callback(pair_values):
-    """Compteur LIVE « x/6 paires ajustées » du volet 1 (valeurs ≠ 0)."""
+    """Compteur LIVE " x/6 paires ajustees " du volet 1 (valeurs != 0)."""
     return texte_paires_ajustees(pair_values or [])
 
 
 def select_node_callback(node_id):
-    """Démarre la revue du nœud choisi et monte les quatre volets.
+    """Demarre la revue du noeud choisi et monte les quatre volets.
 
-    Pose ``started_at`` (idempotent, :meth:`WeeklyReview.start`), mémorise le
-    nœud dans ``store-hebdo``, rafraîchit le bandeau semaine, le badge x/4 et
-    les corps des quatre volets (sliders AHP pré-remplis, diff KPI, jalons
-    actifs, événements et décisions de la semaine).
+    Pose ``started_at`` (idempotent, :meth:`WeeklyReview.start`), memorise le
+    noeud dans ``store-hebdo``, rafraichit le bandeau semaine, le badge x/4 et
+    les corps des quatre volets (sliders AHP pre-remplis, diff KPI, jalons
+    actifs, evenements et decisions de la semaine).
     """
     if not node_id:
         raise PreventUpdate
@@ -919,9 +910,9 @@ def _submit_weekly_assessment(
     operator_id: str,
     action: str,
 ):
-    """Soumet l'évaluation, marque le volet AHP et construit la réponse commune.
+    """Soumet l'evaluation, marque le volet AHP et construit la reponse commune.
 
-    Refuse (message rouge, rien n'est écrit) si le ratio de cohérence dépasse
+    Refuse (message rouge, rien n'est ecrit) si le ratio de coherence depasse
     le seuil de Saaty.
     """
     node = service.registry.get_node(node_id)
@@ -949,11 +940,11 @@ def _submit_weekly_assessment(
 
 
 def ahp_confirm_callback(n_clicks, hebdo_data, operator_data):
-    """« Confirmer à l'identique » : re-soumet la dernière évaluation telle quelle.
+    """" Confirmer a l'identique " : re-soumet la derniere evaluation telle quelle.
 
-    UN clic : les comparaisons, notes, poids et Ud de la dernière évaluation
-    sont re-soumis pour la semaine courante (horloge du projet), estampillés
-    par l'opérateur courant, puis le volet AHP est marqué traité.
+    UN clic : les comparaisons, notes, poids et Ud de la derniere evaluation
+    sont re-soumis pour la semaine courante (horloge du projet), estampilles
+    par l'operateur courant, puis le volet AHP est marque traite.
     """
     if not n_clicks:
         raise PreventUpdate
@@ -974,9 +965,7 @@ def ahp_confirm_callback(n_clicks, hebdo_data, operator_data):
     node = service.registry.get_node(node_id)
     if node is None:
         return _no_node_msg(), no_update, no_update
-    # timestamp par défaut (temps réel, comme au questionnaire) : c'est lui qui
-    # ordonne latest_assessment ; la SEMAINE, elle, vient de l'horloge du projet
-    # (iso_week vide -> posée par submit_assessment).
+    # timestamp par defaut (temps reel, comme au questionnaire) : c'est lui qui ordonne latest_assessment ; la SEMAINE, elle, vient de l'horloge du projet (iso_week vide -> posee par submit_assessment).
     assessment = AHPAssessment(
         node_id=node_id,
         project_id=latest.project_id or node.project_id or "",
@@ -998,11 +987,11 @@ def ahp_confirm_callback(n_clicks, hebdo_data, operator_data):
 def ahp_save_callback(
     n_clicks, hebdo_data, operator_data, pair_values, pair_ids, score_values, score_ids
 ):
-    """« Enregistrer l'évaluation » : soumet les valeurs courantes des sliders.
+    """" Enregistrer l'evaluation " : soumet les valeurs courantes des sliders.
 
-    Conversions identiques au questionnaire (bipolaire → Saaty, note 1..6 →
-    Saaty 1..9), tri par ``id["index"]`` (ordre DOM non garanti), CR ≥ 0.10
-    refusé, succès → volet AHP traité.
+    Conversions identiques au questionnaire (bipolaire -> Saaty, note 1..6 ->
+    Saaty 1..9), tri par ``id["index"]`` (ordre DOM non garanti), CR >= 0.10
+    refuse, succes -> volet AHP traite.
     """
     if not n_clicks:
         raise PreventUpdate
@@ -1036,11 +1025,11 @@ def ahp_save_callback(
 
 
 def kpi_save_callback(n_clicks, hebdo_data, operator_data, kpi_values, kpi_ids):
-    """« Enregistrer les changements » : applique les KPIs saisis (vide = inchangé).
+    """" Enregistrer les changements " : applique les KPIs saisis (vide = inchange).
 
     Mutations via ``service.mutations.update_kpis`` (``source="weekly"``),
-    réévaluation persistée du réseau, puis volet KPIs marqué traité. Une
-    valeur invalide refuse TOUT le lot (message rouge, rien n'est écrit).
+    reevaluation persistee du reseau, puis volet KPIs marque traite. Une
+    valeur invalide refuse TOUT le lot (message rouge, rien n'est ecrit).
     """
     if not n_clicks:
         raise PreventUpdate
@@ -1068,12 +1057,12 @@ def kpi_save_callback(n_clicks, hebdo_data, operator_data, kpi_values, kpi_ids):
 
 
 def kpi_none_callback(n_clicks, hebdo_data, operator_data):
-    """« Rien n'a changé » : confirme chaque bloc KPI et applique la décroissance.
+    """" Rien n'a change " : confirme chaque bloc KPI et applique la decroissance.
 
     Une ligne d'audit ``__confirmed__`` par bloc (:meth:`WeeklyReview.confirm_block`),
-    puis décroissance bayésienne « semaine sans incident »
-    (:meth:`EventEngine.apply_weekly_decay`), réévaluation persistée et volet
-    KPIs marqué traité.
+    puis decroissance bayesienne " semaine sans incident "
+    (:meth:`EventEngine.apply_weekly_decay`), reevaluation persistee et volet
+    KPIs marque traite.
     """
     if not n_clicks:
         raise PreventUpdate
@@ -1106,12 +1095,12 @@ def kpi_none_callback(n_clicks, hebdo_data, operator_data):
 def ms_save_callback(
     n_clicks, hebdo_data, operator_data, status_values, status_ids, progress_values, progress_ids
 ):
-    """« Confirmer les jalons » : audite chaque jalon MODIFIÉ puis marque le volet.
+    """" Confirmer les jalons " : audite chaque jalon MODIFIE puis marque le volet.
 
-    Les lignes sont triées par ``id["index"]`` ; seuls les jalons dont le
-    statut ou l'avancement déclaré (slider 0..100 → [0, 1]) diffère de l'état
+    Les lignes sont triees par ``id["index"]`` ; seuls les jalons dont le
+    statut ou l'avancement declare (slider 0..100 -> [0, 1]) differe de l'etat
     du registre passent par :meth:`WeeklyReview.confirm_milestone`
-    (``source="weekly"``). Le corps du volet est re-rendu (théorique à jour).
+    (``source="weekly"``). Le corps du volet est re-rendu (theorique a jour).
     """
     if not n_clicks:
         raise PreventUpdate
@@ -1161,14 +1150,14 @@ def ms_save_callback(
 
 
 def ev_type_callback(event_type):
-    """Régénère les champs de paramètres au changement de type d'événement."""
+    """Regenere les champs de parametres au changement de type d'evenement."""
     if not event_type:
         return html.Div()
     return event_param_fields(str(event_type), ctx="ev")
 
 
 def ev_preview_callback(n_clicks, hebdo_data, event_type, param_values, param_ids):
-    """« Prévisualiser » : impacts calibrés AVANT application (rien n'est écrit)."""
+    """" Previsualiser " : impacts calibres AVANT application (rien n'est ecrit)."""
     if not n_clicks:
         raise PreventUpdate
     service = get_service()
@@ -1186,11 +1175,11 @@ def ev_preview_callback(n_clicks, hebdo_data, event_type, param_values, param_id
 
 
 def ev_apply_callback(n_clicks, hebdo_data, operator_data, event_type, param_values, param_ids):
-    """« Confirmer l'événement » : journalise, applique les impacts, marque le volet.
+    """" Confirmer l'evenement " : journalise, applique les impacts, marque le volet.
 
     Passe par :meth:`EventEngine.apply` (journal + mutations
-    ``source="event:<id>"`` + réévaluation), rafraîchit les listes
-    d'événements et le tableau KPI (garde-fou double comptage à jour).
+    ``source="event:<id>"`` + reevaluation), rafraichit les listes
+    d'evenements et le tableau KPI (garde-fou double comptage a jour).
     """
     if not n_clicks:
         raise PreventUpdate
@@ -1242,11 +1231,11 @@ def ev_apply_callback(n_clicks, hebdo_data, operator_data, event_type, param_val
 
 
 def ev_revert_callback(n_clicks_list, hebdo_data):
-    """Annule l'événement du bouton cliqué (tout-ou-rien, conflits en français).
+    """Annule l'evenement du bouton clique (tout-ou-rien, conflits en francais).
 
-    Le :class:`~supplyscore.services.events.ConflictError` du moteur est déjà
-    libellé en français (champs réécrits depuis l'événement) : il est affiché
-    tel quel, rien n'est restauré.
+    Le :class:`~supplyscore.services.events.ConflictError` du moteur est deja
+    libelle en francais (champs reecrits depuis l'evenement) : il est affiche
+    tel quel, rien n'est restaure.
     """
     triggered = _triggered_id()
     if not isinstance(triggered, dict) or triggered.get("type") != "ev-revert":
@@ -1261,7 +1250,7 @@ def ev_revert_callback(n_clicks_list, hebdo_data):
     event_id = str(triggered.get("index") or "")
     try:
         engine.revert(event_id, node_id)
-    except (KeyError, ValueError, ConflictError) as exc:  # messages français du moteur
+    except (KeyError, ValueError, ConflictError) as exc:  # messages francais du moteur
         return html.Span(str(exc), style=MSG_ALERT_STYLE), no_update, no_update, no_update
     week = WeeklyReview(service).week_of(node_id)
     message = html.Span("Événement annulé — KPIs restaurés.", style=MSG_OK_STYLE)
@@ -1274,7 +1263,7 @@ def ev_revert_callback(n_clicks_list, hebdo_data):
 
 
 def decision_callback(n_clicks, hebdo_data, operator_data, text):
-    """Consigne la décision de la semaine (snapshot automatique des scores)."""
+    """Consigne la decision de la semaine (snapshot automatique des scores)."""
     if not n_clicks:
         raise PreventUpdate
     service = get_service()
@@ -1304,7 +1293,7 @@ def decision_callback(n_clicks, hebdo_data, operator_data, text):
 
 
 def ev_none_callback(n_clicks, hebdo_data, operator_data):
-    """« Aucun événement ni décision » : marque le volet Événements traité."""
+    """" Aucun evenement ni decision " : marque le volet Evenements traite."""
     if not n_clicks:
         raise PreventUpdate
     service = get_service()
@@ -1320,10 +1309,10 @@ def ev_none_callback(n_clicks, hebdo_data, operator_data):
 
 
 def complete_callback(n_clicks, hebdo_data):
-    """« Clôturer la revue » : exige les quatre volets, affiche la durée.
+    """" Cloturer la revue " : exige les quatre volets, affiche la duree.
 
-    L'erreur du service (« Revue hebdomadaire incomplète — volets
-    restants : … ») est affichée telle quelle si un volet manque.
+    L'erreur du service (" Revue hebdomadaire incomplete - volets
+    restants : ... ") est affichee telle quelle si un volet manque.
     """
     if not n_clicks:
         raise PreventUpdate
@@ -1349,12 +1338,12 @@ def complete_callback(n_clicks, hebdo_data):
 
 
 def _anti_double_clic(button_id: str) -> list:
-    """Triplet ``running=`` désactivant le bouton pendant le traitement.
+    """Triplet ``running=`` desactivant le bouton pendant le traitement.
 
-    Anti double-clic (Lot 16.3) : ``running=`` est supporté par Dash 4.2 y
-    compris en enregistrement différé ``app.callback(...)(fn)`` — le bouton
-    déclencheur est ``disabled`` du départ de la requête à sa réponse, et
-    chaque action affiche de toute façon son message dans ``hebdo-msg``.
+    Anti double-clic (Lot 16.3) : ``running=`` est supporte par Dash 4.2 y
+    compris en enregistrement differe ``app.callback(...)(fn)`` - le bouton
+    declencheur est ``disabled`` du depart de la requete a sa reponse, et
+    chaque action affiche de toute facon son message dans ``hebdo-msg``.
     """
     return [(Output(button_id, "disabled"), True, False)]
 

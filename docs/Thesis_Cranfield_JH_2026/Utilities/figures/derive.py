@@ -50,16 +50,11 @@ for p in (str(REPO), str(CAMPAIGN / "scenario"), str(CAMPAIGN / "scripts")):
 PROJECT_ID = "helios"
 HORIZONS = (1, 2, 3, 4)
 
-#: Event gravities that the production CalibrationService counts as an adverse
-#: outcome. Reproduced here only to build the deliberately WRONG target for the
-#: contrast of Section "the target-definition trap".
+#: Event gravities that the production CalibrationService counts as an adverse outcome. Reproduced here only to build the deliberately WRONG target for the contrast of Section "the target-definition trap".
 GRAVITES_DEFAVORABLES = frozenset({"critique", "defaut"})
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-#  Metrics. scikit-learn is not installed in this environment, and these are
-#  short enough that a dependency would not be justified.
-# ─────────────────────────────────────────────────────────────────────────────
+# Metrics. scikit-learn is not installed in this environment, and these are short enough that a dependency would not be justified.
 
 def auc(p: np.ndarray, y: np.ndarray) -> float | None:
     """Area under the ROC curve, by mean ranks so that ties are handled."""
@@ -154,9 +149,7 @@ def confusion(p: np.ndarray, y: np.ndarray, seuil: float = 0.5) -> dict:
             "recall": (tp / (tp + fn)) if tp + fn else 0.0}
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-#  Ground truth
-# ─────────────────────────────────────────────────────────────────────────────
+# Ground truth
 
 def labels_correct_target(db_dir: Path) -> tuple[dict, list[str]]:
     """Adverse-outcome labels from the production CalibrationService.
@@ -310,9 +303,7 @@ def milestone_outcomes(db_dir: Path) -> dict:
                          for n, m, s in rows if s != "done"]}
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-#  Arm B: what the personas did when the forecast was shown
-# ─────────────────────────────────────────────────────────────────────────────
+# Arm B: what the personas did when the forecast was shown
 
 CATEGORIES = ("aucune", "confirme", "revise_a_la_hausse", "revise_a_la_baisse")
 
@@ -432,8 +423,7 @@ def main() -> int:
             "turns": sorted({r["tour"] for r in rows_a}),
             "correct_target": {str(h): score(rows_a, correct[h], h) for h in HORIZONS},
             "wrong_target": {str(h): score(rows_a, wrong[h], h) for h in HORIZONS},
-            # right-censoring check: forecasts whose window would run past the
-            # last campaign turn are dropped and the scoring is repeated.
+            # right-censoring check: forecasts whose window would run past the last campaign turn are dropped and the scoring is repeated.
             "correct_target_uncensored": {
                 str(h): score(rows_a, correct[h], h, max_turn=len(weeks) - 1 - h)
                 for h in HORIZONS},

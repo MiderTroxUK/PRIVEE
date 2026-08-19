@@ -1,13 +1,13 @@
-"""Tests du ServiceCriticite (Lot 15.2 ; Δl et criticité probabiliste, U3).
+"""Tests du ServiceCriticite (Lot 15.2 ; Deltal et criticite probabiliste, U3).
 
-Couvre : valeurs analytiques sur la chaîne historique C→B→A (β=(0.5, 0.7),
-ur_loc=(0.6, 0.3, 0.1)), classement (B avant C, client final en tête, tri
-``(-ΔUr_final, -Δl_final, nom)``), dé-saturation Δl (chaîne totalement
-saturée : ΔUr_final tous nuls mais Δl_final classe encore les nœuds),
+Couvre : valeurs analytiques sur la chaine historique C->B->A (beta=(0.5, 0.7),
+ur_loc=(0.6, 0.3, 0.1)), classement (B avant C, client final en tete, tri
+``(-DeltaUr_final, -Deltal_final, nom)``), de-saturation Deltal (chaine totalement
+saturee : DeltaUr_final tous nuls mais Deltal_final classe encore les noeuds),
 exclusions (autre projet, DONE/ABANDONED, onboarding draft), ``nb_impactes``,
-``top``, ``criticite_probabiliste`` (déterminisme seedé, sévérités calibrées,
-bornes, pureté), erreurs françaises (projet inconnu, aucun actif, n_draws),
-pureté (états d'urgence du dépôt inchangés) et perf indicative non bloquante
+``top``, ``criticite_probabiliste`` (determinisme seede, severites calibrees,
+bornes, purete), erreurs francaises (projet inconnu, aucun actif, n_draws),
+purete (etats d'urgence du depot inchanges) et perf indicative non bloquante
 sur seed_demo.
 """
 
@@ -27,17 +27,15 @@ from supplyscore.domain.models import Project, SupplyArc, SupplyNode, TaskStatus
 from supplyscore.services import SupplyScoreService
 from supplyscore.services.criticite import PointCriticite, ServiceCriticite
 
-#: Mercredi 2026-06-10 12:00 locale — instant figé des tests.
+#: Mercredi 2026-06-10 12:00 locale - instant fige des tests.
 _NOW = datetime(2026, 6, 10, 12, 0).timestamp()
 
-#: Chaîne historique C (rang 2) -> B (rang 1) -> A (rang 0, client final).
+#: Chaine historique C (rang 2) -> B (rang 1) -> A (rang 0, client final).
 UR_LOCAL = {"A": 0.1, "B": 0.3, "C": 0.6}
 BETA = {("C", "B"): 0.5, ("B", "A"): 0.7}
 GAMMA = {("C", "B"): 0.8, ("B", "A"): 0.6}
 
-#: Valeurs analytiques (cf. test_graph_propagation.py / PLAN.md E15.1) :
-#: baseline Ur_A = 0.4213 ; choc B→1 : ΔUr_A = +0.3087 ; choc C→1 : +0.0882 ;
-#: choc A→1 : ΔUr_A = 1.0 − 0.4213 = +0.5787.
+#: Valeurs analytiques (cf. test_graph_propagation.py / PLAN.md E15.1) : baseline Ur_A = 0.4213 ; choc B->1 : DeltaUr_A = +0.3087 ; choc C->1 : +0.0882 ; choc A->1 : DeltaUr_A = 1.0 - 0.4213 = +0.5787.
 DELTA_A_CHOC_B = 0.3087
 DELTA_A_CHOC_C = 0.0882
 DELTA_A_CHOC_A = 0.5787
@@ -54,7 +52,7 @@ def service(tmp_path: Path) -> Iterator[SupplyScoreService]:
 
 @pytest.fixture
 def chaine(service: SupplyScoreService) -> SupplyScoreService:
-    """Service portant la chaîne C→B→A avec les ur_local/β historiques."""
+    """Service portant la chaine C->B->A avec les ur_local/beta historiques."""
     ranks = {"A": 0, "B": 1, "C": 2}
     nodes = [
         SupplyNode(
@@ -76,29 +74,29 @@ def chaine(service: SupplyScoreService) -> SupplyScoreService:
 
 
 def _point(points: list[PointCriticite], node_id: str) -> PointCriticite:
-    """Le point de criticité du nœud demandé (échoue si absent)."""
+    """Le point de criticite du noeud demande (echoue si absent)."""
     matches = [p for p in points if p.node_id == node_id]
     assert len(matches) == 1, f"nœud {node_id!r} absent ou dupliqué dans {points}"
     return matches[0]
 
 
 def _set_status(service: SupplyScoreService, node_id: str, status: TaskStatus) -> None:
-    """Pose le statut DIRECTEMENT dans le dépôt (sans réévaluer les ur_local)."""
+    """Pose le statut DIRECTEMENT dans le depot (sans reevaluer les ur_local)."""
     node = service.repo.get_node(node_id)
     assert node is not None
     node.status = status
     service.repo.update_node(node)
 
 
-# --- Valeurs analytiques sur la chaîne ------------------------------------------------
+# Valeurs analytiques sur la chaine
 
 
 def test_criticite_de_b_egale_delta_ur_a_attendu(chaine: SupplyScoreService) -> None:
     points = ServiceCriticite(chaine).indice_criticite(PROJECT_ID)
     point_b = _point(points, "B")
-    # Choc B→1 : Ur_B passe à 1.0, Ur_A = 1 − 0.9·(1 − 0.7) = 0.73 → ΔUr_A = +0.3087.
+    # Choc B->1 : Ur_B passe a 1.0, Ur_A = 1 - 0.9-(1 - 0.7) = 0.73 -> DeltaUr_A = +0.3087.
     assert point_b.delta_ur_final == pytest.approx(DELTA_A_CHOC_B, abs=1e-4)
-    # ΔUr max du choc B : le nœud choqué lui-même (1.0 − 0.51 = 0.49).
+    # DeltaUr max du choc B : le noeud choque lui-meme (1.0 - 0.51 = 0.49).
     assert point_b.delta_ur_max == pytest.approx(1.0 - 0.51, abs=1e-4)
 
 
@@ -108,25 +106,25 @@ def test_b_classe_avant_c(chaine: SupplyScoreService) -> None:
     assert point_c.delta_ur_final == pytest.approx(DELTA_A_CHOC_C, abs=1e-4)
     ordre = [p.node_id for p in points]
     assert ordre.index("B") < ordre.index("C")
-    # Le tri est décroissant sur delta_ur_final et le champ rank suit (1-based).
+    # Le tri est decroissant sur delta_ur_final et le champ rank suit (1-based).
     assert [p.rank for p in points] == list(range(1, len(points) + 1))
     deltas = [p.delta_ur_final for p in points]
     assert deltas == sorted(deltas, reverse=True)
 
 
 def test_client_final_delta_final_egal_son_propre_delta(chaine: SupplyScoreService) -> None:
-    # Choc sur A (rang 0) : delta_ur_final == le delta de A lui-même.
+    # Choc sur A (rang 0) : delta_ur_final == le delta de A lui-meme.
     deltas_choc_a = chaine.simulate_shock("A", 1.0)
     points = ServiceCriticite(chaine).indice_criticite(PROJECT_ID)
     point_a = _point(points, "A")
     assert point_a.delta_ur_final == pytest.approx(deltas_choc_a["A"], abs=1e-12)
     assert point_a.delta_ur_final == pytest.approx(DELTA_A_CHOC_A, abs=1e-4)
-    # Le client final saturé d'office est ici le plus critique : rang 1.
+    # Le client final sature d'office est ici le plus critique : rang 1.
     assert point_a.rank == 1
 
 
 def test_noeud_deja_sature_donne_delta_nul(chaine: SupplyScoreService) -> None:
-    # CHOIX DOCUMENTÉ : ur_local déjà >= 1.0 → choc à vide, ΔUr ET Δl nuls partout.
+    # CHOIX DOCUMENTE : ur_local deja >= 1.0 -> choc a vide, DeltaUr ET Deltal nuls partout.
     node_b = chaine.repo.get_node("B")
     assert node_b is not None
     node_b.urgency.ur_local = 1.0
@@ -141,12 +139,11 @@ def test_noeud_deja_sature_donne_delta_nul(chaine: SupplyScoreService) -> None:
     assert point_b.rank == len(points)  # queue de classement
 
 
-# --- Dé-saturation Δl (U3) ------------------------------------------------------------
+# De-saturation Deltal (U3)
 
 
 def test_delta_ell_coherent_hors_saturation(chaine: SupplyScoreService) -> None:
-    # Hors saturation, Δl_final ordonne comme ΔUr_final (transformée monotone
-    # de l'urgence choquée du client final, référence commune).
+    # Hors saturation, Deltal_final ordonne comme DeltaUr_final (transformee monotone de l'urgence choquee du client final, reference commune).
     points = ServiceCriticite(chaine).indice_criticite(PROJECT_ID)
     assert all(p.delta_ell_final > 0.0 for p in points)
     assert all(p.delta_ell_max >= p.delta_ell_final for p in points)
@@ -156,7 +153,7 @@ def test_delta_ell_coherent_hors_saturation(chaine: SupplyScoreService) -> None:
 
 
 def test_chaine_saturee_classee_par_delta_ell(service: SupplyScoreService) -> None:
-    """Chaîne TOTALEMENT saturée (β=1, C→1.0) : ΔUr nuls, Δl classe A > B > C."""
+    """Chaine TOTALEMENT saturee (beta=1, C->1.0) : DeltaUr nuls, Deltal classe A > B > C."""
     ranks = {"A": 0, "B": 1, "C": 2}
     ur_local = {"A": 0.1, "B": 0.3, "C": 1.0}
     nodes = [
@@ -180,9 +177,9 @@ def test_chaine_saturee_classee_par_delta_ell(service: SupplyScoreService) -> No
 
     points = ServiceCriticite(service).indice_criticite("proj-sature")
 
-    # L'ancien indicateur est aveugle : tous les ΔUr_final sont nuls…
+    # L'ancien indicateur est aveugle : tous les DeltaUr_final sont nuls...
     assert all(p.delta_ur_final == pytest.approx(0.0, abs=1e-12) for p in points)
-    # … mais Δl_final classe encore, non trivialement : A > B > C (= 0, choc à vide).
+    # ... mais Deltal_final classe encore, non trivialement : A > B > C (= 0, choc a vide).
     par_id = {p.node_id: p for p in points}
     assert par_id["A"].delta_ell_final > par_id["B"].delta_ell_final
     assert par_id["B"].delta_ell_final > par_id["C"].delta_ell_final
@@ -191,7 +188,7 @@ def test_chaine_saturee_classee_par_delta_ell(service: SupplyScoreService) -> No
     assert [p.rank for p in points] == [1, 2, 3]
 
 
-# --- Périmètre : projet, statuts, onboarding -------------------------------------------
+# Perimetre : projet, statuts, onboarding
 
 
 def test_noeud_isole_d_un_autre_projet_exclu(chaine: SupplyScoreService) -> None:
@@ -224,18 +221,18 @@ def test_onboarding_draft_exclu(chaine: SupplyScoreService) -> None:
     assert {p.node_id for p in points} == {"A", "B"}
 
 
-# --- nb_impactes ----------------------------------------------------------------------
+# nb_impactes
 
 
 def test_nb_impactes_coherent_sur_la_chaine(chaine: SupplyScoreService) -> None:
     points = ServiceCriticite(chaine).indice_criticite(PROJECT_ID)
-    # Choc sur C : C, B et A bougent → 3 ; sur B : B et A → 2 ; sur A : A seul → 1.
+    # Choc sur C : C, B et A bougent -> 3 ; sur B : B et A -> 2 ; sur A : A seul -> 1.
     assert _point(points, "C").nb_impactes == 3
     assert _point(points, "B").nb_impactes == 2
     assert _point(points, "A").nb_impactes == 1
 
 
-# --- top ------------------------------------------------------------------------------
+# top
 
 
 def test_top_n1_retourne_le_plus_critique(chaine: SupplyScoreService) -> None:
@@ -247,11 +244,11 @@ def test_top_n1_retourne_le_plus_critique(chaine: SupplyScoreService) -> None:
 
 def test_top_defaut_et_bornes(chaine: SupplyScoreService) -> None:
     crit = ServiceCriticite(chaine)
-    assert len(crit.top(PROJECT_ID)) == 3  # n=15 > 3 nœuds actifs : tout
+    assert len(crit.top(PROJECT_ID)) == 3  # n=15 > 3 noeuds actifs : tout
     assert crit.top(PROJECT_ID, n=0) == []
 
 
-# --- Erreurs --------------------------------------------------------------------------
+# Erreurs
 
 
 def test_projet_inconnu_leve_valueerror(chaine: SupplyScoreService) -> None:
@@ -266,14 +263,14 @@ def test_projet_sans_noeud_actif_leve_valueerror(chaine: SupplyScoreService) -> 
         ServiceCriticite(chaine).indice_criticite(PROJECT_ID)
 
 
-# --- Criticité probabiliste (U3) -------------------------------------------------------
+# Criticite probabiliste (U3)
 
 
 def test_criticite_probabiliste_deterministe_et_triee(chaine: SupplyScoreService) -> None:
     crit = ServiceCriticite(chaine)
     points_1 = crit.criticite_probabiliste(PROJECT_ID, n_draws=200, seed=42)
     points_2 = crit.criticite_probabiliste(PROJECT_ID, n_draws=200, seed=42)
-    assert points_1 == points_2  # même graine ⇒ résultat bit à bit identique
+    assert points_1 == points_2  # meme graine => resultat bit a bit identique
     assert {p.node_id for p in points_1} == {"A", "B", "C"}
     probas = [p.p_impact_final for p in points_1]
     assert probas == sorted(probas, reverse=True)
@@ -283,19 +280,19 @@ def test_criticite_probabiliste_deterministe_et_triee(chaine: SupplyScoreService
 
 
 def test_criticite_probabiliste_severites_calibrees(chaine: SupplyScoreService) -> None:
-    """Valeurs attendues des p_impact sur la chaîne (sévérités calibrées, cliquet).
+    """Valeurs attendues des p_impact sur la chaine (severites calibrees, cliquet).
 
-    Analytique : le choc en cliquet ``max(ur_local, sévérité)`` donne au client
-    final A un ΔUr > 0.2 pour A dès sévérité >= 0.6 (p = 0.4), pour B dès
-    sévérité >= 0.9 (p = 0.1), jamais pour C (ΔUr_A max = 0.0882 < 0.2).
+    Analytique : le choc en cliquet ``max(ur_local, severite)`` donne au client
+    final A un DeltaUr > 0.2 pour A des severite >= 0.6 (p = 0.4), pour B des
+    severite >= 0.9 (p = 0.1), jamais pour C (DeltaUr_A max = 0.0882 < 0.2).
     """
     points = ServiceCriticite(chaine).criticite_probabiliste(PROJECT_ID, n_draws=4000, seed=7)
     par_id = {p.node_id: p for p in points}
     assert par_id["A"].p_impact_final == pytest.approx(0.4, abs=0.05)
     assert par_id["B"].p_impact_final == pytest.approx(0.1, abs=0.05)
     assert par_id["C"].p_impact_final == 0.0
-    assert [p.node_id for p in points] == ["A", "B", "C"]  # tri par p décroissant
-    # Les quantiles Δl suivent la même hiérarchie au client final.
+    assert [p.node_id for p in points] == ["A", "B", "C"]  # tri par p decroissant
+    # Les quantiles Deltal suivent la meme hierarchie au client final.
     assert par_id["A"].q90_ell > par_id["C"].q90_ell
 
 
@@ -312,7 +309,7 @@ def test_criticite_probabiliste_pure(chaine: SupplyScoreService) -> None:
 def test_criticite_sans_client_final_donne_deltas_finaux_nuls(
     service: SupplyScoreService,
 ) -> None:
-    # Projet sans nœud de rang 0 : deltas finaux nuls par convention, pas d'erreur.
+    # Projet sans noeud de rang 0 : deltas finaux nuls par convention, pas d'erreur.
     project = Project(id="proj-sans-final", name="Sans rang 0", owner_node_id="X", t0_ts=_NOW)
     noeud = SupplyNode(
         id="X",
@@ -326,7 +323,7 @@ def test_criticite_sans_client_final_donne_deltas_finaux_nuls(
 
     points = crit.indice_criticite("proj-sans-final")
     assert [(p.delta_ur_final, p.delta_ell_final) for p in points] == [(0.0, 0.0)]
-    assert points[0].delta_ur_max > 0.0  # le choc bouge bien le nœud lui-même
+    assert points[0].delta_ur_max > 0.0  # le choc bouge bien le noeud lui-meme
 
     proba = crit.criticite_probabiliste("proj-sans-final", n_draws=20)
     assert [(p.p_impact_final, p.q50_ell, p.q90_ell) for p in proba] == [(0.0, 0.0, 0.0)]
@@ -344,11 +341,11 @@ def test_criticite_probabiliste_erreurs(chaine: SupplyScoreService) -> None:
         crit.criticite_probabiliste(PROJECT_ID)
 
 
-# --- Pureté ---------------------------------------------------------------------------
+# Purete
 
 
 def test_indice_criticite_ne_modifie_pas_les_urgences(chaine: SupplyScoreService) -> None:
-    # Référence riche : pipeline complet d'abord (ud/ur/adequation posés partout).
+    # Reference riche : pipeline complet d'abord (ud/ur/adequation poses partout).
     chaine.evaluate_all()
     avant = {node.id: copy.deepcopy(node.urgency) for node in chaine.repo.nodes()}
     statuts = {node.id: node.status for node in chaine.repo.nodes()}
@@ -360,7 +357,7 @@ def test_indice_criticite_ne_modifie_pas_les_urgences(chaine: SupplyScoreService
         assert node.status is statuts[node.id]
 
 
-# --- Perf indicative (non bloquante) ----------------------------------------------------
+# Perf indicative (non bloquante)
 
 
 def test_perf_indicative_seed_demo(service: SupplyScoreService) -> None:
@@ -374,7 +371,7 @@ def test_perf_indicative_seed_demo(service: SupplyScoreService) -> None:
     assert points, "seed_demo doit produire au moins un nœud actif"
     deltas = [p.delta_ur_final for p in points]
     assert deltas == sorted(deltas, reverse=True)
-    if duree >= 2.0:  # indicatif, non bloquant : on signale sans faire échouer
+    if duree >= 2.0:  # indicatif, non bloquant : on signale sans faire echouer
         warnings.warn(
             f"indice_criticite a pris {duree:.2f} s sur seed_demo(n_ranks=3) (budget 2 s)",
             stacklevel=1,

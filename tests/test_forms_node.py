@@ -1,8 +1,8 @@
-"""Tests des form-builders partagés (wizard d'onboarding + fiche nœud).
+"""Tests des form-builders partages (wizard d'onboarding + fiche noeud).
 
-Aucun serveur Dash : les formulaires sont construits en mémoire, leurs ids
-inspectés en parcourant l'arbre de composants, et les parseurs inverses sont
-testés comme fonctions pures.
+Aucun serveur Dash : les formulaires sont construits en memoire, leurs ids
+inspectes en parcourant l'arbre de composants, et les parseurs inverses sont
+testes comme fonctions pures.
 """
 
 from __future__ import annotations
@@ -34,11 +34,11 @@ from supplyscore.web_ui.pages.questionnaire import KPI_FIELDS, PAIRS
 CONTEXTS = ["onb", "fiche"]
 
 
-# --- Helpers d'inspection de l'arbre de composants -----------------------------------
+# Helpers d'inspection de l'arbre de composants
 
 
 def _walk(component):
-    """Itère sur tous les composants Dash de l'arbre (racine incluse)."""
+    """Itere sur tous les composants Dash de l'arbre (racine incluse)."""
     yield component
     children = getattr(component, "children", None)
     if children is None:
@@ -51,7 +51,7 @@ def _walk(component):
 
 
 def _ids(component):
-    """Tous les ids de l'arbre — dict ids normalisés en tuples (type, index)."""
+    """Tous les ids de l'arbre - dict ids normalises en tuples (type, index)."""
     found = []
     for comp in _walk(component):
         id_ = getattr(comp, "id", None)
@@ -78,7 +78,7 @@ def _find_by_type(component, pattern_type):
     ]
 
 
-# --- identity_form -------------------------------------------------------------------
+# identity_form
 
 
 @pytest.mark.parametrize("ctx", CONTEXTS)
@@ -108,7 +108,7 @@ def test_identity_form_prefills_fields_and_free_tags():
     tags_dd = _find(form, "fiche-ident-tags")
     assert tags_dd.multi is True
     assert tags_dd.value == ["alu", "tag-libre"]
-    # Le tag libre absent des options fournies est ajouté comme option.
+    # Le tag libre absent des options fournies est ajoute comme option.
     assert {"label": "tag-libre", "value": "tag-libre"} in tags_dd.options
     targets_dd = _find(form, "fiche-ident-targets")
     assert targets_dd.multi is True
@@ -126,7 +126,7 @@ def test_identity_form_defaults_without_connections():
     assert _find(form, "onb-ident-targets").value == []
 
 
-# --- cdc_form ------------------------------------------------------------------------
+# cdc_form
 
 
 @pytest.mark.parametrize("ctx", CONTEXTS)
@@ -145,7 +145,7 @@ def test_cdc_form_builds_with_expected_ids(ctx):
         "add-ms",
     ):
         assert f"{ctx}-cdc-{suffix}" in tree
-    # Une ligne vierge de chaque famille est pré-montée (lignes dynamiques).
+    # Une ligne vierge de chaque famille est pre-montee (lignes dynamiques).
     for pattern in ("dlv-name", "dlv-qty", "dlv-unit", "ms-name", "ms-kind", "ms-start"):
         assert f"{ctx}-cdc-{pattern}" in tree
 
@@ -187,7 +187,7 @@ def test_cdc_form_prefills_from_cdc_and_milestones():
     (dlv_qty,) = _find_by_type(form, "onb-cdc-dlv-qty")
     (dlv_unit,) = _find_by_type(form, "onb-cdc-dlv-unit")
     assert (dlv_name.value, dlv_qty.value, dlv_unit.value) == ("Carter avant", 120.0, "pièces")
-    # Les composants d'une même ligne partagent le même index.
+    # Les composants d'une meme ligne partagent le meme index.
     assert dlv_name.id["index"] == dlv_qty.id["index"] == dlv_unit.id["index"]
 
     (ms_name,) = _find_by_type(form, "onb-cdc-ms-name")
@@ -214,7 +214,7 @@ def test_row_helpers_use_pattern_matching_ids():
     assert ("fiche-cdc-ms-deadline", "def456") in ids
 
 
-# --- kpi_guided_form -----------------------------------------------------------------
+# kpi_guided_form
 
 
 @pytest.mark.parametrize("ctx", CONTEXTS)
@@ -239,17 +239,17 @@ def test_kpi_guided_form_prefills_and_exposes_bounds():
     assert avail.value == 0.9
     assert (avail.min, avail.max) == (0.0, 1.0)
 
-    # Champ non renseigné dans le bundle -> input vide.
+    # Champ non renseigne dans le bundle -> input vide.
     deadline = _find(form, {"type": "onb-kpi", "index": "time.deadline_h"})
     assert deadline.value is None
 
-    # Unité et bornes visibles (libellé + info-bulle title).
+    # Unite et bornes visibles (libelle + info-bulle title).
     tree = str(form)
     assert "ratio" in tree
     assert "Entre 0 et 1" in tree
 
 
-# --- ahp_form ------------------------------------------------------------------------
+# ahp_form
 
 
 @pytest.mark.parametrize("ctx", CONTEXTS)
@@ -262,14 +262,14 @@ def test_ahp_form_builds_sliders_and_notes(ctx):
     label_indexes = [c.id["index"] for c in _find_by_type(form, f"{ctx}-ahp-pair-label")]
     assert label_indexes == pair_indexes
     assert _find(form, f"{ctx}-ahp-notes") is not None
-    # Échelles identiques au questionnaire.
+    # Echelles identiques au questionnaire.
     pair_slider = _find_by_type(form, f"{ctx}-ahp-pair")[0]
     assert (pair_slider.min, pair_slider.max, pair_slider.value) == (-8, 8, 0)
     score_slider = _find_by_type(form, f"{ctx}-ahp-score")[0]
     assert (score_slider.min, score_slider.max, score_slider.value) == (1, 6, 3)
 
 
-# --- Anti-collision : les deux contextes montés ensemble ------------------------------
+# Anti-collision : les deux contextes montes ensemble
 
 
 def test_both_contexts_mounted_together_have_disjoint_ids():
@@ -282,15 +282,14 @@ def test_both_contexts_mounted_together_have_disjoint_ids():
     )
     all_ids = _ids(root)
     assert len(all_ids) == len(set(all_ids)), "ids dupliqués entre wizard et fiche"
-    # Tous les ids sont préfixés par leur contexte — jamais les ids réservés
-    # du questionnaire (« ahp-pair » / « ahp-score » / « kpi-input »).
+    # Tous les ids sont prefixes par leur contexte - jamais les ids reserves du questionnaire (" ahp-pair " / " ahp-score " / " kpi-input ").
     for id_ in all_ids:
         head = id_[0] if isinstance(id_, tuple) else id_
         assert head.startswith(("onb-", "fiche-")), f"id non préfixé : {id_!r}"
         assert head not in {"ahp-pair", "ahp-score", "ahp-pair-label", "kpi-input"}
 
 
-# --- parse_identity ------------------------------------------------------------------
+# parse_identity
 
 
 def test_parse_identity_round_trip():
@@ -339,7 +338,7 @@ def test_parse_identity_empty_values():
     }
 
 
-# --- parse_cdc -----------------------------------------------------------------------
+# parse_cdc
 
 
 def test_parse_cdc_converts_iso_dates_to_epoch_and_skips_empty_rows():
@@ -360,8 +359,7 @@ def test_parse_cdc_converts_iso_dates_to_epoch_and_skips_empty_rows():
             "onb-cdc-scrap": 0.02,
         },
     )
-    # Lignes livrables : la ligne 1 est complète, la ligne 4 partielle (unité
-    # seule) est conservée, les lignes entièrement vides sont ignorées.
+    # Lignes livrables : la ligne 1 est complete, la ligne 4 partielle (unite seule) est conservee, les lignes entierement vides sont ignorees.
     assert payload["deliverables"] == [
         {"name": "Carter", "quantity": 120.0, "unit": "pièces"},
         {"name": "", "quantity": None, "unit": "lots"},
@@ -399,10 +397,10 @@ def test_parse_cdc_milestone_without_dates_gets_zero_epochs():
     assert payload["milestones"] == [
         {"name": "Série", "kind": "serie", "start_ts": 0.0, "deadline_ts": 0.0}
     ]
-    assert payload["currency"] == "EUR"  # devise blanche -> défaut
+    assert payload["currency"] == "EUR"  # devise blanche -> defaut
 
 
-# --- parse_kpis ----------------------------------------------------------------------
+# parse_kpis
 
 
 def test_parse_kpis_sorts_by_index_and_skips_empty():
@@ -413,7 +411,7 @@ def test_parse_kpis_sorts_by_index_and_skips_empty():
         {"type": "onb-kpi", "index": "risk.severity"},
     ]
     values = [24, None, 0.9, ""]
-    # Listes volontairement mélangées : l'ordre DOM n'est pas garanti.
+    # Listes volontairement melangees : l'ordre DOM n'est pas garanti.
     shuffled = list(zip(ids, values, strict=True))[::-1]
     result = parse_kpis([v for _, v in shuffled], [i for i, _ in shuffled])
     assert result == {"oee.availability": 0.9, "time.lead_time_h": 24.0}
@@ -425,7 +423,7 @@ def test_parse_kpis_empty_lists():
     assert parse_kpis([], []) == {}
 
 
-# --- parse_ahp -----------------------------------------------------------------------
+# parse_ahp
 
 
 def test_parse_ahp_round_trip_with_shuffled_inputs():
@@ -444,13 +442,13 @@ def test_parse_ahp_round_trip_with_shuffled_inputs():
         "  premier remplissage  ",
     )
 
-    # Tri par index restauré malgré le mélange.
+    # Tri par index restaure malgre le melange.
     assert list(payload["comparisons"].keys()) == [f"{i}-{j}" for i, j in PAIRS]
     assert payload["comparisons"]["0-2"] == bipolar_to_saaty(2)
     assert payload["comparisons"]["0-3"] == bipolar_to_saaty(-3)
     assert payload["comparisons"]["1-3"] == bipolar_to_saaty(5)
     assert payload["comparisons"]["0-1"] == 1.0  # curseur au centre
-    # Notes : None -> défaut 3, ordre des critères restauré.
+    # Notes : None -> defaut 3, ordre des criteres restaure.
     assert payload["criteria_scores"] == [
         score_6_to_9(3),
         score_6_to_9(2),

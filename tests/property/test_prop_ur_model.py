@@ -1,12 +1,12 @@
-"""Propriétés Hypothesis et cas analytiques du modèle Ur (phase E9, Lot 9.2).
+"""Proprietes Hypothesis et cas analytiques du modele Ur (phase E9, Lot 9.2).
 
 Deux familles de tests :
-- cas analytiques à valeur fermée (loi normale, OEE, exponentielle de risque,
-  dépassement CO2, OU probabiliste pondéré), tolérance 1e-3 sauf mention ;
+- cas analytiques a valeur fermee (loi normale, OEE, exponentielle de risque,
+  depassement CO2, OU probabiliste pondere), tolerance 1e-3 sauf mention ;
 - invariants Hypothesis sur des bundles KPI VALIDES au sens de
   :mod:`supplyscore.domain.constraints` : bornes [0, 1], absence de NaN/Inf,
-  monotonies, blocs de poids nul ignorés, domination du OU probabiliste et
-  écrasement par statut (DONE -> 0.0, ABANDONED -> 1.0).
+  monotonies, blocs de poids nul ignores, domination du OU probabiliste et
+  ecrasement par statut (DONE -> 0.0, ABANDONED -> 1.0).
 """
 
 from __future__ import annotations
@@ -32,23 +32,21 @@ from supplyscore.domain.models import (
     TimeKPIs,
 )
 
-#: Tolérance absolue pour les comparaisons de monotonie (bruit d'arrondi IEEE).
+#: Tolerance absolue pour les comparaisons de monotonie (bruit d'arrondi IEEE).
 _TOL = 1e-12
 
 
 def _floats(lo: float, hi: float) -> st.SearchStrategy[float]:
-    """Floats finis bornés — jamais NaN ni infini."""
+    """Floats finis bornes - jamais NaN ni infini."""
     return st.floats(min_value=lo, max_value=hi, allow_nan=False, allow_infinity=False)
 
 
 def _opt(strategy: st.SearchStrategy[float]) -> st.SearchStrategy[float | None]:
-    """KPI optionnel : None (non renseigné) ou valeur valide."""
+    """KPI optionnel : None (non renseigne) ou valeur valide."""
     return st.none() | strategy
 
 
-# --- Stratégies : bundles KPI valides au sens de KPI_CONSTRAINTS -------------
-# Bornes alignées sur supplyscore.domain.constraints.KPI_CONSTRAINTS :
-# ratios dans [0, 1], grandeurs physiques >= 0, tarif >= 1e-9.
+# Strategies : bundles KPI valides au sens de KPI_CONSTRAINTS Bornes alignees sur supplyscore.domain.constraints.KPI_CONSTRAINTS : ratios dans [0, 1], grandeurs physiques >= 0, tarif >= 1e-9.
 
 _RATIO = _floats(0.0, 1.0)
 _POS = _floats(0.0, 1e6)
@@ -125,11 +123,11 @@ _MILESTONES = st.lists(
 )
 
 
-# --- Cas analytiques ----------------------------------------------------------
+# Cas analytiques
 
 
 class TestCasAnalytiquesUTime:
-    """u_time v1 : valeurs fermées de P(L > slack) pour L ~ Normale(mu, sigma)."""
+    """u_time v1 : valeurs fermees de P(L > slack) pour L ~ Normale(mu, sigma)."""
 
     def test_p_retard_exactement_un_demi(self):
         """slack = deadline - t = 100 = mu : P(L > mu) = 0.5 exactement."""
@@ -142,18 +140,18 @@ class TestCasAnalytiquesUTime:
         assert UrModel().u_time(0.0, k) == pytest.approx(0.025, abs=5e-4)
 
     def test_sigma_nul_retard_certain(self):
-        """sigma = 0 (déterministe) : lead 100 > slack 50 -> retard certain (1.0)."""
+        """sigma = 0 (deterministe) : lead 100 > slack 50 -> retard certain (1.0)."""
         k = KPIBundle(time=TimeKPIs(lead_time_h=100.0, lead_time_std_h=0.0, deadline_h=50.0))
         assert UrModel().u_time(0.0, k) == 1.0
 
     def test_sigma_nul_retard_impossible(self):
-        """sigma = 0 (déterministe) : lead 100 < slack 150 -> retard impossible (0.0)."""
+        """sigma = 0 (deterministe) : lead 100 < slack 150 -> retard impossible (0.0)."""
         k = KPIBundle(time=TimeKPIs(lead_time_h=100.0, lead_time_std_h=0.0, deadline_h=150.0))
         assert UrModel().u_time(0.0, k) == 0.0
 
 
 class TestCasAnalytiquesBlocs:
-    """Valeurs fermées des blocs perf, risque et CO2."""
+    """Valeurs fermees des blocs perf, risque et CO2."""
 
     def test_u_perf_oee_0_729(self):
         """availability = performance = quality = 0.9 : OEE = 0.729, u = 0.271."""
@@ -192,10 +190,10 @@ class TestCasAnalytiquesBlocs:
 
 
 class TestCasAnalytiquesAgregation:
-    """OU probabiliste pondéré : ur = 1 - prod (1 - u_m)^omega_m."""
+    """OU probabiliste pondere : ur = 1 - prod (1 - u_m)^omega_m."""
 
     def test_deux_blocs_a_un_demi(self):
-        """Deux blocs à 0.5 (omega = 1) : ur = 1 - 0.5 x 0.5 = 0.75."""
+        """Deux blocs a 0.5 (omega = 1) : ur = 1 - 0.5 x 0.5 = 0.75."""
         # time : slack = 100 = mu -> 0.5 exact ; perf : OEE = 0.5 -> 0.5 exact.
         k = KPIBundle(
             time=TimeKPIs(lead_time_h=100.0, lead_time_std_h=20.0, deadline_h=100.0),
@@ -209,13 +207,13 @@ class TestCasAnalytiquesAgregation:
         assert model.ur_local(0.0, k) == pytest.approx(0.75, abs=1e-9)
 
     def test_un_bloc_a_un_demi_omega_deux(self):
-        """Un seul bloc à 0.5 avec omega = 2 : ur = 1 - 0.5^2 = 0.75."""
+        """Un seul bloc a 0.5 avec omega = 2 : ur = 1 - 0.5^2 = 0.75."""
         k = KPIBundle(oee=OEEKPIs(availability=0.5, performance=1.0, quality=1.0))
         model = UrModel(omega={"perf": 2.0})
         assert model.ur_local(0.0, k) == pytest.approx(0.75, abs=1e-9)
 
 
-# --- Invariants Hypothesis ------------------------------------------------------
+# Invariants Hypothesis
 
 
 class TestProprietesBornes:
@@ -242,7 +240,7 @@ class TestProprietesBornes:
             assert math.isfinite(u)
             assert 0.0 <= u <= 1.0
         if next_active_milestone(milestones) is not None:
-            # v2 : le jalon actif fournit toujours une échéance -> jamais None.
+            # v2 : le jalon actif fournit toujours une echeance -> jamais None.
             assert u is not None
 
 
@@ -286,7 +284,7 @@ class TestProprietesMonotonie:
     def test_ur_local_non_decroissante_quand_failure_probability_monte(
         self, bundle: KPIBundle, t: float, fp_pair: tuple[float, float]
     ):
-        """Deux bundles ne différant que par failure_probability croissante."""
+        """Deux bundles ne differant que par failure_probability croissante."""
         fp1, fp2 = sorted(fp_pair)
         b1 = replace(bundle, risk=replace(bundle.risk, failure_probability=fp1))
         b2 = replace(bundle, risk=replace(bundle.risk, failure_probability=fp2))
@@ -295,7 +293,7 @@ class TestProprietesMonotonie:
 
 
 class TestProprietesOmega:
-    """Poids d'agrégation : bloc de poids nul ignoré, domination du OU."""
+    """Poids d'agregation : bloc de poids nul ignore, domination du OU."""
 
     @given(bundle=_BUNDLES, t=_T, fp1=_opt(_RATIO), fp2=_opt(_RATIO))
     def test_omega_nul_bloc_ignore(
@@ -308,7 +306,7 @@ class TestProprietesOmega:
         assert model.ur_local(t, b1) == model.ur_local(t, b2)
 
     def test_omega_positif_bloc_sensible(self):
-        """Réciproque (cas témoin) : omega_risk > 0 -> le bloc pèse sur ur_local."""
+        """Reciproque (cas temoin) : omega_risk > 0 -> le bloc pese sur ur_local."""
         model = UrModel()
         calme = KPIBundle(risk=RiskKPIs(failure_probability=0.0))
         critique = KPIBundle(risk=RiskKPIs(failure_probability=0.9))
@@ -318,7 +316,7 @@ class TestProprietesOmega:
     def test_ou_domine_chaque_contribution(
         self, bundle: KPIBundle, t: float, omega: dict[str, float]
     ):
-        """ur_local >= max_m [1 - (1 - u_m)^omega_m] - tolérance."""
+        """ur_local >= max_m [1 - (1 - u_m)^omega_m] - tolerance."""
         model = UrModel(omega=omega)
         ur = model.ur_local(t, bundle, status=TaskStatus.ACTIVE)
         for name, u in model.blocks(t, bundle).items():
@@ -329,7 +327,7 @@ class TestProprietesOmega:
 
 
 class TestProprietesStatuts:
-    """Écrasement par statut, quels que soient les KPIs."""
+    """Ecrasement par statut, quels que soient les KPIs."""
 
     @given(bundle=_BUNDLES, t=_T)
     def test_done_ecrase_a_zero_et_abandoned_a_un(self, bundle: KPIBundle, t: float):
@@ -338,18 +336,18 @@ class TestProprietesStatuts:
         assert model.ur_local(t, bundle, status=TaskStatus.ABANDONED) == 1.0
 
 
-# --- Bug découvert par les propriétés, corrigé en E9.6 --------------------------
+# Bug decouvert par les proprietes, corrige en E9.6
 
 
 def test_u_co2_span_nul_ne_crashe_pas():
-    """Bornes incohérentes (cible > max) : u_co2 sature vers 1 au lieu de planter.
+    """Bornes incoherentes (cible > max) : u_co2 sature vers 1 au lieu de planter.
 
-    Régression E9.6 : l'ancien dénominateur « max − cible + eps » valait 0
+    Regression E9.6 : l'ancien denominateur " max - cible + eps " valait 0
     exactement pour cible = eps et max = 0 (ZeroDivisionError), alors que ces
-    entrées sont valides champ à champ au sens de KPI_CONSTRAINTS.
+    entrees sont valides champ a champ au sens de KPI_CONSTRAINTS.
     """
     k = KPIBundle(co2=CO2KPIs(op_emission_g_h=100.0, co2_target_g_h=1e-9, co2_max_g_h=0.0))
     u = UrModel().u_co2(k)
     assert u is not None
     assert 0.0 <= u <= 1.0
-    assert u == 1.0  # dépassement massif de la cible avec span dégénéré -> saturation
+    assert u == 1.0  # depassement massif de la cible avec span degenere -> saturation

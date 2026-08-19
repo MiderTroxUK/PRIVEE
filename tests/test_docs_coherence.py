@@ -1,4 +1,4 @@
-"""Cohérence entre la documentation (README, docs/) et le code source."""
+"""Coherence entre la documentation (README, docs/) et le code source."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ RACINE = Path(__file__).resolve().parent.parent
 DOCS = RACINE / "docs"
 README = RACINE / "README.md"
 
-#: Lien ou image markdown : capture la cible entre parenthèses.
+#: Lien ou image markdown : capture la cible entre parentheses.
 _LIEN_MD = re.compile(r"!?\[[^\]]*\]\(([^)\s]+)\)")
 
 #: Motif d'option longue dans un texte (un tiret double suivi d'une lettre).
@@ -28,21 +28,21 @@ def _flags_du_parser() -> set[str]:
 
 
 def test_options_cli_toutes_documentees():
-    """Chaque option longue de build_parser apparaît dans docs/reference_cli.md."""
+    """Chaque option longue de build_parser apparait dans docs/reference_cli.md."""
     texte = (DOCS / "reference_cli.md").read_text(encoding="utf-8")
     manquantes = sorted(f for f in _flags_du_parser() - {"--help"} if f not in texte)
     assert not manquantes, f"options absentes de reference_cli.md : {manquantes}"
 
 
 def test_flags_du_readme_existent_dans_le_parser():
-    """Chaque motif --option du README correspond à une option réelle de la CLI."""
+    """Chaque motif --option du README correspond a une option reelle de la CLI."""
     flags_readme = set(_FLAG.findall(README.read_text(encoding="utf-8")))
     inconnus = sorted(flags_readme - _flags_du_parser())
     assert not inconnus, f"flags cités dans README.md mais absents du parser : {inconnus}"
 
 
 def _noms_feuilles_export() -> set[str]:
-    """Noms de feuilles extraits des tuples _Sheet (nom, en-têtes, lignes) d'exports.py."""
+    """Noms de feuilles extraits des tuples _Sheet (nom, en-tetes, lignes) d'exports.py."""
     source = (RACINE / "supplyscore" / "services" / "exports.py").read_text(encoding="utf-8")
     noms: set[str] = set()
     for noeud in ast.walk(ast.parse(source)):
@@ -57,7 +57,7 @@ def _noms_feuilles_export() -> set[str]:
 
 
 def test_feuilles_export_documentees():
-    """Chaque nom de feuille d'export apparaît dans docs/reference_donnees.md."""
+    """Chaque nom de feuille d'export apparait dans docs/reference_donnees.md."""
     noms = _noms_feuilles_export()
     assert len(noms) >= 10, f"extraction des feuilles suspecte : {sorted(noms)}"
     texte = (DOCS / "reference_donnees.md").read_text(encoding="utf-8")
@@ -66,7 +66,7 @@ def test_feuilles_export_documentees():
 
 
 def test_versions_schema_documentees():
-    """Les versions de schéma maximales (registre, client) sont citées dans le doc."""
+    """Les versions de schema maximales (registre, client) sont citees dans le doc."""
     source = (RACINE / "supplyscore" / "data" / "migrations.py").read_text(encoding="utf-8")
     v_registre = max(int(v) for v in re.findall(r"def _registry_v(\d+)\(", source))
     v_client = max(int(v) for v in re.findall(r"def _client_v(\d+)\(", source))
@@ -106,7 +106,7 @@ def test_liens_relatifs_existent():
 
 
 def test_version_paquet_alignee_sur_le_changelog():
-    """supplyscore.__version__ égale la première entrée versionnée du CHANGELOG."""
+    """supplyscore.__version__ egale la premiere entree versionnee du CHANGELOG."""
     texte = (RACINE / "CHANGELOG.md").read_text(encoding="utf-8")
     versions = re.findall(r"^## \[(\d+\.\d+\.\d+)\]", texte, flags=re.MULTILINE)
     assert versions, "aucune entrée versionnée dans CHANGELOG.md"

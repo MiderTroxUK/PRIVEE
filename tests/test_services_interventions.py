@@ -1,13 +1,13 @@
-"""Tests du journal des interventions — contrat n°9 (HÉLIOS v7 : InterventionJournal).
+"""Tests du journal des interventions - contrat no9 (HELIOS v7 : InterventionJournal).
 
-Couvre : la capture automatique de l'état AVANT observable (contrat n°9) et de
-l'état de risque d'interface (toujours capturé, jamais surchargeable, jamais
-lu pour le résultat), le cycle complet record -> executee -> proposer ->
-clore, la définition figée du résultat opérationnel (jalon raté -> 'echec',
-fenêtre propre + jalon livré -> 'resolu', fenêtre propre sans jalon exploitable
--> 'partiel', fenêtre pas close -> 'en_cours'), la dérivation de ``succes`` à
-la clôture, ``stats_par_action`` et le rejeu ``import_synthetic`` d'un fichier
-JSONL synthétique.
+Couvre : la capture automatique de l'etat AVANT observable (contrat no9) et de
+l'etat de risque d'interface (toujours capture, jamais surchargeable, jamais
+lu pour le resultat), le cycle complet record -> executee -> proposer ->
+clore, la definition figee du resultat operationnel (jalon rate -> 'echec',
+fenetre propre + jalon livre -> 'resolu', fenetre propre sans jalon exploitable
+-> 'partiel', fenetre pas close -> 'en_cours'), la derivation de ``succes`` a
+la cloture, ``stats_par_action`` et le rejeu ``import_synthetic`` d'un fichier
+JSONL synthetique.
 """
 
 from __future__ import annotations
@@ -27,13 +27,12 @@ from supplyscore.services import SupplyScoreService
 from supplyscore.services.events import EventEngine
 from supplyscore.services.interventions import Intervention, InterventionJournal
 
-#: Mercredi 2026-06-10 12:00 locale — semaine ISO « 2026-S24 » (même ancrage
-#: que test_decisions.py/test_calibration.py, pour rester cohérent).
+#: Mercredi 2026-06-10 12:00 locale - semaine ISO " 2026-S24 " (meme ancrage que test_decisions.py/test_calibration.py, pour rester coherent).
 _NOW = datetime(2026, 6, 10, 12, 0).timestamp()
 _WEEK = WEEK_SECONDS
 
 
-# --- Fixtures ---------------------------------------------------------------------
+# Fixtures
 
 
 @pytest.fixture
@@ -50,13 +49,13 @@ def service(tmp_path: Path, fixed_clock: FixedClock) -> Iterator[SupplyScoreServ
 
 @pytest.fixture
 def projet(service: SupplyScoreService) -> Project:
-    """Projet de démonstration reproductible (seed_demo)."""
+    """Projet de demonstration reproductible (seed_demo)."""
     return service.seed_demo(n_ranks=2, seed=1)
 
 
 @pytest.fixture
 def node_id(service: SupplyScoreService, projet: Project) -> str:
-    """Premier nœud actif (ordre déterministe) du projet de démo."""
+    """Premier noeud actif (ordre deterministe) du projet de demo."""
     nodes = sorted(service.repo.nodes(), key=lambda n: n.id)
     actifs = [
         n for n in nodes if n.status is TaskStatus.ACTIVE and n.onboarding_state == "complete"
@@ -71,11 +70,11 @@ def journal(service: SupplyScoreService) -> InterventionJournal:
 
 
 def _repousser_jalons_existants(service: SupplyScoreService) -> None:
-    """Repousse tous les jalons du seed_demo à +100 semaines (aucun parasite).
+    """Repousse tous les jalons du seed_demo a +100 semaines (aucun parasite).
 
-    Même précaution que ``test_calibration.py::partie`` : le générateur de
-    démonstration pose des jalons dont les échéances pourraient tomber dans
-    les fenêtres d'observation construites par les tests ci-dessous.
+    Meme precaution que ``test_calibration.py::partie`` : le generateur de
+    demonstration pose des jalons dont les echeances pourraient tomber dans
+    les fenetres d'observation construites par les tests ci-dessous.
     """
     for node in service.repo.nodes():
         for milestone in service.registry.list_milestones(node.id):
@@ -83,7 +82,7 @@ def _repousser_jalons_existants(service: SupplyScoreService) -> None:
             service.registry.save_milestone(milestone)
 
 
-# --- record : capture automatique de l'état AVANT et de l'état de risque ----------
+# record : capture automatique de l'etat AVANT et de l'etat de risque
 
 
 class TestRecord:
@@ -103,7 +102,7 @@ class TestRecord:
             "hidden_risk": urgence.hidden_risk,
             "false_urgency": urgence.false_urgency,
         }
-        # Le projet de démo a des scores calculés : le snapshot n'est pas vide.
+        # Le projet de demo a des scores calcules : le snapshot n'est pas vide.
         assert iv.etat_avant["hidden_risk"] is not None
         assert iv.etat_risque_avant == {
             "ud_local": urgence.ud_local,
@@ -130,7 +129,7 @@ class TestRecord:
         assert iv.effets_voisins == []
         assert iv.notes == ""
 
-        # Persistée et relue à l'identique (round-trip JSON compris).
+        # Persistee et relue a l'identique (round-trip JSON compris).
         assert journal.list_for_node(node_id) == [iv]
 
     def test_etat_avant_fourni_ecrase_l_auto_capture_mais_pas_le_risque(
@@ -149,7 +148,7 @@ class TestRecord:
         )
 
         assert iv.etat_avant == {"p_issue": 0.42, "note": "forecast externe"}
-        # etat_risque_avant reste TOUJOURS auto-capturé, jamais l'override.
+        # etat_risque_avant reste TOUJOURS auto-capture, jamais l'override.
         assert iv.etat_risque_avant["hidden_risk"] == urgence.hidden_risk
         assert iv.etat_risque_avant["ur"] == urgence.ur
 
@@ -188,7 +187,7 @@ class TestRecord:
         journal: InterventionJournal,
         fixed_clock: FixedClock,
     ) -> None:
-        """Un nœud sans project_id retombe sur l'horloge réelle du service (pas clock_for)."""
+        """Un noeud sans project_id retombe sur l'horloge reelle du service (pas clock_for)."""
         from supplyscore.domain.models import SupplyNode
 
         service.registry.save_node(SupplyNode(id="n-sans-projet", name="Orphelin", project_id=None))
@@ -199,7 +198,7 @@ class TestRecord:
         assert iv.date_ts == _NOW + 999.0
 
 
-# --- marquer_executee ---------------------------------------------------------------
+# marquer_executee
 
 
 class TestMarquerExecutee:
@@ -219,7 +218,7 @@ class TestMarquerExecutee:
         assert row.executee is True
         assert row.executee_ts == _NOW + 3600.0
         assert row.date_effet_ts == _NOW + 7200.0
-        # Rien d'autre n'a bougé.
+        # Rien d'autre n'a bouge.
         assert row.resultat == "en_cours"
 
     def test_executee_false_sans_date_effet(
@@ -243,7 +242,7 @@ class TestMarquerExecutee:
             journal.marquer_executee("id-quelconque", "fantome", True, date_effet_ts=_NOW)
 
 
-# --- proposer_resultat : définition figée (jamais d'écriture) ---------------------
+# proposer_resultat : definition figee (jamais d'ecriture)
 
 
 class TestProposerResultatEnCours:
@@ -255,7 +254,7 @@ class TestProposerResultatEnCours:
         resultat, _causes = journal.proposer_resultat(iv.id, node_id)
 
         assert resultat == "en_cours"
-        # Rien n'a été écrit par la proposition.
+        # Rien n'a ete ecrit par la proposition.
         assert journal.list_for_node(node_id)[0].resultat == "en_cours"
 
     def test_fenetre_pas_encore_ecoulee_propose_en_cours(
@@ -268,7 +267,7 @@ class TestProposerResultatEnCours:
         _repousser_jalons_existants(service)
         iv = journal.record(node_id, "a1", "op", "Objectif")
         journal.marquer_executee(iv.id, node_id, True, date_effet_ts=_NOW)
-        fixed_clock.set(_NOW + 1 * _WEEK)  # dans la fenêtre [date_effet, +4 sem[
+        fixed_clock.set(_NOW + 1 * _WEEK)  # dans la fenetre [date_effet, +4 sem[
 
         resultat, _causes = journal.proposer_resultat(iv.id, node_id)
 
@@ -299,7 +298,7 @@ class TestProposerResultatEchec:
         date_effet = _NOW
         journal.marquer_executee(iv.id, node_id, True, date_effet_ts=date_effet)
 
-        # Jalon dont l'échéance tombe DANS la fenêtre, toujours ACTIVE (jamais livré).
+        # Jalon dont l'echeance tombe DANS la fenetre, toujours ACTIVE (jamais livre).
         service.registry.save_milestone(
             Milestone(
                 id="m-rate",
@@ -312,13 +311,13 @@ class TestProposerResultatEchec:
                 position=99,
             )
         )
-        fixed_clock.set(date_effet + 5 * _WEEK)  # fenêtre entièrement écoulée
+        fixed_clock.set(date_effet + 5 * _WEEK)  # fenetre entierement ecoulee
 
         resultat, causes = journal.proposer_resultat(iv.id, node_id)
 
         assert resultat == "echec"
         assert any("Prototype" in cause for cause in causes)
-        # proposer_resultat n'écrit RIEN : le résultat en base reste 'en_cours'.
+        # proposer_resultat n'ecrit RIEN : le resultat en base reste 'en_cours'.
         assert journal.list_for_node(node_id)[0].resultat == "en_cours"
 
     def test_noeud_abandonne_propose_echec(
@@ -379,9 +378,9 @@ class TestProposerResultatResoluEtPartiel:
         node_id: str,
         fixed_clock: FixedClock,
     ) -> None:
-        """Un événement critique survenu AVANT date_effet ne compte pas comme issue."""
+        """Un evenement critique survenu AVANT date_effet ne compte pas comme issue."""
         _repousser_jalons_existants(service)
-        # Événement critique déclaré AVANT l'ouverture de la fenêtre d'observation.
+        # Evenement critique declare AVANT l'ouverture de la fenetre d'observation.
         EventEngine(service).apply(
             node_id, "panne_machine", {"duree_arret_h": 24.0, "gravite": "critique"}
         )
@@ -406,7 +405,7 @@ class TestProposerResultatResoluEtPartiel:
 
         resultat, _causes = journal.proposer_resultat(iv.id, node_id)
 
-        # L'événement critique, antérieur à date_effet, n'a AUCUNE incidence.
+        # L'evenement critique, anterieur a date_effet, n'a AUCUNE incidence.
         assert resultat == "resolu"
 
     def test_fenetre_propre_sans_jalon_exploitable_propose_partiel(
@@ -425,11 +424,11 @@ class TestProposerResultatResoluEtPartiel:
         resultat, causes = journal.proposer_resultat(iv.id, node_id)
 
         assert resultat == "partiel"
-        assert causes  # motif explicite (confirmation opérateur requise)
+        assert causes  # motif explicite (confirmation operateur requise)
 
 
 class TestProposerResultatIgnoreEtatDeRisque:
-    """L'état de risque (Ud/Ur/H) ne doit JAMAIS influencer le label causal."""
+    """L'etat de risque (Ud/Ur/H) ne doit JAMAIS influencer le label causal."""
 
     def test_hidden_risk_extreme_ne_change_pas_le_resultat_resolu(
         self,
@@ -439,8 +438,7 @@ class TestProposerResultatIgnoreEtatDeRisque:
         fixed_clock: FixedClock,
     ) -> None:
         _repousser_jalons_existants(service)
-        # Risque caché catastrophique juste avant l'ouverture : si le résultat
-        # en tenait compte, on n'obtiendrait jamais 'resolu' ci-dessous.
+        # Risque cache catastrophique juste avant l'ouverture : si le resultat en tenait compte, on n'obtiendrait jamais 'resolu' ci-dessous.
         from supplyscore.domain.models import UrgencyState
 
         service.client_db(node_id).save_urgency_state(
@@ -451,7 +449,7 @@ class TestProposerResultatIgnoreEtatDeRisque:
         )
 
         iv = journal.record(node_id, "a1", "op", "Livrer le prototype")
-        assert iv.etat_avant["hidden_risk"] == pytest.approx(0.99)  # bien capturé...
+        assert iv.etat_avant["hidden_risk"] == pytest.approx(0.99)  # bien capture...
 
         date_effet = _NOW
         journal.marquer_executee(iv.id, node_id, True, date_effet_ts=date_effet)
@@ -471,7 +469,7 @@ class TestProposerResultatIgnoreEtatDeRisque:
 
         resultat, _causes = journal.proposer_resultat(iv.id, node_id)
 
-        # ... mais le résultat reste 'resolu' : le risque n'est jamais lu.
+        # ... mais le resultat reste 'resolu' : le risque n'est jamais lu.
         assert resultat == "resolu"
 
     def test_hidden_risk_nul_ne_change_pas_le_resultat_echec(
@@ -507,8 +505,7 @@ class TestProposerResultatIgnoreEtatDeRisque:
 
         resultat, _causes = journal.proposer_resultat(iv.id, node_id)
 
-        # Risque caché nul (tout va "bien" côté urgence) mais jalon raté :
-        # le résultat reste 'echec' — seuls les faits comptent.
+        # Risque cache nul (tout va "bien" cote urgence) mais jalon rate : le resultat reste 'echec' - seuls les faits comptent.
         assert resultat == "echec"
 
 
@@ -520,7 +517,7 @@ class TestProposerResultatErreurs:
             journal.proposer_resultat("id-fantome", node_id)
 
 
-# --- clore : écriture humaine, succes dérivé ---------------------------------------
+# clore : ecriture humaine, succes derive
 
 
 class TestClore:
@@ -587,7 +584,7 @@ class TestClore:
             journal.clore("id-fantome", node_id, "resolu")
 
 
-# --- Cycle complet : record -> executee -> proposer -> clore (happy path) ---------
+# Cycle complet : record -> executee -> proposer -> clore (happy path)
 
 
 class TestCycleComplet:
@@ -606,12 +603,12 @@ class TestCycleComplet:
         )
         assert journal.list_for_node(node_id, only_open=True) == [iv]
 
-        # 2. Exécution.
+        # 2. Execution.
         fixed_clock.set(_NOW + 1000.0)
         date_effet = fixed_clock.now()
         journal.marquer_executee(iv.id, node_id, True, date_effet_ts=date_effet)
 
-        # 3. Le jalon visé par l'intervention est livré dans la fenêtre.
+        # 3. Le jalon vise par l'intervention est livre dans la fenetre.
         service.registry.save_milestone(
             Milestone(
                 id="m-ok",
@@ -624,15 +621,15 @@ class TestCycleComplet:
                 position=1,
             )
         )
-        fixed_clock.set(date_effet + 5 * _WEEK)  # fenêtre entièrement écoulée
+        fixed_clock.set(date_effet + 5 * _WEEK)  # fenetre entierement ecoulee
 
         # 4. Proposition (lecture seule).
         resultat_propose, causes = journal.proposer_resultat(iv.id, node_id)
         assert resultat_propose == "resolu"
         assert causes
-        assert journal.list_for_node(node_id)[0].resultat == "en_cours"  # rien écrit
+        assert journal.list_for_node(node_id)[0].resultat == "en_cours"  # rien ecrit
 
-        # 5. Clôture humaine : l'opérateur retient la proposition.
+        # 5. Cloture humaine : l'operateur retient la proposition.
         journal.clore(
             iv.id,
             node_id,
@@ -658,7 +655,7 @@ class TestCycleComplet:
         }
 
 
-# --- stats_par_action ---------------------------------------------------------------
+# stats_par_action
 
 
 class TestStatsParAction:
@@ -677,7 +674,7 @@ class TestStatsParAction:
         journal.marquer_executee(i2.id, n2, True, date_effet_ts=_NOW)
         journal.clore(i2.id, n2, "echec")
 
-        journal.record(n1, "a2", "op", "Obj 3")  # jamais exécutée
+        journal.record(n1, "a2", "op", "Obj 3")  # jamais executee
 
         stats = journal.stats_par_action(projet.id)
 
@@ -693,7 +690,7 @@ class TestStatsParAction:
         assert journal.stats_par_action("p-fantome") == {}
 
 
-# --- import_synthetic : rejeu d'un fichier JSONL synthétique -----------------------
+# import_synthetic : rejeu d'un fichier JSONL synthetique
 
 
 class TestImportSynthetic:
@@ -719,9 +716,9 @@ class TestImportSynthetic:
                 "date_effet": None,
                 "resultat_operationnel": "echec",
             },
-            # candidate rejetée par le générateur synthétique : pas importée.
+            # candidate rejetee par le generateur synthetique : pas importee.
             {"tour": 4, "node": "nA", "action_id": "a3", "decidee": False},
-            # clé inconnue tolérée, résultat absent -> 'en_cours' par défaut.
+            # cle inconnue toleree, resultat absent -> 'en_cours' par defaut.
             {
                 "tour": 5,
                 "node": "nA",
@@ -737,7 +734,7 @@ class TestImportSynthetic:
 
         compte = journal.import_synthetic(chemin)
 
-        assert compte == 3  # la candidate 'decidee: false' n'est pas comptée
+        assert compte == 3  # la candidate 'decidee: false' n'est pas comptee
 
         na = journal.list_for_node("nA")
         assert len(na) == 2
@@ -821,7 +818,7 @@ class TestImportSynthetic:
         assert journal.import_synthetic(chemin) == 1
 
 
-# --- Couche data : ClientDatabase.*_intervention (édition directe) -----------------
+# Couche data : ClientDatabase.*_intervention (edition directe)
 
 _ROW_BASE: dict[str, object] = {
     "id": "iv-1",
@@ -870,7 +867,7 @@ class TestClientDatabaseInterventions:
             row = db.list_interventions("n1")[0]
             assert row["resultat"] == "resolu"
             assert row["succes"] == 1
-            assert row["action_id"] == "a1"  # non touché
+            assert row["action_id"] == "a1"  # non touche
 
     def test_update_intervention_changes_vide_leve_value_error(self, tmp_path: Path) -> None:
         with ClientDatabase(tmp_path, "n1") as db:

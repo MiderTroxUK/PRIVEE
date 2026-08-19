@@ -1,7 +1,7 @@
-"""Page « Dashboard » : indicateurs globaux, DAG, tableau détaillé, historique.
+"""Page " Dashboard " : indicateurs globaux, DAG, tableau detaille, historique.
 
-Callbacks en fonctions nommées au niveau module, enregistrées dans
-:func:`register_callbacks` — testables sans serveur.
+Callbacks en fonctions nommees au niveau module, enregistrees dans
+:func:`register_callbacks` - testables sans serveur.
 """
 
 from __future__ import annotations
@@ -36,10 +36,7 @@ from supplyscore.web_ui.components.layout import (
 
 _VALUE_COLUMNS = ["Ud_loc", "Ur_loc", "Ud", "Ur", "A", "F", "H"]
 
-#: Palettes du DAG (Lot 16.2) : libellés français, valeurs = colorscales Plotly.
-#: « RdYlBu » remplace l'axe rouge-vert (indiscernable pour les daltoniens
-#: deutéranopes/protanopes) par un axe rouge-bleu ; « Viridis » est
-#: perceptuellement uniforme.
+#: Palettes du DAG (Lot 16.2) : libelles francais, valeurs = colorscales Plotly. " RdYlBu " remplace l'axe rouge-vert (indiscernable pour les daltoniens deuteranopes/protanopes) par un axe rouge-bleu ; " Viridis " est perceptuellement uniforme.
 _PALETTE_OPTIONS: list[dict] = [
     {"label": "Rouge-Vert (défaut)", "value": "RdYlGn"},
     {"label": "Rouge-Bleu (daltonisme)", "value": "RdYlBu"},
@@ -48,7 +45,7 @@ _PALETTE_OPTIONS: list[dict] = [
 _PALETTES: frozenset[str] = frozenset(o["value"] for o in _PALETTE_OPTIONS)
 _PALETTE_DEFAUT: str = "RdYlGn"
 
-#: Clé du réglage par projet (``project_settings``) portant la palette du DAG.
+#: Cle du reglage par projet (``project_settings``) portant la palette du DAG.
 _CLE_PALETTE = "palette"
 
 _TABLE_COLUMNS = (
@@ -62,7 +59,7 @@ _TABLE_COLUMNS = (
     + [{"name": "Pourquoi ?", "id": "Pourquoi", "presentation": "markdown"}]
 )
 
-#: Règles existantes (A < 40 fond rouge, H > 0.3 texte rouge) PUIS règles hebdo.
+#: Regles existantes (A < 40 fond rouge, H > 0.3 texte rouge) PUIS regles hebdo.
 _TABLE_CONDITIONAL = [
     {"if": {"filter_query": "{A} < 40"}, "backgroundColor": "#fdecea"},
     {
@@ -86,16 +83,16 @@ _TABLE_STYLE_HEADER = {
     "color": COLORS["text"],
 }
 
-#: Seuil d'alerte |ρ| au-delà duquel deux blocs de poids fort sont signalés.
+#: Seuil d'alerte |rho| au-dela duquel deux blocs de poids fort sont signales.
 _SEUIL_CORRELATION = 0.8
 
-#: Note de bas de carte PROMETHEE — limite documentée du classement (PLAN.md E12).
+#: Note de bas de carte PROMETHEE - limite documentee du classement (PLAN.md E12).
 _NOTE_PERIMETRE = (
     "Le classement est RELATIF au périmètre du projet : ajouter ou retirer un "
     "nœud peut inverser des rangs (renversement de rang documenté)."
 )
 
-#: Bandeau d'avertissement orange (corrélation forte entre critères de poids fort).
+#: Bandeau d'avertissement orange (correlation forte entre criteres de poids fort).
 _WARN_BANNER_STYLE = {
     "backgroundColor": "#fff4e5",
     "border": f"1px solid {COLORS['warn']}",
@@ -106,7 +103,7 @@ _WARN_BANNER_STYLE = {
     "fontSize": "13px",
 }
 
-#: Bandeau d'invitation bleu (état vide : aucun projet sélectionné, Lot 16.2).
+#: Bandeau d'invitation bleu (etat vide : aucun projet selectionne, Lot 16.2).
 _EMPTY_BANNER_STYLE = {
     "backgroundColor": "#eef4f8",
     "border": f"1px solid {COLORS['primary']}",
@@ -120,23 +117,23 @@ _EMPTY_BANNER_STYLE = {
 
 
 def _r3(value: float | None) -> float | None:
-    """Arrondit à 3 décimales en tolérant None.
+    """Arrondit a 3 decimales en tolerant None.
 
-    CHOIX DOCUMENTÉ (Lot 16.2) : les valeurs de la DataTable restent en
-    NOTATION POINT — ses colonnes ``type="numeric"`` exigent des floats pour
-    le tri et le filtre natifs ; seuls les TEXTES français (cartes KPI)
-    passent en virgule décimale via :func:`_nombre_fr`.
+    CHOIX DOCUMENTE (Lot 16.2) : les valeurs de la DataTable restent en
+    NOTATION POINT - ses colonnes ``type="numeric"`` exigent des floats pour
+    le tri et le filtre natifs ; seuls les TEXTES francais (cartes KPI)
+    passent en virgule decimale via :func:`_nombre_fr`.
     """
     return None if value is None else round(value, 3)
 
 
 def _nombre_fr(valeur: float, decimales: int = 3) -> str:
-    """Nombre en notation française (virgule décimale) pour les TEXTES affichés."""
+    """Nombre en notation francaise (virgule decimale) pour les TEXTES affiches."""
     return f"{valeur:.{decimales}f}".replace(".", ",")
 
 
 def _stat_card(value: str, label_text: str, color: str | None = None) -> html.Div:
-    """Petite carte KPI (valeur en gros, libellé dessous)."""
+    """Petite carte KPI (valeur en gros, libelle dessous)."""
     return html.Div(
         [
             html.Div(
@@ -154,9 +151,9 @@ def _stat_card(value: str, label_text: str, color: str | None = None) -> html.Di
 
 
 def _coverage_card(coverage: tuple[int, int] | None) -> html.Div:
-    """Carte « Questionnaires à jour : x/y » — vert si x == y, orange sinon.
+    """Carte " Questionnaires a jour : x/y " - vert si x == y, orange sinon.
 
-    Sans projet sélectionné (``coverage`` à None), la carte affiche « — »
+    Sans projet selectionne (``coverage`` a None), la carte affiche " - "
     en gris : aucune couverture calculable sans horloge de projet.
     """
     if coverage is None:
@@ -188,7 +185,7 @@ def _kpi_summary(nodes, coverage: tuple[int, int] | None = None) -> list[html.Di
 
 
 def _scope_nodes(project_data):
-    """Nœuds du projet actif, ou tout le graphe si aucun projet sélectionné."""
+    """Noeuds du projet actif, ou tout le graphe si aucun projet selectionne."""
     service = get_service()
     pid = (project_data or {}).get("project_id")
     nodes = service.repo.nodes()
@@ -198,7 +195,7 @@ def _scope_nodes(project_data):
 
 
 def layout() -> html.Div:
-    """Construit la page Dashboard (état du service relu à chaque navigation)."""
+    """Construit la page Dashboard (etat du service relu a chaque navigation)."""
     return html.Div(
         [
             html.H2("Dashboard", style={"margin": "6px 0 12px"}),
@@ -240,8 +237,7 @@ def layout() -> html.Div:
                         ),
                         width="260px",
                     ),
-                    # dcc.Loading ENVELOPPE le graphe : l'id "dash-dag" reste
-                    # posé sur le composant interne (contrat des tests e2e).
+                    # dcc.Loading ENVELOPPE le graphe : l'id "dash-dag" reste pose sur le composant interne (contrat des tests e2e).
                     dcc.Loading(
                         dcc.Graph(id="dash-dag", figure=empty_figure("Chargement…")),
                         type="circle",
@@ -291,12 +287,7 @@ def layout() -> html.Div:
             card(
                 "Détail des nœuds",
                 [
-                    # E14.3 — pagination native SEULE (page_size=25), SANS
-                    # virtualization : les deux mécanismes sont redondants
-                    # (25 lignes rendues par page suffisent à 1 000+ nœuds) et
-                    # virtualization=True exige des hauteurs de lignes fixes et
-                    # casse le rendu des colonnes presentation="markdown"
-                    # (« Pourquoi ? ») dans plusieurs versions de dash-table.
+                    # E14.3 - pagination native SEULE (page_size=25), SANS virtualization : les deux mecanismes sont redondants (25 lignes rendues par page suffisent a 1 000+ noeuds) et virtualization=True exige des hauteurs de lignes fixes et casse le rendu des colonnes presentation="markdown" (" Pourquoi ? ") dans plusieurs versions de dash-table.
                     dcc.Loading(
                         dash_table.DataTable(  # type: ignore[attr-defined]
                             id="dash-table",
@@ -342,12 +333,12 @@ def layout() -> html.Div:
     )
 
 
-# --- Callbacks (fonctions nommées, testables sans serveur) -----------------------
+# Callbacks (fonctions nommees, testables sans serveur)
 
 
 def _triggered_id():
-    """Id du composant déclencheur (None hors contexte de requête Dash)."""
-    try:  # ctx indisponible hors requête Dash (appel direct en test)
+    """Id du composant declencheur (None hors contexte de requete Dash)."""
+    try:  # ctx indisponible hors requete Dash (appel direct en test)
         from dash import ctx
 
         return ctx.triggered_id
@@ -356,22 +347,22 @@ def _triggered_id():
 
 
 def _palette_effective(service, project_id, palette, persister: bool) -> str:
-    """Palette du DAG : persistée par projet, relue au rendu (Lot 16.2).
+    """Palette du DAG : persistee par projet, relue au rendu (Lot 16.2).
 
-    Si ``persister`` (le dropdown a déclenché le rafraîchissement) et qu'un
-    projet est actif, la valeur est écrite dans ``project_settings``
-    (clé :data:`_CLE_PALETTE`). Sinon la valeur STOCKÉE du projet fait foi :
-    au premier rendu le dropdown n'est pas encore synchronisé. Toute valeur
+    Si ``persister`` (le dropdown a declenche le rafraichissement) et qu'un
+    projet est actif, la valeur est ecrite dans ``project_settings``
+    (cle :data:`_CLE_PALETTE`). Sinon la valeur STOCKEE du projet fait foi :
+    au premier rendu le dropdown n'est pas encore synchronise. Toute valeur
     inconnue retombe sur :data:`_PALETTE_DEFAUT`.
 
     Args:
-        service: façade applicative.
+        service: facade applicative.
         project_id: projet actif (ou None/vide).
         palette: valeur courante du dropdown (ou None).
-        persister: True si le dropdown est le déclencheur du callback.
+        persister: True si le dropdown est le declencheur du callback.
 
     Returns:
-        La colorscale Plotly à passer à ``dashboard_dag_figure``.
+        La colorscale Plotly a passer a ``dashboard_dag_figure``.
     """
     if palette not in _PALETTES:
         palette = None
@@ -386,7 +377,7 @@ def _palette_effective(service, project_id, palette, persister: bool) -> str:
 
 
 def palette_value_callback(project_data):
-    """Synchronise le dropdown palette sur le réglage du projet actif."""
+    """Synchronise le dropdown palette sur le reglage du projet actif."""
     service = get_service()
     pid = (project_data or {}).get("project_id")
     stockee = service.registry.get_setting(pid, _CLE_PALETTE) if pid else None
@@ -394,11 +385,11 @@ def palette_value_callback(project_data):
 
 
 def empty_state_callback(project_data):
-    """Bandeau d'invitation quand aucun projet n'est sélectionné (état vide).
+    """Bandeau d'invitation quand aucun projet n'est selectionne (etat vide).
 
     Avec un projet actif, la zone reste vide. Sans projet, le bandeau invite
-    à en choisir un sur la page Projets — et précise, repo vide, qu'il faut
-    d'abord créer un projet ou générer la démo (rien d'affichable sinon).
+    a en choisir un sur la page Projets - et precise, repo vide, qu'il faut
+    d'abord creer un projet ou generer la demo (rien d'affichable sinon).
     """
     pid = (project_data or {}).get("project_id")
     if pid:
@@ -415,10 +406,10 @@ def empty_state_callback(project_data):
 
 
 def _table_row(n, etat: EtatHebdo | None) -> dict:
-    """Ligne du tableau détaillé pour un nœud, statut hebdo inclus.
+    """Ligne du tableau detaille pour un noeud, statut hebdo inclus.
 
-    Sans état hebdo (aucun projet sélectionné), la colonne Hebdo affiche « — ».
-    Pour un nœud MANQUANT, A/F/H affichent « — » : l'adéquation calculée
+    Sans etat hebdo (aucun projet selectionne), la colonne Hebdo affiche " - ".
+    Pour un noeud MANQUANT, A/F/H affichent " - " : l'adequation calculee
     contre un Ud inexistant est trompeuse (H artificiellement alarmant).
     """
     manquant = etat is not None and etat.statut is StatutHebdo.MANQUANT
@@ -439,7 +430,7 @@ def _table_row(n, etat: EtatHebdo | None) -> dict:
 
 
 def tag_filter_options_callback(project_data):
-    """Options du filtre par tags (tags du projet actif, valeur réinitialisée)."""
+    """Options du filtre par tags (tags du projet actif, valeur reinitialisee)."""
     service = get_service()
     pid = (project_data or {}).get("project_id")
     if not pid:
@@ -449,15 +440,15 @@ def tag_filter_options_callback(project_data):
 
 
 def update_dashboard_callback(project_data, n_clicks, tag_ids=None, palette=None):
-    """Met à jour cartes KPI, DAG, tableau et options d'historique.
+    """Met a jour cartes KPI, DAG, tableau et options d'historique.
 
-    Si le déclencheur est le bouton « Recalculer maintenant », le pipeline
-    complet est relancé et persisté avant le rafraîchissement. Les états
+    Si le declencheur est le bouton " Recalculer maintenant ", le pipeline
+    complet est relance et persiste avant le rafraichissement. Les etats
     hebdo du projet sont construits en UNE passe (``synthese``), jamais
-    nœud par nœud (N requêtes sinon). ``tag_ids`` filtre les nœuds affichés
+    noeud par noeud (N requetes sinon). ``tag_ids`` filtre les noeuds affiches
     (intersection non vide avec ``node.tags``). ``palette`` (dropdown
-    ``dash-palette-dd``) choisit la colorscale du DAG : persistée par projet
-    quand le dropdown déclenche, relue des réglages sinon
+    ``dash-palette-dd``) choisit la colorscale du DAG : persistee par projet
+    quand le dropdown declenche, relue des reglages sinon
     (:func:`_palette_effective`).
     """
     service = get_service()
@@ -478,7 +469,7 @@ def update_dashboard_callback(project_data, n_clicks, tag_ids=None, palette=None
         cycle = CycleHebdomadaire(service)
         etats = cycle.synthese(pid)
         coverage: tuple[int, int] | None = cycle.couverture(pid)
-    else:  # aucun projet sélectionné : pas d'horloge de projet, pas d'états hebdo
+    else:  # aucun projet selectionne : pas d'horloge de projet, pas d'etats hebdo
         etats = {}
         coverage = None
 
@@ -491,14 +482,14 @@ def update_dashboard_callback(project_data, n_clicks, tag_ids=None, palette=None
     )
 
 
-# --- Carte « Priorités PROMETHEE II » (Lot 12.4b) -----------------------------------
+# Carte " Priorites PROMETHEE II " (Lot 12.4b)
 
 
 def _noeuds_actifs(service, project_id):
-    """Nœuds ACTIFS du projet, onboarding terminé — mêmes règles que le service.
+    """Noeuds ACTIFS du projet, onboarding termine - memes regles que le service.
 
     Le filtre reproduit celui de ``SupplyScoreService.classement_promethee``
-    pour que la carte et le classement portent sur le MÊME périmètre.
+    pour que la carte et le classement portent sur le MEME perimetre.
     """
     return [
         n
@@ -508,11 +499,11 @@ def _noeuds_actifs(service, project_id):
 
 
 def _blocs_par_noeud(service, project_id, actifs):
-    """Blocs d'urgence analytiques par nœud actif du projet.
+    """Blocs d'urgence analytiques par noeud actif du projet.
 
-    Temps, jalons et modèle Ur viennent des MÊMES sources que
+    Temps, jalons et modele Ur viennent des MEMES sources que
     ``classement_promethee`` (``_project_times`` / ``_ur_model_for``) : la
-    matrice de corrélation diagnostique exactement les valeurs que PROMETHEE
+    matrice de correlation diagnostique exactement les valeurs que PROMETHEE
     consomme.
 
     Returns:
@@ -527,11 +518,11 @@ def _blocs_par_noeud(service, project_id, actifs):
 
 
 def _pearson(xs, ys):
-    """Coefficient de Pearson des deux séries, 0.0 si indéfini.
+    """Coefficient de Pearson des deux series, 0.0 si indefini.
 
-    CHOIX DOCUMENTÉ : ρ indéfini (moins de 2 paires complètes ou variance
-    nulle) est ramené à 0.0 — neutre : la heatmap reste lisible et aucun
-    avertissement n'est déclenché sans information.
+    CHOIX DOCUMENTE : rho indefini (moins de 2 paires completes ou variance
+    nulle) est ramene a 0.0 - neutre : la heatmap reste lisible et aucun
+    avertissement n'est declenche sans information.
     """
     if len(xs) < 2:
         return 0.0
@@ -543,18 +534,18 @@ def _pearson(xs, ys):
 
 
 def _matrice_correlation(blocs_par_noeud):
-    """Matrice de corrélation de Pearson des blocs d'urgence sur les nœuds actifs.
+    """Matrice de correlation de Pearson des blocs d'urgence sur les noeuds actifs.
 
-    Règles (Lot 12.4b) : corrélation par PAIRES COMPLÈTES seulement — un nœud
+    Regles (Lot 12.4b) : correlation par PAIRES COMPLETES seulement - un noeud
     dont l'un des deux blocs vaut None est exclu de la paire ; les blocs
-    entièrement None sont exclus de la matrice.
+    entierement None sont exclus de la matrice.
 
     Args:
         blocs_par_noeud: ``{node_id: {bloc: urgence ou None}}``.
 
     Returns:
-        ``(matrice, blocs_retenus)`` — matrice carrée symétrique (diagonale
-        à 1.0), blocs dans l'ordre de :data:`BLOCKS` ; ``([], [])`` si aucun
+        ``(matrice, blocs_retenus)`` - matrice carree symetrique (diagonale
+        a 1.0), blocs dans l'ordre de :data:`BLOCKS` ; ``([], [])`` si aucun
         bloc n'est calculable.
     """
     colonnes = {
@@ -575,21 +566,21 @@ def _matrice_correlation(blocs_par_noeud):
 
 
 def _avertissements_correlation(matrice, blocs, omega):
-    """Messages d'avertissement : |ρ| > 0.8 entre deux blocs de poids fort.
+    """Messages d'avertissement : |rho| > 0.8 entre deux blocs de poids fort.
 
-    « Poids fort » : les 3 poids effectifs les plus élevés parmi les SIX
-    blocs (égalités départagées par l'ordre de :data:`BLOCKS`) — une forte
-    corrélation entre blocs marginaux ne fausse guère le classement, elle
-    n'est pas signalée.
+    " Poids fort " : les 3 poids effectifs les plus eleves parmi les SIX
+    blocs (egalites departagees par l'ordre de :data:`BLOCKS`) - une forte
+    correlation entre blocs marginaux ne fausse guere le classement, elle
+    n'est pas signalee.
 
     Args:
-        matrice: matrice de corrélation (ordre de ``blocs``).
+        matrice: matrice de correlation (ordre de ``blocs``).
         blocs: noms des blocs retenus dans la matrice.
         omega: poids effectifs par bloc (omega du UrModel du projet).
 
     Returns:
-        Liste de messages français, une entrée par paire incriminée
-        (« ρ=x.xx » reste en notation POINT : format technique contractuel,
+        Liste de messages francais, une entree par paire incriminee
+        (" rho=x.xx " reste en notation POINT : format technique contractuel,
         cf. tests PROMETHEE existants).
     """
     if not matrice:
@@ -612,16 +603,16 @@ def _avertissements_correlation(matrice, blocs, omega):
 
 
 def promethee_callback(project_data, n_clicks=None):
-    """Carte « Priorités PROMETHEE II » : bandeau, barres φ et heatmap ρ.
+    """Carte " Priorites PROMETHEE II " : bandeau, barres phi et heatmap rho.
 
-    CHOIX DOCUMENTÉ : callback DÉDIÉ plutôt qu'une extension de
-    :func:`update_dashboard_callback` — les quatre sorties existantes restent
-    inchangées (compatibilité des tests et consommateurs actuels) et le coût
-    O(n²) du classement n'est payé que pour cette carte. Le bouton
-    « Recalculer maintenant » reste un déclencheur pour rafraîchir la carte
-    en même temps que le reste du dashboard.
+    CHOIX DOCUMENTE : callback DEDIE plutot qu'une extension de
+    :func:`update_dashboard_callback` - les quatre sorties existantes restent
+    inchangees (compatibilite des tests et consommateurs actuels) et le cout
+    O(n^2) du classement n'est paye que pour cette carte. Le bouton
+    " Recalculer maintenant " reste un declencheur pour rafraichir la carte
+    en meme temps que le reste du dashboard.
 
-    Sans projet actif ou avec moins de 2 nœuds actifs : figures vides avec
+    Sans projet actif ou avec moins de 2 noeuds actifs : figures vides avec
     message, aucun bandeau, aucune exception.
     """
     service = get_service()
@@ -652,7 +643,7 @@ def promethee_callback(project_data, n_clicks=None):
 
 
 def history_figure_callback(node_id):
-    """Figure d'évolution temporelle Ud/Ur/A du nœud sélectionné."""
+    """Figure d'evolution temporelle Ud/Ur/A du noeud selectionne."""
     if not node_id:
         return empty_figure("Sélectionnez un nœud pour afficher son historique.")
     service = get_service()

@@ -1,0 +1,6 @@
+COMMANDE: prepare-tour --arm act --db-dir projects\simu_semiconducteurs\experiment\bras_c_complet\db --out projects\simu_semiconducteurs\experiment\bras_c_complet\out --tour 19
+
+--- STDOUT ---
+REFUS : tour 19 hors du scénario (tours 0 à 18).
+
+--- STDERR ---

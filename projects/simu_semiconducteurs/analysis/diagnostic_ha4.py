@@ -1,26 +1,26 @@
-"""Diagnostic HA4 (U2) — balayage de seuil, existe-t-il un signal prédictif ?
+"""Diagnostic HA4 (U2) - balayage de seuil, existe-t-il un signal predictif ?
 
-EXPLORATOIRE — hors registre pré-enregistré (voir PROTOCOLE.md §5). Le test
-HA4 gelé (H = max(Ur−Ud, 0) >= 0.5, horizon 4 tours) a échoué avec TP≈0 sur
-les snapshots dry run — mais l'inspection des séries montre que H est
-structurellement compressé en fin de campagne (nœuds saturés : Ur = 1.0 avec
-Ud ≈ 0.98 → H ≈ 0.02). Le seuil pré-enregistré n'a peut-être jamais eu de
-chance d'être franchi, indépendamment de l'existence d'un signal sous-jacent.
+EXPLORATOIRE - hors registre pre-enregistre (voir PROTOCOLE.md section 5). Le test
+HA4 gele (H = max(Ur-Ud, 0) >= 0.5, horizon 4 tours) a echoue avec TP~=0 sur
+les snapshots dry run - mais l'inspection des series montre que H est
+structurellement compresse en fin de campagne (noeuds satures : Ur = 1.0 avec
+Ud ~= 0.98 -> H ~= 0.02). Le seuil pre-enregistre n'a peut-etre jamais eu de
+chance d'etre franchi, independamment de l'existence d'un signal sous-jacent.
 
-Ce script NE MODIFIE PAS et NE REJOUE PAS le verdict gelé de
-``analyse_campagne.ha4()`` : il répond à une question différente — en
+Ce script NE MODIFIE PAS et NE REJOUE PAS le verdict gele de
+``analyse_campagne.ha4()`` : il repond a une question differente - en
 balayant TOUS les seuils possibles, existe-t-il un pouvoir discriminant DU
-TOUT dans Ur/Ud/H ? Si oui, c'est le seuil pré-enregistré qui était mal
-calibré ; si non, la métrique elle-même est vide de contenu prédictif à cet
+TOUT dans Ur/Ud/H ? Si oui, c'est le seuil pre-enregistre qui etait mal
+calibre ; si non, la metrique elle-meme est vide de contenu predictif a cet
 horizon.
 
-Consomme les DEUX jeux de snapshots (même logique de chargement que
+Consomme les DEUX jeux de snapshots (meme logique de chargement que
 ``analyse_campagne.load()``) :
     - ``analysis/snapshots/``                  (dry run v6)
     - ``analysis/llm_pilot_run/snapshots/``    (pilote LLM)
-Le second jeu peut être absent au moment de l'exécution (dépendance d'une
-autre unité du plan HÉLIOS v7, en cours de fusion en parallèle) : le script
-le signale explicitement et poursuit sur les données disponibles.
+Le second jeu peut etre absent au moment de l'execution (dependance d'une
+autre unite du plan HELIOS v7, en cours de fusion en parallele) : le script
+le signale explicitement et poursuit sur les donnees disponibles.
 
 Produit :
     - ``analysis/diagnostic_ha4.md``                     : tables + verdict.
@@ -28,9 +28,9 @@ Produit :
       (best-effort si matplotlib est disponible).
 
 Script AUTONOME (hors couverture, cf. pyproject.toml ``[tool.coverage.run]``
-``source = ["supplyscore"]``) : toutes les statistiques sont recalculées à la
+``source = ["supplyscore"]``) : toutes les statistiques sont recalculees a la
 main (rangs avec correction d'ex-aequo, bootstrap, percentiles), sans
-dépendre de ``supplyscore`` ni de ``CalibrationService``, à l'image du
+dependre de ``supplyscore`` ni de ``CalibrationService``, a l'image du
 ``spearman`` hand-rolled de ``analyse_campagne.py``.
 """
 
@@ -59,7 +59,7 @@ SEED = 42
 N_BOOT = 1000
 LAGS = (1, 2, 3, 4)
 
-#: 5 signaux candidats évalués point par point (nœud, tour).
+#: 5 signaux candidats evalues point par point (noeud, tour).
 SIGNALS = ["hidden_risk", "H_local", "ur", "ur_local", "gap"]
 
 Point = tuple[str, int, float]  # (node, tour, score)
@@ -67,13 +67,13 @@ Scored = tuple[float, bool]  # (score, label)
 
 
 def load(snapshots_dir: Path) -> dict[int, dict]:
-    """Charge les snapshots ``tour_NN.json`` d'un répertoire.
+    """Charge les snapshots ``tour_NN.json`` d'un repertoire.
 
-    Même logique que ``analyse_campagne.load()``, mais en tolérant un
-    répertoire absent ou vide — au contraire de ``analyse_campagne.load()``,
-    cette fonction ne lève pas d'exception : un jeu de snapshots manquant
-    est une situation normale ici (dépendance d'une autre unité, pas encore
-    fusionnée).
+    Meme logique que ``analyse_campagne.load()``, mais en tolerant un
+    repertoire absent ou vide - au contraire de ``analyse_campagne.load()``,
+    cette fonction ne leve pas d'exception : un jeu de snapshots manquant
+    est une situation normale ici (dependance d'une autre unite, pas encore
+    fusionnee).
     """
     data: dict[int, dict] = {}
     if not snapshots_dir.exists():
@@ -86,7 +86,7 @@ def load(snapshots_dir: Path) -> dict[int, dict]:
 
 
 def event_tours_by_node() -> dict[str, set[int]]:
-    """{node_id: {tours où un événement scénario touche ce nœud}}."""
+    """{node_id: {tours ou un evenement scenario touche ce noeud}}."""
     out: dict[str, set[int]] = {}
     for t, evs in scenario.EVENTS.items():
         for ev in evs:
@@ -95,7 +95,7 @@ def event_tours_by_node() -> dict[str, set[int]]:
 
 
 def signal_value(node: dict, signal: str) -> float:
-    """Valeur d'un signal candidat pour un nœud à un tour donné."""
+    """Valeur d'un signal candidat pour un noeud a un tour donne."""
     if signal == "hidden_risk":
         return float(node["hidden_risk"])
     if signal == "H_local":
@@ -110,11 +110,11 @@ def signal_value(node: dict, signal: str) -> float:
 
 
 def scored_points(data: dict[int, dict], signal: str) -> list[Point]:
-    """(node, tour, score) pour tous les (nœud, tour) valides.
+    """(node, tour, score) pour tous les (noeud, tour) valides.
 
-    Même règle d'exclusion que ``analyse_campagne.ha4`` : on saute le
-    dernier tour (``t + 1 > max(data)``) — sans lui, la fenêtre de vérité
-    ``(t, t+horizon]`` n'a plus aucun sens de « futur ».
+    Meme regle d'exclusion que ``analyse_campagne.ha4`` : on saute le
+    dernier tour (``t + 1 > max(data)``) - sans lui, la fenetre de verite
+    ``(t, t+horizon]`` n'a plus aucun sens de " futur ".
     """
     if not data:
         return []
@@ -132,22 +132,22 @@ def scored_points(data: dict[int, dict], signal: str) -> list[Point]:
 
 
 def label_horizon(ev_by_node: dict[str, set[int]], node: str, t: int, horizon: int) -> bool:
-    """Vérité terrain HA4 : un événement sur ``node`` dans (t, t+horizon]."""
+    """Verite terrain HA4 : un evenement sur ``node`` dans (t, t+horizon]."""
     return any(t < et <= t + horizon for et in ev_by_node.get(node, set()))
 
 
 def label_lag_k(ev_by_node: dict[str, set[int]], node: str, t: int, k: int) -> bool:
-    """Vérité terrain « fenêtre de lag k » : événement dans (t+k-1, t+k]."""
+    """Verite terrain " fenetre de lag k " : evenement dans (t+k-1, t+k]."""
     return any(t + k - 1 < et <= t + k for et in ev_by_node.get(node, set()))
 
 
 def with_labels(
     points: list[Point], ev_by_node: dict[str, set[int]], label_fn
 ) -> tuple[list[Scored], dict[str, list[Scored]]]:
-    """Attache un label (booléen) à chaque point de score.
+    """Attache un label (booleen) a chaque point de score.
 
-    Retourne la liste poolée (tous nœuds confondus) et le regroupement par
-    nœud (nécessaire au bootstrap par grappe).
+    Retourne la liste poolee (tous noeuds confondus) et le regroupement par
+    noeud (necessaire au bootstrap par grappe).
     """
     pooled: list[Scored] = []
     by_node: dict[str, list[Scored]] = {n: [] for n in NODE_IDS}
@@ -158,13 +158,13 @@ def with_labels(
     return pooled, by_node
 
 
-# --- Statistiques hand-rolled (stdlib uniquement) ---------------------------------
+# Statistiques hand-rolled (stdlib uniquement)
 
 
 def _midranks(values: list[float]) -> list[float]:
     """Rangs moyens (ex-aequo).
 
-    Même construction que ``spearman.ranks`` dans ``analyse_campagne.py``.
+    Meme construction que ``spearman.ranks`` dans ``analyse_campagne.py``.
     """
     order = sorted(range(len(values)), key=lambda i: values[i])
     ranks = [0.0] * len(values)
@@ -181,10 +181,10 @@ def _midranks(values: list[float]) -> list[float]:
 
 
 def auc_mannwhitney(scored: list[Scored]) -> float | None:
-    """AUC = P(score positif > score négatif).
+    """AUC = P(score positif > score negatif).
 
-    Calculée via la statistique U de Mann-Whitney (rangs moyens = correction
-    d'ex-aequo intégrée). Équivalent à l'aire sous la ROC construite par
+    Calculee via la statistique U de Mann-Whitney (rangs moyens = correction
+    d'ex-aequo integree). Equivalent a l'aire sous la ROC construite par
     balayage de seuils.
     """
     pos = [s for s, label in scored if label]
@@ -199,9 +199,9 @@ def auc_mannwhitney(scored: list[Scored]) -> float | None:
 
 
 def percentile(sorted_values: list[float], pct: float) -> float | None:
-    """Percentile par interpolation linéaire (convention numpy ``'linear'``).
+    """Percentile par interpolation lineaire (convention numpy ``'linear'``).
 
-    ``sorted_values`` DOIT déjà être trié.
+    ``sorted_values`` DOIT deja etre trie.
     """
     if not sorted_values:
         return None
@@ -219,9 +219,9 @@ def auc_bootstrap_ci(
 ) -> tuple[float | None, float | None]:
     """IC95 de l'AUC par bootstrap CLUSTER sur les 8 node_ids.
 
-    À chaque tirage, on rééchantillonne les NŒUDS (avec remise), pas les
-    points — les points d'un même nœud sont corrélés dans le temps (une
-    seule trajectoire), donc rééchantillonner les points directement
+    A chaque tirage, on reechantillonne les NOEUDS (avec remise), pas les
+    points - les points d'un meme noeud sont correles dans le temps (une
+    seule trajectoire), donc reechantillonner les points directement
     sous-estimerait la variance.
     """
     nodes = sorted(n for n in by_node if by_node[n])
@@ -242,11 +242,11 @@ def auc_bootstrap_ci(
 
 
 def roc_curve(scored: list[Scored]) -> list[dict]:
-    """ROC complète.
+    """ROC complete.
 
-    Balaie TOUTES les valeurs distinctes observées comme seuils
-    (``prédit = score >= seuil``), en ordre décroissant, plus un point de
-    départ « rien prédit positif » (seuil > max).
+    Balaie TOUTES les valeurs distinctes observees comme seuils
+    (``predit = score >= seuil``), en ordre decroissant, plus un point de
+    depart " rien predit positif " (seuil > max).
     """
     n_pos = sum(1 for _, label in scored if label)
     n_neg = len(scored) - n_pos
@@ -294,7 +294,7 @@ def roc_curve(scored: list[Scored]) -> list[dict]:
 def average_precision(scored: list[Scored]) -> float | None:
     """PR-AUC (average precision).
 
-    Intégrale en escalier sur les seuils distincts — même convention de
+    Integrale en escalier sur les seuils distincts - meme convention de
     regroupement d'ex-aequo que ``roc_curve``.
     """
     pos_total = sum(1 for _, label in scored if label)
@@ -325,9 +325,9 @@ def _f1(p: dict) -> float:
 
 
 def best_thresholds(roc_points: list[dict]) -> tuple[dict, dict]:
-    """Meilleur seuil au sens F1 et au sens Youden (J = TPR − FPR).
+    """Meilleur seuil au sens F1 et au sens Youden (J = TPR - FPR).
 
-    Chaque résultat inclut sa matrice de confusion complète.
+    Chaque resultat inclut sa matrice de confusion complete.
     """
     best_f1 = max(roc_points, key=_f1)
     best_youden = max(roc_points, key=lambda p: p["tpr"] - p["fpr"])
@@ -337,9 +337,9 @@ def best_thresholds(roc_points: list[dict]) -> tuple[dict, dict]:
 def baseline_naive_detector(
     data: dict[int, dict], horizon: int = HORIZON, seuil: float = 0.5
 ) -> str:
-    """Détecteur nul : « Ur_local >= 0.5 ».
+    """Detecteur nul : " Ur_local >= 0.5 ".
 
-    Même grille que ``analyse_campagne.baseline_naive`` (recalculé ici pour
+    Meme grille que ``analyse_campagne.baseline_naive`` (recalcule ici pour
     rester autonome ; AUCUN import de ``analyse_campagne``).
     """
     ev_by_node = event_tours_by_node()
@@ -361,7 +361,7 @@ def baseline_naive_detector(
 
 
 def analyze_signal(data: dict[int, dict], signal: str) -> dict:
-    """Batterie complète pour un signal sur un jeu de snapshots.
+    """Batterie complete pour un signal sur un jeu de snapshots.
 
     ROC, AUC, IC95, PR-AUC, meilleurs seuils F1 et Youden.
     """
@@ -392,12 +392,12 @@ def analyze_signal(data: dict[int, dict], signal: str) -> dict:
 def lag_analysis(
     data: dict[int, dict], signal: str, ks: tuple[int, ...] = LAGS
 ) -> dict[int, float | None]:
-    """AUC(signal) contre une vérité terrain resserrée à la fenêtre (t+k-1, t+k].
+    """AUC(signal) contre une verite terrain resserree a la fenetre (t+k-1, t+k].
 
-    Pour k=1..4 — décide si le signal est un vrai PRÉCURSEUR (AUC stable ou
-    en hausse quand k augmente, i.e. il « voit venir ») ou un simple
+    Pour k=1..4 - decide si le signal est un vrai PRECURSEUR (AUC stable ou
+    en hausse quand k augmente, i.e. il " voit venir ") ou un simple
     NOWCAST (AUC en hausse quand k DIMINUE, i.e. il ne fait que confirmer un
-    événement en cours).
+    evenement en cours).
     """
     ev_by_node = event_tours_by_node()
     points = scored_points(data, signal)
@@ -443,7 +443,7 @@ def render_signal_table(results: dict[str, dict]) -> list[str]:
 
 
 def render_lag_table(lag: dict[int, float | None], signal: str) -> list[str]:
-    """Table markdown k -> AUC, plus une phrase d'interprétation nowcast/précurseur."""
+    """Table markdown k -> AUC, plus une phrase d'interpretation nowcast/precurseur."""
     lines = [
         f"Signal retenu (AUC horizon 4 la plus élevée) : `{signal}`.",
         "",
@@ -485,7 +485,7 @@ def write_figures(
     results_by_set: dict[str, dict[str, dict]],
     lag_by_set: dict[str, tuple[str, dict]],
 ) -> str:
-    """Écrit les figures ROC et AUC-vs-lag (best-effort, matplotlib optionnel)."""
+    """Ecrit les figures ROC et AUC-vs-lag (best-effort, matplotlib optionnel)."""
     try:
         import matplotlib
 
@@ -535,7 +535,7 @@ def write_figures(
 def compute_verdict(results_by_set: dict[str, dict[str, dict]]) -> list[str]:
     """VERDICT explicite GO / pivot.
 
-    Basé sur la meilleure AUC observée tous signaux et tous jeux de
+    Base sur la meilleure AUC observee tous signaux et tous jeux de
     snapshots confondus.
     """
     candidates: list[tuple[str, str, float, float | None, float | None]] = []
@@ -584,7 +584,7 @@ def compute_verdict(results_by_set: dict[str, dict[str, dict]]) -> list[str]:
 
 
 def main() -> int:
-    """Analyse les deux jeux de snapshots, écrit diagnostic_ha4.md et imprime le verdict."""
+    """Analyse les deux jeux de snapshots, ecrit diagnostic_ha4.md et imprime le verdict."""
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")  # console Windows cp1252
 

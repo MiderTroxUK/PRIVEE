@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.4.16)  17 AUG 2026 14:20
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.4.16)  19 AUG 2026 14:25
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1147,7 +1147,7 @@ Package hyperref Info: Link coloring ON on input line 257.
 \openout5 = `main.out'.
 
  (./Utilities/Cover.tex
-<Images/0.Cover/LogoCranfield.png, id=369, 1299.85625pt x 1298.8525pt>
+<Images/0.Cover/LogoCranfield.png, id=422, 1299.85625pt x 1298.8525pt>
 File: Images/0.Cover/LogoCranfield.png Graphic file (type png)
 <use Images/0.Cover/LogoCranfield.png>
 Package pdftex.def Info: Images/0.Cover/LogoCranfield.png  used on input line 1
@@ -1176,12 +1176,12 @@ File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 (c:/texlive/2026/texmf-dist/tex/latex/microtype/mt-msb.cfg
 File: mt-msb.cfg 2005/06/01 v1.0 microtype config. file: AMS symbols (b) (RS)
 )
-<Images/0.Cover/LogoESTIA.png, id=371, 1417.295pt x 615.29875pt>
+<Images/0.Cover/LogoESTIA.png, id=424, 1417.295pt x 615.29875pt>
 File: Images/0.Cover/LogoESTIA.png Graphic file (type png)
 <use Images/0.Cover/LogoESTIA.png>
 Package pdftex.def Info: Images/0.Cover/LogoESTIA.png  used on input line 19.
 (pdftex.def)             Requested size: 65.52724pt x 28.45274pt.
-<../BST_DISCO_JH_2026/Images/0.Cover/LogoALTEN.png, id=372, 765.86125pt x 1284.
+<../BST_DISCO_JH_2026/Images/0.Cover/LogoALTEN.png, id=425, 765.86125pt x 1284.
 8pt>
 File: ../BST_DISCO_JH_2026/Images/0.Cover/LogoALTEN.png Graphic file (type png)
 
@@ -1189,7 +1189,7 @@ File: ../BST_DISCO_JH_2026/Images/0.Cover/LogoALTEN.png Graphic file (type png)
 Package pdftex.def Info: ../BST_DISCO_JH_2026/Images/0.Cover/LogoALTEN.png  use
 d on input line 64.
 (pdftex.def)             Requested size: 17.7979pt x 29.87547pt.
-<../BST_DISCO_JH_2026/Images/0.Cover/LogoDIN.png, id=373, 225.84375pt x 225.843
+<../BST_DISCO_JH_2026/Images/0.Cover/LogoDIN.png, id=426, 225.84375pt x 225.843
 75pt>
 File: ../BST_DISCO_JH_2026/Images/0.Cover/LogoDIN.png Graphic file (type png)
 <use ../BST_DISCO_JH_2026/Images/0.Cover/LogoDIN.png>
@@ -1216,34 +1216,34 @@ png> <../BST_DISCO_JH_2026/Images/0.Cover/LogoDIN.png>]) (./Utilities/Declarati
 on.tex) [1
 
 ]
-(./Sections/0.Abstract.tex) [2
+(./Sections/0.Abstract.tex [2
 
-] (./Sections/0bis.Resume.tex) [3
+]) [3] (./Sections/0bis.Resume.tex [4
 
-]
-(./Utilities/Acknowledgements.tex) [4
+]) [5]
+(./Utilities/Acknowledgements.tex) [6
 
-] (./main.toc [5
+] (./main.toc [7
 
-] [6])
+] [8] [9])
 \tf@toc=\write6
 \openout6 = `main.toc'.
 
- [7] (./main.lof)
+ [10]
+(./main.lof)
 \tf@lof=\write7
 \openout7 = `main.lof'.
 
-
-[8
+ [11
 
 ] (./main.lot)
 \tf@lot=\write8
 \openout8 = `main.lot'.
 
- [9
+ [12
 
 ] (./Sections/1.Introduction.tex
-<../BST_DISCO_JH_2026/Images/1.Introduction/disco_map.png, id=650, 246.6816pt x
+<../BST_DISCO_JH_2026/Images/1.Introduction/disco_map.png, id=745, 246.6816pt x
  207.174pt>
 File: ../BST_DISCO_JH_2026/Images/1.Introduction/disco_map.png Graphic file (ty
 pe png)
@@ -1260,7 +1260,7 @@ l.94
       [1
 
 ] [2 <../BST_DISCO_JH_2026/Images/1.Introduction/disco_map.png>]
-<../BST_DISCO_JH_2026/Images/2.Problem/urgency_gap.png, id=693, 246.6816pt x 18
+<../BST_DISCO_JH_2026/Images/2.Problem/urgency_gap.png, id=787, 246.6816pt x 18
 5.0112pt>
 File: ../BST_DISCO_JH_2026/Images/2.Problem/urgency_gap.png Graphic file (type 
 png)
@@ -1271,7 +1271,7 @@ Package pdftex.def Info: ../BST_DISCO_JH_2026/Images/2.Problem/urgency_gap.png
 
 [3] [4 <../BST_DISCO_JH_2026/Images/2.Problem/urgency_gap.png>] [5] [6])
 [7] (./Sections/2.LiteratureReview.tex
-<../BST_DISCO_JH_2026/Images/3.SoTA/literature_streams.png, id=782, 246.6816pt 
+<../BST_DISCO_JH_2026/Images/3.SoTA/literature_streams.png, id=877, 246.6816pt 
 x 246.6816pt>
 File: ../BST_DISCO_JH_2026/Images/3.SoTA/literature_streams.png Graphic file (t
 ype png)
@@ -1286,7 +1286,7 @@ png  used on input line 54.
 (./Sections/3.Methods.tex [19
 
 ]
-<../BST_DISCO_JH_2026/Images/2.Problem/three_layer_architecture.png, id=1103, 2
+<../BST_DISCO_JH_2026/Images/2.Problem/three_layer_architecture.png, id=1197, 2
 46.6816pt x 246.6816pt>
 File: ../BST_DISCO_JH_2026/Images/2.Problem/three_layer_architecture.png Graphi
 c file (type png)
@@ -1294,7 +1294,7 @@ c file (type png)
 Package pdftex.def Info: ../BST_DISCO_JH_2026/Images/2.Problem/three_layer_arch
 itecture.png  used on input line 70.
 (pdftex.def)             Requested size: 363.97105pt x 364.00652pt.
-<../BST_DISCO_JH_2026/Images/4.Operations/test_learn_loop.png, id=1104, 246.681
+<../BST_DISCO_JH_2026/Images/4.Operations/test_learn_loop.png, id=1198, 246.681
 6pt x 246.6816pt>
 File: ../BST_DISCO_JH_2026/Images/4.Operations/test_learn_loop.png Graphic file
  (type png)
@@ -1309,7 +1309,7 @@ Package microtype Info: Loading generic protrusion settings for font family
 (microtype)             For optimal results, create family-specific settings.
 (microtype)             See the microtype manual for details.
  [23{c:/texlive/2026/texmf-dist/fonts/enc/dvips/cm-super/cm-super-t1.enc}]
-<../BST_DISCO_JH_2026/Images/4.Operations/causal_tree_blocks.png, id=1159, 246.
+<../BST_DISCO_JH_2026/Images/4.Operations/causal_tree_blocks.png, id=1253, 246.
 6816pt x 246.6816pt>
 File: ../BST_DISCO_JH_2026/Images/4.Operations/causal_tree_blocks.png Graphic f
 ile (type png)
@@ -1318,7 +1318,7 @@ Package pdftex.def Info: ../BST_DISCO_JH_2026/Images/4.Operations/causal_tree_b
 locks.png  used on input line 299.
 (pdftex.def)             Requested size: 363.97105pt x 364.00652pt.
  [24] [25 <../BST_DISCO_JH_2026/Images/4.Operations/causal_tree_blocks.png>]
-<../BST_DISCO_JH_2026/Images/4.Operations/urgency_propagation.png, id=1178, 246
+<../BST_DISCO_JH_2026/Images/4.Operations/urgency_propagation.png, id=1273, 246
 .6816pt x 246.6816pt>
 File: ../BST_DISCO_JH_2026/Images/4.Operations/urgency_propagation.png Graphic 
 file (type png)
@@ -1327,39 +1327,38 @@ Package pdftex.def Info: ../BST_DISCO_JH_2026/Images/4.Operations/urgency_propa
 gation.png  used on input line 392.
 (pdftex.def)             Requested size: 363.97105pt x 364.00652pt.
  [26 <../BST_DISCO_JH_2026/Images/4.Operations/urgency_propagation.png>]
-<../BST_DISCO_JH_2026/Images/4.Operations/shock_simulation.png, id=1185, 246.68
+<../BST_DISCO_JH_2026/Images/4.Operations/shock_simulation.png, id=1281, 246.68
 16pt x 203.0787pt>
 File: ../BST_DISCO_JH_2026/Images/4.Operations/shock_simulation.png Graphic fil
 e (type png)
 <use ../BST_DISCO_JH_2026/Images/4.Operations/shock_simulation.png>
 Package pdftex.def Info: ../BST_DISCO_JH_2026/Images/4.Operations/shock_simulat
-ion.png  used on input line 416.
+ion.png  used on input line 442.
 (pdftex.def)             Requested size: 363.97105pt x 299.66553pt.
- [27 <../BST_DISCO_JH_2026/Images/4.Operations/shock_simulation.png>]
-Overfull \hbox (27.88754pt too wide) in paragraph at lines 496--501
+ [27] [28 <../BST_DISCO_JH_2026/Images/4.Operations/shock_simulation.png>]
+Overfull \hbox (27.88754pt too wide) in paragraph at lines 522--527
 [] []\T1/Crlt-LF/b/n/12 (-20) Single fa-cade.[][] \T1/Crlt-LF/m/n/12 (-20) All 
 op-er-a-tions go through one or-ches-trat-ing fa-cade (\T1/cmtt/m/n/12 services
 /orchestrator.py\T1/Crlt-LF/m/n/12 (-20) )
  []
 
 
-Overfull \hbox (0.78345pt too wide) in paragraph at lines 503--509
+Overfull \hbox (0.78345pt too wide) in paragraph at lines 529--535
 [] []\T1/Crlt-LF/b/n/12 (-20) Multi-tenant per-sis-tence.[][] \T1/Crlt-LF/m/n/1
 2 (-20) Data is split be-tween one global reg-istry database hold-ing projects,
 
  []
 
-[28]
-<../BST_DISCO_JH_2026/Images/4.Operations/uml_architecture.png, id=1209, 1911.1
+<../BST_DISCO_JH_2026/Images/4.Operations/uml_architecture.png, id=1302, 1911.1
 4pt x 936.49875pt>
 File: ../BST_DISCO_JH_2026/Images/4.Operations/uml_architecture.png Graphic fil
 e (type png)
 <use ../BST_DISCO_JH_2026/Images/4.Operations/uml_architecture.png>
 Package pdftex.def Info: ../BST_DISCO_JH_2026/Images/4.Operations/uml_architect
-ure.png  used on input line 531.
+ure.png  used on input line 557.
 (pdftex.def)             Requested size: 346.21274pt x 169.64851pt.
- [29 <../BST_DISCO_JH_2026/Images/4.Operations/uml_architecture.png>]
-Overfull \hbox (33.48659pt too wide) in paragraph at lines 560--567
+[29]
+Overfull \hbox (33.48659pt too wide) in paragraph at lines 586--593
 []\T1/Crlt-LF/m/n/12 (-20) The con-sis-tency ra-tio is com-puted as $[]\OML/cmm
 /m/it/12 CR \OT1/cmr/m/n/12 (-20) = []\OML/cmm/m/it/12 ConsistencyIndex\OT1/cmr
 /m/n/12 (-20) (\OML/cmm/m/it/12 CI\OT1/cmr/m/n/12 (-20) )\OML/cmm/m/it/12 =[]Ra
@@ -1368,229 +1367,267 @@ ML/cmm/m/it/12 n\OT1/cmr/m/n/12 (-20) (\OML/cmm/m/it/12 RI\OT1/cmr/m/n/12 (-20)
  )$
  []
 
-<../BST_DISCO_JH_2026/Images/4.Operations/ahp_criteria_mapping.png, id=1222, 24
+<../BST_DISCO_JH_2026/Images/4.Operations/ahp_criteria_mapping.png, id=1316, 24
 6.6816pt x 246.6816pt>
 File: ../BST_DISCO_JH_2026/Images/4.Operations/ahp_criteria_mapping.png Graphic
  file (type png)
 <use ../BST_DISCO_JH_2026/Images/4.Operations/ahp_criteria_mapping.png>
 Package pdftex.def Info: ../BST_DISCO_JH_2026/Images/4.Operations/ahp_criteria_
-mapping.png  used on input line 570.
+mapping.png  used on input line 596.
 (pdftex.def)             Requested size: 363.97105pt x 364.00652pt.
-<../BST_DISCO_JH_2026/Images/4.Operations/questionnaire_screenshot.png, id=1223
+<../BST_DISCO_JH_2026/Images/4.Operations/questionnaire_screenshot.png, id=1317
 , 1905.1175pt x 929.4725pt>
 File: ../BST_DISCO_JH_2026/Images/4.Operations/questionnaire_screenshot.png Gra
 phic file (type png)
 <use ../BST_DISCO_JH_2026/Images/4.Operations/questionnaire_screenshot.png>
 Package pdftex.def Info: ../BST_DISCO_JH_2026/Images/4.Operations/questionnaire
-_screenshot.png  used on input line 577.
+_screenshot.png  used on input line 603.
 (pdftex.def)             Requested size: 346.21274pt x 168.90047pt.
-[30 <../BST_DISCO_JH_2026/Images/4.Operations/ahp_criteria_mapping.png>]
-[31 <../BST_DISCO_JH_2026/Images/4.Operations/questionnaire_screenshot.png (PNG
- copy)>]
-<../BST_DISCO_JH_2026/Images/4.Operations/event_pipeline.png, id=1236, 246.6816
+[30 <../BST_DISCO_JH_2026/Images/4.Operations/uml_architecture.png>] [31 <../BS
+T_DISCO_JH_2026/Images/4.Operations/ahp_criteria_mapping.png> <../BST_DISCO_JH_
+2026/Images/4.Operations/questionnaire_screenshot.png (PNG copy)>]
+<../BST_DISCO_JH_2026/Images/4.Operations/event_pipeline.png, id=1329, 246.6816
 pt x 246.6816pt>
 File: ../BST_DISCO_JH_2026/Images/4.Operations/event_pipeline.png Graphic file 
 (type png)
 <use ../BST_DISCO_JH_2026/Images/4.Operations/event_pipeline.png>
 Package pdftex.def Info: ../BST_DISCO_JH_2026/Images/4.Operations/event_pipelin
-e.png  used on input line 656.
+e.png  used on input line 682.
 (pdftex.def)             Requested size: 363.97105pt x 364.00652pt.
-<../BST_DISCO_JH_2026/Images/4.Operations/explainability_waterfall.png, id=1239
+ [32]
+[33 <../BST_DISCO_JH_2026/Images/4.Operations/event_pipeline.png>]
+<../BST_DISCO_JH_2026/Images/4.Operations/explainability_waterfall.png, id=1346
 , 246.6816pt x 196.3335pt>
 File: ../BST_DISCO_JH_2026/Images/4.Operations/explainability_waterfall.png Gra
 phic file (type png)
 <use ../BST_DISCO_JH_2026/Images/4.Operations/explainability_waterfall.png>
 Package pdftex.def Info: ../BST_DISCO_JH_2026/Images/4.Operations/explainabilit
-y_waterfall.png  used on input line 690.
+y_waterfall.png  used on input line 754.
 (pdftex.def)             Requested size: 346.21274pt x 275.57501pt.
- [32] [33 <../BST_DISCO_JH_2026/Images/4.Operations/event_pipeline.png> <../BST
-_DISCO_JH_2026/Images/4.Operations/explainability_waterfall.png>]
+ [34]
+[35 <../BST_DISCO_JH_2026/Images/4.Operations/explainability_waterfall.png>]
 <../BST_DISCO_JH_2026/Images/4.Operations/helios_network_coefficients.png, id=1
-254, 602.37045pt x 259.08795pt>
+359, 602.37045pt x 259.08795pt>
 File: ../BST_DISCO_JH_2026/Images/4.Operations/helios_network_coefficients.png 
 Graphic file (type png)
 <use ../BST_DISCO_JH_2026/Images/4.Operations/helios_network_coefficients.png>
 Package pdftex.def Info: ../BST_DISCO_JH_2026/Images/4.Operations/helios_networ
-k_coefficients.png  used on input line 758.
+k_coefficients.png  used on input line 822.
 (pdftex.def)             Requested size: 443.86319pt x 190.91954pt.
 
-[34] [35 <../BST_DISCO_JH_2026/Images/4.Operations/helios_network_coefficients.
-png>] [36] [37] [38] [39]) [40] (./Sections/4.ResultsDiscussion.tex
-<../BST_DISCO_JH_2026/Images/4.Operations/hebdo.png, id=1312, 1905.1175pt x 929
+[36 <../BST_DISCO_JH_2026/Images/4.Operations/helios_network_coefficients.png>]
+[37] [38] [39] [40]) [41] (./Sections/4.ResultsDiscussion.tex
+<../BST_DISCO_JH_2026/Images/4.Operations/hebdo.png, id=1415, 1905.1175pt x 929
 .4725pt>
 File: ../BST_DISCO_JH_2026/Images/4.Operations/hebdo.png Graphic file (type png
 )
 <use ../BST_DISCO_JH_2026/Images/4.Operations/hebdo.png>
 Package pdftex.def Info: ../BST_DISCO_JH_2026/Images/4.Operations/hebdo.png  us
-ed on input line 48.
+ed on input line 61.
 (pdftex.def)             Requested size: 346.21274pt x 168.90047pt.
-<../BST_DISCO_JH_2026/Images/4.Operations/criticite.png, id=1313, 1905.1175pt x
+ [42
+
+]
+<../BST_DISCO_JH_2026/Images/4.Operations/criticite.png, id=1421, 1905.1175pt x
  3224.045pt>
 File: ../BST_DISCO_JH_2026/Images/4.Operations/criticite.png Graphic file (type
  png)
 <use ../BST_DISCO_JH_2026/Images/4.Operations/criticite.png>
 Package pdftex.def Info: ../BST_DISCO_JH_2026/Images/4.Operations/criticite.png
-  used on input line 55.
+  used on input line 68.
 (pdftex.def)             Requested size: 346.21274pt x 585.86209pt.
- [41
-
-]
-<../BST_DISCO_JH_2026/Images/4.Operations/helios_dryrun_trajectories.png, id=13
-19, 681.3455pt x 777.304pt>
+<../BST_DISCO_JH_2026/Images/4.Operations/helios_dryrun_trajectories.png, id=14
+23, 681.3455pt x 777.304pt>
 File: ../BST_DISCO_JH_2026/Images/4.Operations/helios_dryrun_trajectories.png G
 raphic file (type png)
 <use ../BST_DISCO_JH_2026/Images/4.Operations/helios_dryrun_trajectories.png>
 Package pdftex.def Info: ../BST_DISCO_JH_2026/Images/4.Operations/helios_dryrun
-_trajectories.png  used on input line 93.
+_trajectories.png  used on input line 106.
 (pdftex.def)             Requested size: 381.72261pt x 435.47705pt.
-
-[42 <../BST_DISCO_JH_2026/Images/4.Operations/hebdo.png (PNG copy)>] [43 <../BS
-T_DISCO_JH_2026/Images/4.Operations/criticite.png (PNG copy)>] [44 <../BST_DISC
-O_JH_2026/Images/4.Operations/helios_dryrun_trajectories.png>] [45] [46]
-<Images/armA_reliability.png, id=1356, 406.51875pt x 322.3242pt>
+ [43 <../BST_DISCO_JH_2026/Images/4.Operations/hebdo.png (PNG copy)>] [44 <../B
+ST_DISCO_JH_2026/Images/4.Operations/criticite.png (PNG copy)>] [45 <../BST_DIS
+CO_JH_2026/Images/4.Operations/helios_dryrun_trajectories.png>] [46] [47] [48] 
+[49]
+<Images/armA_reliability.png, id=1475, 406.51875pt x 322.3242pt>
 File: Images/armA_reliability.png Graphic file (type png)
 <use Images/armA_reliability.png>
-Package pdftex.def Info: Images/armA_reliability.png  used on input line 280.
+Package pdftex.def Info: Images/armA_reliability.png  used on input line 393.
 (pdftex.def)             Requested size: 381.72261pt x 302.67493pt.
+ [50 <./Images/armA_reliability.png>] [51]
 
-[47 <./Images/armA_reliability.png>]
-Overfull \hbox (5.77861pt too wide) in paragraph at lines 385--385
+Package tabularx Warning: X Columns too narrow (table too wide)
+(tabularx)                 on input line 519.
+
+
+Overfull \hbox (10.04518pt too wide) in paragraph at lines 519--519
  []|\T1/Crlt-LF/b/n/10.95 (-20) Base 
  []
 
 
-Overfull \hbox (2.54222pt too wide) in paragraph at lines 385--385
+Overfull \hbox (6.80879pt too wide) in paragraph at lines 519--519
  \T1/Crlt-LF/b/n/10.95 (-20) rate| 
  []
 
 
-Overfull \hbox (3.78424pt too wide) in paragraph at lines 385--385
+Overfull \hbox (8.05081pt too wide) in paragraph at lines 519--519
  []|\T1/Crlt-LF/b/n/10.95 (-20) AUC| 
  []
 
 
-Overfull \hbox (6.2683pt too wide) in paragraph at lines 385--385
+Overfull \hbox (10.53487pt too wide) in paragraph at lines 519--519
  []|\T1/Crlt-LF/b/n/10.95 (-20) Brier 
  []
 
 
-Overfull \hbox (2.12148pt too wide) in paragraph at lines 385--385
+Overfull \hbox (6.38805pt too wide) in paragraph at lines 519--519
  \T1/Crlt-LF/b/n/10.95 (-20) skill| 
  []
 
 
-Overfull \hbox (10.99126pt too wide) in paragraph at lines 385--385
+Overfull \hbox (4.19785pt too wide) in paragraph at lines 519--519
+ []|\T1/Crlt-LF/m/n/10.95 (-20) 120| 
+ []
+
+
+Overfull \hbox (15.25783pt too wide) in paragraph at lines 519--519
  []|\T1/Crlt-LF/m/n/10.95 (-20) 0.050| 
  []
 
 
-Overfull \hbox (9.86311pt too wide) in paragraph at lines 385--385
+Overfull \hbox (14.12968pt too wide) in paragraph at lines 519--519
  []|\T1/Crlt-LF/m/n/10.95 (-20) 0.485| 
  []
 
 
-Overfull \hbox (12.43832pt too wide) in paragraph at lines 385--385
+Overfull \hbox (16.7049pt too wide) in paragraph at lines 519--519
  []|$\OMS/cmsy/m/n/10.95 ^^@\OT1/cmr/m/n/10.95 (-20) 3\OML/cmm/m/it/10.95 :\OT1
 /cmr/m/n/10.95 (-20) 36$| 
  []
 
 
-Overfull \hbox (9.35994pt too wide) in paragraph at lines 385--385
+Overfull \hbox (13.62651pt too wide) in paragraph at lines 519--519
  []|\T1/Crlt-LF/m/n/10.95 (-20) 0.387| 
  []
 
 
-Overfull \hbox (10.34064pt too wide) in paragraph at lines 385--385
+Overfull \hbox (14.60721pt too wide) in paragraph at lines 519--519
  []|\T1/Crlt-LF/m/n/10.95 (-20) 0.484| 
  []
 
 
-Overfull \hbox (12.43832pt too wide) in paragraph at lines 385--385
+Overfull \hbox (16.7049pt too wide) in paragraph at lines 519--519
  []|$\OMS/cmsy/m/n/10.95 ^^@\OT1/cmr/m/n/10.95 (-20) 0\OML/cmm/m/it/10.95 :\OT1
 /cmr/m/n/10.95 (-20) 64$| 
  []
 
-[48]
-<Images/armA_roc.png, id=1373, 364.9635pt x 344.7279pt>
+
+Overfull \hbox (0.84013pt too wide) in paragraph at lines 519--519
+ []|\T1/Crlt-LF/m/n/10.95 (-20) 90| 
+ []
+
+
+Overfull \hbox (14.28581pt too wide) in paragraph at lines 519--519
+ []|\T1/Crlt-LF/m/n/10.95 (-20) 0.289| 
+ []
+
+
+Overfull \hbox (14.17238pt too wide) in paragraph at lines 519--519
+ []|\T1/Crlt-LF/m/n/10.95 (-20) 0.654| 
+ []
+
+
+Overfull \hbox (16.7049pt too wide) in paragraph at lines 519--519
+ []|$\OMS/cmsy/m/n/10.95 ^^@\OT1/cmr/m/n/10.95 (-20) 0\OML/cmm/m/it/10.95 :\OT1
+/cmr/m/n/10.95 (-20) 55$| 
+ []
+
+
+Overfull \hbox (145.7063pt too wide) in alignment at lines 519--519
+[][][][][] 
+ []
+
+<Images/armA_roc.png, id=1494, 364.9635pt x 344.7279pt>
 File: Images/armA_roc.png Graphic file (type png)
 <use Images/armA_roc.png>
-Package pdftex.def Info: Images/armA_roc.png  used on input line 396.
+Package pdftex.def Info: Images/armA_roc.png  used on input line 541.
 (pdftex.def)             Requested size: 381.72261pt x 360.58104pt.
- [49 <./Images/armA_roc.png>]
-<Images/armB_influence.png, id=1382, 466.1415pt x 325.57635pt>
+[52] [53 <./Images/armA_roc.png>]
+<Images/armB_influence.png, id=1507, 466.1415pt x 325.57635pt>
 File: Images/armB_influence.png Graphic file (type png)
 <use Images/armB_influence.png>
-Package pdftex.def Info: Images/armB_influence.png  used on input line 474.
+Package pdftex.def Info: Images/armB_influence.png  used on input line 619.
 (pdftex.def)             Requested size: 381.72261pt x 266.6216pt.
- [50] [51 <./Images/armB_influence.png>]
-[52] [53]
-<Images/volume_calibration.png, id=1419, 426.393pt x 305.7021pt>
+ [54] [55 <./Images/armB_influence.png>]
+[56] [57] [58] [59] [60]
+<Images/volume_calibration.png, id=1568, 426.393pt x 305.7021pt>
 File: Images/volume_calibration.png Graphic file (type png)
 <use Images/volume_calibration.png>
-Package pdftex.def Info: Images/volume_calibration.png  used on input line 644.
+Package pdftex.def Info: Images/volume_calibration.png  used on input line 966.
 
 (pdftex.def)             Requested size: 381.72261pt x 273.6833pt.
-<Images/5.Volume/resolution_hr20.png, id=1421, 602.25pt x 602.25pt>
+ [61 <./Images/volume_calibration.png>]
+<Images/5.Volume/resolution_hr20.png, id=1575, 602.25pt x 602.25pt>
 File: Images/5.Volume/resolution_hr20.png Graphic file (type png)
 <use Images/5.Volume/resolution_hr20.png>
 Package pdftex.def Info: Images/5.Volume/resolution_hr20.png  used on input lin
-e 674.
+e 996.
 (pdftex.def)             Requested size: 213.05243pt x 213.05128pt.
-<Images/5.Volume/resolution_thr8.png, id=1422, 752.8125pt x 752.8125pt>
+<Images/5.Volume/resolution_thr8.png, id=1576, 752.8125pt x 752.8125pt>
 File: Images/5.Volume/resolution_thr8.png Graphic file (type png)
 <use Images/5.Volume/resolution_thr8.png>
 Package pdftex.def Info: Images/5.Volume/resolution_thr8.png  used on input lin
-e 679.
+e 1001.
 (pdftex.def)             Requested size: 213.05243pt x 213.049pt.
- [54 <./Images/volume_calibration.png>]
-<Images/5.Volume/preuve_facade_sans_camion.png, id=1429, 677.53125pt x 755.8237
+<Images/5.Volume/preuve_facade_sans_camion.png, id=1578, 677.53125pt x 755.8237
 5pt>
 File: Images/5.Volume/preuve_facade_sans_camion.png Graphic file (type png)
 <use Images/5.Volume/preuve_facade_sans_camion.png>
 Package pdftex.def Info: Images/5.Volume/preuve_facade_sans_camion.png  used on
- input line 705.
+ input line 1027.
 (pdftex.def)             Requested size: 363.97105pt x 406.03975pt.
- [55 <./Images/5.Volume/resolution_hr20.png (PNG copy)> <./Images/5.Volume/reso
-lution_thr8.png (PNG copy)>]
-[56 <./Images/5.Volume/preuve_facade_sans_camion.png (PNG copy)>]
-<Images/volume_training.png, id=1441, 452.77155pt x 311.4837pt>
+ [62 <./Images/5.Volume/resolution_hr20.png (PNG copy)> <./Images/5.Volume/reso
+lution_thr8.png (PNG copy)>] [63 <./Images/5.Volume/preuve_facade_sans_camion.p
+ng (PNG copy)>]
+<Images/volume_training.png, id=1590, 452.77155pt x 311.4837pt>
 File: Images/volume_training.png Graphic file (type png)
 <use Images/volume_training.png>
-Package pdftex.def Info: Images/volume_training.png  used on input line 790.
+Package pdftex.def Info: Images/volume_training.png  used on input line 1112.
 (pdftex.def)             Requested size: 381.72261pt x 262.6141pt.
- [57 <./Images/volume_training.png>]
-<Images/5.Volume/segmentation_predictions.jpg, id=1449, 1927.2pt x 1654.18pt>
+
+[64]
+<Images/5.Volume/segmentation_predictions.jpg, id=1596, 1927.2pt x 1654.18pt>
 File: Images/5.Volume/segmentation_predictions.jpg Graphic file (type jpg)
 <use Images/5.Volume/segmentation_predictions.jpg>
 Package pdftex.def Info: Images/5.Volume/segmentation_predictions.jpg  used on 
-input line 810.
+input line 1132.
 (pdftex.def)             Requested size: 363.97105pt x 312.4044pt.
- [58 <./Images/5.Volume/segmentation_predictions.jpg>]
-<Images/5.Volume/deployment_zone.png, id=1455, 580.1675pt x 1204.5pt>
+ [65 <./Images/volume_training.png>]
+<Images/5.Volume/deployment_zone.png, id=1603, 580.1675pt x 1204.5pt>
 File: Images/5.Volume/deployment_zone.png Graphic file (type png)
 <use Images/5.Volume/deployment_zone.png>
 Package pdftex.def Info: Images/5.Volume/deployment_zone.png  used on input lin
-e 846.
+e 1168.
 (pdftex.def)             Requested size: 363.97105pt x 755.65944pt.
 
 
-LaTeX Warning: Float too large for page by 82.16724pt on input line 849.
+LaTeX Warning: Float too large for page by 82.16724pt on input line 1171.
 
-[59] [60 <./Images/5.Volume/deployment_zone.png (PNG copy)>]) [61]
-(./Sections/5.Conclusion.tex [62
+[66 <./Images/5.Volume/segmentation_predictions.jpg>] [67 <./Images/5.Volume/de
+ployment_zone.png (PNG copy)>] [68]) [69] (./Sections/5.Conclusion.tex [70
 
 ]
+[71]
 
-LaTeX Warning: Float too large for page by 31.5427pt on input line 168.
+LaTeX Warning: Float too large for page by 220.36469pt on input line 236.
 
-[63] [64] [65] [66]) [67] [68
+[72] [73] [74] [75] [76]) [77] [78
 
-] [69] [70]
+] [79] [80]
 
 Package biblatex Warning: No driver for 'standard'.
 (biblatex)                Using fallback driver on input line 323.
 
-[71] [72]
+[81] [82]
 Overfull \hbox (12.07422pt too wide) in paragraph at lines 323--323
 \T1/Crlt-LF/m/it/12 (-20) man Fac-tors\T1/Crlt-LF/m/n/12 (-20) . Vol. 39, no. 2
 , pp. 230^^U253. Avail-able from DOI: [][]$\T1/cmtt/m/n/12 10 . 1518 / 00187209
@@ -1604,7 +1641,7 @@ al Game-Based Learn-ing\T1/Crlt-LF/m/n/12 (-20) . New York: McGraw-Hill. ISBN 9
 78-0071454995. 
  []
 
-[73] [74]
+[83] [84]
 
 Package glossaries Warning: Empty glossary for \printnoidxglossary[type={main}]
 . Rerun may be required (or you may have forgotten to use commands like \gls) o
@@ -1614,38 +1651,37 @@ n input line 327.
 Package glossaries Info: Preparing to sort glossary `acronym' (total number of
 (glossaries)             referenced entries: 22)
 
-[75
+[85
 
 ] (./Sections/Appendices/A.Ethics.tex)
-(./Sections/Appendices/B.SourceReviewGrid.tex [76
+(./Sections/Appendices/B.SourceReviewGrid.tex [86
 
 ]
-ignored: Infinite glue shrinkage found in box being split [77]
+ignored: Infinite glue shrinkage found in box being split [87]
 ignored: Infinite glue shrinkage f
-ound in box being split [78]
-ignored: Infinite glue shrinkage found in box being split [7
+ound in box being split [88]
+ignored: Infinite glue shrinkage found in box being split [8
 9]
-ignored: Infinite glue shrinkage found in box being split [80])
-(./Sections/Appendices/C.Protocol.tex [81] [82])
-(./Sections/Appendices/D.CalibrationTables.tex [83])
-(./Sections/Appendices/E.VolumeProtocol.tex [84] [85] [86] [87]) [88]
-(./main.aux)
+ignored: Infinite glue shrinkage found in box being split [90])
+(./Sections/Appendices/C.Protocol.tex [91] [92])
+(./Sections/Appendices/D.CalibrationTables.tex [93] [94] [95] [96])
+(./Sections/Appendices/E.VolumeProtocol.tex [97] [98] [99]) [100] (./main.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2026-03-20>
  ***********
 Package rerunfilecheck Info: File `main.out' has not changed.
-(rerunfilecheck)             Checksum: CD438A46B12C77C88C2D655B511AF11F;18140.
+(rerunfilecheck)             Checksum: 9A89284AEACC04885B8DF8EB2218C42E;21215.
 Package logreq Info: Writing requests to 'main.run.xml'.
 \openout1 = `main.run.xml'.
 
  ) 
 Here is how much of TeX's memory you used:
- 34413 strings out of 467349
- 662280 string characters out of 5419862
- 1583344 words of memory out of 5000000
- 61913 multiletter control sequences out of 15000+600000
- 851289 words of font info for 496 fonts, out of 8000000 for 9000
+ 34509 strings out of 467349
+ 663675 string characters out of 5419862
+ 1585481 words of memory out of 5000000
+ 61940 multiletter control sequences out of 15000+600000
+ 853484 words of font info for 511 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  78i,18n,117p,2494b,2421s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <c:/texlive/2026/texmf-dist/fonts/type1/google/carlito/Crlt-Bold.pfb><c:/texl
@@ -1663,10 +1699,10 @@ c:/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb><c:/texlive
 blic/amsfonts/cm/cmsy8.pfb><c:/texlive/2026/texmf-dist/fonts/type1/public/cm-su
 per/sftt1095.pfb><c:/texlive/2026/texmf-dist/fonts/type1/public/cm-super/sftt12
 00.pfb>
-Output written on main.pdf (98 pages, 8775313 bytes).
+Output written on main.pdf (113 pages, 8834968 bytes).
 PDF statistics:
- 2023 PDF objects out of 2073 (max. 8388607)
- 1805 compressed objects within 19 object streams
- 459 named destinations out of 1000 (max. 500000)
- 83828 words of extra memory for PDF output out of 89155 (max. 10000000)
+ 2232 PDF objects out of 2487 (max. 8388607)
+ 1994 compressed objects within 20 object streams
+ 501 named destinations out of 1000 (max. 500000)
+ 83932 words of extra memory for PDF output out of 89155 (max. 10000000)
 

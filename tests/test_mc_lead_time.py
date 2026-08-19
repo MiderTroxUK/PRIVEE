@@ -1,9 +1,9 @@
-"""Tests du simulateur Monte Carlo des dates d'achèvement (phase E13, Lot 13.1).
+"""Tests du simulateur Monte Carlo des dates d'achevement (phase E13, Lot 13.1).
 
-Cas analytiques (nœud isolé, chaîne et diamant déterministes), validation
-croisée MC ↔ erf (LE test le plus important de la phase), familles de lois,
-garde-fous et reproductibilité. Les tolérances stochastiques sont exprimées
-en multiples de l'erreur-type (jamais à tolérance fixe arbitraire).
+Cas analytiques (noeud isole, chaine et diamant deterministes), validation
+croisee MC <-> erf (LE test le plus important de la phase), familles de lois,
+garde-fous et reproductibilite. Les tolerances stochastiques sont exprimees
+en multiples de l'erreur-type (jamais a tolerance fixe arbitraire).
 """
 
 from __future__ import annotations
@@ -33,7 +33,7 @@ def _noeud(
     std: float | None = None,
     deadline: float | None = None,
 ) -> SupplyNode:
-    """Nœud minimal avec les seuls KPIs temporels utiles à la simulation."""
+    """Noeud minimal avec les seuls KPIs temporels utiles a la simulation."""
     return SupplyNode(
         id=node_id,
         name=node_id,
@@ -44,13 +44,13 @@ def _noeud(
 def _repo_isole(
     lead: float | None, std: float | None, deadline: float | None
 ) -> InMemoryGraphRepository:
-    """Dépôt à un seul nœud « n »."""
+    """Depot a un seul noeud " n "."""
     repo = InMemoryGraphRepository()
     repo.add_node(_noeud("n", lead=lead, std=std, deadline=deadline))
     return repo
 
 
-# --- Nœud isolé : normale tronquée et validation croisée MC <-> erf ----------
+# Noeud isole : normale tronquee et validation croisee MC <-> erf
 
 
 class TestNoeudIsole:
@@ -67,13 +67,13 @@ class TestNoeudIsole:
 
     @pytest.mark.parametrize("deadline", [200.0, 230.0])
     def test_validation_croisee_mc_vs_erf(self, deadline: float):
-        """VALIDATION CROISEE : nœud isolé normal, |p_MC - survie erf| <= 0.005.
+        """VALIDATION CROISEE : noeud isole normal, |p_MC - survie erf| <= 0.005.
 
         Le constructeur borne N a 50 000 : on atteint N effectif = 100 000 en
-        moyennant DEUX exécutions indépendantes (graines distinctes) de
-        50 000 tirages — p_MC reste l'estimateur empirique sur 1e5 tirages.
-        Pour un nœud isolé, P(t + L > d) doit coïncider avec la survie
-        analytique de L au seuil (d − t), ici UrModel()._p_late (erf).
+        moyennant DEUX executions independantes (graines distinctes) de
+        50 000 tirages - p_MC reste l'estimateur empirique sur 1e5 tirages.
+        Pour un noeud isole, P(t + L > d) doit coincider avec la survie
+        analytique de L au seuil (d - t), ici UrModel()._p_late (erf).
         """
         mu, sigma, t = 100.0, 20.0, 100.0
         repo = _repo_isole(lead=mu, std=sigma, deadline=deadline)
@@ -91,7 +91,7 @@ class TestNoeudIsole:
         assert abs(p_mc - p_erf) <= 0.005
 
 
-# --- Chaine et diamant deterministes ------------------------------------------
+# Chaine et diamant deterministes
 
 
 def _repo_chaine() -> InMemoryGraphRepository:
@@ -165,7 +165,7 @@ class TestDiamantDeterministe:
         assert res.completion_quantiles["client"][0.5] == pytest.approx(50.0 + mediane_l, abs=0.05)
 
 
-# --- Familles de lois -----------------------------------------------------------
+# Familles de lois
 
 
 class TestFamillesDeLois:
@@ -191,7 +191,7 @@ class TestFamillesDeLois:
         assert (tirer_lead_times(loi, rng, 2_000) == 100.0).all()
 
     def test_lead_absent_vaut_zero_deterministe(self):
-        """lead_time_h absent : L = 0 (le nœud n'ajoute aucun delai)."""
+        """lead_time_h absent : L = 0 (le noeud n'ajoute aucun delai)."""
         loi = resoudre_loi(_noeud("n"))
         assert loi == LoiLeadTime("deterministe", m=0.0)
         repo = _repo_isole(lead=None, std=None, deadline=10.0)
@@ -256,7 +256,7 @@ class TestFamillesDeLois:
             tirer_lead_times(LoiLeadTime("weibull", m=1.0, s=1.0), rng, 10)
 
 
-# --- Echeances : jalons, repli KPI, absences, retard avere -----------------------
+# Echeances : jalons, repli KPI, absences, retard avere
 
 
 class TestEcheances:
@@ -326,7 +326,7 @@ class TestEcheances:
         assert res.u_time["n"] == 1.0  # L = 10 > slack 5, deterministe
 
 
-# --- Garde-fous -------------------------------------------------------------------
+# Garde-fous
 
 
 class TestGardeFous:
@@ -345,7 +345,7 @@ class TestGardeFous:
             SimulateurLeadTime(InMemoryGraphRepository(), famille="exponentielle")
 
     def test_garde_fou_memoire(self):
-        """N x n_nœuds > 5e7 : ValueError français AVANT toute allocation."""
+        """N x n_noeuds > 5e7 : ValueError francais AVANT toute allocation."""
         repo = InMemoryGraphRepository()
         for i in range(1_001):  # 50_000 x 1_001 = 5.005e7 > 5e7
             repo.add_node(_noeud(f"n{i}", lead=1.0))
@@ -360,7 +360,7 @@ class TestGardeFous:
             sim.executer(quantiles=(0.5, 1.5))
 
 
-# --- Reproductibilite et resultat -----------------------------------------------
+# Reproductibilite et resultat
 
 
 class TestReproductibilite:
@@ -395,15 +395,15 @@ class TestReproductibilite:
             res.n_tirages = 1  # type: ignore[misc]
 
 
-# --- Travail restant : le lead time tire est un cycle COMPLET ---------------------
+# Travail restant : le lead time tire est un cycle COMPLET
 
 
 class TestTravailRestant:
-    """C_i = S_i + L_i·(1 − p_i) : seul le travail restant est devant nous.
+    """C_i = S_i + L_i-(1 - p_i) : seul le travail restant est devant nous.
 
-    Même correction que ``UrModel.u_base_jalon`` et ``ForecastService`` — les
-    trois estimateurs de P(jalon raté) doivent rester d'accord. Régression du
-    défaut mesuré sur la campagne HÉLIOS (99,6 % annoncé sur un jalon livré à
+    Meme correction que ``UrModel.u_base_jalon`` et ``ForecastService`` - les
+    trois estimateurs de P(jalon rate) doivent rester d'accord. Regression du
+    defaut mesure sur la campagne HELIOS (99,6 % annonce sur un jalon livre a
     l'heure, faute d'avoir tenu compte de l'avancement).
     """
 
@@ -433,8 +433,7 @@ class TestTravailRestant:
         return res.u_time["n"]
 
     def test_progress_zero_inchange(self):
-        # Marge = 200 - 100 = 100 = mu -> p = 0.5. La correction est un
-        # SUR-ENSEMBLE : a progress = 0 le comportement anterieur est conserve.
+        # Marge = 200 - 100 = 100 = mu -> p = 0.5. La correction est un SUR-ENSEMBLE : a progress = 0 le comportement anterieur est conserve.
         assert abs(self._u_time(0.0) - 0.5) <= 0.015
 
     def test_avancement_reduit_le_risque(self):
@@ -450,14 +449,14 @@ class TestTravailRestant:
         assert self._u_time(1.0) == 0.0
 
     def test_validation_croisee_mc_erf_avec_avancement(self):
-        """MC == survie analytique de L·(1 − p), l'invariant documente du module."""
+        """MC == survie analytique de L-(1 - p), l'invariant documente du module."""
         reste = 0.4
         repo = _repo_isole(lead=100.0, std=20.0, deadline=None)
         sim = SimulateurLeadTime(repo, n_tirages=20_000, graine=11, famille="normale")
         p_mc = sim.executer(
             t=100.0, milestones_par_noeud=self._jalons(1.0 - reste), t0_ts=self.T0_TS
         ).u_time["n"]
-        # P(L·reste > 100) = P(L > 250) pour L ~ N(100, 20) tronquee a 0.
+        # P(L-reste > 100) = P(L > 250) pour L ~ N(100, 20) tronquee a 0.
         p_erf = 0.5 * math.erfc((250.0 - 100.0) / (20.0 * math.sqrt(2.0)))
         assert abs(p_mc - p_erf) <= 0.01
 
@@ -466,3 +465,61 @@ class TestTravailRestant:
         assert SimulateurLeadTime._reste([]) == 1.0
         jalons = self._jalons(0.3)["n"]
         assert SimulateurLeadTime._reste(jalons) == pytest.approx(0.7)
+
+
+class TestRetardChocAdditifMC:
+    """``R_i = risk.recovery_time_h`` s'ajoute sans mise a l'echelle.
+
+    Regression de la SUR-CORRECTION : un choc route dans le lead time se fait
+    multiplier par ``1 - progress`` et s'evapore sur les jalons proches de leur
+    echeance. Le temps PERDU doit survivre a un avancement eleve.
+    """
+
+    T0_TS = 1_000_000.0
+
+    def _repo(self, lead: float, recovery: float | None):
+        repo = InMemoryGraphRepository()
+        node = _noeud("n", lead=lead, std=lead * 0.25, deadline=None)
+        node.kpis.time.delay_h = recovery
+        repo.add_node(node)
+        return repo
+
+    def _jalons(self, progress: float, deadline_h: float):
+        return {
+            "n": [
+                Milestone(
+                    id="m",
+                    node_id="n",
+                    name="Serie",
+                    start_ts=self.T0_TS,
+                    deadline_ts=self.T0_TS + deadline_h * 3600.0,
+                    status=MilestoneStatus.ACTIVE,
+                    progress=progress,
+                )
+            ]
+        }
+
+    def _u_time(self, lead: float, recovery: float | None, progress: float) -> float:
+        sim = SimulateurLeadTime(self._repo(lead, recovery), n_tirages=10_000, graine=3)
+        res = sim.executer(
+            t=100.0, milestones_par_noeud=self._jalons(progress, 300.0), t0_ts=self.T0_TS
+        )
+        return res.u_time["n"]
+
+    def test_recovery_absent_identique_a_zero(self):
+        assert self._u_time(400.0, None, 0.5) == self._u_time(400.0, 0.0, 0.5)
+
+    def test_choc_survit_a_un_avancement_eleve(self):
+        # Jalon a 95 %, marge 200 h. Sans choc : 5 % de 400 h = 20 h -> sur. Avec 300 h perdues : la marge est mangee -> retard certain.
+        assert self._u_time(400.0, None, 0.95) < 0.01
+        assert self._u_time(400.0, 300.0, 0.95) > 0.99
+
+    def test_croissant_en_recovery(self):
+        valeurs = [self._u_time(400.0, r, 0.5) for r in (0.0, 50.0, 150.0, 300.0)]
+        assert valeurs == sorted(valeurs)
+
+    def test_retard_h_lit_le_kpi_et_borne_a_zero(self):
+        node = _noeud("n", lead=10.0)
+        assert SimulateurLeadTime._retard_h(node) == 0.0  # KPI absent
+        node.kpis.time.delay_h = 42.0
+        assert SimulateurLeadTime._retard_h(node) == 42.0

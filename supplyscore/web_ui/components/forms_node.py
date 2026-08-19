@@ -1,17 +1,17 @@
-"""Form-builders partagés : wizard d'onboarding (E5) ET fiche nœud.
+"""Form-builders partages : wizard d'onboarding (E5) ET fiche noeud.
 
-Chaque builder reçoit un préfixe de contexte ``ctx`` (``"onb"`` pour le
-wizard, ``"fiche"`` pour la fiche nœud) qui préfixe TOUS les ids — simples
+Chaque builder recoit un prefixe de contexte ``ctx`` (``"onb"`` pour le
+wizard, ``"fiche"`` pour la fiche noeud) qui prefixe TOUS les ids - simples
 (``f"{ctx}-ident-name"``) comme pattern-matching
 (``{"type": f"{ctx}-kpi", "index": "bloc.champ"}``). Les deux pages peuvent
-ainsi monter les mêmes formulaires sans ``DuplicateIdError``, et aucun id
+ainsi monter les memes formulaires sans ``DuplicateIdError``, et aucun id
 n'entre en collision avec ceux du questionnaire hebdomadaire (``ahp-pair`` /
-``ahp-score`` réservés).
+``ahp-score`` reserves).
 
 Les parseurs inverses (:func:`parse_identity`, :func:`parse_cdc`,
 :func:`parse_kpis`, :func:`parse_ahp`) sont des fonctions pures : ils
-transforment les valeurs lues par les callbacks en payloads de section prêts
-pour ``OnboardingService.save_section``. Les parseurs qui reçoivent des
+transforment les valeurs lues par les callbacks en payloads de section prets
+pour ``OnboardingService.save_section``. Les parseurs qui recoivent des
 listes pattern-matching trient TOUJOURS par ``id["index"]`` (l'ordre DOM
 n'est pas garanti par Dash).
 """
@@ -38,7 +38,7 @@ from supplyscore.web_ui.components.layout import (
 )
 from supplyscore.web_ui.pages.questionnaire import KPI_FIELDS, PAIRS
 
-#: Labels métier proposés pour un nœud (aligné sur la page Projets).
+#: Labels metier proposes pour un noeud (aligne sur la page Projets).
 NODE_LABELS: list[str] = [
     "Client",
     "Factory",
@@ -48,13 +48,13 @@ NODE_LABELS: list[str] = [
     "Transport",
 ]
 
-#: Natures d'arc proposées pour les connexions aval.
+#: Natures d'arc proposees pour les connexions aval.
 ARC_KIND_OPTIONS: list[dict] = [
     {"label": "Nominal (flux réel)", "value": "nominal"},
     {"label": "Backup (secours)", "value": "backup"},
 ]
 
-#: Types de jalon proposés dans les lignes dynamiques du cahier des charges.
+#: Types de jalon proposes dans les lignes dynamiques du cahier des charges.
 MILESTONE_KIND_OPTIONS: list[dict] = [
     {"label": "Proto", "value": "proto"},
     {"label": "Série", "value": "serie"},
@@ -70,7 +70,7 @@ _HINT_STYLE = {"fontSize": "13px", "color": COLORS["muted"], "marginBottom": "16
 _TITLE_STYLE = {"margin": "0 0 2px", "fontSize": "14px", "fontWeight": "600"}
 
 
-# --- Petits helpers internes -------------------------------------------------------
+# Petits helpers internes
 
 
 def _short_uid() -> str:
@@ -79,7 +79,7 @@ def _short_uid() -> str:
 
 
 def _iso_to_epoch(value: Any) -> float:
-    """Epoch (s, UTC) d'une date ISO « AAAA-MM-JJ » (heure conservée si présente)."""
+    """Epoch (s, UTC) d'une date ISO " AAAA-MM-JJ " (heure conservee si presente)."""
     dt = datetime.fromisoformat(str(value))
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=UTC)
@@ -87,27 +87,27 @@ def _iso_to_epoch(value: Any) -> float:
 
 
 def _epoch_to_iso(ts: float) -> str | None:
-    """Date ISO « AAAA-MM-JJ » (UTC) d'un epoch, ou None si non renseigné (<= 0)."""
+    """Date ISO " AAAA-MM-JJ " (UTC) d'un epoch, ou None si non renseigne (<= 0)."""
     if ts <= 0:
         return None
     return datetime.fromtimestamp(ts, tz=UTC).date().isoformat()
 
 
 def _float_or_none(value: Any) -> float | None:
-    """Convertit en float, None pour les champs vides (None ou chaîne vide)."""
+    """Convertit en float, None pour les champs vides (None ou chaine vide)."""
     if value is None or value == "":
         return None
     return float(value)
 
 
 def _float_or(value: Any, default: float) -> float:
-    """Convertit en float avec valeur par défaut pour les champs vides."""
+    """Convertit en float avec valeur par defaut pour les champs vides."""
     result = _float_or_none(value)
     return default if result is None else result
 
 
 def _split_csv(raw: Any) -> list[str]:
-    """Découpe une chaîne « a, b, c » en liste, entrées vides ignorées."""
+    """Decoupe une chaine " a, b, c " en liste, entrees vides ignorees."""
     if not raw:
         return []
     return [part.strip() for part in str(raw).split(",") if part.strip()]
@@ -131,7 +131,7 @@ def _labelled(
 
 
 def _bounds_title(lo: float | None, hi: float | None, unit: str) -> str:
-    """Info-bulle des bornes d'un KPI (« Entre lo et hi (unité) »)."""
+    """Info-bulle des bornes d'un KPI (" Entre lo et hi (unite) ")."""
     if lo is not None and hi is not None:
         text = f"Entre {lo:g} et {hi:g}"
     elif lo is not None:
@@ -143,7 +143,7 @@ def _bounds_title(lo: float | None, hi: float | None, unit: str) -> str:
     return f"{text} ({unit})" if unit else text
 
 
-# --- Section 1 : identité ----------------------------------------------------------
+# Section 1 : identite
 
 
 def identity_form(
@@ -157,21 +157,21 @@ def identity_form(
     node_options: list[dict] | None = None,
     connections: list[dict] | None = None,
 ) -> html.Div:
-    """Formulaire « Identité » : nom, label, localisation, tags et connexions aval.
+    """Formulaire " Identite " : nom, label, localisation, tags et connexions aval.
 
     Args:
-        ctx: préfixe de contexte des ids (``"onb"`` ou ``"fiche"``).
-        name: nom du nœud pré-rempli.
-        label: label métier pré-sélectionné (cf. :data:`NODE_LABELS`).
-        location: localisation pré-remplie.
-        selected_tags: ids/valeurs de tags déjà portés par le nœud.
-        tag_options: options du dropdown tags ; les valeurs sélectionnées
-            absentes des options sont ajoutées (tags libres — l'appelant
-            enrichit les options pour la création de nouveaux tags).
-        node_options: options du dropdown des clients aval (nœuds candidats).
-        connections: arcs existants — dicts ``{"target_id", "gamma", "beta",
-            "kind"}`` ; les curseurs γ/β et la nature sont pré-remplis depuis
-            la première connexion (réglage commun aux cibles sélectionnées).
+        ctx: prefixe de contexte des ids (``"onb"`` ou ``"fiche"``).
+        name: nom du noeud pre-rempli.
+        label: label metier pre-selectionne (cf. :data:`NODE_LABELS`).
+        location: localisation pre-remplie.
+        selected_tags: ids/valeurs de tags deja portes par le noeud.
+        tag_options: options du dropdown tags ; les valeurs selectionnees
+            absentes des options sont ajoutees (tags libres - l'appelant
+            enrichit les options pour la creation de nouveaux tags).
+        node_options: options du dropdown des clients aval (noeuds candidats).
+        connections: arcs existants - dicts ``{"target_id", "gamma", "beta",
+            "kind"}`` ; les curseurs gamma/beta et la nature sont pre-remplis depuis
+            la premiere connexion (reglage commun aux cibles selectionnees).
 
     Returns:
         ``html.Div`` avec les ids simples ``f"{ctx}-ident-name"``, ``-label``,
@@ -286,24 +286,24 @@ def identity_form(
 
 
 def _ident_key(key: str) -> str:
-    """Suffixe nu d'un id identité (« onb-ident-name » -> « name »)."""
+    """Suffixe nu d'un id identite (" onb-ident-name " -> " name ")."""
     return key.rsplit("ident-", 1)[-1]
 
 
 def parse_identity(values: dict) -> dict:
-    """Payload « identité » (section 1) depuis un dict ``{id_simple: valeur}``.
+    """Payload " identite " (section 1) depuis un dict ``{id_simple: valeur}``.
 
-    Les clés sont acceptées en id complet (``"onb-ident-name"``) comme en
-    suffixe nu (``"name"``) : tout ce qui précède ``"ident-"`` est ignoré,
-    le parseur est donc indépendant du contexte.
+    Les cles sont acceptees en id complet (``"onb-ident-name"``) comme en
+    suffixe nu (``"name"``) : tout ce qui precede ``"ident-"`` est ignore,
+    le parseur est donc independant du contexte.
 
     Args:
-        values: valeurs lues par le callback, indexées par id simple.
+        values: valeurs lues par le callback, indexees par id simple.
 
     Returns:
-        Payload ``{"name", "label", "location", "tags", "connections"}`` —
+        Payload ``{"name", "label", "location", "tags", "connections"}`` -
         une connexion ``{"target_id", "gamma", "beta", "kind"}`` par cible
-        sélectionnée (γ/β/nature communs, lus sur les curseurs).
+        selectionnee (gamma/beta/nature communs, lus sur les curseurs).
     """
     data = {_ident_key(str(k)): v for k, v in values.items()}
     gamma = _float_or(data.get("gamma"), 0.5)
@@ -321,7 +321,7 @@ def parse_identity(values: dict) -> dict:
     }
 
 
-# --- Section 2 : cahier des charges -------------------------------------------------
+# Section 2 : cahier des charges
 
 
 def deliverable_row(
@@ -331,10 +331,10 @@ def deliverable_row(
     quantity: float | None = None,
     unit: str = "",
 ) -> html.Div:
-    """Ligne dynamique « livrable » : nom, quantité et unité.
+    """Ligne dynamique " livrable " : nom, quantite et unite.
 
-    Appelée par :func:`cdc_form` pour le pré-remplissage ET par les callbacks
-    « + livrable » des pages (avec un index frais, ex. ``uuid4().hex[:8]``).
+    Appelee par :func:`cdc_form` pour le pre-remplissage ET par les callbacks
+    " + livrable " des pages (avec un index frais, ex. ``uuid4().hex[:8]``).
     """
     return html.Div(
         [
@@ -384,10 +384,10 @@ def milestone_row(
     start_date: str | None = None,
     deadline_date: str | None = None,
 ) -> html.Div:
-    """Ligne dynamique « jalon » : nom, type, début planifié et échéance.
+    """Ligne dynamique " jalon " : nom, type, debut planifie et echeance.
 
-    Appelée par :func:`cdc_form` pour le pré-remplissage ET par les callbacks
-    « + jalon » des pages. Les dates sont des chaînes ISO « AAAA-MM-JJ »
+    Appelee par :func:`cdc_form` pour le pre-remplissage ET par les callbacks
+    " + jalon " des pages. Les dates sont des chaines ISO " AAAA-MM-JJ "
     (format natif de ``dcc.DatePickerSingle``).
     """
     return html.Div(
@@ -443,19 +443,19 @@ def cdc_form(
     cdc: CahierDesCharges | None = None,
     milestones: list[Milestone] | None = None,
 ) -> html.Div:
-    """Formulaire « Cahier des charges » : budget, qualité, livrables et jalons.
+    """Formulaire " Cahier des charges " : budget, qualite, livrables et jalons.
 
     Les livrables et jalons sont des LIGNES DYNAMIQUES pattern-matching :
     les conteneurs ``f"{ctx}-cdc-deliverables"`` / ``f"{ctx}-cdc-milestones"``
-    sont pré-remplis (une ligne par élément existant, une ligne vierge sinon)
+    sont pre-remplis (une ligne par element existant, une ligne vierge sinon)
     et les boutons ``f"{ctx}-cdc-add-dlv"`` / ``f"{ctx}-cdc-add-ms"``
     permettent aux pages d'ajouter des lignes via
     :func:`deliverable_row` / :func:`milestone_row`.
 
     Args:
-        ctx: préfixe de contexte des ids (``"onb"`` ou ``"fiche"``).
-        cdc: cahier des charges existant pour le pré-remplissage.
-        milestones: jalons existants du nœud (triés par position/échéance).
+        ctx: prefixe de contexte des ids (``"onb"`` ou ``"fiche"``).
+        cdc: cahier des charges existant pour le pre-remplissage.
+        milestones: jalons existants du noeud (tries par position/echeance).
 
     Returns:
         ``html.Div`` avec les ids simples ``f"{ctx}-cdc-budget"``,
@@ -565,7 +565,7 @@ def cdc_form(
 
 
 def _cdc_key(key: str) -> str:
-    """Suffixe nu d'un id cahier des charges (« onb-cdc-budget » -> « budget »)."""
+    """Suffixe nu d'un id cahier des charges (" onb-cdc-budget " -> " budget ")."""
     return key.rsplit("cdc-", 1)[-1]
 
 
@@ -579,25 +579,25 @@ def parse_cdc(
     ms_deadlines: list,
     extras: dict,
 ) -> dict:
-    """Payload « cahier des charges » (section 2) depuis les lignes dynamiques.
+    """Payload " cahier des charges " (section 2) depuis les lignes dynamiques.
 
     Les listes livrables (``names``/``quantities``/``units``) et jalons sont
-    alignées position à position : Dash renvoie les composants d'un même type
-    pattern-matching dans le même ordre DOM, et chaque ligne contient
-    exactement un composant de chaque type. Les lignes ENTIÈREMENT vides sont
-    ignorées ; les dates ISO (« 2026-06-10 ») sont converties en epoch (UTC)
+    alignees position a position : Dash renvoie les composants d'un meme type
+    pattern-matching dans le meme ordre DOM, et chaque ligne contient
+    exactement un composant de chaque type. Les lignes ENTIEREMENT vides sont
+    ignorees ; les dates ISO (" 2026-06-10 ") sont converties en epoch (UTC)
     via :mod:`datetime`.
 
     Args:
-        names: noms des livrables (une entrée par ligne).
-        quantities: quantités des livrables.
-        units: unités des livrables.
+        names: noms des livrables (une entree par ligne).
+        quantities: quantites des livrables.
+        units: unites des livrables.
         ms_names: noms des jalons.
         ms_kinds: types des jalons (proto/serie/livraison/custom).
-        ms_starts: dates ISO de début planifié des jalons.
-        ms_deadlines: dates ISO d'échéance des jalons.
+        ms_starts: dates ISO de debut planifie des jalons.
+        ms_deadlines: dates ISO d'echeance des jalons.
         extras: champs simples ``{id: valeur}`` (budget, unitcost, currency,
-            standards, certifications, scrap) — ids complets ou suffixes nus.
+            standards, certifications, scrap) - ids complets ou suffixes nus.
 
     Returns:
         Payload ``{"deliverables", "milestones", "budget_total",
@@ -605,7 +605,7 @@ def parse_cdc(
         ``deadline_ts`` en epoch (0.0 si date absente).
 
     Raises:
-        ValueError: si les listes d'une même famille ne sont pas alignées.
+        ValueError: si les listes d'une meme famille ne sont pas alignees.
     """
     deliverables: list[dict] = []
     for name, qty, unit in zip(names or [], quantities or [], units or [], strict=True):
@@ -613,7 +613,7 @@ def parse_cdc(
         clean_unit = str(unit or "").strip()
         quantity = _float_or_none(qty)
         if not clean_name and quantity is None and not clean_unit:
-            continue  # ligne entièrement vide
+            continue  # ligne entierement vide
         deliverables.append({"name": clean_name, "quantity": quantity, "unit": clean_unit})
 
     milestones: list[dict] = []
@@ -621,7 +621,7 @@ def parse_cdc(
     for name, kind, start, deadline in rows:
         clean_name = str(name or "").strip()
         if not clean_name and not start and not deadline:
-            continue  # ligne entièrement vide (le type a toujours une valeur)
+            continue  # ligne entierement vide (le type a toujours une valeur)
         milestones.append(
             {
                 "name": clean_name,
@@ -646,24 +646,24 @@ def parse_cdc(
     }
 
 
-# --- Section 3 : KPIs guidés ---------------------------------------------------------
+# Section 3 : KPIs guides
 
 
 def kpi_guided_form(ctx: str, kpis: KPIBundle | None = None) -> html.Div:
-    """Saisie guidée des KPIs : bornes, unités affichées et valeurs pré-remplies.
+    """Saisie guidee des KPIs : bornes, unites affichees et valeurs pre-remplies.
 
-    Réutilise la structure de ``KPI_FIELDS`` du questionnaire (mêmes blocs,
-    mêmes champs) avec des ids ``{"type": f"{ctx}-kpi", "index":
+    Reutilise la structure de ``KPI_FIELDS`` du questionnaire (memes blocs,
+    memes champs) avec des ids ``{"type": f"{ctx}-kpi", "index":
     "bloc.champ"}``. Chaque champ expose ``min``/``max`` depuis
-    :data:`~supplyscore.domain.constraints.KPI_CONSTRAINTS`, affiche l'unité
-    dans le libellé et porte une info-bulle ``title`` avec les bornes.
+    :data:`~supplyscore.domain.constraints.KPI_CONSTRAINTS`, affiche l'unite
+    dans le libelle et porte une info-bulle ``title`` avec les bornes.
 
     Args:
-        ctx: préfixe de contexte des ids (``"onb"`` ou ``"fiche"``).
-        kpis: bundle existant pour le pré-remplissage (getattr en deux temps).
+        ctx: prefixe de contexte des ids (``"onb"`` ou ``"fiche"``).
+        kpis: bundle existant pour le pre-remplissage (getattr en deux temps).
 
     Returns:
-        ``html.Div`` des blocs KPI (Temps, Inventaire, OEE, Risque, Coût, CO2).
+        ``html.Div`` des blocs KPI (Temps, Inventaire, OEE, Risque, Cout, CO2).
     """
     children: list = []
     for block_title, fields in KPI_FIELDS:
@@ -697,17 +697,17 @@ def kpi_guided_form(ctx: str, kpis: KPIBundle | None = None) -> html.Div:
 
 
 def parse_kpis(values: list, ids: list[dict]) -> dict:
-    """Payload « KPIs » (section 3) : ``{"bloc.champ": float}``, vides ignorés.
+    """Payload " KPIs " (section 3) : ``{"bloc.champ": float}``, vides ignores.
 
-    Trie par ``id["index"]`` — l'ordre DOM des composants pattern-matching
+    Trie par ``id["index"]`` - l'ordre DOM des composants pattern-matching
     n'est pas garanti par Dash.
 
     Args:
         values: valeurs des inputs KPI (callback ``ALL``).
-        ids: ids pattern-matching alignés sur ``values``.
+        ids: ids pattern-matching alignes sur ``values``.
 
     Returns:
-        Dict ordonné par chemin de KPI, champs vides (None ou "") exclus.
+        Dict ordonne par chemin de KPI, champs vides (None ou "") exclus.
     """
     out: dict[str, float] = {}
     pairs = sorted(zip(ids, values, strict=True), key=lambda pair: str(pair[0]["index"]))
@@ -718,11 +718,11 @@ def parse_kpis(values: list, ids: list[dict]) -> dict:
     return out
 
 
-# --- Section 4 : première évaluation AHP ---------------------------------------------
+# Section 4 : premiere evaluation AHP
 
 
 def _pair_block(ctx: str, i: int, j: int) -> html.Div:
-    """Slider bipolaire (-8..+8) d'une paire de critères + libellé dynamique."""
+    """Slider bipolaire (-8..+8) d'une paire de criteres + libelle dynamique."""
     key = f"{i}-{j}"
     return html.Div(
         [
@@ -746,7 +746,7 @@ def _pair_block(ctx: str, i: int, j: int) -> html.Div:
 
 
 def _score_block(ctx: str, k: int) -> html.Div:
-    """Slider de note 1..6 d'un critère + libellé live (équivalent Saaty)."""
+    """Slider de note 1..6 d'un critere + libelle live (equivalent Saaty)."""
     return html.Div(
         [
             html.P(CRITERIA[k], style=_TITLE_STYLE),
@@ -764,15 +764,15 @@ def _score_block(ctx: str, k: int) -> html.Div:
 
 
 def ahp_form(ctx: str) -> html.Div:
-    """Première évaluation AHP : 6 comparaisons par paires + 4 notes + notes libres.
+    """Premiere evaluation AHP : 6 comparaisons par paires + 4 notes + notes libres.
 
-    Mêmes échelles que le questionnaire hebdomadaire (curseurs bipolaires
-    -8..+8, notes 1..6, critères :data:`~supplyscore.core.CRITERIA`) mais
-    avec des ids préfixés par ``ctx`` — aucune collision avec les ids
-    ``ahp-pair`` / ``ahp-score`` réservés à la page Questionnaire.
+    Memes echelles que le questionnaire hebdomadaire (curseurs bipolaires
+    -8..+8, notes 1..6, criteres :data:`~supplyscore.core.CRITERIA`) mais
+    avec des ids prefixes par ``ctx`` - aucune collision avec les ids
+    ``ahp-pair`` / ``ahp-score`` reserves a la page Questionnaire.
 
     Args:
-        ctx: préfixe de contexte des ids (``"onb"`` ou ``"fiche"``).
+        ctx: prefixe de contexte des ids (``"onb"`` ou ``"fiche"``).
 
     Returns:
         ``html.Div`` avec les sliders pattern-matching et la zone de notes
@@ -804,7 +804,7 @@ def ahp_form(ctx: str) -> html.Div:
 
 
 def _pair_sort_key(index: str) -> tuple[int, int]:
-    """Clé de tri numérique d'un index de paire « i-j »."""
+    """Cle de tri numerique d'un index de paire " i-j "."""
     i_str, j_str = str(index).split("-", 1)
     return int(i_str), int(j_str)
 
@@ -816,24 +816,24 @@ def parse_ahp(
     score_ids: list[dict],
     notes: Any,
 ) -> dict:
-    """Payload « première évaluation » (section 4) en échelles de Saaty.
+    """Payload " premiere evaluation " (section 4) en echelles de Saaty.
 
     Les comparaisons bipolaires sont converties via
-    :func:`~supplyscore.core.bipolar_to_saaty` (clés « i-j »), les notes UI
+    :func:`~supplyscore.core.bipolar_to_saaty` (cles " i-j "), les notes UI
     1..6 via :func:`~supplyscore.core.score_6_to_9`. Les deux familles sont
-    triées par ``id["index"]`` (ordre DOM non garanti) ; les curseurs non
-    touchés valent leurs défauts (paire 0 -> 1.0, note 3).
+    triees par ``id["index"]`` (ordre DOM non garanti) ; les curseurs non
+    touches valent leurs defauts (paire 0 -> 1.0, note 3).
 
     Args:
         pair_values: valeurs des curseurs bipolaires (callback ``ALL``).
-        pair_ids: ids pattern-matching des paires, alignés sur ``pair_values``.
+        pair_ids: ids pattern-matching des paires, alignes sur ``pair_values``.
         score_values: valeurs des curseurs de notes 1..6.
         score_ids: ids pattern-matching des notes.
         notes: texte libre de la zone ``f"{ctx}-ahp-notes"``.
 
     Returns:
         Payload ``{"comparisons": {"i-j": saaty}, "criteria_scores": [1..9],
-        "notes": str}`` ordonné par paire puis par critère.
+        "notes": str}`` ordonne par paire puis par critere.
     """
     pairs = sorted(
         zip(pair_ids, pair_values, strict=True),

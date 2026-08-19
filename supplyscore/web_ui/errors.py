@@ -1,22 +1,22 @@
-"""Garde-fous d'erreur de l'UI web : aucun traceback brut côté utilisateur.
+"""Garde-fous d'erreur de l'UI web : aucun traceback brut cote utilisateur.
 
-Deux mécanismes complémentaires (Lot 16.1) :
+Deux mecanismes complementaires (Lot 16.1) :
 
-* :func:`protege_callback` — décorateur qui attrape toute exception d'un
+* :func:`protege_callback` - decorateur qui attrape toute exception d'un
   callback Dash (sauf :class:`~dash.exceptions.PreventUpdate`, flux normal),
-  journalise la trace complète sur le logger ``supplyscore.web_ui`` et
-  retourne un bandeau d'erreur français DIMENSIONNÉ au nombre d'Outputs du
-  callback — sinon Dash lèverait une seconde erreur (mauvais nombre de
-  valeurs) qui masquerait la première.
-* :func:`proteger_app` — applique la protection à TOUTE l'application sans
-  toucher aux pages : ``app.callback`` est remplacé par une version qui
-  compte les ``Output`` au point d'enregistrement (seul endroit où ils sont
-  connus) et décore automatiquement chaque fonction enregistrée ensuite.
+  journalise la trace complete sur le logger ``supplyscore.web_ui`` et
+  retourne un bandeau d'erreur francais DIMENSIONNE au nombre d'Outputs du
+  callback - sinon Dash leverait une seconde erreur (mauvais nombre de
+  valeurs) qui masquerait la premiere.
+* :func:`proteger_app` - applique la protection a TOUTE l'application sans
+  toucher aux pages : ``app.callback`` est remplace par une version qui
+  compte les ``Output`` au point d'enregistrement (seul endroit ou ils sont
+  connus) et decore automatiquement chaque fonction enregistree ensuite.
 
-Heuristique de repli documentée : seul le PREMIER Output de propriété
-``children`` reçoit le bandeau ; tous les autres reçoivent
+Heuristique de repli documentee : seul le PREMIER Output de propriete
+``children`` recoit le bandeau ; tous les autres recoivent
 ``dash.no_update`` (une figure ou un store qui recevrait un ``html.Div``
-casserait le rendu côté client). Sans Output ``children``, tout est
+casserait le rendu cote client). Sans Output ``children``, tout est
 ``no_update`` et le log reste la seule trace.
 """
 
@@ -35,17 +35,15 @@ from dash.exceptions import PreventUpdate
 
 from supplyscore.web_ui.components.layout import COLORS
 
-#: Logger dédié aux erreurs de l'UI web (enfant du logger ``supplyscore``,
-#: donc journalisé dans ``logs/supplyscore.log`` via ``configure_logging``).
+#: Logger dedie aux erreurs de l'UI web (enfant du logger ``supplyscore``, donc journalise dans ``logs/supplyscore.log`` via ``configure_logging``).
 _LOGGER = logging.getLogger("supplyscore.web_ui")
 
-#: Attribut posé sur l'application Dash : compteur de callbacks protégés.
+#: Attribut pose sur l'application Dash : compteur de callbacks proteges.
 _ATTR_COMPTEUR = "_supplyscore_callbacks_proteges"
-#: Attribut posé sur l'application Dash : garde d'idempotence de proteger_app.
+#: Attribut pose sur l'application Dash : garde d'idempotence de proteger_app.
 _ATTR_ACTIF = "_supplyscore_protection_active"
 
-#: Registre (faible) des fonctions enveloppées par :func:`protege_callback`,
-#: pour l'introspection des tests sans poser d'attribut sur les fonctions.
+#: Registre (faible) des fonctions enveloppees par :func:`protege_callback`, pour l'introspection des tests sans poser d'attribut sur les fonctions.
 _PROTEGES: weakref.WeakSet[Callable[..., Any]] = weakref.WeakSet()
 
 #: Style du bandeau d'erreur (alerte rouge sur fond clair, lisible partout).
@@ -62,15 +60,15 @@ ERROR_STYLE = {
 
 
 def composant_erreur(exc: BaseException) -> html.Div:
-    """Construit le bandeau d'erreur français affiché à la place du contenu.
+    """Construit le bandeau d'erreur francais affiche a la place du contenu.
 
     Args:
-        exc: exception attrapée ; seul le NOM de son type est montré à
+        exc: exception attrapee ; seul le NOM de son type est montre a
             l'utilisateur (jamais le message brut ni la trace, qui partent
             dans ``logs/supplyscore.log``).
 
     Returns:
-        Un ``html.Div`` stylé alerte, message entièrement en français.
+        Un ``html.Div`` style alerte, message entierement en francais.
     """
     return html.Div(
         f"⚠ Une erreur est survenue : {type(exc).__name__}. Consultez logs/supplyscore.log.",
@@ -84,15 +82,15 @@ def _valeurs_de_repli(
     sorties: Sequence[Output] | None,
     multi: bool,
 ) -> Any:
-    """Valeurs de retour dimensionnées aux Outputs du callback en échec.
+    """Valeurs de retour dimensionnees aux Outputs du callback en echec.
 
     Args:
-        exc: exception attrapée (pour le bandeau).
+        exc: exception attrapee (pour le bandeau).
         sorties: ``Output`` du callback dans l'ordre d'enregistrement ;
-            ``None`` signifie « un Output ``children`` unique » (cas du
-            décorateur appliqué à la main, sans point d'enregistrement).
-        multi: True si Dash attend une séquence de valeurs (plusieurs
-            Outputs, ou un Output unique passé DANS une liste).
+            ``None`` signifie " un Output ``children`` unique " (cas du
+            decorateur applique a la main, sans point d'enregistrement).
+        multi: True si Dash attend une sequence de valeurs (plusieurs
+            Outputs, ou un Output unique passe DANS une liste).
 
     Returns:
         Le bandeau seul (Output unique non-liste), ou un tuple de la taille
@@ -102,7 +100,7 @@ def _valeurs_de_repli(
     """
     if sorties is None:
         return composant_erreur(exc)
-    if not sorties:  # callback sans Output (autorisé par Dash >= 2.17)
+    if not sorties:  # callback sans Output (autorise par Dash >= 2.17)
         return dash.no_update
     valeurs: list[Any] = [dash.no_update] * len(sorties)
     for i, sortie in enumerate(sorties):
@@ -119,25 +117,25 @@ def protege_callback(
     sorties: Sequence[Output] | None = None,
     multi: bool = False,
 ) -> Callable[..., Any]:
-    """Enveloppe un callback : toute exception devient un message français.
+    """Enveloppe un callback : toute exception devient un message francais.
 
     ``PreventUpdate`` traverse tel quel (flux normal de Dash, PAS une
-    erreur). Toute autre exception est journalisée avec sa trace complète
-    (logger ``supplyscore.web_ui``) et remplacée par les valeurs de repli
-    de :func:`_valeurs_de_repli`, dimensionnées aux ``sorties``.
+    erreur). Toute autre exception est journalisee avec sa trace complete
+    (logger ``supplyscore.web_ui``) et remplacee par les valeurs de repli
+    de :func:`_valeurs_de_repli`, dimensionnees aux ``sorties``.
 
-    Le nombre d'Outputs n'étant pas introspectable depuis ``fn`` seule,
+    Le nombre d'Outputs n'etant pas introspectable depuis ``fn`` seule,
     ``sorties``/``multi`` sont fournis par le point d'enregistrement
     (:func:`proteger_app`). Sans eux, le repli suppose un Output
     ``children`` unique.
 
     Args:
-        fn: la fonction de callback à protéger.
+        fn: la fonction de callback a proteger.
         sorties: ``Output`` du callback (ordre d'enregistrement), ou None.
-        multi: True si Dash attend une séquence de valeurs de retour.
+        multi: True si Dash attend une sequence de valeurs de retour.
 
     Returns:
-        La fonction enveloppée (mêmes nom/doc via ``functools.wraps``).
+        La fonction enveloppee (memes nom/doc via ``functools.wraps``).
     """
 
     @functools.wraps(fn)
@@ -167,18 +165,18 @@ def est_protege(fn: Callable[..., Any]) -> bool:
 def _extraire_sorties(args: tuple[Any, ...], kwargs: dict[str, Any]) -> tuple[list[Output], bool]:
     """Extrait les ``Output`` des arguments d'un appel ``app.callback(...)``.
 
-    Couvre les formes utilisées par Dash : instances ``Output`` passées en
-    positionnel, listes/tuples d'``Output`` (positionnels ou via le mot-clé
-    ``output=``). Les groupements imbriqués (dicts) ne sont pas utilisés
+    Couvre les formes utilisees par Dash : instances ``Output`` passees en
+    positionnel, listes/tuples d'``Output`` (positionnels ou via le mot-cle
+    ``output=``). Les groupements imbriques (dicts) ne sont pas utilises
     dans ce projet et ne sont pas couverts.
 
     Args:
         args: arguments positionnels d'``app.callback``.
-        kwargs: arguments nommés d'``app.callback``.
+        kwargs: arguments nommes d'``app.callback``.
 
     Returns:
-        ``(sorties, multi)`` — la liste ordonnée des Outputs et le drapeau
-        « Dash attend une séquence » (plusieurs Outputs, ou Output(s) en
+        ``(sorties, multi)`` - la liste ordonnee des Outputs et le drapeau
+        " Dash attend une sequence " (plusieurs Outputs, ou Output(s) en
         liste, y compris une liste d'UN seul Output).
     """
     sorties: list[Output] = []
@@ -200,24 +198,24 @@ def _extraire_sorties(args: tuple[Any, ...], kwargs: dict[str, Any]) -> tuple[li
 
 
 def proteger_app(app: dash.Dash) -> int:
-    """Protège automatiquement tout callback enregistré APRÈS cet appel.
+    """Protege automatiquement tout callback enregistre APRES cet appel.
 
     Remplace ``app.callback`` par une version qui (1) compte les ``Output``
     dans les arguments d'enregistrement, (2) enregistre la fonction
-    enveloppée par :func:`protege_callback` dimensionné. À appeler dans
+    enveloppee par :func:`protege_callback` dimensionne. A appeler dans
     ``create_app`` AVANT tout ``register_callbacks`` (routeur compris) :
-    aucune page n'a besoin d'être modifiée.
+    aucune page n'a besoin d'etre modifiee.
 
-    Idempotent : un second appel sur la même application ne ré-enveloppe
-    rien. Le nombre de callbacks effectivement protégés est consultable via
+    Idempotent : un second appel sur la meme application ne re-enveloppe
+    rien. Le nombre de callbacks effectivement proteges est consultable via
     :func:`nombre_callbacks_proteges` (rien d'utile n'est connu au moment
-    de CET appel, d'où le retour fixe).
+    de CET appel, d'ou le retour fixe).
 
     Args:
-        app: l'application Dash fraîchement créée.
+        app: l'application Dash fraichement creee.
 
     Returns:
-        0 (toujours) — les enregistrements n'ont pas encore eu lieu.
+        0 (toujours) - les enregistrements n'ont pas encore eu lieu.
     """
     if getattr(app, _ATTR_ACTIF, False):
         return 0
@@ -242,13 +240,13 @@ def proteger_app(app: dash.Dash) -> int:
 
 
 def nombre_callbacks_proteges(app: dash.Dash) -> int:
-    """Nombre de callbacks enregistrés sous protection sur ``app``.
+    """Nombre de callbacks enregistres sous protection sur ``app``.
 
     Args:
-        app: application passée à :func:`proteger_app` au préalable.
+        app: application passee a :func:`proteger_app` au prealable.
 
     Returns:
-        Le compteur d'enregistrements protégés (0 si :func:`proteger_app`
-        n'a jamais été appelée sur cette application).
+        Le compteur d'enregistrements proteges (0 si :func:`proteger_app`
+        n'a jamais ete appelee sur cette application).
     """
     return int(getattr(app, _ATTR_COMPTEUR, 0))

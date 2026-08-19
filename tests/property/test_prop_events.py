@@ -1,15 +1,15 @@
-"""Propriétés Hypothesis des événements à impact calibré (E9 — Lot 9.5).
+"""Proprietes Hypothesis des evenements a impact calibre (E9 - Lot 9.5).
 
 Couvre :mod:`supplyscore.domain.events` :
 
 - bornes et monotonie de :func:`bayes_update`, point fixe k/n == p ;
 - :func:`ema_update` reste entre l'ancienne valeur et l'observation ;
-- pour CHAQUE type de :data:`EVENT_CALIBRATION`, avec des paramètres valides
-  générés depuis ``EventSpec.fields`` (bornes/choices) sur des bundles
-  aléatoires : impacts dans les bornes :data:`KPI_CONSTRAINTS`, jamais
-  NaN/Inf, bundle d'entrée jamais modifié (pureté) ;
-- :func:`weekly_decay` : décroissance stricte au-dessus du plancher bayésien
-  p_inf = 1e-4 (point fixe de p -> p·26/27 borné), ``[]`` si le KPI est None.
+- pour CHAQUE type de :data:`EVENT_CALIBRATION`, avec des parametres valides
+  generes depuis ``EventSpec.fields`` (bornes/choices) sur des bundles
+  aleatoires : impacts dans les bornes :data:`KPI_CONSTRAINTS`, jamais
+  NaN/Inf, bundle d'entree jamais modifie (purete) ;
+- :func:`weekly_decay` : decroissance stricte au-dessus du plancher bayesien
+  p_inf = 1e-4 (point fixe de p -> p-26/27 borne), ``[]`` si le KPI est None.
 """
 
 from __future__ import annotations
@@ -36,18 +36,18 @@ from supplyscore.domain.models import KPIBundle
 
 EVENT_TYPES = sorted(EVENT_CALIBRATION)
 
-#: Bornes documentées de ``bayes_update`` (jamais 0 ni 1 : verrou bayésien).
+#: Bornes documentees de ``bayes_update`` (jamais 0 ni 1 : verrou bayesien).
 BAYES_MIN, BAYES_MAX = 1e-4, 0.99
 
-#: Champs numériques strictement positifs (borne ``minimum=0`` exclusive).
+#: Champs numeriques strictement positifs (borne ``minimum=0`` exclusive).
 STRICT_POSITIVE = frozenset({"duree_arret_h", "retard_h", "duree_prevue_h", "nouvelle_demande"})
 
-#: Plafond des champs et KPIs sans borne maximum déclarée.
+#: Plafond des champs et KPIs sans borne maximum declaree.
 CAP = 1e6
 
 
 def make_bundle(values: dict[str, float | None]) -> KPIBundle:
-    """Construit un KPIBundle à partir d'un dict chemin qualifié -> valeur."""
+    """Construit un KPIBundle a partir d'un dict chemin qualifie -> valeur."""
     bundle = KPIBundle()
     for path, value in values.items():
         block_name, field_name = path.split(".")
@@ -56,7 +56,7 @@ def make_bundle(values: dict[str, float | None]) -> KPIBundle:
 
 
 def field_strategy(fld: EventField) -> st.SearchStrategy[object]:
-    """Stratégie de valeurs VALIDES pour un champ d'événement (bornes/choices)."""
+    """Strategie de valeurs VALIDES pour un champ d'evenement (bornes/choices)."""
     if fld.kind == "choice":
         return st.sampled_from(fld.choices)
     lo = fld.minimum if fld.minimum is not None else -CAP
@@ -67,12 +67,12 @@ def field_strategy(fld: EventField) -> st.SearchStrategy[object]:
 
 
 def params_strategy(spec: EventSpec) -> st.SearchStrategy[dict[str, object]]:
-    """Stratégie de jeux de paramètres valides dérivée de ``spec.fields``."""
+    """Strategie de jeux de parametres valides derivee de ``spec.fields``."""
     return st.fixed_dictionaries({fld.name: field_strategy(fld) for fld in spec.fields})
 
 
 def _kpi_value_strategy(lo: float | None, hi: float | None) -> st.SearchStrategy[float | None]:
-    """Valeur de KPI : None (non renseigné) ou flottant valide dans ses bornes."""
+    """Valeur de KPI : None (non renseigne) ou flottant valide dans ses bornes."""
     lo_eff = lo if lo is not None else 0.0
     hi_eff = hi if hi is not None else CAP
     return st.none() | st.floats(
@@ -80,14 +80,14 @@ def _kpi_value_strategy(lo: float | None, hi: float | None) -> st.SearchStrategy
     )
 
 
-#: Bundle aléatoire : chaque KPI contraint est None ou une valeur dans ses bornes.
+#: Bundle aleatoire : chaque KPI contraint est None ou une valeur dans ses bornes.
 BUNDLE_VALUES = st.fixed_dictionaries(
     {path: _kpi_value_strategy(lo, hi) for path, (lo, hi, _unit) in KPI_CONSTRAINTS.items()}
 )
 
 
 class TestBayesUpdate:
-    """Révision Beta-Bernoulli : bornes, monotonie et point fixe."""
+    """Revision Beta-Bernoulli : bornes, monotonie et point fixe."""
 
     @given(
         p=st.floats(min_value=0.0, max_value=1.0),
@@ -114,12 +114,12 @@ class TestBayesUpdate:
         n=st.floats(min_value=1e-3, max_value=1000.0),
     )
     def test_point_fixe_k_sur_n_egal_p(self, p: float, n: float) -> None:
-        # k/n == p : l'événement confirme le prior sans le déplacer.
+        # k/n == p : l'evenement confirme le prior sans le deplacer.
         assert abs(bayes_update(p, p * n, n) - p) <= 1e-12
 
 
 class TestEmaUpdate:
-    """Lissage exponentiel : la valeur lissée reste entre old et obs."""
+    """Lissage exponentiel : la valeur lissee reste entre old et obs."""
 
     @given(
         old=st.floats(min_value=-CAP, max_value=CAP),
@@ -140,7 +140,7 @@ class TestEmaUpdate:
 
 
 class TestComputeImpacts:
-    """Pour chaque type calibré : bornes KPI, finitude et pureté du bundle."""
+    """Pour chaque type calibre : bornes KPI, finitude et purete du bundle."""
 
     @pytest.mark.parametrize("event_type", EVENT_TYPES)
     @given(data=st.data())
@@ -153,7 +153,7 @@ class TestComputeImpacts:
 
         impacts = compute_impacts(event_type, params, bundle)
 
-        # Pureté : le bundle d'entrée n'est JAMAIS modifié.
+        # Purete : le bundle d'entree n'est JAMAIS modifie.
         assert bundle == snapshot
         for impact in impacts:
             assert impact.kpi_path in KPI_CONSTRAINTS
@@ -168,16 +168,15 @@ class TestComputeImpacts:
 
 
 class TestWeeklyDecay:
-    """Semaine sans incident : érosion douce vers le plancher bayésien."""
+    """Semaine sans incident : erosion douce vers le plancher bayesien."""
 
     @given(p=st.floats(min_value=BAYES_MIN, max_value=1.0, exclude_min=True))
     def test_decroissance_stricte_au_dessus_du_plancher(self, p: float) -> None:
-        # Point fixe de p -> max(p·n0/(n0+1), 1e-4) : p_inf = 1e-4, donc
-        # décroissance STRICTE dès que p > 1e-4.
+        # Point fixe de p -> max(p-n0/(n0+1), 1e-4) : p_inf = 1e-4, donc decroissance STRICTE des que p > 1e-4.
         bundle = make_bundle({"risk.failure_probability": p})
         snapshot = copy.deepcopy(bundle)
         impacts = weekly_decay(bundle)
-        assert bundle == snapshot  # pureté
+        assert bundle == snapshot  # purete
         assert len(impacts) == 1
         impact = impacts[0]
         assert impact.kpi_path == "risk.failure_probability"

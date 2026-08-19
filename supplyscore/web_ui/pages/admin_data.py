@@ -1,24 +1,24 @@
-"""Page « /admin » : vue « Données brutes » type administrateur (Lot 10.5).
+"""Page " /admin " : vue " Donnees brutes " type administrateur (Lot 10.5).
 
-Zone avancée VERROUILLÉE par défaut : la :class:`dash_table.DataTable` est en
-lecture seule tant que l'opérateur n'a pas déverrouillé l'édition via le
-bouton « Déverrouiller l'édition » (confirmé par un
-``dcc.ConfirmDialogProvider``). Même déverrouillée, la table ne devient
-éditable QUE si elle figure dans la liste blanche du service
-(:class:`~supplyscore.services.raw_admin.RawTableService`) — les tables
-d'historique restent inéditables par construction.
+Zone avancee VERROUILLEE par defaut : la :class:`dash_table.DataTable` est en
+lecture seule tant que l'operateur n'a pas deverrouille l'edition via le
+bouton " Deverrouiller l'edition " (confirme par un
+``dcc.ConfirmDialogProvider``). Meme deverrouillee, la table ne devient
+editable QUE si elle figure dans la liste blanche du service
+(:class:`~supplyscore.services.raw_admin.RawTableService`) - les tables
+d'historique restent ineditables par construction.
 
-Parcours : dropdown base (« Registre » + bases client par nom de nœud) →
-dropdown table (« nom (n lignes) », our les non éditables) → DataTable
-paginée (pagination custom servie par :meth:`RawTableService.fetch`). Une
-édition de cellule est diffée par LIGNE sur le ``rowid`` SQLite (clé de ligne
-universelle incluse par ``fetch``), validée et auditée par
-:meth:`RawTableService.update_cell`, puis le réseau est revalidé
-(``evaluate_all(persist=True)``) et le ΔUr maximal est annoncé. Un refus
+Parcours : dropdown base (" Registre " + bases client par nom de noeud) ->
+dropdown table (" nom (n lignes) ", our les non editables) -> DataTable
+paginee (pagination custom servie par :meth:`RawTableService.fetch`). Une
+edition de cellule est diffee par LIGNE sur le ``rowid`` SQLite (cle de ligne
+universelle incluse par ``fetch``), validee et auditee par
+:meth:`RawTableService.update_cell`, puis le reseau est revalide
+(``evaluate_all(persist=True)``) et le DeltaUr maximal est annonce. Un refus
 recharge la table et affiche la cause en rouge.
 
-Le routage « /admin » et le lien de navigation sont branchés par la tâche
-d'intégration E10.I dans ``app.py`` (la page expose ``layout()`` et
+Le routage " /admin " et le lien de navigation sont branches par la tache
+d'integration E10.I dans ``app.py`` (la page expose ``layout()`` et
 :func:`register_callbacks`).
 """
 
@@ -46,10 +46,10 @@ from supplyscore.web_ui.components.operator import current_operator
 #: Taille de page de la DataTable (= ``limit`` des lectures du service).
 PAGE_SIZE = 50
 
-#: Seuil au-delà duquel une variation d'Ur compte comme « nœud impacté ».
+#: Seuil au-dela duquel une variation d'Ur compte comme " noeud impacte ".
 _UR_EPSILON = 1e-9
 
-#: Bandeau ROUGE d'avertissement en tête de page.
+#: Bandeau ROUGE d'avertissement en tete de page.
 _BANNER_TEXT = (
     "Zone avancée : édition cellule par cellule, sous audit. "
     "Les tables d'historique sont inéditables par construction."
@@ -84,19 +84,19 @@ _TABLE_STYLE_HEADER = {
 
 
 def _fr(value: float, digits: int = 3) -> str:
-    """Nombre formaté à la française (virgule décimale) pour les PHRASES.
+    """Nombre formate a la francaise (virgule decimale) pour les PHRASES.
 
-    Réservé aux messages français visibles — jamais aux inputs ni aux
-    colonnes numériques de DataTable (Dash exige le point).
+    Reserve aux messages francais visibles - jamais aux inputs ni aux
+    colonnes numeriques de DataTable (Dash exige le point).
     """
     return f"{value:.{digits}f}".replace(".", ",")
 
 
-# --- Layout -----------------------------------------------------------------------------
+# Layout
 
 
 def _db_options() -> list[dict]:
-    """Options du dropdown de base : « Registre » puis les nœuds par NOM."""
+    """Options du dropdown de base : " Registre " puis les noeuds par NOM."""
     service = get_service()
     options: list[dict] = [{"label": "Registre", "value": "registry"}]
     for node in sorted(service.registry.list_nodes(), key=lambda n: (n.rank, n.name)):
@@ -105,7 +105,7 @@ def _db_options() -> list[dict]:
 
 
 def layout() -> html.Div:
-    """Construit la page Données brutes (état du service relu à chaque navigation)."""
+    """Construit la page Donnees brutes (etat du service relu a chaque navigation)."""
     return html.Div(
         [
             html.H2("Données brutes", style={"margin": "6px 0 10px"}),
@@ -152,8 +152,7 @@ def layout() -> html.Div:
             card(
                 "Contenu",
                 [
-                    # E16.6 — dcc.Loading autour de la table paginée (lecture
-                    # SQLite page par page) : l'id reste sur la DataTable.
+                    # E16.6 - dcc.Loading autour de la table paginee (lecture SQLite page par page) : l'id reste sur la DataTable.
                     dcc.Loading(
                         type="circle",
                         children=dash_table.DataTable(  # type: ignore[attr-defined]
@@ -183,14 +182,14 @@ def layout() -> html.Div:
     )
 
 
-# --- Callbacks (fonctions nommées, testables sans serveur) -------------------------------
+# Callbacks (fonctions nommees, testables sans serveur)
 
 
 def tables_callback(db):
-    """Options du dropdown table au choix d'une base : « nom (n lignes) » + 🔒.
+    """Options du dropdown table au choix d'une base : " nom (n lignes) " + [verrou].
 
-    Le cadenas marque les tables NON éditables (hors liste blanche ou
-    historique append-only). La valeur courante est réinitialisée.
+    Le cadenas marque les tables NON editables (hors liste blanche ou
+    historique append-only). La valeur courante est reinitialisee.
     """
     if not db:
         return [], None
@@ -205,16 +204,16 @@ def tables_callback(db):
 
 
 def reset_page_callback(_table):
-    """Repart à la première page quand la table choisie change."""
+    """Repart a la premiere page quand la table choisie change."""
     return 0
 
 
 def table_data_callback(table, page_current, db):
     """Charge la page courante de la table (lecture seule, ``rowid`` inclus).
 
-    La colonne ``rowid`` reste inéditable au niveau colonne ; les autres
-    colonnes suivent l'éditabilité GLOBALE de la table (gérée par
-    :func:`unlock_callback`) — aucun ``editable=True`` par colonne, qui
+    La colonne ``rowid`` reste ineditable au niveau colonne ; les autres
+    colonnes suivent l'editabilite GLOBALE de la table (geree par
+    :func:`unlock_callback`) - aucun ``editable=True`` par colonne, qui
     contournerait le verrou global.
     """
     if not db or not table:
@@ -233,11 +232,11 @@ def table_data_callback(table, page_current, db):
 
 
 def unlock_callback(submit_n_clicks, table, db):
-    """Éditabilité de la DataTable : déverrouillage confirmé ET table whitelistée.
+    """Editabilite de la DataTable : deverrouillage confirme ET table whitelistee.
 
-    La confirmation du ``ConfirmDialogProvider`` déverrouille l'édition pour
+    La confirmation du ``ConfirmDialogProvider`` deverrouille l'edition pour
     la session de page, mais une table FORBIDDEN ou hors liste blanche reste
-    inéditable quoi qu'il arrive (``editable=False``).
+    ineditable quoi qu'il arrive (``editable=False``).
     """
     if not submit_n_clicks or not db or not table:
         return False
@@ -246,10 +245,10 @@ def unlock_callback(submit_n_clicks, table, db):
 
 
 def _diff_cell(data, data_previous):
-    """Première cellule modifiée entre deux états de la table, par LIGNE (rowid).
+    """Premiere cellule modifiee entre deux etats de la table, par LIGNE (rowid).
 
     Returns:
-        ``(rowid, colonne, nouvelle valeur)`` ou None si rien n'a changé.
+        ``(rowid, colonne, nouvelle valeur)`` ou None si rien n'a change.
     """
     previous_by_rowid = {row.get("rowid"): row for row in data_previous}
     for row in data:
@@ -263,21 +262,21 @@ def _diff_cell(data, data_previous):
 
 
 def _reload(raw: RawTableService, db: str, table: str, page: int):
-    """Recharge la page courante de la table (après refus ou écriture)."""
+    """Recharge la page courante de la table (apres refus ou ecriture)."""
     rows, _columns = raw.fetch(db, table, limit=PAGE_SIZE, offset=page * PAGE_SIZE)
     return rows
 
 
 def edit_callback(_timestamp, data, data_previous, db, table, page_current, operator_data):
-    """Édition d'une cellule : diff par rowid → ``update_cell`` → revalidation.
+    """Edition d'une cellule : diff par rowid -> ``update_cell`` -> revalidation.
 
-    Succès : la modification est auditée, le graphe est rechargé depuis le
-    registre si l'édition l'a touché, le réseau est réévalué
+    Succes : la modification est auditee, le graphe est recharge depuis le
+    registre si l'edition l'a touche, le reseau est reevalue
     (``evaluate_all(persist=True)``) et le message annonce
-    « 1 cellule modifiée, revalidation OK, ΔUr max = x.xxx sur n nœud(s) »
-    (Ur comparés avant/après). Refus (contrainte violée, table interdite,
-    clé invalide) : la table est RECHARGÉE depuis la base et la cause est
-    affichée en rouge — rien n'a été écrit.
+    " 1 cellule modifiee, revalidation OK, DeltaUr max = x.xxx sur n noeud(s) "
+    (Ur compares avant/apres). Refus (contrainte violee, table interdite,
+    cle invalide) : la table est RECHARGEE depuis la base et la cause est
+    affichee en rouge - rien n'a ete ecrit.
     """
     if not data_previous or not db or not table:
         raise PreventUpdate
@@ -305,7 +304,7 @@ def edit_callback(_timestamp, data, data_previous, db, table, page_current, oper
 
     ur_before = {node.id: node.urgency.ur or 0.0 for node in service.repo.nodes()}
     if db == "registry":
-        # L'édition brute a contourné le dépôt en mémoire : on le resynchronise.
+        # L'edition brute a contourne le depot en memoire : on le resynchronise.
         service.load_graph_from_registry()
     states = service.evaluate_all(persist=True)
     deltas = [abs((state.ur or 0.0) - ur_before.get(nid, 0.0)) for nid, state in states.items()]
@@ -319,7 +318,7 @@ def edit_callback(_timestamp, data, data_previous, db, table, page_current, oper
 
 
 def register_callbacks(app) -> None:
-    """Enregistre les callbacks de la page Données brutes sur l'app Dash."""
+    """Enregistre les callbacks de la page Donnees brutes sur l'app Dash."""
     app.callback(
         Output("admin-table-dd", "options"),
         Output("admin-table-dd", "value"),

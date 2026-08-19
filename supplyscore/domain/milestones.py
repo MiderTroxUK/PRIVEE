@@ -1,8 +1,8 @@
-"""Jalons (milestones) d'un nœud : proto, série, livraison.
+"""Jalons (milestones) d'un noeud : proto, serie, livraison.
 
-Le cahier des charges d'un nœud définit N jalons datés, chacun avec son
-statut et son avancement déclaré. L'urgence temporelle u_time se calcule
-sur le PROCHAIN jalon actif ; le statut global du nœud DÉRIVE des jalons.
+Le cahier des charges d'un noeud definit N jalons dates, chacun avec son
+statut et son avancement declare. L'urgence temporelle u_time se calcule
+sur le PROCHAIN jalon actif ; le statut global du noeud DERIVE des jalons.
 """
 
 from __future__ import annotations
@@ -23,16 +23,16 @@ class MilestoneStatus(StrEnum):
 
 @dataclass
 class Milestone:
-    """Jalon daté d'un nœud (proto, série, livraison…)."""
+    """Jalon date d'un noeud (proto, serie, livraison...)."""
 
     id: str
     node_id: str
-    name: str  # "Proto", "Série", "Livraison"...
+    name: str  # "Proto", "Serie", "Livraison"...
     kind: str = "livraison"  # proto | serie | livraison | custom
-    start_ts: float = 0.0  # epoch s (début planifié)
+    start_ts: float = 0.0  # epoch s (debut planifie)
     deadline_ts: float = 0.0  # epoch s, > start_ts
     status: MilestoneStatus = MilestoneStatus.ACTIVE
-    progress: float = 0.0  # avancement déclaré [0, 1]
+    progress: float = 0.0  # avancement declare [0, 1]
     position: int = 0  # ordre dans le cahier des charges
 
 
@@ -44,12 +44,12 @@ def _clip01(x: float) -> float:
 def next_active_milestone(milestones: list[Milestone]) -> Milestone | None:
     """Prochain jalon actif : le jalon ACTIVE de ``deadline_ts`` minimale.
 
-    Les jalons DONE et ABANDONED sont ignorés : seuls les jalons encore
-    actifs portent une échéance à venir pour le nœud. C'est sur ce jalon
+    Les jalons DONE et ABANDONED sont ignores : seuls les jalons encore
+    actifs portent une echeance a venir pour le noeud. C'est sur ce jalon
     M* que se calcule l'urgence temporelle u_time v2.
 
     Args:
-        milestones: jalons du nœud (ordre quelconque).
+        milestones: jalons du noeud (ordre quelconque).
 
     Returns:
         Le jalon ACTIVE dont la deadline est la plus proche, ou None si
@@ -62,19 +62,19 @@ def next_active_milestone(milestones: list[Milestone]) -> Milestone | None:
 
 
 def theoretical_progress(m: Milestone, now_ts: float) -> float:
-    """Avancement théorique d'un jalon à ``now_ts`` (interpolation linéaire).
+    """Avancement theorique d'un jalon a ``now_ts`` (interpolation lineaire).
 
-    p_th = clip01((now_ts − start_ts) / (deadline_ts − start_ts)) : 0 avant
-    le début planifié, 1 après la deadline, linéaire entre les deux.
-    Convention : si ``deadline_ts <= start_ts`` (fenêtre dégénérée ou
-    inversée), p_th = 1.0 — le jalon aurait déjà dû être terminé.
+    p_th = clip01((now_ts - start_ts) / (deadline_ts - start_ts)) : 0 avant
+    le debut planifie, 1 apres la deadline, lineaire entre les deux.
+    Convention : si ``deadline_ts <= start_ts`` (fenetre degeneree ou
+    inversee), p_th = 1.0 - le jalon aurait deja du etre termine.
 
     Args:
-        m: jalon considéré.
+        m: jalon considere.
         now_ts: date courante (epoch s).
 
     Returns:
-        Avancement théorique dans [0, 1].
+        Avancement theorique dans [0, 1].
     """
     if m.deadline_ts <= m.start_ts:
         return 1.0
@@ -82,23 +82,23 @@ def theoretical_progress(m: Milestone, now_ts: float) -> float:
 
 
 def derive_node_status(milestones: list[Milestone]) -> TaskStatus | None:
-    """Statut du nœud dérivé de ses jalons (table de vérité, règle pessimiste).
+    """Statut du noeud derive de ses jalons (table de verite, regle pessimiste).
 
-    Table de vérité :
-        - liste vide → None (statut manuel conservé, rétro-compatibilité) ;
-        - au moins un jalon ACTIVE → :attr:`TaskStatus.ACTIVE` ;
-        - aucun actif et au moins un ABANDONED → :attr:`TaskStatus.ABANDONED`
-          (règle PESSIMISTE : un jalon abandonné teinte le nœud — le périmètre
-          n'a pas été rempli, le risque pour l'aval est maximal ; c'est aussi
-          ce qui rend l'action « abandonner le nœud » cohérente même quand un
-          jalon antérieur avait déjà été livré) ;
-        - tous DONE → :attr:`TaskStatus.DONE`.
+    Table de verite :
+        - liste vide -> None (statut manuel conserve, retro-compatibilite) ;
+        - au moins un jalon ACTIVE -> :attr:`TaskStatus.ACTIVE` ;
+        - aucun actif et au moins un ABANDONED -> :attr:`TaskStatus.ABANDONED`
+          (regle PESSIMISTE : un jalon abandonne teinte le noeud - le perimetre
+          n'a pas ete rempli, le risque pour l'aval est maximal ; c'est aussi
+          ce qui rend l'action " abandonner le noeud " coherente meme quand un
+          jalon anterieur avait deja ete livre) ;
+        - tous DONE -> :attr:`TaskStatus.DONE`.
 
     Args:
-        milestones: jalons du nœud (ordre quelconque).
+        milestones: jalons du noeud (ordre quelconque).
 
     Returns:
-        Statut dérivé, ou None si le nœud n'a aucun jalon.
+        Statut derive, ou None si le noeud n'a aucun jalon.
     """
     if not milestones:
         return None

@@ -1,4 +1,4 @@
-"""Test d'intégration bout-en-bout : génération aléatoire -> pipeline complet -> persistance."""
+"""Test d'integration bout-en-bout : generation aleatoire -> pipeline complet -> persistance."""
 
 import pytest
 
@@ -8,8 +8,7 @@ from supplyscore.services import SupplyScoreService
 
 @pytest.fixture
 def service(tmp_path):
-    # Horloge figée : les comparaisons entre deux evaluate_all successifs
-    # doivent être déterministes (pas de dérive du temps réel entre les appels).
+    # Horloge figee : les comparaisons entre deux evaluate_all successifs doivent etre deterministes (pas de derive du temps reel entre les appels).
     from supplyscore.core.clock import FixedClock
 
     return SupplyScoreService(db_dir=tmp_path / "store", clock=FixedClock(1_750_000_000.0))
@@ -29,18 +28,18 @@ def test_full_pipeline(service):
         # F et H sont exclusifs
         assert state.false_urgency == 0.0 or state.hidden_risk == 0.0
 
-    # historique persisté dans la base de chaque client
+    # historique persiste dans la base de chaque client
     for node in nodes:
         series = service.client_db(node.id).urgency_series(node.id)
         assert len(series) >= 1
 
-    # le registre connaît le projet
+    # le registre connait le projet
     assert service.registry.get_project(project.id) is not None
 
 
 def test_abandoned_task_raises_downstream_ur(service):
     service.seed_demo(n_ranks=3, seed=11)
-    # nœud le plus profond (rang max)
+    # noeud le plus profond (rang max)
     deepest = max(service.repo.nodes(), key=lambda n: n.rank)
     root = next(n for n in service.repo.nodes() if n.rank == 0)
 

@@ -1,17 +1,17 @@
-"""Horloge applicative bimodale — temps réel, temps figé et temps « jeu ».
+"""Horloge applicative bimodale - temps reel, temps fige et temps " jeu ".
 
-Module pur (stdlib uniquement) découplant le reste de l'application de la
-source du temps. Trois implémentations partagent le protocole :class:`Clock` :
+Module pur (stdlib uniquement) decouplant le reste de l'application de la
+source du temps. Trois implementations partagent le protocole :class:`Clock` :
 
-- :class:`SystemClock` : mode « réel », délègue à :func:`time.time` ;
-- :class:`FixedClock` : horloge figée pilotable, destinée aux tests ;
-- :class:`GameClock` : mode « jeu » (serious game), le temps avance par
-  semaines entières depuis un instant de départ.
+- :class:`SystemClock` : mode " reel ", delegue a :func:`time.time` ;
+- :class:`FixedClock` : horloge figee pilotable, destinee aux tests ;
+- :class:`GameClock` : mode " jeu " (serious game), le temps avance par
+  semaines entieres depuis un instant de depart.
 
-Deux ponts vers les formules du cœur mathématique :
+Deux ponts vers les formules du coeur mathematique :
 
-- :func:`iso_week` : libellé de semaine ISO (« AAAA-Sxx ») en heure locale ;
-- :func:`project_hours` : conversion d'un epoch en « t » exprimé en heures.
+- :func:`iso_week` : libelle de semaine ISO (" AAAA-Sxx ") en heure locale ;
+- :func:`project_hours` : conversion d'un epoch en " t " exprime en heures.
 """
 
 from __future__ import annotations
@@ -21,7 +21,7 @@ import time
 from datetime import datetime
 from typing import Protocol, runtime_checkable
 
-#: Durée d'une semaine en secondes (7 × 24 × 3600).
+#: Duree d'une semaine en secondes (7 x 24 x 3600).
 WEEK_SECONDS: float = 604_800.0
 
 
@@ -35,7 +35,7 @@ class Clock(Protocol):
 
 
 class SystemClock:
-    """Horloge « réelle » : l'instant courant du système d'exploitation."""
+    """Horloge " reelle " : l'instant courant du systeme d'exploitation."""
 
     def now(self) -> float:
         """Renvoie :func:`time.time` (epoch secondes)."""
@@ -43,26 +43,26 @@ class SystemClock:
 
 
 class FixedClock:
-    """Horloge figée pour les tests : renvoie toujours le même instant.
+    """Horloge figee pour les tests : renvoie toujours le meme instant.
 
-    L'instant peut être repositionné explicitement via :meth:`set`, ce qui
-    permet d'écrire des scénarios temporels déterministes.
+    L'instant peut etre repositionne explicitement via :meth:`set`, ce qui
+    permet d'ecrire des scenarios temporels deterministes.
     """
 
     def __init__(self, ts: float) -> None:
-        """Initialise l'horloge figée.
+        """Initialise l'horloge figee.
 
         Args:
-            ts: instant figé, en secondes epoch.
+            ts: instant fige, en secondes epoch.
         """
         self._ts = float(ts)
 
     def now(self) -> float:
-        """Renvoie l'instant figé courant (epoch secondes)."""
+        """Renvoie l'instant fige courant (epoch secondes)."""
         return self._ts
 
     def set(self, ts: float) -> None:
-        """Repositionne l'instant figé.
+        """Repositionne l'instant fige.
 
         Args:
             ts: nouvel instant, en secondes epoch.
@@ -71,22 +71,22 @@ class FixedClock:
 
 
 class GameClock:
-    """Horloge « jeu » : le temps avance par semaines entières depuis un t0.
+    """Horloge " jeu " : le temps avance par semaines entieres depuis un t0.
 
-    L'instant courant vaut ``start_ts + weeks_elapsed × 604 800`` secondes.
-    L'état est entièrement décrit par ``(start_ts, weeks_elapsed)`` et se
-    sérialise en JSON pour persister une partie en cours.
+    L'instant courant vaut ``start_ts + weeks_elapsed x 604 800`` secondes.
+    L'etat est entierement decrit par ``(start_ts, weeks_elapsed)`` et se
+    serialise en JSON pour persister une partie en cours.
     """
 
     def __init__(self, start_ts: float, weeks_elapsed: int = 0) -> None:
         """Initialise l'horloge de jeu.
 
         Args:
-            start_ts: instant de départ de la partie, en secondes epoch.
-            weeks_elapsed: nombre de semaines déjà écoulées, ≥ 0.
+            start_ts: instant de depart de la partie, en secondes epoch.
+            weeks_elapsed: nombre de semaines deja ecoulees, >= 0.
 
         Raises:
-            ValueError: si ``weeks_elapsed`` est strictement négatif.
+            ValueError: si ``weeks_elapsed`` est strictement negatif.
         """
         if weeks_elapsed < 0:
             raise ValueError(f"weeks_elapsed doit être >= 0, reçu {weeks_elapsed}")
@@ -95,36 +95,36 @@ class GameClock:
 
     @property
     def start_ts(self) -> float:
-        """Instant de départ de la partie (epoch secondes)."""
+        """Instant de depart de la partie (epoch secondes)."""
         return self._start_ts
 
     @property
     def weeks_elapsed(self) -> int:
-        """Nombre de semaines écoulées depuis le départ."""
+        """Nombre de semaines ecoulees depuis le depart."""
         return self._weeks_elapsed
 
     def now(self) -> float:
-        """Renvoie ``start_ts + weeks_elapsed × 604 800`` (epoch secondes)."""
+        """Renvoie ``start_ts + weeks_elapsed x 604 800`` (epoch secondes)."""
         return self._start_ts + self._weeks_elapsed * WEEK_SECONDS
 
     def advance_weeks(self, n: int = 1) -> None:
-        """Avance l'horloge de ``n`` semaines entières.
+        """Avance l'horloge de ``n`` semaines entieres.
 
         Args:
-            n: nombre de semaines à ajouter, ≥ 1.
+            n: nombre de semaines a ajouter, >= 1.
 
         Raises:
-            ValueError: si ``n`` est inférieur à 1.
+            ValueError: si ``n`` est inferieur a 1.
         """
         if n < 1:
             raise ValueError(f"n doit être >= 1, reçu {n}")
         self._weeks_elapsed += n
 
     def to_json(self) -> str:
-        """Sérialise l'état de l'horloge en JSON.
+        """Serialise l'etat de l'horloge en JSON.
 
         Returns:
-            Chaîne JSON ``{"start_ts": ..., "weeks_elapsed": ...}``.
+            Chaine JSON ``{"start_ts": ..., "weeks_elapsed": ...}``.
         """
         return json.dumps({"start_ts": self._start_ts, "weeks_elapsed": self._weeks_elapsed})
 
@@ -133,14 +133,14 @@ class GameClock:
         """Reconstruit une horloge de jeu depuis sa forme JSON.
 
         Args:
-            raw: chaîne JSON produite par :meth:`to_json`.
+            raw: chaine JSON produite par :meth:`to_json`.
 
         Returns:
-            Une :class:`GameClock` équivalente à l'horloge sérialisée.
+            Une :class:`GameClock` equivalente a l'horloge serialisee.
 
         Raises:
-            ValueError: si la chaîne est un JSON invalide ou de forme inattendue
-                (clés manquantes ou types incorrects).
+            ValueError: si la chaine est un JSON invalide ou de forme inattendue
+                (cles manquantes ou types incorrects).
         """
         try:
             data = json.loads(raw)
@@ -163,32 +163,32 @@ class GameClock:
 
 
 def iso_week(ts: float) -> str:
-    """Libellé de la semaine ISO d'un instant, en heure locale du poste.
+    """Libelle de la semaine ISO d'un instant, en heure locale du poste.
 
-    L'année affichée est l'année ISO, qui peut différer de l'année civile
-    (ex. le 2021-01-01 appartient à la semaine « 2020-S53 »).
+    L'annee affichee est l'annee ISO, qui peut differer de l'annee civile
+    (ex. le 2021-01-01 appartient a la semaine " 2020-S53 ").
 
     Args:
         ts: instant en secondes epoch.
 
     Returns:
-        Libellé « AAAA-Sxx » zéro-paddé, ex. « 2026-S05 ».
+        Libelle " AAAA-Sxx " zero-padde, ex. " 2026-S05 ".
     """
     iso = datetime.fromtimestamp(ts).isocalendar()
     return f"{iso.year:04d}-S{iso.week:02d}"
 
 
 def project_hours(ts: float, t0_ts: float) -> float:
-    """Convertit un instant epoch en « t » projet exprimé en heures.
+    """Convertit un instant epoch en " t " projet exprime en heures.
 
-    Pont entre l'horloge applicative et le temps « t » des formules du cœur
-    mathématique (urgences, singularités), qui raisonnent en heures depuis t0.
+    Pont entre l'horloge applicative et le temps " t " des formules du coeur
+    mathematique (urgences, singularites), qui raisonnent en heures depuis t0.
 
     Args:
         ts: instant courant, en secondes epoch.
         t0_ts: origine du projet, en secondes epoch.
 
     Returns:
-        ``(ts − t0_ts) / 3600``, en heures (négatif si ``ts`` précède ``t0_ts``).
+        ``(ts - t0_ts) / 3600``, en heures (negatif si ``ts`` precede ``t0_ts``).
     """
     return (ts - t0_ts) / 3600.0

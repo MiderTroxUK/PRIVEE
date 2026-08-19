@@ -1,24 +1,24 @@
-"""Figures d'explication — « pourquoi A = 32 » rendu visuel (phase E8, Lot 8.3).
+"""Figures d'explication - " pourquoi A = 32 " rendu visuel (phase E8, Lot 8.3).
 
-Quatre constructeurs purs (testables sans serveur) consommés par la page
+Quatre constructeurs purs (testables sans serveur) consommes par la page
 ``/node/<id>/explication`` :
 
-- :func:`ur_waterfall_figure` : cascade des contributions des blocs KPI à
-  Ur local (parts exactes en espace log-survie, réparties sur Ur_local
+- :func:`ur_waterfall_figure` : cascade des contributions des blocs KPI a
+  Ur local (parts exactes en espace log-survie, reparties sur Ur_local
   pour l'affichage) ;
 - :func:`propagation_bars_figure` : part locale vs parts des voisins
   (fournisseurs en montant, clients en descendant) ;
-- :func:`ud_criteria_figure` : contributions additives exactes κ_j des
-  critères AHP à Ud ;
-- :func:`adequation_equation_block` : équation d'adéquation instanciée
-  chiffrée (bloc HTML, pas une figure).
+- :func:`ud_criteria_figure` : contributions additives exactes kappa_j des
+  criteres AHP a Ud ;
+- :func:`adequation_equation_block` : equation d'adequation instanciee
+  chiffree (bloc HTML, pas une figure).
 
-Les entrées sont consommées en duck-typing (attributs ``block``/``u``/
+Les entrees sont consommees en duck-typing (attributs ``block``/``u``/
 ``omega``/``share``/``delta_without``, ``neighbor_name``/``coeff``/
 ``u_neighbor``/``share``, ``index``/``label``/``weight``/``score``/
 ``contribution``, ``e_under``/``e_over``/``penalty``/``adequation``/
 ``lambda_under``/``lambda_over``/``alpha``) : aucun import du moteur
-d'explicabilité, les structures restent substituables.
+d'explicabilite, les structures restent substituables.
 """
 
 from __future__ import annotations
@@ -31,7 +31,7 @@ from dash import html
 from supplyscore.web_ui.components.figures import _TEMPLATE, empty_figure
 from supplyscore.web_ui.components.layout import COLORS, FONT_FAMILY
 
-#: Libellés français des blocs KPI (cf. supplyscore.core.ur_model.BLOCKS).
+#: Libelles francais des blocs KPI (cf. supplyscore.core.ur_model.BLOCKS).
 BLOCK_LABELS_FR: dict[str, str] = {
     "time": "Temps",
     "cap": "Capacité",
@@ -45,21 +45,21 @@ BLOCK_LABELS_FR: dict[str, str] = {
 _LOCAL_COLOR = COLORS["primary"]
 #: Couleur des parts des voisins (fournisseurs ou clients).
 _NEIGHBOR_COLOR = "#8fa9bb"
-#: Police monospace des équations instanciées.
+#: Police monospace des equations instanciees.
 _MONO_FONT = "Consolas, 'Courier New', monospace"
 
-#: Tolérance d'égalité à 1 pour « part locale = 1 » (urgence entièrement locale).
+#: Tolerance d'egalite a 1 pour " part locale = 1 " (urgence entierement locale).
 _EPS = 1e-9
 
 
 def _subtitle_annotation(text: str) -> dict:
-    """Annotation de sous-titre (coordonnées papier, sous le titre).
+    """Annotation de sous-titre (coordonnees papier, sous le titre).
 
     Args:
         text: texte du sous-titre.
 
     Returns:
-        Dictionnaire d'annotation Plotly prêt pour ``layout.annotations``.
+        Dictionnaire d'annotation Plotly pret pour ``layout.annotations``.
     """
     return {
         "text": text,
@@ -74,22 +74,22 @@ def _subtitle_annotation(text: str) -> dict:
 
 
 def ur_waterfall_figure(contributions: list, ur_local: float) -> go.Figure:
-    """Cascade des contributions des blocs KPI à l'urgence réelle locale.
+    """Cascade des contributions des blocs KPI a l'urgence reelle locale.
 
-    Seuls les blocs ACTIFS (share > 0) sont tracés, en mesures relatives
-    valant ``share × ur_local`` : les parts sont EXACTES en espace
-    log-survie, leur répartition sur Ur_local est une approximation
-    d'affichage lisible (annotée comme telle en sous-titre). Comme les
-    parts somment à 1 sur les blocs actifs, le total final vaut
+    Seuls les blocs ACTIFS (share > 0) sont traces, en mesures relatives
+    valant ``share x ur_local`` : les parts sont EXACTES en espace
+    log-survie, leur repartition sur Ur_local est une approximation
+    d'affichage lisible (annotee comme telle en sous-titre). Comme les
+    parts somment a 1 sur les blocs actifs, le total final vaut
     exactement ``ur_local``.
 
     Args:
         contributions: contributions par bloc (duck-typing : attributs
             ``block``, ``u``, ``omega``, ``share``, ``delta_without``).
-        ur_local: urgence réelle locale Ur du nœud.
+        ur_local: urgence reelle locale Ur du noeud.
 
     Returns:
-        ``go.Waterfall`` 0 → blocs actifs → total Ur local, ou figure
+        ``go.Waterfall`` 0 -> blocs actifs -> total Ur local, ou figure
         vide avec message si aucune contribution active.
     """
     active = [c for c in contributions if c.share > 0.0]
@@ -131,9 +131,9 @@ def propagation_bars_figure(
 ) -> go.Figure:
     """Barres horizontales : part locale vs parts des voisins (en %).
 
-    En montant (``direction="fournisseurs"``), répond à « D'où vient
-    l'urgence réelle ? » avec les coefficients β des arcs ; en descendant
-    (clients), à « Qui tire le besoin déclaré ? » avec les coefficients γ.
+    En montant (``direction="fournisseurs"``), repond a " D'ou vient
+    l'urgence reelle ? " avec les coefficients beta des arcs ; en descendant
+    (clients), a " Qui tire le besoin declare ? " avec les coefficients gamma.
 
     Args:
         part_locale: part log-survie de la cause locale (0..1).
@@ -143,9 +143,9 @@ def propagation_bars_figure(
             (Ud descendant).
 
     Returns:
-        Figure à barres horizontales en % (« Local » en tête, couleur
+        Figure a barres horizontales en % (" Local " en tete, couleur
         distincte), ou figure vide avec message si l'urgence est
-        entièrement locale (part_locale = 1 et aucun voisin).
+        entierement locale (part_locale = 1 et aucun voisin).
     """
     upstream = direction == "fournisseurs"
     if not edges and part_locale >= 1.0 - _EPS:
@@ -185,17 +185,17 @@ def propagation_bars_figure(
 
 
 def ud_criteria_figure(criteres: list) -> go.Figure:
-    """Barres horizontales des contributions κ_j des critères AHP à Ud.
+    """Barres horizontales des contributions kappa_j des criteres AHP a Ud.
 
-    La décomposition est additive exacte : κ_j = w_j·(s_j − 1)/8 et
-    Σ κ_j = Ud — la somme est rappelée en annotation « Σ κ = Ud ».
+    La decomposition est additive exacte : kappa_j = w_j-(s_j - 1)/8 et
+    Sigma kappa_j = Ud - la somme est rappelee en annotation " Sigma kappa = Ud ".
 
     Args:
-        criteres: contributions par critère (duck-typing : attributs
+        criteres: contributions par critere (duck-typing : attributs
             ``index``, ``label``, ``weight``, ``score``, ``contribution``).
 
     Returns:
-        Figure à barres horizontales (une par critère, dans l'ordre des
+        Figure a barres horizontales (une par critere, dans l'ordre des
         indices), ou figure vide avec message si ``criteres`` est vide.
     """
     if not criteres:
@@ -242,22 +242,22 @@ def ud_criteria_figure(criteres: list) -> go.Figure:
 
 
 def adequation_equation_block(trace: Any) -> html.Div:
-    """Bloc HTML français : équation d'adéquation instanciée chiffrée.
+    """Bloc HTML francais : equation d'adequation instanciee chiffree.
 
-    Pas une figure — l'adéquation n'admet pas de décomposition additive,
-    on montre l'équation avec les valeurs du nœud, par exemple :
-    « e_sous = [Ur − Ud]+ = 0.31 ; e_sur = 0.00 ; pénalité =
-    2.25×0.31^0.88 = 0.80 ; A = 100·(e^−0.80 − e^−2.25)/(1 − e^−2.25)
-    = 38.4 », suivie de la phrase de gouvernance (asymétrie
+    Pas une figure - l'adequation n'admet pas de decomposition additive,
+    on montre l'equation avec les valeurs du noeud, par exemple :
+    " e_sous = [Ur - Ud]+ = 0.31 ; e_sur = 0.00 ; penalite =
+    2.25x0.31^0.88 = 0.80 ; A = 100-(e^-0.80 - e^-2.25)/(1 - e^-2.25)
+    = 38.4 ", suivie de la phrase de gouvernance (asymetrie
     Kahneman-Tversky).
 
     Args:
-        trace: trace d'adéquation (duck-typing : attributs ``e_under``,
+        trace: trace d'adequation (duck-typing : attributs ``e_under``,
             ``e_over``, ``penalty``, ``adequation``, ``lambda_under``,
             ``lambda_over``, ``alpha``).
 
     Returns:
-        ``html.Div`` à trois lignes d'équation monospace et une phrase
+        ``html.Div`` a trois lignes d'equation monospace et une phrase
         de gouvernance.
     """
     e_under = float(trace.e_under)

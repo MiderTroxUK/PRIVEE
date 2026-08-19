@@ -1,10 +1,10 @@
-"""Couche données de supplyscore : persistance SQLite + générateur de données de test.
+"""Couche donnees de supplyscore : persistance SQLite + generateur de donnees de test.
 
 API publique :
-- :class:`RegistryDatabase` — registre global (projets, nœuds, arcs partagés).
-- :class:`ClientDatabase`  — base par client (évaluations AHP, snapshots KPI, urgences).
-- :class:`RandomSupplyChainGenerator` — données de TEST aléatoires (jamais en production).
-- ``kpis_to_json`` / ``kpis_from_json`` — sérialisation KPIBundle <-> JSON.
+- :class:`RegistryDatabase` - registre global (projets, noeuds, arcs partages).
+- :class:`ClientDatabase`  - base par client (evaluations AHP, snapshots KPI, urgences).
+- :class:`RandomSupplyChainGenerator` - donnees de TEST aleatoires (jamais en production).
+- ``kpis_to_json`` / ``kpis_from_json`` - serialisation KPIBundle <-> JSON.
 """
 
 from supplyscore.data.db import (

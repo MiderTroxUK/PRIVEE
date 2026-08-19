@@ -1,14 +1,14 @@
-"""Page « /rapport » : génération du rapport de session HTML (E11, Lot 11.2).
+"""Page " /rapport " : generation du rapport de session HTML (E11, Lot 11.2).
 
-Une carte unique « Générer le rapport de session » : paramètre d'horizon de
-calibration (1 à 12 semaines, 4 par défaut), bouton de génération, message de
-résultat et ``dcc.Download`` qui déclenche le téléchargement du fichier HTML
+Une carte unique " Generer le rapport de session " : parametre d'horizon de
+calibration (1 a 12 semaines, 4 par defaut), bouton de generation, message de
+resultat et ``dcc.Download`` qui declenche le telechargement du fichier HTML
 produit par :class:`~supplyscore.services.report.SessionReport`. La page
-nécessite un projet actif (``store-project``) — sans projet, un message
-d'erreur en français est affiché.
+necessite un projet actif (``store-project``) - sans projet, un message
+d'erreur en francais est affiche.
 
-Le routage « /rapport » et le lien de navigation sont branchés par la tâche
-d'intégration E11.I dans ``app.py`` (la page expose ``layout()`` et
+Le routage " /rapport " et le lien de navigation sont branches par la tache
+d'integration E11.I dans ``app.py`` (la page expose ``layout()`` et
 :func:`register_callbacks`).
 """
 
@@ -29,17 +29,17 @@ from supplyscore.web_ui.components.layout import (
     labelled,
 )
 
-#: Bornes et défaut de l'horizon de calibration, en semaines.
+#: Bornes et defaut de l'horizon de calibration, en semaines.
 HORIZON_MIN = 1
 HORIZON_MAX = 12
 HORIZON_DEFAUT = 4
 
 
-# --- Layout -----------------------------------------------------------------------------
+# Layout
 
 
 def layout() -> html.Div:
-    """Construit la page Rapport (carte unique de génération)."""
+    """Construit la page Rapport (carte unique de generation)."""
     return html.Div(
         [
             html.H2("Rapport de session", style={"margin": "6px 0 10px"}),
@@ -76,14 +76,14 @@ def layout() -> html.Div:
     )
 
 
-# --- Callbacks (fonctions nommées, testables sans serveur) -------------------------------
+# Callbacks (fonctions nommees, testables sans serveur)
 
 
 def generate_report_callback(n_clicks, project_data, horizon):
-    """Génère le rapport du projet actif puis déclenche son téléchargement.
+    """Genere le rapport du projet actif puis declenche son telechargement.
 
-    Sans projet actif : message d'erreur en français, pas de téléchargement.
-    L'horizon est validé côté serveur (coercition entière puis bornage 1..12 —
+    Sans projet actif : message d'erreur en francais, pas de telechargement.
+    L'horizon est valide cote serveur (coercition entiere puis bornage 1..12 -
     la saisie clavier peut contourner ``min``/``max`` du ``dcc.Input``).
     """
     if not n_clicks:

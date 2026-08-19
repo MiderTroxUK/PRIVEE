@@ -1,24 +1,24 @@
-"""Service d'onboarding — wizard 4 sections, brouillon persisté EN BASE.
+"""Service d'onboarding - wizard 4 sections, brouillon persiste EN BASE.
 
-Machine à états du wizard (source de vérité : table ``onboarding_progress``) :
+Machine a etats du wizard (source de verite : table ``onboarding_progress``) :
 
-- ``start_draft`` → le nœud est créé IMMÉDIATEMENT (``onboarding_state='draft'``,
-  rang 0, aucun arc) et la progression est initialisée (sections à 0,
-  brouillon vide, étape 1) ;
-- ``save_section(k)`` → VALIDE puis écrit les entités réelles et pose
-  ``sections_done[k] = 1`` ; en cas d'erreur de validation, RIEN n'est écrit
-  et la liste des erreurs (messages français) est retournée ;
-- ``save_draft(k)`` → écrit ``draft_json`` SANS valider (« enregistrer le
-  brouillon et quitter ») ;
-- ``complete()`` → exige les 4 sections faites, pose
+- ``start_draft`` -> le noeud est cree IMMEDIATEMENT (``onboarding_state='draft'``,
+  rang 0, aucun arc) et la progression est initialisee (sections a 0,
+  brouillon vide, etape 1) ;
+- ``save_section(k)`` -> VALIDE puis ecrit les entites reelles et pose
+  ``sections_done[k] = 1`` ; en cas d'erreur de validation, RIEN n'est ecrit
+  et la liste des erreurs (messages francais) est retournee ;
+- ``save_draft(k)`` -> ecrit ``draft_json`` SANS valider (" enregistrer le
+  brouillon et quitter ") ;
+- ``complete()`` -> exige les 4 sections faites, pose
   ``onboarding_state='complete'``, supprime la progression et relance
   ``evaluate_all(persist=True)``.
 
-Sections : **1** identité + type + tags + connexions ; **2** cahier des
-charges + jalons ; **3** KPIs initiaux ; **4** première évaluation AHP.
-Toutes les écritures métier passent par :class:`MutationService`
-(``source='onboarding'``) ; les entités sans mutation auditée (tags créés par
-nom, jalons recréés en bloc) passent par le registre.
+Sections : **1** identite + type + tags + connexions ; **2** cahier des
+charges + jalons ; **3** KPIs initiaux ; **4** premiere evaluation AHP.
+Toutes les ecritures metier passent par :class:`MutationService`
+(``source='onboarding'``) ; les entites sans mutation auditee (tags crees par
+nom, jalons recrees en bloc) passent par le registre.
 """
 
 from __future__ import annotations
@@ -38,10 +38,10 @@ from supplyscore.domain.tags import Tag
 if TYPE_CHECKING:
     from supplyscore.services.orchestrator import SupplyScoreService
 
-#: Clés des 4 sections du wizard, dans l'ordre des étapes (étape = index + 1).
+#: Cles des 4 sections du wizard, dans l'ordre des etapes (etape = index + 1).
 SECTION_KEYS: tuple[str, str, str, str] = ("identity", "cdc", "kpis", "ahp")
 
-#: Libellés français des sections (messages d'erreur de :meth:`OnboardingService.complete`).
+#: Libelles francais des sections (messages d'erreur de :meth:`OnboardingService.complete`).
 _SECTION_LABELS: dict[str, str] = {
     "identity": "identité",
     "cdc": "cahier des charges",
@@ -49,44 +49,44 @@ _SECTION_LABELS: dict[str, str] = {
     "ahp": "évaluation AHP",
 }
 
-#: Origine posée sur toutes les mutations du wizard (journal d'audit).
+#: Origine posee sur toutes les mutations du wizard (journal d'audit).
 _SOURCE = "onboarding"
 
 
 @dataclass(frozen=True)
 class OnboardingState:
-    """État courant du wizard d'un nœud, tel que persisté en base."""
+    """Etat courant du wizard d'un noeud, tel que persiste en base."""
 
-    #: Identifiant du nœud en cours d'onboarding.
+    #: Identifiant du noeud en cours d'onboarding.
     node_id: str
     #: Avancement par section : ``{"identity": 0|1, "cdc": 0|1, "kpis": 0|1, "ahp": 0|1}``.
     sections_done: dict[str, int]
-    #: Réponses partielles NON validées, par section : ``{"identity": {...}, ...}``.
+    #: Reponses partielles NON validees, par section : ``{"identity": {...}, ...}``.
     draft: dict
-    #: Étape courante du wizard, dans [1, 4].
+    #: Etape courante du wizard, dans [1, 4].
     current_step: int
 
 
 @dataclass(frozen=True)
 class SectionResult:
-    """Résultat d'une tentative d'écriture de section (ou de complétion)."""
+    """Resultat d'une tentative d'ecriture de section (ou de completion)."""
 
-    #: True si la section a été validée ET écrite.
+    #: True si la section a ete validee ET ecrite.
     ok: bool
-    #: Messages d'erreur en français ; liste vide si ``ok``.
+    #: Messages d'erreur en francais ; liste vide si ``ok``.
     errors: list[str]
 
 
 def _as_float(value: Any, label: str, errors: list[str]) -> float | None:
-    """Convertit ``value`` en float, ou ajoute une erreur française à ``errors``.
+    """Convertit ``value`` en float, ou ajoute une erreur francaise a ``errors``.
 
     Args:
         value: valeur brute issue du payload (None = manquante).
-        label: préfixe français du message d'erreur (ex. « Jalon 2 : début »).
-        errors: liste d'erreurs alimentée en place.
+        label: prefixe francais du message d'erreur (ex. " Jalon 2 : debut ").
+        errors: liste d'erreurs alimentee en place.
 
     Returns:
-        La valeur convertie, ou None si elle est manquante ou non numérique.
+        La valeur convertie, ou None si elle est manquante ou non numerique.
     """
     if value is None:
         errors.append(f"{label} : valeur manquante.")
@@ -99,12 +99,12 @@ def _as_float(value: Any, label: str, errors: list[str]) -> float | None:
 
 
 def _as_float_01(value: Any, label: str, errors: list[str]) -> float | None:
-    """Comme :func:`_as_float`, avec borne supplémentaire [0, 1].
+    """Comme :func:`_as_float`, avec borne supplementaire [0, 1].
 
     Args:
         value: valeur brute issue du payload.
-        label: préfixe français du message d'erreur (ex. « Connexion 1 : gamma »).
-        errors: liste d'erreurs alimentée en place.
+        label: prefixe francais du message d'erreur (ex. " Connexion 1 : gamma ").
+        errors: liste d'erreurs alimentee en place.
 
     Returns:
         La valeur convertie si elle est dans [0, 1], None sinon.
@@ -117,43 +117,43 @@ def _as_float_01(value: Any, label: str, errors: list[str]) -> float | None:
 
 
 class OnboardingService:
-    """Wizard d'onboarding d'un nœud en 4 sections, brouillon persisté en base.
+    """Wizard d'onboarding d'un noeud en 4 sections, brouillon persiste en base.
 
-    S'appuie sur la façade :class:`SupplyScoreService` : le registre porte la
-    table ``onboarding_progress`` (source de vérité de la machine à états),
-    les écritures métier passent par :class:`MutationService`
-    (``source='onboarding'``) et la complétion relance le pipeline complet
+    S'appuie sur la facade :class:`SupplyScoreService` : le registre porte la
+    table ``onboarding_progress`` (source de verite de la machine a etats),
+    les ecritures metier passent par :class:`MutationService`
+    (``source='onboarding'``) et la completion relance le pipeline complet
     (``evaluate_all(persist=True)``).
 
-    Thread-safety : les méthodes mutantes prennent ``self._lock`` (RLock) pour
-    sérialiser les cycles lecture-validation-écriture du wizard.
+    Thread-safety : les methodes mutantes prennent ``self._lock`` (RLock) pour
+    serialiser les cycles lecture-validation-ecriture du wizard.
     """
 
     def __init__(self, service: SupplyScoreService) -> None:
-        """Initialise le service d'onboarding au-dessus de la façade.
+        """Initialise le service d'onboarding au-dessus de la facade.
 
         Args:
-            service: façade applicative (registre, mutations, horloges, pipeline).
+            service: facade applicative (registre, mutations, horloges, pipeline).
         """
         self._service = service
         self._lock = threading.RLock()
 
-    # --- cycle de vie du brouillon -----------------------------------------------
+    # cycle de vie du brouillon
 
     def start_draft(self, project_id: str, name: str, label: str = "Supplier") -> str:
-        """Crée IMMÉDIATEMENT le nœud en brouillon et initialise sa progression.
+        """Cree IMMEDIATEMENT le noeud en brouillon et initialise sa progression.
 
-        Le nœud naît avec ``onboarding_state='draft'``, rang 0 et aucun arc ;
-        la ligne ``onboarding_progress`` démarre à l'étape 1, sections à 0,
+        Le noeud nait avec ``onboarding_state='draft'``, rang 0 et aucun arc ;
+        la ligne ``onboarding_progress`` demarre a l'etape 1, sections a 0,
         brouillon vide.
 
         Args:
-            project_id: projet de rattachement du nœud.
-            name: nom du nœud (modifiable en section 1).
-            label: type du nœud (Supplier, Factory, Workshop...).
+            project_id: projet de rattachement du noeud.
+            name: nom du noeud (modifiable en section 1).
+            label: type du noeud (Supplier, Factory, Workshop...).
 
         Returns:
-            L'identifiant (uuid4) du nœud créé.
+            L'identifiant (uuid4) du noeud cree.
         """
         with self._lock:
             node_id = str(uuid.uuid4())
@@ -170,20 +170,20 @@ class OnboardingService:
             return node_id
 
     def load(self, node_id: str) -> OnboardingState:
-        """Restitue l'état du wizard depuis la table ``onboarding_progress``.
+        """Restitue l'etat du wizard depuis la table ``onboarding_progress``.
 
-        Si la progression a été supprimée (onboarding terminé) mais que le
-        nœud existe, un état synthétique est reconstruit : 4 sections faites
-        si le nœud est ``complete``, 0 sinon.
+        Si la progression a ete supprimee (onboarding termine) mais que le
+        noeud existe, un etat synthetique est reconstruit : 4 sections faites
+        si le noeud est ``complete``, 0 sinon.
 
         Args:
-            node_id: identifiant du nœud.
+            node_id: identifiant du noeud.
 
         Returns:
-            L'état courant du wizard (sections faites, brouillon, étape).
+            L'etat courant du wizard (sections faites, brouillon, etape).
 
         Raises:
-            KeyError: si AUCUN brouillon NI nœud n'existe pour cet id.
+            KeyError: si AUCUN brouillon NI noeud n'existe pour cet id.
         """
         registry = self._service.registry
         progress = registry.get_onboarding(node_id)
@@ -207,13 +207,13 @@ class OnboardingService:
         )
 
     def list_drafts(self, project_id: str | None = None) -> list[SupplyNode]:
-        """Liste les nœuds encore en brouillon (``onboarding_state='draft'``).
+        """Liste les noeuds encore en brouillon (``onboarding_state='draft'``).
 
         Args:
-            project_id: si fourni, restreint au projet donné.
+            project_id: si fourni, restreint au projet donne.
 
         Returns:
-            Les nœuds brouillon, ordonnés par rang puis id (ordre du registre).
+            Les noeuds brouillon, ordonnes par rang puis id (ordre du registre).
         """
         return [
             node
@@ -222,19 +222,19 @@ class OnboardingService:
         ]
 
     def save_draft(self, node_id: str, step: int, payload: dict) -> None:
-        """Écrit le brouillon d'une section SANS valider (« enregistrer et quitter »).
+        """Ecrit le brouillon d'une section SANS valider (" enregistrer et quitter ").
 
         Seuls ``draft_json`` (section ``step``) et ``current_step`` bougent ;
-        les sections validées restent intactes.
+        les sections validees restent intactes.
 
         Args:
-            node_id: identifiant du nœud en cours d'onboarding.
-            step: étape du wizard, dans [1, 4].
-            payload: réponses partielles de la section, telles quelles.
+            node_id: identifiant du noeud en cours d'onboarding.
+            step: etape du wizard, dans [1, 4].
+            payload: reponses partielles de la section, telles quelles.
 
         Raises:
             ValueError: si ``step`` sort de [1, 4].
-            KeyError: si le nœud n'a pas de brouillon d'onboarding en base.
+            KeyError: si le noeud n'a pas de brouillon d'onboarding en base.
         """
         key = self._section_key(step)
         with self._lock:
@@ -243,31 +243,31 @@ class OnboardingService:
             draft[key] = payload
             self._service.registry.save_onboarding(node_id, progress["sections_done"], draft, step)
 
-    # --- écriture des sections ------------------------------------------------------
+    # ecriture des sections
 
     def save_section(
         self, node_id: str, step: int, payload: dict, operator_id: str = ""
     ) -> SectionResult:
-        """Valide PUIS écrit les entités réelles d'une section du wizard.
+        """Valide PUIS ecrit les entites reelles d'une section du wizard.
 
-        En cas d'erreur de validation, RIEN n'est écrit et les messages
-        (français) sont retournés. En cas de succès, ``sections_done[k]``
-        passe à 1, le payload est conservé dans le brouillon (reprise) et
-        l'étape courante avance d'un cran.
+        En cas d'erreur de validation, RIEN n'est ecrit et les messages
+        (francais) sont retournes. En cas de succes, ``sections_done[k]``
+        passe a 1, le payload est conserve dans le brouillon (reprise) et
+        l'etape courante avance d'un cran.
 
         Args:
-            node_id: identifiant du nœud en cours d'onboarding.
-            step: étape du wizard, dans [1, 4].
-            payload: réponses de la section (formats du wizard UI).
-            operator_id: opérateur à l'origine de la saisie (audit).
+            node_id: identifiant du noeud en cours d'onboarding.
+            step: etape du wizard, dans [1, 4].
+            payload: reponses de la section (formats du wizard UI).
+            operator_id: operateur a l'origine de la saisie (audit).
 
         Returns:
-            ``SectionResult(ok=True, errors=[])`` si tout est écrit, sinon
-            ``SectionResult(ok=False, errors=[...])`` sans aucune écriture.
+            ``SectionResult(ok=True, errors=[])`` si tout est ecrit, sinon
+            ``SectionResult(ok=False, errors=[...])`` sans aucune ecriture.
 
         Raises:
             ValueError: si ``step`` sort de [1, 4].
-            KeyError: si le nœud est inconnu du registre.
+            KeyError: si le noeud est inconnu du registre.
         """
         key = self._section_key(step)
         with self._lock:
@@ -294,45 +294,45 @@ class OnboardingService:
                 self._service.registry.save_onboarding(node_id, sections_done, draft, next_step)
             return SectionResult(ok=True, errors=[])
 
-    # --- complétion ----------------------------------------------------------------
+    # completion
 
     def completeness(self, node_id: str) -> tuple[int, int]:
-        """Avancement de l'onboarding du nœud : ``(sections faites, 4)``.
+        """Avancement de l'onboarding du noeud : ``(sections faites, 4)``.
 
-        Un nœud ``complete`` (progression supprimée) répond ``(4, 4)``.
+        Un noeud ``complete`` (progression supprimee) repond ``(4, 4)``.
 
         Args:
-            node_id: identifiant du nœud.
+            node_id: identifiant du noeud.
 
         Returns:
-            Le couple ``(nombre de sections validées, nombre total de sections)``.
+            Le couple ``(nombre de sections validees, nombre total de sections)``.
 
         Raises:
-            KeyError: si AUCUN brouillon NI nœud n'existe pour cet id.
+            KeyError: si AUCUN brouillon NI noeud n'existe pour cet id.
         """
         state = self.load(node_id)
         done = sum(1 for key in SECTION_KEYS if state.sections_done.get(key))
         return (done, len(SECTION_KEYS))
 
     def complete(self, node_id: str, operator_id: str = "") -> SectionResult:
-        """Termine l'onboarding : exige les 4 sections faites, puis bascule le nœud.
+        """Termine l'onboarding : exige les 4 sections faites, puis bascule le noeud.
 
-        En cas de succès : ``onboarding_state='complete'`` (mutation auditée),
-        suppression de la ligne ``onboarding_progress`` et réévaluation
-        complète du réseau (``evaluate_all(persist=True)``). Idempotent : un
-        nœud déjà ``complete`` (sans progression) répond ``ok=True``.
+        En cas de succes : ``onboarding_state='complete'`` (mutation auditee),
+        suppression de la ligne ``onboarding_progress`` et reevaluation
+        complete du reseau (``evaluate_all(persist=True)``). Idempotent : un
+        noeud deja ``complete`` (sans progression) repond ``ok=True``.
 
         Args:
-            node_id: identifiant du nœud en cours d'onboarding.
-            operator_id: opérateur à l'origine de la complétion (audit).
+            node_id: identifiant du noeud en cours d'onboarding.
+            operator_id: operateur a l'origine de la completion (audit).
 
         Returns:
-            ``SectionResult(ok=True, errors=[])`` si le nœud est complété,
-            sinon ``ok=False`` avec la liste française des sections restantes.
+            ``SectionResult(ok=True, errors=[])`` si le noeud est complete,
+            sinon ``ok=False`` avec la liste francaise des sections restantes.
 
         Raises:
-            KeyError: si le nœud est inconnu du registre, ou s'il n'a ni
-                progression ni état ``complete``.
+            KeyError: si le noeud est inconnu du registre, ou s'il n'a ni
+                progression ni etat ``complete``.
         """
         with self._lock:
             registry = self._service.registry
@@ -366,24 +366,24 @@ class OnboardingService:
             self._service.evaluate_all(persist=True)
             return SectionResult(ok=True, errors=[])
 
-    # --- sections (validation PUIS écriture, jamais l'inverse) -----------------------
+    # sections (validation PUIS ecriture, jamais l'inverse)
 
     def _apply_identity(
         self, node: SupplyNode, payload: dict[str, Any], operator_id: str
     ) -> list[str]:
-        """Section 1 : identité, type, tags (créés par nom) et connexions (arcs).
+        """Section 1 : identite, type, tags (crees par nom) et connexions (arcs).
 
         Validations : nom non vide, gamma/beta dans [0, 1], cibles existantes,
-        pas d'auto-connexion, type d'arc nominal/backup. Le rang du nœud
+        pas d'auto-connexion, type d'arc nominal/backup. Le rang du noeud
         devient ``1 + max(rang des cibles nominales)`` (0 sans cible nominale).
 
         Args:
-            node: nœud en cours d'onboarding (état registre).
+            node: noeud en cours d'onboarding (etat registre).
             payload: ``{"name", "label", "location", "tag_names", "connections"}``.
-            operator_id: opérateur (audit).
+            operator_id: operateur (audit).
 
         Returns:
-            Liste des erreurs françaises ; vide si tout a été écrit.
+            Liste des erreurs francaises ; vide si tout a ete ecrit.
         """
         registry = self._service.registry
         errors: list[str] = []
@@ -461,14 +461,14 @@ class OnboardingService:
         return []
 
     def _tag_ids_for(self, project_id: str, tag_names: list[Any]) -> list[str]:
-        """Résout des noms de tags en ids, en créant les tags manquants (uuid4).
+        """Resout des noms de tags en ids, en creant les tags manquants (uuid4).
 
-        Les noms sont nettoyés (strip), dédoublonnés en conservant l'ordre,
-        et appariés aux tags existants du projet par nom exact.
+        Les noms sont nettoyes (strip), dedoublonnes en conservant l'ordre,
+        et apparies aux tags existants du projet par nom exact.
 
         Args:
             project_id: projet porteur de la taxonomie.
-            tag_names: noms de tags saisis par l'opérateur.
+            tag_names: noms de tags saisis par l'operateur.
 
         Returns:
             Les ids de tags, dans l'ordre de saisie.
@@ -487,20 +487,20 @@ class OnboardingService:
         return tag_ids
 
     def _apply_cdc(self, node: SupplyNode, payload: dict[str, Any], operator_id: str) -> list[str]:
-        """Section 2 : cahier des charges versionné + jalons datés.
+        """Section 2 : cahier des charges versionne + jalons dates.
 
         Validations : cdc compatible ``cdc_from_json``, au moins un jalon,
-        noms non vides, ``deadline_ts > start_ts``. Écritures : nouvelle
-        version de ``spec_sheet`` (mutation auditée) et REMPLACEMENT des
-        jalons du nœud (delete puis recreate — idempotent si on resauve).
+        noms non vides, ``deadline_ts > start_ts``. Ecritures : nouvelle
+        version de ``spec_sheet`` (mutation auditee) et REMPLACEMENT des
+        jalons du noeud (delete puis recreate - idempotent si on resauve).
 
         Args:
-            node: nœud en cours d'onboarding.
+            node: noeud en cours d'onboarding.
             payload: ``{"cdc": dict, "milestones": [{name, kind, start_ts, deadline_ts}]}``.
-            operator_id: opérateur (audit).
+            operator_id: operateur (audit).
 
         Returns:
-            Liste des erreurs françaises ; vide si tout a été écrit.
+            Liste des erreurs francaises ; vide si tout a ete ecrit.
         """
         errors: list[str] = []
         payload_json: str | None = None
@@ -565,17 +565,17 @@ class OnboardingService:
         """Section 3 : KPIs initiaux, via :meth:`MutationService.update_kpis`.
 
         La validation des bornes est celle de :class:`MutationService`
-        (table ``KPI_CONSTRAINTS``) : son ``ValueError`` — qui liste TOUTES
-        les valeurs invalides, rien n'étant alors écrit — est restitué tel
+        (table ``KPI_CONSTRAINTS``) : son ``ValueError`` - qui liste TOUTES
+        les valeurs invalides, rien n'etant alors ecrit - est restitue tel
         quel dans les erreurs.
 
         Args:
-            node: nœud en cours d'onboarding.
+            node: noeud en cours d'onboarding.
             payload: ``{"bloc.champ": valeur}`` (None efface le champ).
-            operator_id: opérateur (audit).
+            operator_id: operateur (audit).
 
         Returns:
-            Liste des erreurs françaises ; vide si tout a été écrit.
+            Liste des erreurs francaises ; vide si tout a ete ecrit.
         """
         try:
             self._service.mutations.update_kpis(
@@ -586,20 +586,20 @@ class OnboardingService:
         return []
 
     def _apply_ahp(self, node: SupplyNode, payload: dict[str, Any], operator_id: str) -> list[str]:
-        """Section 4 : première évaluation AHP du nœud.
+        """Section 4 : premiere evaluation AHP du noeud.
 
-        Construit l'évaluation via ``build_assessment`` puis REFUSE tout
-        questionnaire incohérent (CR >= 0.10, seuil de Saaty) ; sinon
-        l'évaluation est soumise (``submit_assessment``), qui pose la semaine
-        ISO depuis l'horloge du projet et met à jour le Ud_local lissé.
+        Construit l'evaluation via ``build_assessment`` puis REFUSE tout
+        questionnaire incoherent (CR >= 0.10, seuil de Saaty) ; sinon
+        l'evaluation est soumise (``submit_assessment``), qui pose la semaine
+        ISO depuis l'horloge du projet et met a jour le Ud_local lisse.
 
         Args:
-            node: nœud en cours d'onboarding.
+            node: noeud en cours d'onboarding.
             payload: ``{"comparisons": {"i-j": saaty}, "scores": [4 notes 1..9], "notes": str}``.
-            operator_id: opérateur (audit).
+            operator_id: operateur (audit).
 
         Returns:
-            Liste des erreurs françaises ; vide si l'évaluation est persistée.
+            Liste des erreurs francaises ; vide si l'evaluation est persistee.
         """
         errors: list[str] = []
         comparisons: dict[tuple[int, int], float] = {}
@@ -617,8 +617,7 @@ class OnboardingService:
                     " (attendu « i-j » : jugement de Saaty)."
                 )
 
-        # « scores » et « criteria_scores » acceptés (parse_ahp des form-builders
-        # émet « criteria_scores » ; le contrat historique disait « scores »).
+        # " scores " et " criteria_scores " acceptes (parse_ahp des form-builders emet " criteria_scores " ; le contrat historique disait " scores ").
         raw_scores = payload.get("scores") or payload.get("criteria_scores") or []
         scores: list[float] = []
         for position, value in enumerate(raw_scores, start=1):
@@ -654,17 +653,17 @@ class OnboardingService:
         self._service.submit_assessment(assessment)
         return []
 
-    # --- aides internes ---------------------------------------------------------------
+    # aides internes
 
     @staticmethod
     def _section_key(step: int) -> str:
-        """Clé de section correspondant à une étape du wizard.
+        """Cle de section correspondant a une etape du wizard.
 
         Args:
-            step: étape, dans [1, 4].
+            step: etape, dans [1, 4].
 
         Returns:
-            La clé de :data:`SECTION_KEYS` correspondante.
+            La cle de :data:`SECTION_KEYS` correspondante.
 
         Raises:
             ValueError: si ``step`` sort de [1, 4].
@@ -674,16 +673,16 @@ class OnboardingService:
         return SECTION_KEYS[step - 1]
 
     def _progress_or_raise(self, node_id: str) -> dict[str, Any]:
-        """Progression d'onboarding du nœud, ou KeyError française si absente.
+        """Progression d'onboarding du noeud, ou KeyError francaise si absente.
 
         Args:
-            node_id: identifiant du nœud.
+            node_id: identifiant du noeud.
 
         Returns:
-            La ligne ``onboarding_progress`` désérialisée (dict de la couche db).
+            La ligne ``onboarding_progress`` deserialisee (dict de la couche db).
 
         Raises:
-            KeyError: si le nœud n'a pas de brouillon d'onboarding en base.
+            KeyError: si le noeud n'a pas de brouillon d'onboarding en base.
         """
         progress = self._service.registry.get_onboarding(node_id)
         if progress is None:

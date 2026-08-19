@@ -1,34 +1,34 @@
-"""Service de criticité systématique des nœuds (phase E15, Lot 15.2 ; Δl HÉLIOS v7, U3).
+"""Service de criticite systematique des noeuds (phase E15, Lot 15.2 ; Deltal HELIOS v7, U3).
 
-:class:`ServiceCriticite` répond à « quel nœud ferait le plus mal s'il
-tombait ? » : pour CHAQUE nœud actif d'un projet, il simule le pire choc
+:class:`ServiceCriticite` repond a " quel noeud ferait le plus mal s'il
+tombait ? " : pour CHAQUE noeud actif d'un projet, il simule le pire choc
 local (``ur_local -> 1.0``) via
 :meth:`~supplyscore.graph.propagation.PropagationEngine.simulate_shock_detailed`
-(calcul PUR — aucune écriture), mesure le ΔUr propagé jusqu'au(x) client(s)
-final(aux) (rang 0) et classe les nœuds du plus critique au moins critique.
+(calcul PUR - aucune ecriture), mesure le DeltaUr propage jusqu'au(x) client(s)
+final(aux) (rang 0) et classe les noeuds du plus critique au moins critique.
 
 Le service est PUR EN LECTURE : ``simulate_shock_detailed`` ne persiste ni le
-``ur_local`` simulé ni les Ur recalculés — les :class:`~supplyscore.domain.models.UrgencyState`
-du dépôt sont bit à bit identiques avant et après :meth:`ServiceCriticite.indice_criticite`.
+``ur_local`` simule ni les Ur recalcules - les :class:`~supplyscore.domain.models.UrgencyState`
+du depot sont bit a bit identiques avant et apres :meth:`ServiceCriticite.indice_criticite`.
 
-CHOIX DOCUMENTÉ — nœuds déjà saturés : un réseau en crise (Ur = 1.0 partout
-en aval) écrase tous les ΔUr à 0 par le clip [0, 1] — le choc « à vide » ne
-distingue plus rien alors que c'est précisément là que le classement compte
-(9 tours sur 19 de la campagne HÉLIOS étaient saturés). Chaque point porte
-donc AUSSI ``delta_ell_final`` / ``delta_ell_max`` : l'écart de log-survie
-l(p) = −ln(1−p) mesuré sur le jumeau ε-régularisé de
-``simulate_shock_detailed`` (valeurs clipées dans [0, 1−ε], produits de
-survie jamais nuls). Le tri devient ``(-ΔUr_final, -Δl_final, nom)`` :
-identique hors saturation (Δl ordonne comme ΔUr, cf. test de propriété), et
-strictement discriminant en pleine saturation — Δl départage les nœuds que
-ΔUr = 0 rendait indiscernables, en mesurant l'aggravation en profondeur.
+CHOIX DOCUMENTE - noeuds deja satures : un reseau en crise (Ur = 1.0 partout
+en aval) ecrase tous les DeltaUr a 0 par le clip [0, 1] - le choc " a vide " ne
+distingue plus rien alors que c'est precisement la que le classement compte
+(9 tours sur 19 de la campagne HELIOS etaient satures). Chaque point porte
+donc AUSSI ``delta_ell_final`` / ``delta_ell_max`` : l'ecart de log-survie
+l(p) = -ln(1-p) mesure sur le jumeau epsilon-regularise de
+``simulate_shock_detailed`` (valeurs clipees dans [0, 1-epsilon], produits de
+survie jamais nuls). Le tri devient ``(-DeltaUr_final, -Deltal_final, nom)`` :
+identique hors saturation (Deltal ordonne comme DeltaUr, cf. test de propriete), et
+strictement discriminant en pleine saturation - Deltal departage les noeuds que
+DeltaUr = 0 rendait indiscernables, en mesurant l'aggravation en profondeur.
 
-Complexité : une propagation de référence + une propagation choquée par nœud
-actif (doublées par le jumeau ε-régularisé), soit O(n_actifs × (N + E)) sur
-le dépôt entier — instantané sur les graphes du serious game, < 2 s visés sur
-1 000 nœuds (DoD E15). :meth:`ServiceCriticite.criticite_probabiliste`
+Complexite : une propagation de reference + une propagation choquee par noeud
+actif (doublees par le jumeau epsilon-regularise), soit O(n_actifs x (N + E)) sur
+le depot entier - instantane sur les graphes du serious game, < 2 s vises sur
+1 000 noeuds (DoD E15). :meth:`ServiceCriticite.criticite_probabiliste`
 ajoute une passe Monte Carlo par lots (``compute_ur_batch``) : 2 propagations
-vectorisées (S tirages) par nœud actif, lecture seule, seedée, déterministe.
+vectorisees (S tirages) par noeud actif, lecture seule, seedee, deterministe.
 """
 
 from __future__ import annotations
@@ -41,56 +41,46 @@ import numpy as np
 from supplyscore.core.status_rules import effective_ur_local
 from supplyscore.domain.models import SupplyNode, TaskStatus
 
-if TYPE_CHECKING:  # import différé : évite tout cycle services.criticite <-> orchestrator
+if TYPE_CHECKING:  # import differe : evite tout cycle services.criticite <-> orchestrator
     from supplyscore.services.orchestrator import SupplyScoreService
 
-#: Seuil en deçà duquel un ΔUr est réputé nul (nœud non impacté par le choc).
+#: Seuil en deca duquel un DeltaUr est repute nul (noeud non impacte par le choc).
 _EPS_DELTA: float = 1e-12
 
-#: Seuil d'impact au client final : un tirage « touche » le rang 0 si son
-#: ΔUr_final dépasse 0.2 (cf. :meth:`ServiceCriticite.criticite_probabiliste`).
+#: Seuil d'impact au client final : un tirage " touche " le rang 0 si son DeltaUr_final depasse 0.2 (cf. :meth:`ServiceCriticite.criticite_probabiliste`).
 _SEUIL_IMPACT_FINAL: float = 0.2
 
-#: Distribution des sévérités de choc de la criticité probabiliste, dérivée
-#: des calibrations d'événements (:data:`supplyscore.domain.events.EVENT_CALIBRATION`) :
-#: les niveaux sont les sévérités forfaitaires en cliquet des deux familles
-#: graduées — accidents/pannes (mineure 0.4, majeure 0.7, critique 1.0) et
-#: alertes financières (surveillée 0.3, procédure 0.6, défaut 0.9). Pondération
-#: plausible documentée : les deux familles pèsent autant (0.5 chacune) et, au
-#: sein d'une famille, la gravité suit la fréquence terrain décroissante
-#: (mineure 0.6, intermédiaire 0.3, critique 0.1) — les incidents bénins sont
-#: nettement plus fréquents que les défaillances franches (même logique que la
-#: gradation bayésienne k/n de ``domain/events.py``).
+#: Distribution des severites de choc de la criticite probabiliste, derivee des calibrations d'evenements (:data:`supplyscore.domain.events.EVENT_CALIBRATION`) : les niveaux sont les severites forfaitaires en cliquet des deux familles graduees - accidents/pannes (mineure 0.4, majeure 0.7, critique 1.0) et alertes financieres (surveillee 0.3, procedure 0.6, defaut 0.9). Ponderation plausible documentee : les deux familles pesent autant (0.5 chacune) et, au sein d'une famille, la gravite suit la frequence terrain decroissante (mineure 0.6, intermediaire 0.3, critique 0.1) - les incidents benins sont nettement plus frequents que les defaillances franches (meme logique que la gradation bayesienne k/n de ``domain/events.py``).
 _SEVERITES_CHOC: tuple[tuple[float, float], ...] = (
     (0.4, 0.5 * 0.6),  # accident/panne mineure
     (0.7, 0.5 * 0.3),  # accident/panne majeure
     (1.0, 0.5 * 0.1),  # accident/panne critique
-    (0.3, 0.5 * 0.6),  # alerte financière « surveillée »
-    (0.6, 0.5 * 0.3),  # alerte financière « procédure »
-    (0.9, 0.5 * 0.1),  # alerte financière « défaut »
+    (0.3, 0.5 * 0.6),  # alerte financiere " surveillee "
+    (0.6, 0.5 * 0.3),  # alerte financiere " procedure "
+    (0.9, 0.5 * 0.1),  # alerte financiere " defaut "
 )
 
 
 @dataclass(frozen=True)
 class PointCriticite:
-    """Criticité d'un nœud : effet du pire choc local (``ur_local -> 1.0``).
+    """Criticite d'un noeud : effet du pire choc local (``ur_local -> 1.0``).
 
     Attributes:
-        node_id: identifiant du nœud choqué.
-        node_name: nom lisible du nœud choqué.
-        rank: rang dans le classement de criticité (1 = le plus critique).
-        delta_ur_final: ΔUr du/des client(s) final(aux) du projet (rang 0)
-            si CE nœud passait à ``ur_local = 1.0`` — le plus grand ΔUr
-            parmi les nœuds de rang 0 du projet, 0.0 si le choc ne les
+        node_id: identifiant du noeud choque.
+        node_name: nom lisible du noeud choque.
+        rank: rang dans le classement de criticite (1 = le plus critique).
+        delta_ur_final: DeltaUr du/des client(s) final(aux) du projet (rang 0)
+            si CE noeud passait a ``ur_local = 1.0`` - le plus grand DeltaUr
+            parmi les noeuds de rang 0 du projet, 0.0 si le choc ne les
             atteint pas.
-        delta_ur_max: plus grand ΔUr observé sur TOUT le graphe (le nœud
-            choqué lui-même compris).
-        delta_ell_final: Δl log-survie du/des client(s) final(aux) — même
+        delta_ur_max: plus grand DeltaUr observe sur TOUT le graphe (le noeud
+            choque lui-meme compris).
+        delta_ell_final: Deltal log-survie du/des client(s) final(aux) - meme
             convention que ``delta_ur_final`` mais sur le jumeau
-            ε-régularisé : reste discriminant quand la saturation écrase
-            ΔUr à 0 (cf. choix documenté en tête de module).
-        delta_ell_max: plus grand Δl observé sur tout le graphe.
-        nb_impactes: nombre de nœuds dont ``|ΔUr| > 1e-12`` (le nœud choqué
+            epsilon-regularise : reste discriminant quand la saturation ecrase
+            DeltaUr a 0 (cf. choix documente en tete de module).
+        delta_ell_max: plus grand Deltal observe sur tout le graphe.
+        nb_impactes: nombre de noeuds dont ``|DeltaUr| > 1e-12`` (le noeud choque
             compris s'il bouge).
     """
 
@@ -106,16 +96,16 @@ class PointCriticite:
 
 @dataclass(frozen=True)
 class PointCriticiteProbabiliste:
-    """Criticité probabiliste d'un nœud sous chocs de sévérité calibrée.
+    """Criticite probabiliste d'un noeud sous chocs de severite calibree.
 
     Attributes:
-        node_id: identifiant du nœud choqué.
-        node_name: nom lisible du nœud choqué.
-        p_impact_final: probabilité empirique P(ΔUr_final > 0.2) — part des
+        node_id: identifiant du noeud choque.
+        node_name: nom lisible du noeud choque.
+        p_impact_final: probabilite empirique P(DeltaUr_final > 0.2) - part des
             tirages dont le choc fait monter le(s) client(s) final(aux) de
             plus de 0.2.
-        q50_ell: médiane des Δl au client final sur les tirages.
-        q90_ell: quantile 90 % des Δl au client final sur les tirages.
+        q50_ell: mediane des Deltal au client final sur les tirages.
+        q90_ell: quantile 90 % des Deltal au client final sur les tirages.
     """
 
     node_id: str
@@ -126,58 +116,58 @@ class PointCriticiteProbabiliste:
 
 
 class ServiceCriticite:
-    """Analyse systématique de criticité — lecture seule au-dessus de la façade.
+    """Analyse systematique de criticite - lecture seule au-dessus de la facade.
 
     Toutes les lectures passent par les composants du
     :class:`~supplyscore.services.orchestrator.SupplyScoreService` fourni
-    (graphe en mémoire, registre, moteur de propagation) ; le service ne
+    (graphe en memoire, registre, moteur de propagation) ; le service ne
     recalcule rien hors de ``simulate_shock_detailed`` / ``compute_ur_batch``
-    / ``compute_ell_batch`` et n'écrit jamais.
+    / ``compute_ell_batch`` et n'ecrit jamais.
     """
 
     def __init__(self, service: SupplyScoreService) -> None:
-        """Initialise le service de criticité sur la façade de l'application.
+        """Initialise le service de criticite sur la facade de l'application.
 
         Args:
-            service: façade :class:`~supplyscore.services.orchestrator.SupplyScoreService`
+            service: facade :class:`~supplyscore.services.orchestrator.SupplyScoreService`
                 (graphe, registre, moteur de propagation).
         """
         self._service = service
 
-    # --- API publique -------------------------------------------------------------------
+    # API publique
 
     def indice_criticite(self, project_id: str) -> list[PointCriticite]:
-        """Criticité de chaque nœud actif du projet, du plus au moins critique.
+        """Criticite de chaque noeud actif du projet, du plus au moins critique.
 
-        Pour chaque nœud ACTIF du projet (statut
+        Pour chaque noeud ACTIF du projet (statut
         :attr:`~supplyscore.domain.models.TaskStatus.ACTIVE`, onboarding
-        terminé), simule le pire choc local ``ur_local -> 1.0`` via
-        ``simulate_shock_detailed`` (PUR — rien n'est persisté) et mesure :
+        termine), simule le pire choc local ``ur_local -> 1.0`` via
+        ``simulate_shock_detailed`` (PUR - rien n'est persiste) et mesure :
 
-        - ``delta_ur_final`` : le plus grand ΔUr parmi les nœuds de rang 0
+        - ``delta_ur_final`` : le plus grand DeltaUr parmi les noeuds de rang 0
           du projet (0.0 si le choc ne les atteint pas) ;
-        - ``delta_ur_max`` : le plus grand ΔUr sur tout le graphe ;
-        - ``delta_ell_final`` / ``delta_ell_max`` : mêmes mesures en Δl
-          log-survie (jumeau ε-régularisé) ;
-        - ``nb_impactes`` : le nombre de nœuds avec ``|ΔUr| > 1e-12``.
+        - ``delta_ur_max`` : le plus grand DeltaUr sur tout le graphe ;
+        - ``delta_ell_final`` / ``delta_ell_max`` : memes mesures en Deltal
+          log-survie (jumeau epsilon-regularise) ;
+        - ``nb_impactes`` : le nombre de noeuds avec ``|DeltaUr| > 1e-12``.
 
-        Tri : ``delta_ur_final`` décroissant, départagé par
-        ``delta_ell_final`` décroissant puis par nom croissant ; le champ
-        ``rank`` reflète la position finale (1 = le plus critique). Hors
-        saturation, Δl ordonne comme ΔUr — le classement est identique à
-        l'ancien tri ; sur un réseau saturé (ΔUr tous nuls), Δl reste
-        discriminant et classe les nœuds non trivialement (cf. choix
-        documenté en tête de module).
+        Tri : ``delta_ur_final`` decroissant, departage par
+        ``delta_ell_final`` decroissant puis par nom croissant ; le champ
+        ``rank`` reflete la position finale (1 = le plus critique). Hors
+        saturation, Deltal ordonne comme DeltaUr - le classement est identique a
+        l'ancien tri ; sur un reseau sature (DeltaUr tous nuls), Deltal reste
+        discriminant et classe les noeuds non trivialement (cf. choix
+        documente en tete de module).
 
         Args:
-            project_id: projet à analyser.
+            project_id: projet a analyser.
 
         Returns:
-            Un :class:`PointCriticite` par nœud actif, triés.
+            Un :class:`PointCriticite` par noeud actif, tries.
 
         Raises:
             ValueError: si le projet est inconnu du registre ou ne compte
-                aucun nœud actif (messages en français).
+                aucun noeud actif (messages en francais).
         """
         actifs, finals = self._actifs_et_finals(project_id)
 
@@ -209,63 +199,63 @@ class ServiceCriticite:
         ]
 
     def top(self, project_id: str, n: int = 15) -> list[PointCriticite]:
-        """Les ``n`` nœuds les plus critiques du projet (tornado UI, Lot 15.4).
+        """Les ``n`` noeuds les plus critiques du projet (tornado UI, Lot 15.4).
 
         Args:
-            project_id: projet à analyser.
-            n: nombre maximal de points retournés (``n <= 0`` rend ``[]``).
+            project_id: projet a analyser.
+            n: nombre maximal de points retournes (``n <= 0`` rend ``[]``).
 
         Returns:
-            Le préfixe de longueur <= ``n`` de :meth:`indice_criticite`.
+            Le prefixe de longueur <= ``n`` de :meth:`indice_criticite`.
 
         Raises:
-            ValueError: si le projet est inconnu ou sans nœud actif
-                (mêmes règles que :meth:`indice_criticite`).
+            ValueError: si le projet est inconnu ou sans noeud actif
+                (memes regles que :meth:`indice_criticite`).
         """
         return self.indice_criticite(project_id)[: max(0, n)]
 
     def criticite_probabiliste(
         self, project_id: str, n_draws: int = 500, seed: int = 0
     ) -> list[PointCriticiteProbabiliste]:
-        """Criticité probabiliste : chocs de sévérité calibrée, propagés par lots.
+        """Criticite probabiliste : chocs de severite calibree, propages par lots.
 
-        Pour chaque nœud actif du projet, ``n_draws`` sévérités de choc sont
-        tirées de :data:`_SEVERITES_CHOC` — la distribution dérivée des
-        sévérités forfaitaires graduées de
+        Pour chaque noeud actif du projet, ``n_draws`` severites de choc sont
+        tirees de :data:`_SEVERITES_CHOC` - la distribution derivee des
+        severites forfaitaires graduees de
         :data:`supplyscore.domain.events.EVENT_CALIBRATION` (accidents/pannes
-        et alertes financières, gravités pondérées par fréquence plausible,
-        cf. la constante). Chaque tirage choque le nœud en CLIQUET —
-        ``ur_local`` simulé = max(ur_local effectif, sévérité), même
-        sémantique que l'opérateur CLIQUET de ``domain/events.py`` (une
-        défaillance n'améliore jamais l'état) — puis le lot entier est
-        propagé en une passe vectorisée, en double : pipeline standard pour
-        ΔUr (:meth:`~supplyscore.graph.propagation.PropagationEngine.compute_ur_batch`)
-        et jumeau ε-régularisé pour Δl
+        et alertes financieres, gravites ponderees par frequence plausible,
+        cf. la constante). Chaque tirage choque le noeud en CLIQUET -
+        ``ur_local`` simule = max(ur_local effectif, severite), meme
+        semantique que l'operateur CLIQUET de ``domain/events.py`` (une
+        defaillance n'ameliore jamais l'etat) - puis le lot entier est
+        propage en une passe vectorisee, en double : pipeline standard pour
+        DeltaUr (:meth:`~supplyscore.graph.propagation.PropagationEngine.compute_ur_batch`)
+        et jumeau epsilon-regularise pour Deltal
         (:meth:`~supplyscore.graph.propagation.PropagationEngine.compute_ell_batch`).
 
-        Par nœud, sur la distribution des tirages au(x) client(s) final(aux)
-        (le plus grand delta parmi les nœuds de rang 0, par tirage) :
+        Par noeud, sur la distribution des tirages au(x) client(s) final(aux)
+        (le plus grand delta parmi les noeuds de rang 0, par tirage) :
 
-        - ``p_impact_final`` = P(ΔUr_final > 0.2) ;
-        - ``q50_ell`` / ``q90_ell`` = quantiles 50 % / 90 % des Δl_final.
+        - ``p_impact_final`` = P(DeltaUr_final > 0.2) ;
+        - ``q50_ell`` / ``q90_ell`` = quantiles 50 % / 90 % des Deltal_final.
 
-        Lecture seule, seedée, déterministe : les nœuds actifs sont parcourus
-        par identifiant croissant et le générateur ``numpy.random.default_rng``
-        est initialisé une seule fois — mêmes entrées, mêmes sorties. Tri du
-        résultat : ``p_impact_final`` décroissant, puis ``q90_ell`` et
-        ``q50_ell`` décroissants, puis nom croissant.
+        Lecture seule, seedee, deterministe : les noeuds actifs sont parcourus
+        par identifiant croissant et le generateur ``numpy.random.default_rng``
+        est initialise une seule fois - memes entrees, memes sorties. Tri du
+        resultat : ``p_impact_final`` decroissant, puis ``q90_ell`` et
+        ``q50_ell`` decroissants, puis nom croissant.
 
         Args:
-            project_id: projet à analyser.
-            n_draws: nombre de tirages Monte Carlo par nœud (>= 1).
-            seed: graine du générateur pseudo-aléatoire.
+            project_id: projet a analyser.
+            n_draws: nombre de tirages Monte Carlo par noeud (>= 1).
+            seed: graine du generateur pseudo-aleatoire.
 
         Returns:
-            Un :class:`PointCriticiteProbabiliste` par nœud actif, triés.
+            Un :class:`PointCriticiteProbabiliste` par noeud actif, tries.
 
         Raises:
-            ValueError: si le projet est inconnu, sans nœud actif, ou si
-                ``n_draws`` < 1 (messages en français).
+            ValueError: si le projet est inconnu, sans noeud actif, ou si
+                ``n_draws`` < 1 (messages en francais).
         """
         if n_draws < 1:
             raise ValueError(f"n_draws doit être >= 1 (reçu {n_draws})")
@@ -313,20 +303,20 @@ class ServiceCriticite:
         points.sort(key=lambda p: (-p.p_impact_final, -p.q90_ell, -p.q50_ell, p.node_name))
         return points
 
-    # --- Aides internes (lecture seule) ---------------------------------------------------
+    # Aides internes (lecture seule)
 
     def _actifs_et_finals(self, project_id: str) -> tuple[list[SupplyNode], list[str]]:
-        """Nœuds actifs du projet et identifiants de ses nœuds de rang 0.
+        """Noeuds actifs du projet et identifiants de ses noeuds de rang 0.
 
         Args:
-            project_id: projet à analyser.
+            project_id: projet a analyser.
 
         Returns:
-            Tuple ``(nœuds actifs, ids des nœuds de rang 0)``.
+            Tuple ``(noeuds actifs, ids des noeuds de rang 0)``.
 
         Raises:
             ValueError: si le projet est inconnu du registre ou ne compte
-                aucun nœud actif (messages en français).
+                aucun noeud actif (messages en francais).
         """
         service = self._service
         if service.registry.get_project(project_id) is None:

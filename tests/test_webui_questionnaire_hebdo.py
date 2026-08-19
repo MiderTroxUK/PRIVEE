@@ -1,10 +1,10 @@
-"""Tests du câblage hebdo de la page Questionnaire (Lot 4.3c) — sans serveur.
+"""Tests du cablage hebdo de la page Questionnaire (Lot 4.3c) - sans serveur.
 
-Couvre : bandeau projet avec semaine ISO courante (« Semaine 2026-S24 »),
-statuts hebdo dans les libellés du dropdown nœud (À jour / En retard (n sem.) /
-Manquant) et message de confirmation mentionnant la semaine enregistrée.
-Les callbacks sont appelés directement (fonctions module), service seedé
-partagé via ``set_service`` et libéré en teardown.
+Couvre : bandeau projet avec semaine ISO courante (" Semaine 2026-S24 "),
+statuts hebdo dans les libelles du dropdown noeud (A jour / En retard (n sem.) /
+Manquant) et message de confirmation mentionnant la semaine enregistree.
+Les callbacks sont appeles directement (fonctions module), service seede
+partage via ``set_service`` et libere en teardown.
 """
 
 from __future__ import annotations
@@ -20,14 +20,14 @@ from supplyscore.services import SupplyScoreService
 from supplyscore.web_ui import set_service
 from supplyscore.web_ui.pages import questionnaire
 
-#: Mercredi 2026-06-10 12:00 locale — semaine ISO « 2026-S24 ».
+#: Mercredi 2026-06-10 12:00 locale - semaine ISO " 2026-S24 ".
 _NOW = datetime(2026, 6, 10, 12, 0).timestamp()
 _WEEK = 604_800.0
 
 
 @pytest.fixture
 def service(tmp_path: Path):
-    """Service à horloge figée (2026-S24), partagé par les callbacks."""
+    """Service a horloge figee (2026-S24), partage par les callbacks."""
     svc = SupplyScoreService(db_dir=tmp_path / "store", clock=FixedClock(_NOW))
     set_service(svc)
     yield svc
@@ -36,7 +36,7 @@ def service(tmp_path: Path):
 
 
 def _assessment(node_id: str, iso_week: str = "", ts: float = _NOW) -> AHPAssessment:
-    """Évaluation AHP minimale valide ; iso_week vide -> posée par le service."""
+    """Evaluation AHP minimale valide ; iso_week vide -> posee par le service."""
     return AHPAssessment(
         node_id=node_id,
         project_id="p1",
@@ -53,7 +53,7 @@ def _assessment(node_id: str, iso_week: str = "", ts: float = _NOW) -> AHPAssess
 
 
 def _setup_projet_trois_statuts(service: SupplyScoreService) -> Project:
-    """Projet « p1 » : n-a évalué cette semaine, n-b il y a 2 semaines, n-c jamais."""
+    """Projet " p1 " : n-a evalue cette semaine, n-b il y a 2 semaines, n-c jamais."""
     project = Project(
         id="p1",
         name="Projet hebdo",
@@ -71,7 +71,7 @@ def _setup_projet_trois_statuts(service: SupplyScoreService) -> Project:
     return project
 
 
-# --- Bandeau projet : semaine ISO courante -------------------------------------------
+# Bandeau projet : semaine ISO courante
 
 
 def test_bandeau_affiche_semaine_courante_du_projet(service):
@@ -90,11 +90,11 @@ def test_bandeau_sans_projet_inchange(service):
 
     assert "Aucun projet sélectionné" in str(info)
     assert "Semaine" not in str(info)
-    # Sans projet, pas d'horloge de référence : libellés sans statut hebdo.
+    # Sans projet, pas d'horloge de reference : libelles sans statut hebdo.
     assert all(option["label"].endswith(")") for option in options)
 
 
-# --- Dropdown nœud : statut hebdo dans les libellés ----------------------------------
+# Dropdown noeud : statut hebdo dans les libelles
 
 
 def test_options_dropdown_portent_le_statut_hebdo(service):
@@ -110,7 +110,7 @@ def test_options_dropdown_portent_le_statut_hebdo(service):
     assert labels["n-c"] == "n-c (rang 2 — Workshop) — Manquant"
 
 
-# --- Confirmation d'enregistrement : semaine mentionnée ------------------------------
+# Confirmation d'enregistrement : semaine mentionnee
 
 
 def _pair_args():
@@ -157,5 +157,5 @@ def test_message_de_succes_mentionne_la_semaine_enregistree(service):
     text = str(message)
     assert "Évaluation enregistrée" in text
     assert "semaine 2026-S24" in text
-    # La semaine affichée est bien celle persistée avec l'évaluation.
+    # La semaine affichee est bien celle persistee avec l'evaluation.
     assert service.client_db(node.id).last_assessment_week(node.id) == "2026-S24"

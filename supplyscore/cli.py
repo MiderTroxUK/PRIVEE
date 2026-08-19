@@ -1,9 +1,9 @@
 r"""Interface en ligne de commande de SupplyScore (Lot 17.3).
 
-Point d'entrée UNIQUE du serveur web local : la commande ``supplyscore``
+Point d'entree UNIQUE du serveur web local : la commande ``supplyscore``
 (entry point ``[project.scripts]``) et ``python -m supplyscore.cli`` appellent
-:func:`main`. L'ancien ``run_app.py`` à la racine du dépôt n'est plus qu'un
-mince wrapper rétro-compatible qui réexporte :func:`main` et
+:func:`main`. L'ancien ``run_app.py`` a la racine du depot n'est plus qu'un
+mince wrapper retro-compatible qui reexporte :func:`main` et
 :func:`resolve_db_dir`.
 
 Usage :
@@ -11,46 +11,46 @@ Usage :
                 [--debug] [--log-level INFO] [--log-dir CHEMIN]
                 [--no-backup] [--open-browser]
 
-Résolution du répertoire des bases (Lot 17.1 — données hors dossier
-synchronisé cloud, faiblesse #21) :
+Resolution du repertoire des bases (Lot 17.1 - donnees hors dossier
+synchronise cloud, faiblesse #21) :
 
-(a) ``--db-dir`` explicite : prioritaire, utilisé tel quel ;
-(b) sinon, si un ``data_store/`` hérité contient des bases : avec
-    ``--migrate-data`` elles sont migrées (sauvegarde zip puis déplacement)
-    vers l'emplacement par défaut hors synchronisation, qui devient la
-    cible ; SANS le flag, le comportement historique est conservé
-    (``data_store``) avec un avertissement loggé ;
-(c) sinon, l'emplacement par défaut ``%LOCALAPPDATA%\SupplyScore\data``
-    (créé au besoin).
+(a) ``--db-dir`` explicite : prioritaire, utilise tel quel ;
+(b) sinon, si un ``data_store/`` herite contient des bases : avec
+    ``--migrate-data`` elles sont migrees (sauvegarde zip puis deplacement)
+    vers l'emplacement par defaut hors synchronisation, qui devient la
+    cible ; SANS le flag, le comportement historique est conserve
+    (``data_store``) avec un avertissement logge ;
+(c) sinon, l'emplacement par defaut ``%LOCALAPPDATA%\SupplyScore\data``
+    (cree au besoin).
 
-Les journaux vont par défaut dans ``%LOCALAPPDATA%\SupplyScore\logs``
+Les journaux vont par defaut dans ``%LOCALAPPDATA%\SupplyScore\logs``
 (``--log-dir`` pour les rediriger).
 
-Sauvegarde automatique au démarrage (Lot 17.2) : après la construction du
+Sauvegarde automatique au demarrage (Lot 17.2) : apres la construction du
 service et AVANT le lancement du serveur,
-:meth:`~supplyscore.data.backup.ServiceSauvegarde.backup_auto` crée une
-archive si la plus récente a plus de 24 h, puis applique la rétention
-(20 archives conservées). Une base corrompue
-(:class:`~supplyscore.data.backup.IntegriteError`) arrête TOUT avec le code
-de sortie 2 : on ne lance PAS l'application sur des bases corrompues —
+:meth:`~supplyscore.data.backup.ServiceSauvegarde.backup_auto` cree une
+archive si la plus recente a plus de 24 h, puis applique la retention
+(20 archives conservees). Une base corrompue
+(:class:`~supplyscore.data.backup.IntegriteError`) arrete TOUT avec le code
+de sortie 2 : on ne lance PAS l'application sur des bases corrompues -
 restaurer d'abord une archive saine (``python -m supplyscore.tools.restore``)
-puis relancer. ``--no-backup`` saute cette étape (tests / développement).
+puis relancer. ``--no-backup`` saute cette etape (tests / developpement).
 
-L'option ``--demo`` génère un projet de TEST aléatoire (seed_demo) uniquement
-si la base est vide — données simulées, jamais pour la production.
+L'option ``--demo`` genere un projet de TEST aleatoire (seed_demo) uniquement
+si la base est vide - donnees simulees, jamais pour la production.
 
-Notes PyInstaller (futur paquet one-folder — RIEN n'est codé ici, pièges
-documentés pour mémoire) :
+Notes PyInstaller (futur paquet one-folder - RIEN n'est code ici, pieges
+documentes pour memoire) :
 
 - Dash et Plotly embarquent des ressources non-Python (bundles JS,
-  ``package.json``, schémas de validation) invisibles à l'analyse statique :
+  ``package.json``, schemas de validation) invisibles a l'analyse statique :
   construire avec ``--collect-data dash --collect-data plotly`` sous peine
   de page blanche au premier rendu ;
-- déclarer les pages Dash en ``hiddenimports``
+- declarer les pages Dash en ``hiddenimports``
   (``--hidden-import supplyscore.web_ui.pages.<module>`` pour chaque page de
-  ``supplyscore/web_ui/pages/``) : tout import résolu dynamiquement échappe
-  à l'analyse de PyInstaller ;
-- le point d'entrée du binaire reste :func:`main` (``supplyscore.cli:main``).
+  ``supplyscore/web_ui/pages/``) : tout import resolu dynamiquement echappe
+  a l'analyse de PyInstaller ;
+- le point d'entree du binaire reste :func:`main` (``supplyscore.cli:main``).
 """
 
 from __future__ import annotations
@@ -76,12 +76,10 @@ from supplyscore.infra.paths import (
 from supplyscore.web_ui import get_service
 from supplyscore.web_ui.app import create_app
 
-#: Délai (secondes) avant l'ouverture du navigateur : ``app.run`` bloque le
-#: thread principal, l'ouverture est donc programmée AVANT le démarrage du
-#: serveur, sur un thread minuteur — le serveur écoute bien avant l'échéance.
+#: Delai (secondes) avant l'ouverture du navigateur : ``app.run`` bloque le thread principal, l'ouverture est donc programmee AVANT le demarrage du serveur, sur un thread minuteur - le serveur ecoute bien avant l'echeance.
 DELAI_NAVIGATEUR_S = 1.5
 
-#: Code de sortie quand une base corrompue est détectée au démarrage.
+#: Code de sortie quand une base corrompue est detectee au demarrage.
 EXIT_BASE_CORROMPUE = 2
 
 
@@ -91,33 +89,33 @@ def resolve_db_dir(
     cwd: Path | str = ".",
     data_dir_factory: Callable[[], Path] = default_data_dir,
 ) -> Path:
-    """Résout le répertoire des bases SQLite (testable sans lancer le serveur).
+    """Resout le repertoire des bases SQLite (testable sans lancer le serveur).
 
-    Règles, dans l'ordre :
+    Regles, dans l'ordre :
 
     (a) ``arg_db_dir`` explicite (option ``--db-dir``) : prioritaire ;
-    (b) sinon, si :func:`~supplyscore.infra.paths.legacy_data_dir` détecte un
-        ``data_store/`` peuplé sous ``cwd`` : avec ``migrate`` les bases sont
-        migrées via :func:`~supplyscore.infra.paths.migrate_legacy_data` vers
+    (b) sinon, si :func:`~supplyscore.infra.paths.legacy_data_dir` detecte un
+        ``data_store/`` peuple sous ``cwd`` : avec ``migrate`` les bases sont
+        migrees via :func:`~supplyscore.infra.paths.migrate_legacy_data` vers
         ``data_dir_factory()`` qui devient la cible ; sans ``migrate``, le
-        répertoire hérité est conservé (comportement historique) et un
-        avertissement « risque de corruption » est loggé ;
-    (c) sinon ``data_dir_factory()``, créé au besoin.
+        repertoire herite est conserve (comportement historique) et un
+        avertissement " risque de corruption " est logge ;
+    (c) sinon ``data_dir_factory()``, cree au besoin.
 
     Args:
         arg_db_dir: valeur de ``--db-dir`` (``None`` si absente).
         migrate: valeur du flag ``--migrate-data``.
-        cwd: dossier de lancement où chercher le ``data_store`` hérité.
-        data_dir_factory: fabrique de l'emplacement par défaut
+        cwd: dossier de lancement ou chercher le ``data_store`` herite.
+        data_dir_factory: fabrique de l'emplacement par defaut
             (:func:`~supplyscore.infra.paths.default_data_dir` en production ;
             injectable dans les tests).
 
     Returns:
-        Le répertoire des bases SQLite à utiliser.
+        Le repertoire des bases SQLite a utiliser.
 
     Raises:
-        FileExistsError: si la migration est demandée alors que la cible
-            contient déjà des bases SQLite.
+        FileExistsError: si la migration est demandee alors que la cible
+            contient deja des bases SQLite.
     """
     logger = logging.getLogger("supplyscore")
     if arg_db_dir is not None:
@@ -152,7 +150,7 @@ def build_parser() -> argparse.ArgumentParser:
     """Construit l'analyseur d'arguments de la commande ``supplyscore``.
 
     Returns:
-        L'analyseur configuré avec toutes les options du serveur local.
+        L'analyseur configure avec toutes les options du serveur local.
     """
     parser = argparse.ArgumentParser(
         prog="supplyscore",
@@ -215,10 +213,10 @@ def main(argv: list[str] | None = None) -> int:
         argv: arguments de la ligne de commande (``sys.argv[1:]`` si ``None``).
 
     Returns:
-        ``0`` si le serveur s'est arrêté normalement ;
-        :data:`EXIT_BASE_CORROMPUE` (2) si la sauvegarde automatique a détecté
-        une base corrompue — le serveur n'est alors PAS lancé : on ne joue pas
-        un serious game sur des données irrécupérables.
+        ``0`` si le serveur s'est arrete normalement ;
+        :data:`EXIT_BASE_CORROMPUE` (2) si la sauvegarde automatique a detecte
+        une base corrompue - le serveur n'est alors PAS lance : on ne joue pas
+        un serious game sur des donnees irrecuperables.
     """
     args = build_parser().parse_args(argv)
 
@@ -241,9 +239,7 @@ def main(argv: list[str] | None = None) -> int:
         if callable(close):
             atexit.register(close)
 
-    # Sauvegarde automatique (Lot 17.2) — APRÈS la création du service (les
-    # bases existent), AVANT toute écriture de la session et AVANT app.run.
-    # Une base corrompue interdit le lancement (code 2).
+    # Sauvegarde automatique (Lot 17.2) - APRES la creation du service (les bases existent), AVANT toute ecriture de la session et AVANT app.run. Une base corrompue interdit le lancement (code 2).
     if not args.no_backup:
         clock = service.clock if service is not None else None
         try:
@@ -265,10 +261,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Démo générée : « {project.name} » (données de TEST aléatoires).")
 
     if args.open_browser:
-        # ``app.run`` bloque le thread principal : impossible d'ouvrir le
-        # navigateur « après le démarrage du serveur ». L'ouverture est donc
-        # programmée AVANT app.run, différée de DELAI_NAVIGATEUR_S sur un
-        # thread minuteur — le serveur écoute bien avant l'échéance.
+        # ``app.run`` bloque le thread principal : impossible d'ouvrir le navigateur " apres le demarrage du serveur ". L'ouverture est donc programmee AVANT app.run, differee de DELAI_NAVIGATEUR_S sur un thread minuteur - le serveur ecoute bien avant l'echeance.
         url = f"http://127.0.0.1:{args.port}/"
         threading.Timer(DELAI_NAVIGATEUR_S, webbrowser.open, [url]).start()
 

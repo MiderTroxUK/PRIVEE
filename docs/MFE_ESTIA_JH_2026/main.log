@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.4.16)  19 AUG 2026 09:20
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.4.16)  19 AUG 2026 14:33
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1260,7 +1260,7 @@ Package hyperref Info: Link coloring ON on input line 137.
 \openout4 = `main.out'.
 
  (./Utilities/Cover.tex
-<../BST_DISCO_JH_2026/Images/0.Cover/LogoALTEN.png, id=229, 765.86125pt x 1284.
+<../BST_DISCO_JH_2026/Images/0.Cover/LogoALTEN.png, id=253, 765.86125pt x 1284.
 8pt>
 File: ../BST_DISCO_JH_2026/Images/0.Cover/LogoALTEN.png Graphic file (type png)
 
@@ -1268,14 +1268,14 @@ File: ../BST_DISCO_JH_2026/Images/0.Cover/LogoALTEN.png Graphic file (type png)
 Package pdftex.def Info: ../BST_DISCO_JH_2026/Images/0.Cover/LogoALTEN.png  use
 d on input line 10.
 (pdftex.def)             Requested size: 28.82957pt x 48.36958pt.
-<../BST_DISCO_JH_2026/Images/0.Cover/LogoDIN.png, id=231, 225.84375pt x 225.843
+<../BST_DISCO_JH_2026/Images/0.Cover/LogoDIN.png, id=255, 225.84375pt x 225.843
 75pt>
 File: ../BST_DISCO_JH_2026/Images/0.Cover/LogoDIN.png Graphic file (type png)
 <use ../BST_DISCO_JH_2026/Images/0.Cover/LogoDIN.png>
 Package pdftex.def Info: ../BST_DISCO_JH_2026/Images/0.Cover/LogoDIN.png  used 
 on input line 12.
 (pdftex.def)             Requested size: 48.36935pt x 48.36958pt.
-<../BST_DISCO_JH_2026/Images/0.Cover/LogoESTIA.png, id=232, 1417.295pt x 615.29
+<../BST_DISCO_JH_2026/Images/0.Cover/LogoESTIA.png, id=256, 1417.295pt x 615.29
 875pt>
 File: ../BST_DISCO_JH_2026/Images/0.Cover/LogoESTIA.png Graphic file (type png)
 
@@ -1316,26 +1316,26 @@ x) [1
 ]
 (./Sections/0.Resumes.tex [2
 
-]) [3] (./Sections/0bis.Preambule.tex) [4
+] [3]) [4] (./Sections/0bis.Preambule.tex) [5
 
 ]
-(./main.toc [5
+(./main.toc [6
 
 ])
 \tf@toc=\write5
 \openout5 = `main.toc'.
 
- [6] (./main.lof)
+ [7] (./main.lof)
 \tf@lof=\write6
 \openout6 = `main.lof'.
 
- [7
+ [8
 
 ] (./main.lot)
 \tf@lot=\write7
 \openout7 = `main.lot'.
 
- [8
+ [9
 
 ]
 (./Sections/1.Introduction.tex)
@@ -1343,11 +1343,11 @@ pdfTeX warning (ext4): destination with the same identifier (name{page.1}) has
 been already used, duplicate ignored
 <to be read again> 
                    \relax 
-l.168 \clearpage
-                 [1
+l.167 
+       [1
 
-] (./Sections/2.Entreprise.tex
-<../BST_DISCO_JH_2026/Images/1.Introduction/disco_map.png, id=406, 246.6816pt x
+] [2] (./Sections/2.Entreprise.tex
+<../BST_DISCO_JH_2026/Images/1.Introduction/disco_map.png, id=450, 246.6816pt x
  207.174pt>
 File: ../BST_DISCO_JH_2026/Images/1.Introduction/disco_map.png Graphic file (ty
 pe png)
@@ -1355,7 +1355,7 @@ pe png)
 Package pdftex.def Info: ../BST_DISCO_JH_2026/Images/1.Introduction/disco_map.p
 ng  used on input line 52.
 (pdftex.def)             Requested size: 363.97105pt x 305.70859pt.
- [2
+ [3
 
 ]
 LaTeX Font Info:    Trying to load font information for TS1+Crlt-LF on input li
@@ -1368,22 +1368,22 @@ Package microtype Info: Loading generic protrusion settings for font family
 (microtype)             `Crlt-LF' (encoding: TS1).
 (microtype)             For optimal results, create family-specific settings.
 (microtype)             See the microtype manual for details.
- [3{c:/texlive/2026/texmf-dist/fonts/enc/dvips/carlito/crlt_j4hweq.enc} <../BST
-_DISCO_JH_2026/Images/1.Introduction/disco_map.png>] [4]) [5] (./Sections/3.Pro
+ [4{c:/texlive/2026/texmf-dist/fonts/enc/dvips/carlito/crlt_j4hweq.enc} <../BST
+_DISCO_JH_2026/Images/1.Introduction/disco_map.png>] [5]) [6] (./Sections/3.Pro
 blematique.tex
-[6
+[7
 
-]) [7] (./Sections/4.Mission.tex [8
+]) [8] (./Sections/4.Mission.tex [9
 
-]) [9] (./Sections/5.Organisation.tex
+]) [10] (./Sections/5.Organisation.tex
 Underfull \hbox (badness 1817) in paragraph at lines 35--35
 []|\T1/Crlt-LF/m/n/10.95 (+20) Ran the Mon-day plan-ning and the three
  []
 
-[10
+[11
 
 ]
-<../BST_DISCO_JH_2026/Images/4.Operations/test_learn_loop.png, id=482, 246.6816
+<../BST_DISCO_JH_2026/Images/4.Operations/test_learn_loop.png, id=526, 246.6816
 pt x 246.6816pt>
 File: ../BST_DISCO_JH_2026/Images/4.Operations/test_learn_loop.png Graphic file
  (type png)
@@ -1391,8 +1391,8 @@ File: ../BST_DISCO_JH_2026/Images/4.Operations/test_learn_loop.png Graphic file
 Package pdftex.def Info: ../BST_DISCO_JH_2026/Images/4.Operations/test_learn_lo
 op.png  used on input line 112.
 (pdftex.def)             Requested size: 319.58203pt x 319.61327pt.
- [11]
-<Images/gantt.png, id=496, 827.4915pt x 359.54324pt>
+ [12]
+<Images/gantt.png, id=540, 827.4915pt x 359.54324pt>
 File: Images/gantt.png Graphic file (type png)
 <use Images/gantt.png>
 Package pdftex.def Info: Images/gantt.png  used on input line 136.
@@ -1412,12 +1412,12 @@ Overfull \hbox (3.25955pt too wide) in paragraph at lines 210--210
 []|\T1/Crlt-LF/m/n/10.95 (-20) Materialised|  
  []
 
-) [12 <../BST_DISCO_JH_2026/Images/4.Operations/test_learn_loop.png>] [13]
-[14 <./Images/gantt.png>] (./Sections/6.EtatDeLArt.tex [15
+) [13 <../BST_DISCO_JH_2026/Images/4.Operations/test_learn_loop.png>] [14]
+[15 <./Images/gantt.png>] (./Sections/6.EtatDeLArt.tex [16
 
-] [16]) [17]
+] [17]) [18]
 (./Sections/7.Realisation.tex
-<../BST_DISCO_JH_2026/Images/4.Operations/causal_tree_blocks.png, id=621, 246.6
+<../BST_DISCO_JH_2026/Images/4.Operations/causal_tree_blocks.png, id=665, 246.6
 816pt x 246.6816pt>
 File: ../BST_DISCO_JH_2026/Images/4.Operations/causal_tree_blocks.png Graphic f
 ile (type png)
@@ -1425,10 +1425,10 @@ ile (type png)
 Package pdftex.def Info: ../BST_DISCO_JH_2026/Images/4.Operations/causal_tree_b
 locks.png  used on input line 67.
 (pdftex.def)             Requested size: 355.0919pt x 355.1271pt.
- [18
+ [19
 
-] [19 <../BST_DISCO_JH_2026/Images/4.Operations/causal_tree_blocks.png>]
-<../BST_DISCO_JH_2026/Images/4.Operations/questionnaire_screenshot.png, id=636,
+] [20 <../BST_DISCO_JH_2026/Images/4.Operations/causal_tree_blocks.png>]
+<../BST_DISCO_JH_2026/Images/4.Operations/questionnaire_screenshot.png, id=679,
  1905.1175pt x 929.4725pt>
 File: ../BST_DISCO_JH_2026/Images/4.Operations/questionnaire_screenshot.png Gra
 phic file (type png)
@@ -1436,7 +1436,7 @@ phic file (type png)
 Package pdftex.def Info: ../BST_DISCO_JH_2026/Images/4.Operations/questionnaire
 _screenshot.png  used on input line 98.
 (pdftex.def)             Requested size: 337.33357pt x 164.57477pt.
-<../BST_DISCO_JH_2026/Images/4.Operations/urgency_propagation.png, id=639, 246.
+<../BST_DISCO_JH_2026/Images/4.Operations/urgency_propagation.png, id=682, 246.
 6816pt x 246.6816pt>
 File: ../BST_DISCO_JH_2026/Images/4.Operations/urgency_propagation.png Graphic 
 file (type png)
@@ -1444,7 +1444,7 @@ file (type png)
 Package pdftex.def Info: ../BST_DISCO_JH_2026/Images/4.Operations/urgency_propa
 gation.png  used on input line 120.
 (pdftex.def)             Requested size: 355.0919pt x 355.1271pt.
-<../BST_DISCO_JH_2026/Images/2.Problem/urgency_gap.png, id=641, 246.6816pt x 18
+<../BST_DISCO_JH_2026/Images/2.Problem/urgency_gap.png, id=684, 246.6816pt x 18
 5.0112pt>
 File: ../BST_DISCO_JH_2026/Images/2.Problem/urgency_gap.png Graphic file (type 
 png)
@@ -1452,79 +1452,84 @@ png)
 Package pdftex.def Info: ../BST_DISCO_JH_2026/Images/2.Problem/urgency_gap.png 
  used on input line 132.
 (pdftex.def)             Requested size: 355.0919pt x 266.34534pt.
- [20 <../BST_DISCO_JH_2026/Images/4.Operations/questionnaire_screenshot.png (PN
-G copy)>] [21 <../BST_DISCO_JH_2026/Images/4.Operations/urgency_propagation.png
+ [21 <../BST_DISCO_JH_2026/Images/4.Operations/questionnaire_screenshot.png (PN
+G copy)>] [22 <../BST_DISCO_JH_2026/Images/4.Operations/urgency_propagation.png
 > <../BST_DISCO_JH_2026/Images/2.Problem/urgency_gap.png>]
-<../BST_DISCO_JH_2026/Images/4.Operations/hebdo.png, id=652, 1905.1175pt x 929.
+<../BST_DISCO_JH_2026/Images/4.Operations/hebdo.png, id=696, 1905.1175pt x 929.
 4725pt>
 File: ../BST_DISCO_JH_2026/Images/4.Operations/hebdo.png Graphic file (type png
 )
 <use ../BST_DISCO_JH_2026/Images/4.Operations/hebdo.png>
 Package pdftex.def Info: ../BST_DISCO_JH_2026/Images/4.Operations/hebdo.png  us
-ed on input line 160.
+ed on input line 163.
 (pdftex.def)             Requested size: 337.33357pt x 164.57477pt.
-<../BST_DISCO_JH_2026/Images/4.Operations/uml_architecture.png, id=654, 1911.14
+<../BST_DISCO_JH_2026/Images/4.Operations/uml_architecture.png, id=698, 1911.14
 pt x 936.49875pt>
 File: ../BST_DISCO_JH_2026/Images/4.Operations/uml_architecture.png Graphic fil
 e (type png)
 <use ../BST_DISCO_JH_2026/Images/4.Operations/uml_architecture.png>
 Package pdftex.def Info: ../BST_DISCO_JH_2026/Images/4.Operations/uml_architect
-ure.png  used on input line 171.
+ure.png  used on input line 174.
 (pdftex.def)             Requested size: 328.4612pt x 160.94603pt.
-<../BST_DISCO_JH_2026/Images/4.Operations/explainability_waterfall.png, id=658,
+ [23 <../BST_DISCO_JH_2026/Images/4.Operations/hebdo.png (PNG copy)> <../BST_DI
+SCO_JH_2026/Images/4.Operations/uml_architecture.png>]
+<../BST_DISCO_JH_2026/Images/4.Operations/explainability_waterfall.png, id=706,
  246.6816pt x 196.3335pt>
 File: ../BST_DISCO_JH_2026/Images/4.Operations/explainability_waterfall.png Gra
 phic file (type png)
 <use ../BST_DISCO_JH_2026/Images/4.Operations/explainability_waterfall.png>
 Package pdftex.def Info: ../BST_DISCO_JH_2026/Images/4.Operations/explainabilit
-y_waterfall.png  used on input line 191.
+y_waterfall.png  used on input line 194.
 (pdftex.def)             Requested size: 346.21274pt x 275.57501pt.
- [22 <../BST_DISCO_JH_2026/Images/4.Operations/hebdo.png (PNG copy)> <../BST_DI
-SCO_JH_2026/Images/4.Operations/uml_architecture.png>]
-<../BST_DISCO_JH_2026/Images/4.Operations/helios_network_coefficients.png, id=6
-64, 602.37045pt x 259.08795pt>
+<../BST_DISCO_JH_2026/Images/4.Operations/helios_network_coefficients.png, id=7
+07, 602.37045pt x 259.08795pt>
 File: ../BST_DISCO_JH_2026/Images/4.Operations/helios_network_coefficients.png 
 Graphic file (type png)
 <use ../BST_DISCO_JH_2026/Images/4.Operations/helios_network_coefficients.png>
 Package pdftex.def Info: ../BST_DISCO_JH_2026/Images/4.Operations/helios_networ
-k_coefficients.png  used on input line 212.
+k_coefficients.png  used on input line 215.
 (pdftex.def)             Requested size: 417.23247pt x 179.4627pt.
- [23 <../BST_DISCO_JH_2026/Images/4.Operations/explainability_waterfall.png> <.
-./BST_DISCO_JH_2026/Images/4.Operations/helios_network_coefficients.png>]
-<../Thesis_Cranfield_JH_2026/Images/armA_reliability.png, id=674, 406.51875pt x
+ [24 <../BST_DISCO_JH_2026/Images/4.Operations/explainability_waterfall.png>]
+Overfull \hbox (3.91042pt too wide) in paragraph at lines 273--273
+ []|\T1/Crlt-LF/b/n/10.95 (-20) Precision| 
+ []
+
+[25 <../BST_DISCO_JH_2026/Images/4.Operations/helios_network_coefficients.png>]
+[26]
+<../Thesis_Cranfield_JH_2026/Images/armA_reliability.png, id=728, 406.51875pt x
  322.3242pt>
 File: ../Thesis_Cranfield_JH_2026/Images/armA_reliability.png Graphic file (typ
 e png)
 <use ../Thesis_Cranfield_JH_2026/Images/armA_reliability.png>
 Package pdftex.def Info: ../Thesis_Cranfield_JH_2026/Images/armA_reliability.pn
-g  used on input line 282.
+g  used on input line 356.
 (pdftex.def)             Requested size: 372.84344pt x 295.63197pt.
- [24] [25 <../Thesis_Cranfield_JH_2026/Images/armA_reliability.png>]
-<../Thesis_Cranfield_JH_2026/Images/armB_influence.png, id=687, 466.1415pt x 32
+ [27 <../Thesis_Cranfield_JH_2026/Images/armA_reliability.png>]
+<../Thesis_Cranfield_JH_2026/Images/armB_influence.png, id=740, 466.1415pt x 32
 5.57635pt>
 File: ../Thesis_Cranfield_JH_2026/Images/armB_influence.png Graphic file (type 
 png)
 <use ../Thesis_Cranfield_JH_2026/Images/armB_influence.png>
 Package pdftex.def Info: ../Thesis_Cranfield_JH_2026/Images/armB_influence.png 
- used on input line 328.
+ used on input line 416.
 (pdftex.def)             Requested size: 399.47415pt x 279.02145pt.
- [26 <../Thesis_Cranfield_JH_2026/Images/armB_influence.png>]) [27] (./Sections
-/8.Conclusion.tex [28
+ [28]
+[29 <../Thesis_Cranfield_JH_2026/Images/armB_influence.png>] [30] [31] [32])
+[33] (./Sections/8.Conclusion.tex [34
 
-] [29] [30])
-[31]
+] [35] [36] [37]) [38]
 Package microtype Info: Loading generic protrusion settings for font family
 (microtype)             `cmtt' (encoding: T1).
 (microtype)             For optimal results, create family-specific settings.
 (microtype)             See the microtype manual for details.
- [32
+ [39
 
 {c:/texlive/2026/texmf-dist/fonts/enc/dvips/cm-super/cm-super-t1.enc}]
 
 Package biblatex Warning: No driver for 'standard'.
 (biblatex)                Using fallback driver on input line 204.
 
-[33] [34] [35]
+[40] [41] [42]
 
 Package glossaries Warning: Empty glossary for \printnoidxglossary[type={main}]
 . Rerun may be required (or you may have forgotten to use commands like \gls) o
@@ -1534,9 +1539,9 @@ n input line 207.
 Package glossaries Info: Preparing to sort glossary `acronym' (total number of
 (glossaries)             referenced entries: 2)
 
-[36
+[43
 
-] (./Sections/Appendices/A.AutorisationIA.tex [37
+] (./Sections/Appendices/A.AutorisationIA.tex [44
 
 ])
 (./Sections/Appendices/B.Planning.tex
@@ -1544,23 +1549,23 @@ Underfull \hbox (badness 1152) in paragraph at lines 31--31
 []|\T1/Crlt-LF/m/n/10.95 (+20) Show work-ing out-put, not de-
  []
 
-[38]) (./Sections/Appendices/C.Competences.tex [39]) [40] [41] (./main.aux)
+[45]) (./Sections/Appendices/C.Competences.tex [46]) [47] [48] (./main.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2026-03-20>
  ***********
 Package rerunfilecheck Info: File `main.out' has not changed.
-(rerunfilecheck)             Checksum: 447E78B859BF1E73F264A2C067317680;10526.
+(rerunfilecheck)             Checksum: 81F37768B415254F94CB8315D61579A7;12462.
 Package logreq Info: Writing requests to 'main.run.xml'.
 \openout1 = `main.run.xml'.
 
  ) 
 Here is how much of TeX's memory you used:
- 35525 strings out of 467349
- 677728 string characters out of 5419862
- 1659534 words of memory out of 5000000
- 63377 multiletter control sequences out of 15000+600000
- 809833 words of font info for 389 fonts, out of 8000000 for 9000
+ 35582 strings out of 467349
+ 678444 string characters out of 5419862
+ 1660122 words of memory out of 5000000
+ 63390 multiletter control sequences out of 15000+600000
+ 811375 words of font info for 404 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  196i,12n,299p,2494b,3319s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <c:/texlive/2026/texmf-dist/fonts/type1/google/carlito/Crlt-Bold.pfb><c:/texl
@@ -1575,10 +1580,10 @@ c:/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb><c:/texlive
 /2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb><c:/texlive/2026/tex
 mf-dist/fonts/type1/public/amsfonts/symbols/msam10.pfb><c:/texlive/2026/texmf-d
 ist/fonts/type1/public/cm-super/sftt1200.pfb>
-Output written on main.pdf (50 pages, 3191456 bytes).
+Output written on main.pdf (58 pages, 3224941 bytes).
 PDF statistics:
- 972 PDF objects out of 1000 (max. 8388607)
- 856 compressed objects within 9 object streams
- 231 named destinations out of 1000 (max. 500000)
- 66577 words of extra memory for PDF output out of 74296 (max. 10000000)
+ 1068 PDF objects out of 1200 (max. 8388607)
+ 937 compressed objects within 10 object streams
+ 248 named destinations out of 1000 (max. 500000)
+ 66625 words of extra memory for PDF output out of 74296 (max. 10000000)
 

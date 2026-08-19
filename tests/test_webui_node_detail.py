@@ -1,9 +1,9 @@
-"""Tests de la fiche nœud 360° (page « /node/<id> ») — aucun serveur Dash.
+"""Tests de la fiche noeud 360o (page " /node/<id> ") - aucun serveur Dash.
 
-Les callbacks sont des fonctions nommées au niveau module : ils sont appelés
-directement, sans contexte de requête. La sauvegarde passe par
-``OnboardingService.save_section`` (mêmes validations que le wizard) et
-l'audit est vérifié via ``AuditTrail`` sur les bases SQLite temporaires.
+Les callbacks sont des fonctions nommees au niveau module : ils sont appeles
+directement, sans contexte de requete. La sauvegarde passe par
+``OnboardingService.save_section`` (memes validations que le wizard) et
+l'audit est verifie via ``AuditTrail`` sur les bases SQLite temporaires.
 """
 
 from __future__ import annotations
@@ -19,7 +19,7 @@ from supplyscore.web_ui.pages import node_detail
 
 @pytest.fixture
 def service(tmp_path):
-    """Service seedé avec une petite démo, partagé par les callbacks."""
+    """Service seede avec une petite demo, partage par les callbacks."""
     svc = SupplyScoreService(db_dir=tmp_path / "store")
     svc.seed_demo(n_ranks=2, seed=1)
     set_service(svc)
@@ -28,11 +28,11 @@ def service(tmp_path):
 
 
 def _first_node(service):
-    """Premier nœud de la démo (rang minimal, ordre stable par nom)."""
+    """Premier noeud de la demo (rang minimal, ordre stable par nom)."""
     return sorted(service.repo.nodes(), key=lambda n: (n.rank, n.name))[0]
 
 
-# --- layout ---------------------------------------------------------------------------
+# layout
 
 
 def test_layout_contains_cards_and_scores(service):
@@ -77,10 +77,10 @@ def test_draft_node_shows_incomplete_badge(service):
 
     assert "Brouillon X" in tree
     assert "Incomplet" in tree
-    assert "A —" in tree  # jamais évalué : l'adéquation s'affiche « — »
+    assert "A —" in tree  # jamais evalue : l'adequation s'affiche " - "
 
 
-# --- save_kpis_callback -----------------------------------------------------------------
+# save_kpis_callback
 
 
 def test_save_kpis_callback_updates_kpi_and_audits(service):
@@ -92,12 +92,12 @@ def test_save_kpis_callback_updates_kpi_and_audits(service):
         1, [200], ids, {"name": "op-kpi"}, {"node_id": node.id, "editing": "kpis"}
     )
 
-    # KPI mis à jour dans le registre (et la carte repasse en lecture).
+    # KPI mis a jour dans le registre (et la carte repasse en lecture).
     assert service.registry.get_node(node.id).kpis.time.lead_time_h == pytest.approx(200.0)
     assert store["editing"] is None
     assert "enregistrés" in str(body)
 
-    # Audit dans la base CLIENT du nœud, source onboarding/edit, opérateur du store.
+    # Audit dans la base CLIENT du noeud, source onboarding/edit, operateur du store.
     client = service.client_db(node.id)
     trail = AuditTrail(client.conn, service.clock, client.lock)
     entries = trail.history("node_kpis", node.id, field="time.lead_time_h", limit=5)
@@ -107,7 +107,7 @@ def test_save_kpis_callback_updates_kpi_and_audits(service):
     assert entries[0].operator_id == "op-kpi"
 
 
-# --- save_identity_callback ----------------------------------------------------------------
+# save_identity_callback
 
 
 def test_save_identity_callback_empty_name_writes_nothing(service):
@@ -116,7 +116,7 @@ def test_save_identity_callback_empty_name_writes_nothing(service):
 
     body, store = node_detail.save_identity_callback(
         1,
-        "   ",  # nom vide après strip -> erreur de validation
+        "   ",  # nom vide apres strip -> erreur de validation
         node.label,
         "",
         [],
@@ -129,7 +129,7 @@ def test_save_identity_callback_empty_name_writes_nothing(service):
     )
 
     assert "obligatoire" in str(body)
-    assert store["editing"] == "identity"  # la carte reste en édition
+    assert store["editing"] == "identity"  # la carte reste en edition
     after = service.registry.get_node(node.id)
     assert after.name == before.name
     assert after.tags == before.tags

@@ -1,9 +1,9 @@
 """Tests du PropagationEngine : Ud descendant, Ur montant, statuts, chocs.
 
-Couvre aussi (HÉLIOS v7, U3) : ``simulate_shock_detailed`` (ΔUr + Δl
-log-survie du jumeau ε-régularisé), ``compute_ur_batch`` /
-``compute_ell_batch`` (S tirages vectorisés, équivalence S=1 avec les passes
-scalaires sur graphes aléatoires).
+Couvre aussi (HELIOS v7, U3) : ``simulate_shock_detailed`` (DeltaUr + Deltal
+log-survie du jumeau epsilon-regularise), ``compute_ur_batch`` /
+``compute_ell_batch`` (S tirages vectorises, equivalence S=1 avec les passes
+scalaires sur graphes aleatoires).
 """
 
 from __future__ import annotations
@@ -20,7 +20,7 @@ from supplyscore.graph import InMemoryGraphRepository, PropagationEngine
 
 APPROX = 1e-12
 
-# Chaîne C (rang 2, fournisseur profond) -> B (rang 1) -> A (rang 0, client final)
+# Chaine C (rang 2, fournisseur profond) -> B (rang 1) -> A (rang 0, client final)
 UD_LOCAL = {"A": 0.5, "B": 0.2, "C": 0.1}
 UR_LOCAL = {"A": 0.1, "B": 0.3, "C": 0.6}
 GAMMA = {("C", "B"): 0.8, ("B", "A"): 0.6}
@@ -53,7 +53,7 @@ def make_chain(
     return repo
 
 
-# --- Calcul analytique sur la chaîne ------------------------------------------------
+# Calcul analytique sur la chaine
 
 
 def test_ud_descending_chain_analytic() -> None:
@@ -108,7 +108,7 @@ def test_propagate_all_returns_states_and_stamps_time() -> None:
 
 def test_none_locals_treated_as_zero() -> None:
     repo = InMemoryGraphRepository()
-    repo.add_node(SupplyNode(id="A", name="A"))  # urgency par défaut : tout None
+    repo.add_node(SupplyNode(id="A", name="A"))  # urgency par defaut : tout None
     repo.add_node(SupplyNode(id="B", name="B"))
     repo.add_arc(SupplyArc(source_id="B", target_id="A", gamma=0.9, beta=0.9))
     states = PropagationEngine(repo).propagate_all()
@@ -118,7 +118,7 @@ def test_none_locals_treated_as_zero() -> None:
     assert states["B"].ur == 0.0
 
 
-# --- Coefficients nuls : pas de propagation ----------------------------------------
+# Coefficients nuls : pas de propagation
 
 
 def test_gamma_zero_blocks_descending_propagation() -> None:
@@ -135,7 +135,7 @@ def test_beta_zero_blocks_ascending_propagation() -> None:
         assert repo.get_node(node_id).urgency.ur == pytest.approx(UR_LOCAL[node_id], abs=APPROX)
 
 
-# --- Règles de statut -----------------------------------------------------------
+# Regles de statut
 
 
 def test_abandoned_deep_supplier_raises_ur_down_to_rank0() -> None:
@@ -145,7 +145,7 @@ def test_abandoned_deep_supplier_raises_ur_down_to_rank0() -> None:
     repo.get_node("C").status = TaskStatus.ABANDONED
     PropagationEngine(repo).propagate_all()
 
-    # Ur_C forcé à 1.0, et le rang 0 doit monter par rapport à la référence.
+    # Ur_C force a 1.0, et le rang 0 doit monter par rapport a la reference.
     assert repo.get_node("C").urgency.ur == pytest.approx(1.0, abs=APPROX)
     ur_b = 1 - (1 - UR_LOCAL["B"]) * (1 - BETA[("C", "B")] * 1.0)  # 0.65
     ur_a = 1 - (1 - UR_LOCAL["A"]) * (1 - BETA[("B", "A")] * ur_b)  # 0.5095
@@ -159,12 +159,12 @@ def test_done_node_has_null_local_contribution() -> None:
     repo.get_node("B").status = TaskStatus.DONE
     PropagationEngine(repo).propagate_all()
 
-    # Ur_loc_B forcé à 0 : seul l'amont (C) contribue à Ur_B.
+    # Ur_loc_B force a 0 : seul l'amont (C) contribue a Ur_B.
     ur_b = 1 - (1 - 0.0) * (1 - BETA[("C", "B")] * UR_LOCAL["C"])  # 0.3
     ur_a = 1 - (1 - UR_LOCAL["A"]) * (1 - BETA[("B", "A")] * ur_b)  # 0.289
     assert repo.get_node("B").urgency.ur == pytest.approx(ur_b, abs=APPROX)
     assert repo.get_node("A").urgency.ur == pytest.approx(ur_a, abs=APPROX)
-    # ur_local n'est pas écrasé par la règle de statut (valeur du core préservée).
+    # ur_local n'est pas ecrase par la regle de statut (valeur du core preservee).
     assert repo.get_node("B").urgency.ur_local == pytest.approx(UR_LOCAL["B"])
 
 
@@ -178,7 +178,7 @@ def test_apply_status_sets_status_without_propagating() -> None:
     engine.apply_status("C", TaskStatus.ABANDONED)
 
     assert repo.get_node("C").status is TaskStatus.ABANDONED
-    # Aucune propagation tant que propagate_all n'est pas rappelé.
+    # Aucune propagation tant que propagate_all n'est pas rappele.
     for node_id, ur in ur_before.items():
         assert repo.get_node(node_id).urgency.ur == pytest.approx(ur, abs=APPROX)
 
@@ -192,7 +192,7 @@ def test_apply_status_then_propagate_all_repropagates() -> None:
     engine.apply_status("C", TaskStatus.ABANDONED)
     states = engine.propagate_all()
 
-    # Résultat final identique à l'ancienne sémantique (apply_status propagateur).
+    # Resultat final identique a l'ancienne semantique (apply_status propagateur).
     assert repo.get_node("C").status is TaskStatus.ABANDONED
     assert states["C"].ur == pytest.approx(1.0, abs=APPROX)
     assert repo.get_node("A").urgency.ur > ur_a_before
@@ -204,7 +204,7 @@ def test_apply_status_unknown_node_raises() -> None:
         PropagationEngine(repo).apply_status("fantome", TaskStatus.DONE)
 
 
-# --- Choc what-if ------------------------------------------------------------------
+# Choc what-if
 
 
 def test_simulate_shock_does_not_persist() -> None:
@@ -234,7 +234,7 @@ def test_simulate_shock_deltas_are_consistent() -> None:
     engine = PropagationEngine(repo)
     deltas = engine.simulate_shock("C", 1.0)
 
-    # Référence et état choqué calculés à la main.
+    # Reference et etat choque calcules a la main.
     ur_c0, ur_c1 = UR_LOCAL["C"], 1.0
     ur_b0 = 1 - (1 - UR_LOCAL["B"]) * (1 - BETA[("C", "B")] * ur_c0)
     ur_b1 = 1 - (1 - UR_LOCAL["B"]) * (1 - BETA[("C", "B")] * ur_c1)
@@ -244,7 +244,7 @@ def test_simulate_shock_deltas_are_consistent() -> None:
     assert deltas["C"] == pytest.approx(ur_c1 - ur_c0, abs=APPROX)
     assert deltas["B"] == pytest.approx(ur_b1 - ur_b0, abs=APPROX)
     assert deltas["A"] == pytest.approx(ur_a1 - ur_a0, abs=APPROX)
-    # Le choc s'atténue en descendant vers le rang 0 mais reste positif.
+    # Le choc s'attenue en descendant vers le rang 0 mais reste positif.
     assert deltas["C"] > deltas["B"] > deltas["A"] > 0.0
 
 
@@ -260,12 +260,12 @@ def test_simulate_shock_unknown_node_raises() -> None:
         PropagationEngine(repo).simulate_shock("fantome", 1.0)
 
 
-# --- Clip [0, 1] ------------------------------------------------------------------
+# Clip [0, 1]
 
 
 def test_propagated_values_are_clipped() -> None:
     repo = InMemoryGraphRepository()
-    # ur_local > 1 autorisé localement (tâche en retard), mais Ur propagé clipé.
+    # ur_local > 1 autorise localement (tache en retard), mais Ur propage clipe.
     repo.add_node(SupplyNode(id="A", name="A", urgency=UrgencyState(ud_local=1.5, ur_local=2.0)))
     repo.add_node(SupplyNode(id="B", name="B", urgency=UrgencyState(ud_local=0.5, ur_local=0.5)))
     repo.add_arc(SupplyArc(source_id="B", target_id="A", gamma=1.0, beta=1.0))
@@ -276,11 +276,11 @@ def test_propagated_values_are_clipped() -> None:
     assert states["A"].ur == 1.0
 
 
-# --- Choc détaillé Δl (dé-saturation, U3) --------------------------------------------
+# Choc detaille Deltal (de-saturation, U3)
 
 
 def make_saturated_chain() -> InMemoryGraphRepository:
-    """Chaîne TOTALEMENT saturée : β=1 partout et C à ur_local=1.0 ⇒ Ur=1.0 partout."""
+    """Chaine TOTALEMENT saturee : beta=1 partout et C a ur_local=1.0 => Ur=1.0 partout."""
     return _make_custom_chain(
         ur_local={"A": 0.1, "B": 0.3, "C": 1.0},
         beta={("C", "B"): 1.0, ("B", "A"): 1.0},
@@ -316,11 +316,11 @@ def test_simulate_shock_detailed_delta_ur_matches_simulate_shock() -> None:
     repo = make_chain()
     engine = PropagationEngine(repo)
     detail = engine.simulate_shock_detailed("C", 1.0)
-    assert detail.delta_ur == engine.simulate_shock("C", 1.0)  # même pipeline, bit à bit
+    assert detail.delta_ur == engine.simulate_shock("C", 1.0)  # meme pipeline, bit a bit
 
 
 def test_simulate_shock_detailed_delta_ell_analytic_on_chain() -> None:
-    # Hors saturation, Δl_i = ln((1 − Ur_i)/(1 − Ur'_i)) du pipeline standard.
+    # Hors saturation, Deltal_i = ln((1 - Ur_i)/(1 - Ur'_i)) du pipeline standard.
     repo = make_chain()
     engine = PropagationEngine(repo)
     baseline = engine._compute_ur()
@@ -328,16 +328,16 @@ def test_simulate_shock_detailed_delta_ell_analytic_on_chain() -> None:
 
     detail = engine.simulate_shock_detailed("C", 1.0)
 
-    for node_id in ("A", "B"):  # C choqué à 1.0 : régularisé, testé à part
+    for node_id in ("A", "B"):  # C choque a 1.0 : regularise, teste a part
         expected = math.log((1.0 - baseline[node_id]) / (1.0 - shocked[node_id]))
         assert detail.delta_ell[node_id] == pytest.approx(expected, abs=1e-6)
-    # Le Δl du nœud choqué lui-même est fini et strictement positif (ε-clip).
+    # Le Deltal du noeud choque lui-meme est fini et strictement positif (epsilon-clip).
     assert detail.delta_ell["C"] > 0.0
     assert math.isfinite(detail.delta_ell["C"])
 
 
 def test_simulate_shock_detailed_saturated_chain_ranks_by_delta_ell() -> None:
-    # Réseau saturé : tous les ΔUr sont nuls, mais Δl classe encore les nœuds.
+    # Reseau sature : tous les DeltaUr sont nuls, mais Deltal classe encore les noeuds.
     repo = make_saturated_chain()
     engine = PropagationEngine(repo)
     states = engine.propagate_all()
@@ -346,8 +346,7 @@ def test_simulate_shock_detailed_saturated_chain_ranks_by_delta_ell() -> None:
     details = {nid: engine.simulate_shock_detailed(nid, 1.0) for nid in ("A", "B", "C")}
     for detail in details.values():
         assert all(abs(delta) < APPROX for delta in detail.delta_ur.values())
-    # Au client final A : Δl discrimine — le choc le plus proche du rang 0 pèse le plus,
-    # et C (déjà à ur_local=1.0) donne un choc à vide même en Δl.
+    # Au client final A : Deltal discrimine - le choc le plus proche du rang 0 pese le plus, et C (deja a ur_local=1.0) donne un choc a vide meme en Deltal.
     ell_finals = {nid: details[nid].delta_ell["A"] for nid in ("A", "B", "C")}
     assert ell_finals["A"] > ell_finals["B"] > ell_finals["C"]
     assert ell_finals["C"] == pytest.approx(0.0, abs=APPROX)
@@ -378,11 +377,11 @@ def test_simulate_shock_detailed_unknown_node_raises() -> None:
         PropagationEngine(repo).simulate_shock_detailed("fantome", 1.0)
 
 
-# --- Propagation par lots (compute_ur_batch / compute_ell_batch) ----------------------
+# Propagation par lots (compute_ur_batch / compute_ell_batch)
 
 
 def _random_repo(seed: int) -> InMemoryGraphRepository:
-    """DAG aléatoire du générateur, ur_local/β re-tirés dans [0, 1] (seedé)."""
+    """DAG aleatoire du generateur, ur_local/beta re-tires dans [0, 1] (seede)."""
     rng = np.random.default_rng(seed)
     _project, nodes, arcs = RandomSupplyChainGenerator(seed=seed).generate(
         n_ranks=int(rng.integers(1, 4)), breadth=(1, 3)
@@ -434,7 +433,7 @@ def test_compute_ur_batch_overrides_match_scalar_per_draw() -> None:
 
 
 def test_compute_ell_batch_overrides_match_scalar_per_draw() -> None:
-    repo = make_saturated_chain()  # cas exigeant : β=1 et fournisseur saturé
+    repo = make_saturated_chain()  # cas exigeant : beta=1 et fournisseur sature
     engine = PropagationEngine(repo)
     draws_b = np.array([0.3, 0.6, 1.0])
 
@@ -456,14 +455,13 @@ def test_compute_ur_batch_regularized_clip_bounds_values() -> None:
 
 
 def test_compute_ur_scalar_regularized_clip_bounds_values() -> None:
-    # Le paramètre clip privé de _compute_ur : hi < 1 clippe aussi la valeur
-    # locale effective (jumeau régularisé), le défaut reste bit à bit standard.
+    # Le parametre clip prive de _compute_ur : hi < 1 clippe aussi la valeur locale effective (jumeau regularise), le defaut reste bit a bit standard.
     hi = 1.0 - 1e-9
     engine = PropagationEngine(make_saturated_chain())
     regularized = engine._compute_ur(clip=(0.0, hi))
     assert all(0.0 <= value <= hi for value in regularized.values())
-    assert regularized["C"] == hi  # local 1.0 clipé à 1−ε (aucun fournisseur)
-    assert engine._compute_ur() == engine._compute_ur(clip=(0.0, 1.0))  # défaut inchangé
+    assert regularized["C"] == hi  # local 1.0 clipe a 1-epsilon (aucun fournisseur)
+    assert engine._compute_ur() == engine._compute_ur(clip=(0.0, 1.0))  # defaut inchange
 
 
 def test_compute_ur_batch_is_pure() -> None:

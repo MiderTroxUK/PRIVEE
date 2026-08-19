@@ -1,25 +1,25 @@
-"""Rapport de session HTML imprimable — livrable du serious game (E11, Lot 11.2).
+"""Rapport de session HTML imprimable - livrable du serious game (E11, Lot 11.2).
 
-:class:`SessionReport` agrège tout le matériau d'une partie dans UN fichier
+:class:`SessionReport` agrege tout le materiau d'une partie dans UN fichier
 HTML autonome et imprimable (``Rapport_<slug>_AAAAMMJJ_HHMMSS.html``) :
 
-1. en-tête (projet, période couverte, mode horloge, nombre de nœuds) ;
-2. synthèse des scores courants par nœud (Ud/Ur/A/F/H) ;
-3. évolution temporelle Ud/Ur/A par nœud (figures Plotly réutilisées de
+1. en-tete (projet, periode couverte, mode horloge, nombre de noeuds) ;
+2. synthese des scores courants par noeud (Ud/Ur/A/F/H) ;
+3. evolution temporelle Ud/Ur/A par noeud (figures Plotly reutilisees de
    :mod:`supplyscore.web_ui.components.figures`) ;
-4. chronologie fusionnée des événements et des décisions, par semaine ISO ;
-5. calibration prédiction/réalité (:class:`~supplyscore.services.calibration.CalibrationService`),
-   effectifs TOUJOURS affichés à côté des taux ;
-6. graphe final de la chaîne (``dashboard_dag_figure``).
+4. chronologie fusionnee des evenements et des decisions, par semaine ISO ;
+5. calibration prediction/realite (:class:`~supplyscore.services.calibration.CalibrationService`),
+   effectifs TOUJOURS affiches a cote des taux ;
+6. graphe final de la chaine (``dashboard_dag_figure``).
 
 Le JavaScript Plotly est inclus UNE seule fois via CDN dans le ``<head>`` :
-l'ouverture du rapport nécessite donc une connexion internet — acceptable pour
-un rapport d'analyse. Les figures elles-mêmes sont embarquées via
+l'ouverture du rapport necessite donc une connexion internet - acceptable pour
+un rapport d'analyse. Les figures elles-memes sont embarquees via
 ``fig.to_html(full_html=False, include_plotlyjs=False)``.
 
-Lecture seule — le rapport n'écrit rien dans les bases. Les helpers de nom de
-fichier (``_slugify``) et de date (``_fmt_date``) sont RECOPIÉS de
-:mod:`supplyscore.services.exports` où ils sont privés (non exposés).
+Lecture seule - le rapport n'ecrit rien dans les bases. Les helpers de nom de
+fichier (``_slugify``) et de date (``_fmt_date``) sont RECOPIES de
+:mod:`supplyscore.services.exports` ou ils sont prives (non exposes).
 """
 
 from __future__ import annotations
@@ -47,17 +47,16 @@ if TYPE_CHECKING:
     from supplyscore.domain.models import Project, SupplyNode, UrgencyState
     from supplyscore.services.orchestrator import SupplyScoreService
 
-#: URL CDN du JavaScript Plotly correspondant à la version embarquée par plotly.py.
+#: URL CDN du JavaScript Plotly correspondant a la version embarquee par plotly.py.
 _PLOTLY_CDN_URL = f"https://cdn.plot.ly/plotly-{get_plotlyjs_version()}.min.js"
 
-#: En deçà de cet effectif de points nœud-semaine, un avertissement d'échantillon
-#: réduit est affiché dans la section calibration (PLAN E11 : jamais un taux seul).
+#: En deca de cet effectif de points noeud-semaine, un avertissement d'echantillon reduit est affiche dans la section calibration (PLAN E11 : jamais un taux seul).
 _SEUIL_PETIT_ECHANTILLON = 30
 
-#: Seuil H de la matrice de confusion affichée dans le rapport.
+#: Seuil H de la matrice de confusion affichee dans le rapport.
 _SEUIL_H = 0.5
 
-#: Gabarit Jinja2 inline du rapport — autonome, en français, print-friendly.
+#: Gabarit Jinja2 inline du rapport - autonome, en francais, print-friendly.
 _TEMPLATE = Template(
     """<!DOCTYPE html>
 <html lang="fr">
@@ -176,18 +175,18 @@ apparier les prédictions (H) et les issues observées.</p>
 
 
 def _slugify(name: str) -> str:
-    """Slugifie un nom de projet pour un nom de fichier sûr.
+    """Slugifie un nom de projet pour un nom de fichier sur.
 
-    Recopié de :mod:`supplyscore.services.exports` (helper privé non exposé) :
-    accents translittérés (NFKD puis ASCII), tout caractère non alphanumérique
-    devient un tiret, tirets de bord retirés.
+    Recopie de :mod:`supplyscore.services.exports` (helper prive non expose) :
+    accents translitteres (NFKD puis ASCII), tout caractere non alphanumerique
+    devient un tiret, tirets de bord retires.
 
     Args:
-        name: nom libre du projet (accents, espaces, « / »... tolérés).
+        name: nom libre du projet (accents, espaces, " / "... toleres).
 
     Returns:
-        Le slug « alphanumérique + tirets », ``"projet"`` si le nom ne
-        contient aucun caractère translittérable.
+        Le slug " alphanumerique + tirets ", ``"projet"`` si le nom ne
+        contient aucun caractere translitterable.
     """
     ascii_name = unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode("ascii")
     slug = re.sub(r"[^A-Za-z0-9]+", "-", ascii_name).strip("-")
@@ -195,15 +194,15 @@ def _slugify(name: str) -> str:
 
 
 def _fmt_date(ts: float | None) -> str:
-    """Formate un epoch en « JJ/MM/AAAA HH:MM » (heure locale), ``""`` si None.
+    """Formate un epoch en " JJ/MM/AAAA HH:MM " (heure locale), ``""`` si None.
 
-    Recopié de :mod:`supplyscore.services.exports` (helper privé non exposé).
+    Recopie de :mod:`supplyscore.services.exports` (helper prive non expose).
 
     Args:
         ts: instant en secondes epoch, ou ``None``.
 
     Returns:
-        La date formatée en heure locale, ou la chaîne vide.
+        La date formatee en heure locale, ou la chaine vide.
     """
     if ts is None:
         return ""
@@ -211,14 +210,14 @@ def _fmt_date(ts: float | None) -> str:
 
 
 def _fmt(value: float | None, digits: int = 2) -> str:
-    """Formate une valeur numérique optionnelle (« — » si None).
+    """Formate une valeur numerique optionnelle (" - " si None).
 
     Args:
-        value: valeur à formater, ou ``None`` (score jamais calculé).
-        digits: nombre de décimales affichées.
+        value: valeur a formater, ou ``None`` (score jamais calcule).
+        digits: nombre de decimales affichees.
 
     Returns:
-        La valeur formatée, ou « — ».
+        La valeur formatee, ou " - ".
     """
     return "—" if value is None else f"{value:.{digits}f}"
 
@@ -231,33 +230,33 @@ def _fig_html(fig: go.Figure) -> Markup:
     script d'instanciation.
 
     Args:
-        fig: figure Plotly à embarquer.
+        fig: figure Plotly a embarquer.
 
     Returns:
-        Le fragment HTML, marqué sûr pour le gabarit (non ré-échappé).
+        Le fragment HTML, marque sur pour le gabarit (non re-echappe).
     """
     return Markup(fig.to_html(full_html=False, include_plotlyjs=False))
 
 
 class SessionReport:
-    """Génère le rapport de session HTML autonome et imprimable d'un projet.
+    """Genere le rapport de session HTML autonome et imprimable d'un projet.
 
-    S'appuie sur la façade :class:`~supplyscore.services.orchestrator.SupplyScoreService` :
-    le registre fournit le projet, ses nœuds et ses arcs ; chaque base CLIENT
-    fournit l'historique d'urgence, les événements et les décisions de son
-    nœud ; :class:`~supplyscore.services.calibration.CalibrationService`
+    S'appuie sur la facade :class:`~supplyscore.services.orchestrator.SupplyScoreService` :
+    le registre fournit le projet, ses noeuds et ses arcs ; chaque base CLIENT
+    fournit l'historique d'urgence, les evenements et les decisions de son
+    noeud ; :class:`~supplyscore.services.calibration.CalibrationService`
     fournit la section calibration. Lecture seule.
     """
 
     def __init__(self, service: SupplyScoreService) -> None:
-        """Initialise le générateur de rapport au-dessus de la façade.
+        """Initialise le generateur de rapport au-dessus de la facade.
 
         Args:
-            service: façade applicative (registre, bases client, horloge).
+            service: facade applicative (registre, bases client, horloge).
         """
         self._service = service
 
-    # --- API publique -------------------------------------------------------------
+    # API publique
 
     def build(
         self,
@@ -265,18 +264,18 @@ class SessionReport:
         horizon_weeks: int = 4,
         dest_dir: Path | str = "exports",
     ) -> Path:
-        """Génère le rapport HTML du projet dans ``dest_dir`` (créé au besoin).
+        """Genere le rapport HTML du projet dans ``dest_dir`` (cree au besoin).
 
         Produit ``Rapport_<slug>_AAAAMMJJ_HHMMSS.html``, l'horodatage venant de
         l'horloge du service en heure locale. Le fichier est autonome (CSS
-        inline) ; seul le JavaScript Plotly est chargé via CDN à l'ouverture
-        (connexion internet requise — acceptable pour un rapport).
+        inline) ; seul le JavaScript Plotly est charge via CDN a l'ouverture
+        (connexion internet requise - acceptable pour un rapport).
 
         Args:
-            project_id: identifiant du projet à rapporter.
+            project_id: identifiant du projet a rapporter.
             horizon_weeks: horizon (en semaines) de l'appariement
-                prédiction/réalité de la section calibration.
-            dest_dir: répertoire de destination, créé s'il n'existe pas.
+                prediction/realite de la section calibration.
+            dest_dir: repertoire de destination, cree s'il n'existe pas.
 
         Returns:
             Le chemin du fichier HTML produit.
@@ -296,13 +295,13 @@ class SessionReport:
         path.write_text(html, encoding="utf-8")
         return path
 
-    # --- Rendu --------------------------------------------------------------------
+    # Rendu
 
     def _render(self, project: Project, horizon_weeks: int) -> str:
         """Assemble le contexte des six sections et rend le gabarit Jinja2.
 
         Args:
-            project: projet à rapporter (déjà validé).
+            project: projet a rapporter (deja valide).
             horizon_weeks: horizon de la section calibration.
 
         Returns:
@@ -325,25 +324,25 @@ class SessionReport:
         )
 
     def _series(self, node_id: str) -> list[UrgencyState]:
-        """Historique d'urgence du nœud (base CLIENT), chronologique.
+        """Historique d'urgence du noeud (base CLIENT), chronologique.
 
         Args:
-            node_id: identifiant du nœud.
+            node_id: identifiant du noeud.
 
         Returns:
-            La série temporelle des états d'urgence du nœud.
+            La serie temporelle des etats d'urgence du noeud.
         """
         return self._service.client_db(node_id).urgency_series(node_id)
 
     @staticmethod
     def _periode(series_by_node: dict[str, list[UrgencyState]]) -> str:
-        """Période couverte : première -> dernière semaine ISO de l'historique.
+        """Periode couverte : premiere -> derniere semaine ISO de l'historique.
 
         Args:
-            series_by_node: historiques d'urgence par nœud.
+            series_by_node: historiques d'urgence par noeud.
 
         Returns:
-            « AAAA-Sxx → AAAA-Sxx », ou « aucun historique » si aucune série.
+            " AAAA-Sxx -> AAAA-Sxx ", ou " aucun historique " si aucune serie.
         """
         timestamps = [state.timestamp for series in series_by_node.values() for state in series]
         if not timestamps:
@@ -352,13 +351,13 @@ class SessionReport:
 
     @staticmethod
     def _synthese(nodes: list[SupplyNode]) -> list[dict[str, Any]]:
-        """Lignes du tableau de synthèse : scores courants par nœud.
+        """Lignes du tableau de synthese : scores courants par noeud.
 
         Args:
-            nodes: nœuds du projet (ordre registre : rang puis id).
+            nodes: noeuds du projet (ordre registre : rang puis id).
 
         Returns:
-            Une ligne par nœud : nom, rang, statut FR, Ud/Ur/A/F/H formatés.
+            Une ligne par noeud : nom, rang, statut FR, Ud/Ur/A/F/H formates.
         """
         return [
             {
@@ -378,14 +377,14 @@ class SessionReport:
     def _evolutions(
         nodes: list[SupplyNode], series_by_node: dict[str, list[UrgencyState]]
     ) -> list[Markup]:
-        """Figures d'évolution Ud/Ur/A, une par nœud AVEC historique.
+        """Figures d'evolution Ud/Ur/A, une par noeud AVEC historique.
 
         Args:
-            nodes: nœuds du projet.
-            series_by_node: historiques d'urgence par nœud.
+            nodes: noeuds du projet.
+            series_by_node: historiques d'urgence par noeud.
 
         Returns:
-            Les fragments HTML des figures (nœuds sans historique omis).
+            Les fragments HTML des figures (noeuds sans historique omis).
         """
         return [
             _fig_html(urgency_history_figure(series_by_node[node.id], node.name))
@@ -393,17 +392,17 @@ class SessionReport:
             if series_by_node[node.id]
         ]
 
-    # --- Chronologie ----------------------------------------------------------------
+    # Chronologie
 
     def _chronologie(self, nodes: list[SupplyNode]) -> list[dict[str, Any]]:
-        """Événements et décisions fusionnés par semaine ISO, en ordre chronologique.
+        """Evenements et decisions fusionnes par semaine ISO, en ordre chronologique.
 
         Args:
-            nodes: nœuds du projet.
+            nodes: noeuds du projet.
 
         Returns:
-            Une entrée par semaine : ``{"semaine", "entrees"}``, les semaines
-            et les entrées en ordre chronologique.
+            Une entree par semaine : ``{"semaine", "entrees"}``, les semaines
+            et les entrees en ordre chronologique.
         """
         entries: list[dict[str, Any]] = []
         for node in nodes:
@@ -420,14 +419,14 @@ class SessionReport:
 
     @staticmethod
     def _entree_evenement(node: SupplyNode, event: dict[str, Any]) -> dict[str, Any]:
-        """Entrée de chronologie d'un événement : type FR, paramètres, annulé ou non.
+        """Entree de chronologie d'un evenement : type FR, parametres, annule ou non.
 
         Args:
-            node: nœud déclarant.
+            node: noeud declarant.
             event: ligne ``events`` de la base CLIENT (dict).
 
         Returns:
-            L'entrée normalisée pour le gabarit (clé ``ts`` pour le tri).
+            L'entree normalisee pour le gabarit (cle ``ts`` pour le tri).
         """
         spec = EVENT_CALIBRATION.get(event["event_type"])
         labels = {field.name: field.label_fr for field in spec.fields} if spec else {}
@@ -451,14 +450,14 @@ class SessionReport:
 
     @staticmethod
     def _entree_decision(node: SupplyNode, decision: dict[str, Any]) -> dict[str, Any]:
-        """Entrée de chronologie d'une décision : opérateur et scores au moment T.
+        """Entree de chronologie d'une decision : operateur et scores au moment T.
 
         Args:
-            node: nœud concerné.
-            decision: ligne ``decisions`` désérialisée de la base CLIENT.
+            node: noeud concerne.
+            decision: ligne ``decisions`` deserialisee de la base CLIENT.
 
         Returns:
-            L'entrée normalisée pour le gabarit (clé ``ts`` pour le tri).
+            L'entree normalisee pour le gabarit (cle ``ts`` pour le tri).
         """
         scores: dict[str, float | None] = decision["scores"]
         detail = (
@@ -477,20 +476,20 @@ class SessionReport:
             "statut": "",
         }
 
-    # --- Calibration ------------------------------------------------------------------
+    # Calibration
 
     def _calibration(self, project_id: str, horizon_weeks: int) -> dict[str, Any]:
-        """Contexte de la section calibration : synthèse, matrice, courbe, avertissement.
+        """Contexte de la section calibration : synthese, matrice, courbe, avertissement.
 
-        Les EFFECTIFS sont toujours rendus à côté des taux (précision, rappel
-        et chaque segment de la courbe) — jamais un pourcentage seul (PLAN E11).
+        Les EFFECTIFS sont toujours rendus a cote des taux (precision, rappel
+        et chaque segment de la courbe) - jamais un pourcentage seul (PLAN E11).
 
         Args:
             project_id: identifiant du projet.
-            horizon_weeks: horizon de l'appariement prédiction/réalité.
+            horizon_weeks: horizon de l'appariement prediction/realite.
 
         Returns:
-            ``{"synthese", "avertissement", "matrice", "courbe"}`` ; matrice à
+            ``{"synthese", "avertissement", "matrice", "courbe"}`` ; matrice a
             ``None`` et courbe vide s'il n'existe aucun point de calibration.
         """
         calibration = CalibrationService(self._service)
@@ -524,7 +523,7 @@ class SessionReport:
                 "fp": matrix.fp,
                 "fn": matrix.fn,
                 "vn": matrix.vn,
-                # Taux TOUJOURS accompagnés de leur effectif (numérateur/dénominateur).
+                # Taux TOUJOURS accompagnes de leur effectif (numerateur/denominateur).
                 "precision": f"{_fmt(matrix.precision)} ({matrix.vp}/{matrix.vp + matrix.fp})",
                 "rappel": f"{_fmt(matrix.rappel)} ({matrix.vp}/{matrix.vp + matrix.fn})",
             },
@@ -537,13 +536,13 @@ class SessionReport:
             ],
         }
 
-    # --- Graphe final --------------------------------------------------------------------
+    # Graphe final
 
     def _graphe_final(self, nodes: list[SupplyNode]) -> Markup:
         """Figure du DAG final du projet (arcs internes au projet uniquement).
 
         Args:
-            nodes: nœuds du projet.
+            nodes: noeuds du projet.
 
         Returns:
             Le fragment HTML de la figure ``dashboard_dag_figure``.

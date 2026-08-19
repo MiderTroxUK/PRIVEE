@@ -108,8 +108,7 @@ def analyser(chemin: Path) -> None:
         nd = np.array(noeuds)
         b, skill = brier(sc, la)
         a, p = auc(sc, la), pr_auc(sc, la)
-        # IC95 de l'AUC par bootstrap PAR GRAPPES (noeud) : les points d'un
-        # meme noeud sont fortement correles, un bootstrap i.i.d. mentirait.
+        # IC95 de l'AUC par bootstrap PAR GRAPPES (noeud) : les points d'un meme noeud sont fortement correles, un bootstrap i.i.d. mentirait.
         uniques = np.unique(nd)
         rng = np.random.default_rng(0)
         tirages = []

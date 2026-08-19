@@ -22,14 +22,32 @@ Python. Il a \'et\'e \'eprouv\'e par une campagne
 pr\'e-enregistr\'ee rejouant la p\'enurie de semi-conducteurs de 2020 \`a 2022 sur
 dix-neuf tours et huit n\oe{}uds.
 
-Les r\'esultats sont n\'egatifs et pr\'ecis. La couche de pr\'evision ne discrimine pas
-mieux que le hasard et se r\'ev\`ele fortement mal calibr\'ee. Vingt-et-une pr\'evisions
-annon\c{c}ant une probabilit\'e moyenne de $0{,}948$ n'ont \'et\'e suivies de l'issue
-pr\'edite aucune fois. Un seul bloc l'explique~: le bloc temporel lit une grandeur
-qu'aucun choc du moteur d'\'ev\'enements n'atteint. Un second r\'esultat concerne
-l'op\'erateur~: au tour o\`u la pr\'evision devient visible, les huit d\'eclarants ont
-tous revu leur urgence \`a la baisse ou l'ont maintenue, deux tours avant
-l'\'ev\'enement critique. Le diagnostic, plus que le score, est le livrable.
+Le r\'esultat principal est positif et porte sur la question que pose r\'eellement un
+coordinateur~: quel fournisseur regarder cette semaine. Sur les six tours qui pr\'ec\`edent
+la mise au jour de la crise, l'\'ecart d\'esigne trois n\oe{}uds, tous trois futurs
+d\'efaillants sur un engagement de livraison, \textbf{sans une seule fausse alerte}~; le plus
+mal not\'e est signal\'e huit tours avant de rater son jalon, alors que son propre
+responsable d\'eclare une urgence de $0{,}001$. Le signal s'\'emousse ensuite, pour une
+raison structurelle et non par d\'efaut~: quand la crise devient publique, l'urgence
+d\'eclar\'ee rattrape l'urgence calcul\'ee et un \'ecart entre les deux se referme par
+construction. C'est donc un instrument d'alerte pr\'ecoce, au plus net quand une alerte vaut
+encore quelque chose.
+
+La couche de pr\'evision b\^atie au-dessus, elle, a d'abord \'echou\'e de fa\c{c}on
+pr\'ecise~: mal calibr\'ee, avec vingt-et-une pr\'evisions \`a $0{,}948$ de moyenne jamais
+suivies de l'issue pr\'edite au sens de la d\'efinition de production. Un seul bloc
+l'expliquait, le bloc temporel lisant une grandeur qu'aucun choc n'atteignait. Ce diagnostic
+a \'et\'e trait\'e et re-mesur\'e~: le correctif \'evident s'est r\'ev\'el\'e faux \`a la
+mesure, le temps perdu devant s'\emph{ajouter} \`a la date d'ach\`evement et non s'y
+multiplier, et apr\`es correction le d\'eficit de calibration est divis\'e par deux \`a
+chaque horizon, de $-0{,}553$ \`a $-0{,}216$ \`a quatre semaines. Il reste n\'egatif~: la
+probabilit\'e calibr\'ee n'est pas encore publiable comme telle.
+
+Un troisi\`eme r\'esultat concerne l'op\'erateur~: au tour o\`u la pr\'evision devient
+visible, les huit d\'eclarants ont tous revu leur urgence \`a la baisse ou l'ont maintenue,
+deux tours avant l'\'ev\'enement critique. Ce qui borne l'ensemble n'est pas la conception
+mais l'\'echantillon~: huit n\oe{}uds, onze jalons, un sc\'enario. \'Elargir la base de
+donn\'ees est le travail en cours et la condition de toute g\'en\'eralisation.
 \end{otherlanguage}
 
 \vspace{0.4cm}
@@ -47,17 +65,33 @@ measures it. Real urgency is aggregated at each node from six indicator blocks t
 weighted probabilistic OR and propagated across the supplier network; declared urgency is
 elicited through a consistency-gated pairwise questionnaire; their gap is scored on
 $[0,100]$ with an asymmetric penalty. The delivered system, SupplyScore, comprises 73
-Python modules covered by 1\,779 automated tests. It was tested through a pre-registered
-campaign replaying the 2020 to 2022 semiconductor shortage over nineteen turns and eight
-nodes.
+Python modules covered by 1\,831 automated test functions. It was tested through a
+pre-registered campaign replaying the 2020 to 2022 semiconductor shortage over nineteen turns
+and eight nodes.
 
-The results are negative and precise. The forecast layer discriminates no better than
-chance and is severely miscalibrated. Twenty-one forecasts announcing a mean probability
-of $0.948$ were followed by the predicted outcome zero times. One block explains it: the
-time block reads a quantity that no shock from the event engine ever reaches. A second
-result concerns the operator: on the turn the forecast became visible, all eight
+The headline result is positive and concerns the question a coordinator actually asks: which
+supplier to look at this week. Over the six turns before the crisis becomes public, the gap
+flags three nodes, all three of which later miss a delivery commitment, \textbf{with no false
+alarm on any turn}; the worst-scoring of them is flagged eight turns before it misses, while
+its own manager declares an urgency of $0.001$. The signal then weakens, for a structural
+reason rather than a defect: once the crisis is public, declared urgency catches up with
+computed urgency and a measure defined as the difference between them necessarily shrinks. It
+is an early-warning instrument, sharpest while a warning is still worth something.
+
+The forecast layer built on top of it failed first, and failed precisely: severely
+miscalibrated, with twenty-one forecasts averaging $0.948$ never followed by the predicted
+outcome under the production definition. One block explained it, the time block reading a
+quantity no shock ever reached. That diagnosis was acted on and re-measured. The obvious
+repair proved wrong under measurement, lost time having to be \emph{added} to the completion
+date rather than multiplied into it, and after repair the calibration deficit halves at every
+horizon, from $-0.553$ to $-0.216$ at four weeks. It remains negative: the calibrated
+probability is not yet publishable as one.
+
+A third result concerns the operator: on the turn the forecast became visible, all eight
 declarants revised their urgency downward or held it, two turns before the critical event.
-The diagnosis, more than the score, is the deliverable.
+What bounds all of this is not the design but the sample, eight nodes, eleven milestones and
+one scenario. Widening that base is the work in progress and the precondition for any
+generalisation.
 
 \vspace{0.4cm}
 
@@ -77,16 +111,33 @@ de indicadores mediante un O probabil\'istico ponderado y se propaga por la red 
 proveedores; la urgencia declarada se obtiene mediante un cuestionario de comparaciones
 por pares con control de coherencia; su diferencia se punt\'ua en $[0,100]$ con una
 penalizaci\'on asim\'etrica. El sistema entregado, SupplyScore, consta de 73 m\'odulos
-Python cubiertos por 1\,779 pruebas automatizadas. Se someti\'o a una campa\~na
+Python cubiertos por 1\,831 funciones de prueba automatizadas. Se someti\'o a una campa\~na
 preregistrada que reproduce la escasez de semiconductores de 2020 a 2022 durante
 diecinueve turnos y ocho nodos.
 
-Los resultados son negativos y precisos. La capa de predicci\'on no discrimina mejor que
-el azar y est\'a mal calibrada. Veintiuna predicciones que anunciaban una probabilidad
-media de $0{,}948$ no fueron seguidas del resultado predicho ninguna vez. Un solo bloque
-lo explica: el bloque temporal lee una magnitud que ning\'un choque del motor de eventos
-alcanza. Un segundo resultado concierne al operador: en el turno en que la predicci\'on se
-hizo visible, los ocho declarantes revisaron su urgencia a la baja o la mantuvieron, dos
-turnos antes del evento cr\'itico. El diagn\'ostico, m\'as que la puntuaci\'on, es el
-entregable.
+El resultado principal es positivo y se refiere a la pregunta que realmente se hace un
+coordinador: qu\'e proveedor mirar esta semana. En los seis turnos previos a que la crisis se
+haga p\'ublica, la diferencia se\~nala tres nodos, los tres futuros incumplidores de un
+compromiso de entrega, \textbf{sin una sola falsa alarma}; el peor puntuado se se\~nala ocho
+turnos antes de incumplir su hito, mientras su propio responsable declara una urgencia de
+$0{,}001$. La se\~nal se debilita despu\'es, por una raz\'on estructural y no por defecto:
+cuando la crisis se hace p\'ublica, la urgencia declarada alcanza a la calculada y una medida
+definida como su diferencia se cierra por construcci\'on. Es un instrumento de alerta
+temprana, m\'as n\'itido mientras una alerta a\'un vale algo.
+
+La capa de predicci\'on construida encima fall\'o primero, y de forma precisa: mal calibrada,
+con veintiuna predicciones de media $0{,}948$ nunca seguidas del resultado predicho seg\'un
+la definici\'on de producci\'on. Un solo bloque lo explicaba, el bloque temporal leyendo una
+magnitud que ning\'un choque alcanzaba. Ese diagn\'ostico se corrigi\'o y se volvi\'o a
+medir: la correcci\'on evidente result\'o err\'onea al medirla, pues el tiempo perdido debe
+\emph{sumarse} a la fecha de finalizaci\'on y no multiplicarse en ella, y tras la
+correcci\'on el d\'eficit de calibraci\'on se reduce a la mitad en todos los horizontes, de
+$-0{,}553$ a $-0{,}216$ a cuatro semanas. Sigue siendo negativo: la probabilidad calibrada
+todav\'ia no es publicable como tal.
+
+Un tercer resultado concierne al operador: en el turno en que la predicci\'on se hizo
+visible, los ocho declarantes revisaron su urgencia a la baja o la mantuvieron, dos turnos
+antes del evento cr\'itico. Lo que acota todo esto no es el dise\~no sino la muestra: ocho
+nodos, once hitos y un escenario. Ampliar esa base es el trabajo en curso y la condici\'on de
+cualquier generalizaci\'on.
 \end{otherlanguage}

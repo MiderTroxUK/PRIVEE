@@ -1,11 +1,11 @@
-"""Tests du Lot 8.2 : ExplainService — assemblage de l'explication d'un nœud.
+"""Tests du Lot 8.2 : ExplainService - assemblage de l'explication d'un noeud.
 
-Couvre : cohérence des scores avec ``node.urgency``, somme des contributions
-critères == ud du dernier assessment (le ``ud_local`` du nœud est lissé EMA),
-somme des parts de blocs == 1, part locale + parts fournisseurs == 1, nœud de
-rang max (part locale 1.0), nœud jamais évalué, audit des blocs dominants,
-événements ouverts, retard avéré (nœud abandonné), KeyError nœud inconnu et
-pureté (deux appels identiques, aucune écriture).
+Couvre : coherence des scores avec ``node.urgency``, somme des contributions
+criteres == ud du dernier assessment (le ``ud_local`` du noeud est lisse EMA),
+somme des parts de blocs == 1, part locale + parts fournisseurs == 1, noeud de
+rang max (part locale 1.0), noeud jamais evalue, audit des blocs dominants,
+evenements ouverts, retard avere (noeud abandonne), KeyError noeud inconnu et
+purete (deux appels identiques, aucune ecriture).
 """
 
 from __future__ import annotations
@@ -22,13 +22,13 @@ from supplyscore.services import SupplyScoreService
 from supplyscore.services.events import EventEngine
 from supplyscore.services.explain import _BLOCK_KPI_PREFIXES, ExplainService, NodeExplanation
 
-#: Mercredi 2026-06-10 12:00 locale — semaine ISO « 2026-S24 ».
+#: Mercredi 2026-06-10 12:00 locale - semaine ISO " 2026-S24 ".
 _NOW = datetime(2026, 6, 10, 12, 0).timestamp()
 
 TOL = 1e-9
 
 
-# --- Fixtures ---------------------------------------------------------------------
+# Fixtures
 
 
 @pytest.fixture
@@ -49,11 +49,11 @@ def explainer(service: SupplyScoreService) -> ExplainService:
     return ExplainService(service)
 
 
-# --- Helpers ----------------------------------------------------------------------
+# Helpers
 
 
 def _actifs(service: SupplyScoreService) -> list[SupplyNode]:
-    """Nœuds actifs et complets du projet de démo, en ordre déterministe."""
+    """Noeuds actifs et complets du projet de demo, en ordre deterministe."""
     return sorted(
         (
             n
@@ -65,7 +65,7 @@ def _actifs(service: SupplyScoreService) -> list[SupplyNode]:
 
 
 def _avec_fournisseurs(service: SupplyScoreService) -> str:
-    """Premier nœud actif ayant au moins un fournisseur direct (arc nominal)."""
+    """Premier noeud actif ayant au moins un fournisseur direct (arc nominal)."""
     for node in _actifs(service):
         if service.repo.predecessors(node.id):
             return node.id
@@ -73,7 +73,7 @@ def _avec_fournisseurs(service: SupplyScoreService) -> str:
 
 
 def _rang_max(service: SupplyScoreService) -> str:
-    """Premier nœud actif SANS fournisseur et d'urgence locale non nulle."""
+    """Premier noeud actif SANS fournisseur et d'urgence locale non nulle."""
     candidats = [
         n
         for n in _actifs(service)
@@ -83,7 +83,7 @@ def _rang_max(service: SupplyScoreService) -> str:
     return candidats[0].id
 
 
-# --- Cohérence avec le pipeline ------------------------------------------------------
+# Coherence avec le pipeline
 
 
 class TestCoherencePipeline:
@@ -99,13 +99,12 @@ class TestCoherencePipeline:
         assert exp.ur == pytest.approx(node.urgency.ur, abs=TOL)
         assert exp.adequation == pytest.approx(node.urgency.adequation, abs=TOL)
         assert exp.retard_avere is False
-        # L'équation d'adéquation instanciée rend le MÊME score que le pipeline.
+        # L'equation d'adequation instanciee rend le MEME score que le pipeline.
         assert exp.adequation_trace is not None
         assert exp.adequation_trace.adequation == pytest.approx(node.urgency.adequation, abs=TOL)
 
     def test_somme_criteres_egale_ud_assessment(self, service, explainer):
-        # ATTENTION : node.urgency.ud_local est LISSÉ EMA — la référence est
-        # le ud du dernier questionnaire effectif, pas le ud_local du nœud.
+        # ATTENTION : node.urgency.ud_local est LISSE EMA - la reference est le ud du dernier questionnaire effectif, pas le ud_local du noeud.
         nid = _avec_fournisseurs(service)
         assessment = service.client_db(nid).latest_assessment(nid)
         assert assessment is not None
@@ -140,7 +139,7 @@ class TestCoherencePipeline:
         assert exp.fournisseurs, "le nœud choisi a des fournisseurs"
         total = exp.part_locale_ur + sum(f.share for f in exp.fournisseurs)
         assert total == pytest.approx(1.0, abs=TOL)
-        # Les coefficients exposés sont ceux des arcs du graphe.
+        # Les coefficients exposes sont ceux des arcs du graphe.
         for contrib in exp.fournisseurs:
             arc = service.repo.get_arc(contrib.neighbor_id, nid)
             assert arc is not None
@@ -152,7 +151,7 @@ class TestCoherencePipeline:
 
         assert exp.fournisseurs == []
         assert exp.part_locale_ur == pytest.approx(1.0, abs=TOL)
-        # Côté descendant, le nœud a des clients : part locale + parts = 1.
+        # Cote descendant, le noeud a des clients : part locale + parts = 1.
         assert exp.clients, "un nœud de rang max alimente au moins un client"
         total = exp.part_locale_ud + sum(c.share for c in exp.clients)
         assert total == pytest.approx(1.0, abs=TOL)
@@ -162,13 +161,13 @@ class TestCoherencePipeline:
         service.set_status(nid, TaskStatus.ABANDONED)
         exp = explainer.explain_node(nid)
 
-        # Ur_loc effectif = 1.0 : décomposition log non définie, cause locale unique.
+        # Ur_loc effectif = 1.0 : decomposition log non definie, cause locale unique.
         assert exp.retard_avere is True
         assert exp.part_locale_ur == 1.0
         assert all(f.share == 0.0 for f in exp.fournisseurs)
 
 
-# --- Nœud jamais évalué ---------------------------------------------------------------
+# Noeud jamais evalue
 
 
 class TestJamaisEvalue:
@@ -178,8 +177,7 @@ class TestJamaisEvalue:
 
         assert exp.criteres == []
         assert exp.derniere_evaluation is None
-        # Choix documenté : sans passage du pipeline (Ud/Ur propagés absents),
-        # il n'y a pas d'équation d'adéquation à instancier.
+        # Choix documente : sans passage du pipeline (Ud/Ur propages absents), il n'y a pas d'equation d'adequation a instancier.
         assert exp.adequation_trace is None
         assert exp.ud is None
         assert exp.ur is None
@@ -198,8 +196,7 @@ class TestJamaisEvalue:
         assert exp.retard_avere is False
 
     def test_noeud_au_projet_inconnu_referentiel_degenere(self, service, explainer):
-        # Projet absent du registre : le référentiel temporel dégénère en (0, 0)
-        # sans erreur (même tolérance que evaluate_all).
+        # Projet absent du registre : le referentiel temporel degenere en (0, 0) sans erreur (meme tolerance que evaluate_all).
         service.add_node(SupplyNode(id="nu-2", name="Nœud orphelin", project_id="projet-fantome"))
         exp = explainer.explain_node("nu-2")
         assert exp.criteres == []
@@ -207,16 +204,16 @@ class TestJamaisEvalue:
         assert sum(b.share for b in exp.blocs) == 0.0
 
 
-# --- Versions liées : audit et événements ----------------------------------------------
+# Versions liees : audit et evenements
 
 
 class TestVersionsLiees:
     def test_audits_recents_apres_mutation_bloc_dominant(self, service, explainer):
         nid = _avec_fournisseurs(service)
-        # seed_demo n'écrit aucun KPI via MutationService : audit vide au départ.
+        # seed_demo n'ecrit aucun KPI via MutationService : audit vide au depart.
         assert explainer.explain_node(nid).audits_recents == []
 
-        # Risque quasi saturé : le bloc « risk » devient dominant.
+        # Risque quasi sature : le bloc " risk " devient dominant.
         service.mutations.update_kpis(
             nid,
             {
@@ -252,12 +249,12 @@ class TestVersionsLiees:
         assert [e.id for e in exp.evenements_ouverts] == [event.id]
         assert exp.evenements_ouverts[0].reverted_at is None
 
-        # explain_node est pur : les KPIs n'ont pas bougé, le revert passe.
+        # explain_node est pur : les KPIs n'ont pas bouge, le revert passe.
         engine.revert(event.id, nid, "op-1")
         assert explainer.explain_node(nid).evenements_ouverts == []
 
 
-# --- Robustesse et pureté ----------------------------------------------------------------
+# Robustesse et purete
 
 
 class TestRobustesse:
@@ -275,7 +272,7 @@ class TestRobustesse:
 
         apres = {n.id: copy.deepcopy(n.urgency) for n in service.repo.nodes()}
         assert apres == avant
-        # Le registre non plus n'a pas bougé.
+        # Le registre non plus n'a pas bouge.
         node_registre = service.registry.get_node(nid)
         assert node_registre is not None
         assert node_registre.urgency == avant[nid]

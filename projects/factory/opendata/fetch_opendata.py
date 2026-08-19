@@ -1,26 +1,26 @@
-"""Ingestion des séries data.gouv.fr épinglées (U13, plan HÉLIOS v7).
+"""Ingestion des series data.gouv.fr epinglees (U13, plan HELIOS v7).
 
-Contrairement à ``projects/simu_semiconducteurs/scripts/fetch_data.py`` (API
-INSEE BDM directe, propre à la campagne close), ce module cible le catalogue
-public **data.gouv.fr** (``https://www.data.gouv.fr/api/1/``) : chaque série
-de ``MANIFEST.md`` fixe un dataset ID, une resource URL de téléchargement
-direct et un sha256 constatés à une date donnée. Le serveur MCP data.gouv
-(``https://mcp.data.gouv.fr/mcp``) est un outil de découverte interactive
-utilisé en session par un humain ; il n'intervient jamais ici — ce script ne
-fait que retélécharger et revérifier des ressources déjà épinglées.
+Contrairement a ``projects/simu_semiconducteurs/scripts/fetch_data.py`` (API
+INSEE BDM directe, propre a la campagne close), ce module cible le catalogue
+public **data.gouv.fr** (``https://www.data.gouv.fr/api/1/``) : chaque serie
+de ``MANIFEST.md`` fixe un dataset ID, une resource URL de telechargement
+direct et un sha256 constates a une date donnee. Le serveur MCP data.gouv
+(``https://mcp.data.gouv.fr/mcp``) est un outil de decouverte interactive
+utilise en session par un humain ; il n'intervient jamais ici - ce script ne
+fait que retelecharger et reverifier des ressources deja epinglees.
 
-Règle de gel (même discipline que ``HASHES.sha256`` de la campagne HÉLIOS) :
-un sha256 qui ne correspond plus au MANIFEST est un échec dur, jamais une
-mise à jour silencieuse. Une source dont le contenu a changé doit être
-ré-examinée par un humain et ré-épinglée consciemment dans MANIFEST.md.
+Regle de gel (meme discipline que ``HASHES.sha256`` de la campagne HELIOS) :
+un sha256 qui ne correspond plus au MANIFEST est un echec dur, jamais une
+mise a jour silencieuse. Une source dont le contenu a change doit etre
+re-examinee par un humain et re-epinglee consciemment dans MANIFEST.md.
 
-Produit, sous ``--out`` (défaut : ce dossier) :
-    - ``raw/<serie>.<ext>``      fichier brut tel que téléchargé (zip ou csv) ;
+Produit, sous ``--out`` (defaut : ce dossier) :
+    - ``raw/<serie>.<ext>``      fichier brut tel que telecharge (zip ou csv) ;
     - ``prepared/<serie>.csv``   colonnes (semaine_iso, valeur, valeur_rebasee),
-                                  séries mensuelles étalées (forward fill) sur
-                                  les semaines ISO, rebasées min-max sur
-                                  l'étendue publiée (même règle que le
-                                  protocole HÉLIOS §6 pour WRI/WGI).
+                                  series mensuelles etalees (forward fill) sur
+                                  les semaines ISO, rebasees min-max sur
+                                  l'etendue publiee (meme regle que le
+                                  protocole HELIOS section 6 pour WRI/WGI).
 
 Usage :
     python fetch_opendata.py --serie insee_ipch_ensemble
@@ -48,12 +48,10 @@ _SEPARATOR_RE = re.compile(r"^:?-+:?$")
 
 
 class FreezeViolationError(RuntimeError):
-    """Le sha256 d'une ressource téléchargée ne correspond plus au MANIFEST figé."""
+    """Le sha256 d'une ressource telechargee ne correspond plus au MANIFEST fige."""
 
 
-# --------------------------------------------------------------------------
-# Lecture résiliente du MANIFEST (table markdown « nom de série | ... »).
-# --------------------------------------------------------------------------
+# Lecture resiliente du MANIFEST (table markdown " nom de serie | ... ").
 
 
 def _is_separator_row(cells: list[str]) -> bool:
@@ -68,13 +66,13 @@ def _unbacktick(value: str) -> str:
 
 
 def parse_manifest(path: Path) -> list[dict[str, str]]:
-    """Extrait la table des séries épinglées du MANIFEST.
+    """Extrait la table des series epinglees du MANIFEST.
 
-    Repère, parmi toutes les tables markdown du fichier, celle dont l'en-tête
-    contient à la fois « sha256 » et « resource url » (insensible à la
-    casse) : c'est la table de gel, indépendamment de sa position et des
+    Repere, parmi toutes les tables markdown du fichier, celle dont l'en-tete
+    contient a la fois " sha256 " et " resource url " (insensible a la
+    casse) : c'est la table de gel, independamment de sa position et des
     autres tables informatives (ex. tailles de fichiers) qui peuvent
-    l'entourer. Ignore les lignes de séparation ``|---|---|``.
+    l'entourer. Ignore les lignes de separation ``|---|---|``.
     """
     lines = path.read_text(encoding="utf-8").splitlines()
     entries: list[dict[str, str]] = []
@@ -111,26 +109,22 @@ def parse_manifest(path: Path) -> list[dict[str, str]]:
     return entries
 
 
-# --------------------------------------------------------------------------
-# Téléchargement + vérification.
-# --------------------------------------------------------------------------
+# Telechargement + verification.
 
 
 def _download(url: str, timeout: int = 30) -> bytes:
-    """Télécharge une URL épinglée du MANIFEST (délai explicite, en octets bruts)."""
+    """Telecharge une URL epinglee du MANIFEST (delai explicite, en octets bruts)."""
     req = urllib.request.Request(url, headers={"User-Agent": "supplyscore-opendata/1.0"})
     with urllib.request.urlopen(req, timeout=timeout) as r:
         return r.read()
 
 
 def sha256_bytes(data: bytes) -> str:
-    """Empreinte SHA256 hexadécimale d'un contenu binaire."""
+    """Empreinte SHA256 hexadecimale d'un contenu binaire."""
     return hashlib.sha256(data).hexdigest()
 
 
-# --------------------------------------------------------------------------
-# Analyseurs par série (schéma propre à chaque source, comme prepare_data.py).
-# --------------------------------------------------------------------------
+# Analyseurs par serie (schema propre a chaque source, comme prepare_data.py).
 
 
 def _parse_insee_ipch_ensemble(raw: bytes) -> dict[str, float]:
@@ -157,7 +151,7 @@ def _parse_insee_ipch_ensemble(raw: bytes) -> dict[str, float]:
 
 
 def _parse_sdes_prix_elec_industrie(raw: bytes) -> dict[str, float]:
-    """SDES « Conjoncture mensuelle de l'énergie » — prix industriels électricité."""
+    """SDES " Conjoncture mensuelle de l'energie " - prix industriels electricite."""
     out: dict[str, float] = {}
     reader = csv.DictReader(io.StringIO(raw.decode("utf-8")), delimiter=";")
     for row in reader:
@@ -169,7 +163,7 @@ def _parse_sdes_prix_elec_industrie(raw: bytes) -> dict[str, float]:
 
 
 def _parse_sdes_conso_elec_france(raw: bytes) -> dict[str, float]:
-    """SDES « Conjoncture mensuelle de l'énergie » — synthèse électricité (conso)."""
+    """SDES " Conjoncture mensuelle de l'energie " - synthese electricite (conso)."""
     out: dict[str, float] = {}
     reader = csv.DictReader(io.StringIO(raw.decode("utf-8")), delimiter=";")
     for row in reader:
@@ -187,17 +181,15 @@ SERIES_PARSERS = {
 }
 
 
-# --------------------------------------------------------------------------
 # Normalisation mensuel -> hebdomadaire (forward fill) + rebasage min-max.
-# --------------------------------------------------------------------------
 
 
 def _thursday_weeks_of_month(year: int, month: int) -> list[str]:
     """Semaines ISO (AAAA-Wnn) dont le jeudi tombe dans le mois AAAA-MM.
 
-    Règle ISO 8601 : une semaine appartient à l'année (et, par extension ici,
+    Regle ISO 8601 : une semaine appartient a l'annee (et, par extension ici,
     au mois) de son jeudi. Chaque semaine n'a qu'un seul jeudi : aucun mois
-    ne se recouvre, et une série mensuelle continue ne laisse aucune semaine
+    ne se recouvre, et une serie mensuelle continue ne laisse aucune semaine
     orpheline.
     """
     first = dt.date(year, month, 1)
@@ -213,13 +205,13 @@ def _thursday_weeks_of_month(year: int, month: int) -> list[str]:
 
 
 def forward_fill_weekly(monthly: dict[str, float]) -> list[tuple[str, float]]:
-    """Étale une série mensuelle (clé « AAAA-MM ») sur les semaines ISO.
+    """Etale une serie mensuelle (cle " AAAA-MM ") sur les semaines ISO.
 
-    Chaque valeur mensuelle est recopiée (forward fill) sur toutes les
+    Chaque valeur mensuelle est recopiee (forward fill) sur toutes les
     semaines ISO dont le jeudi tombe dans ce mois. Un mois absent de la
-    source n'est jamais comblé par invention : il est simplement absent en
-    sortie (pas de « saut » de la dernière valeur au-delà de son propre
-    mois) — même éthique que le reste du pipeline HÉLIOS.
+    source n'est jamais comble par invention : il est simplement absent en
+    sortie (pas de " saut " de la derniere valeur au-dela de son propre
+    mois) - meme ethique que le reste du pipeline HELIOS.
     """
     out: list[tuple[str, float]] = []
     for period in sorted(monthly):
@@ -231,12 +223,12 @@ def forward_fill_weekly(monthly: dict[str, float]) -> list[tuple[str, float]]:
 
 
 def rebase_min_max(rows: list[tuple[str, float]]) -> list[tuple[str, float, float]]:
-    """Rebase min-max sur toute l'étendue publiée -> valeur_rebasee dans [0,1].
+    """Rebase min-max sur toute l'etendue publiee -> valeur_rebasee dans [0,1].
 
-    Même règle que le protocole HÉLIOS §6 pour les indices WRI/WGI : un
+    Meme regle que le protocole HELIOS section 6 pour les indices WRI/WGI : un
     indice brut peut saturer un usage probabiliste en aval, on rebase donc
-    sur [min, max] réellement observés dans la série téléchargée (jamais sur
-    des bornes théoriques inventées).
+    sur [min, max] reellement observes dans la serie telechargee (jamais sur
+    des bornes theoriques inventees).
     """
     values = [v for _, v in rows]
     lo, hi = min(values), max(values)
@@ -248,7 +240,7 @@ def rebase_min_max(rows: list[tuple[str, float]]) -> list[tuple[str, float, floa
 
 
 def normalize_series(nom: str, raw: bytes) -> list[tuple[str, float, float]]:
-    """Applique l'analyseur de la série puis le pipeline forward fill + rebasage."""
+    """Applique l'analyseur de la serie puis le pipeline forward fill + rebasage."""
     parser = SERIES_PARSERS.get(nom)
     if parser is None:
         raise ValueError(f"Aucun analyseur connu pour la série « {nom} » (voir SERIES_PARSERS).")
@@ -260,9 +252,7 @@ def normalize_series(nom: str, raw: bytes) -> list[tuple[str, float, float]]:
     return rebase_min_max(forward_fill_weekly(monthly))
 
 
-# --------------------------------------------------------------------------
 # Orchestration CLI.
-# --------------------------------------------------------------------------
 
 
 def _write_prepared(nom: str, rows: list[tuple[str, float, float]], prepared_dir: Path) -> Path:
@@ -276,10 +266,10 @@ def _write_prepared(nom: str, rows: list[tuple[str, float, float]], prepared_dir
 
 
 def fetch_one(entry: dict[str, str], out: Path) -> None:
-    """Télécharge une série épinglée, vérifie son sha256 puis écrit raw/ et prepared/.
+    """Telecharge une serie epinglee, verifie son sha256 puis ecrit raw/ et prepared/.
 
-    Échec dur (``FreezeViolationError``) sur toute divergence de sha256 —
-    rien n'est écrit dans ce cas, ``raw/`` garde son dernier état vérifié.
+    Echec dur (``FreezeViolationError``) sur toute divergence de sha256 -
+    rien n'est ecrit dans ce cas, ``raw/`` garde son dernier etat verifie.
     """
     nom = entry["nom"]
     raw_dir, prepared_dir = out / "raw", out / "prepared"
@@ -302,7 +292,7 @@ def fetch_one(entry: dict[str, str], out: Path) -> None:
 
     ext = ".zip" if zipfile.is_zipfile(io.BytesIO(data)) else ".csv"
     raw_path = raw_dir / f"{nom}{ext}"
-    for stale in raw_dir.glob(f"{nom}.*"):  # nettoie une extension d'un gel antérieur
+    for stale in raw_dir.glob(f"{nom}.*"):  # nettoie une extension d'un gel anterieur
         if stale != raw_path:
             stale.unlink()
     raw_path.write_bytes(data)
@@ -314,7 +304,7 @@ def fetch_one(entry: dict[str, str], out: Path) -> None:
 
 
 def _selftest(entries: list[dict[str, str]], out: Path) -> int:
-    """Revérifie les sha256 des fichiers déjà présents sous raw/, sans réseau."""
+    """Reverifie les sha256 des fichiers deja presents sous raw/, sans reseau."""
     raw_dir = out / "raw"
     problems = 0
     for entry in entries:
@@ -340,7 +330,7 @@ def _selftest(entries: list[dict[str, str]], out: Path) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Point d'entrée CLI : ``--serie NAME``, ``--all`` ou ``--selftest``."""
+    """Point d'entree CLI : ``--serie NAME``, ``--all`` ou ``--selftest``."""
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
@@ -394,7 +384,7 @@ def main(argv: list[str] | None = None) -> int:
         except FreezeViolationError as exc:
             print(f"[!] {exc}", file=sys.stderr)
             failures += 1
-        except Exception as exc:  # on consigne et on continue les autres séries du lot
+        except Exception as exc:  # on consigne et on continue les autres series du lot
             print(f"[!] {entry['nom']} : {type(exc).__name__}: {exc}", file=sys.stderr)
             failures += 1
     return 1 if failures else 0

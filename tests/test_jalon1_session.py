@@ -1,8 +1,8 @@
-"""Critère de sortie du JALON 1 : une session de serious game complète est jouable.
+"""Critere de sortie du JALON 1 : une session de serious game complete est jouable.
 
-Parcours : créer un projet en mode jeu → onboarder un nœud au wizard (4 sections)
-→ jouer des semaines → remplir l'hebdo (AHP + événement + décision, opérateurs
-identifiés) → suivre les scores → exporter → sauvegarder → redémarrer sans perte.
+Parcours : creer un projet en mode jeu -> onboarder un noeud au wizard (4 sections)
+-> jouer des semaines -> remplir l'hebdo (AHP + evenement + decision, operateurs
+identifies) -> suivre les scores -> exporter -> sauvegarder -> redemarrer sans perte.
 """
 
 import zipfile
@@ -30,11 +30,11 @@ def service(tmp_path):
 
 
 def test_session_serious_game_complete(service, tmp_path):
-    # 1. Projet de base (la démo sert de chaîne existante) + mode jeu.
+    # 1. Projet de base (la demo sert de chaine existante) + mode jeu.
     project = service.seed_demo(n_ranks=2, seed=21)
     service.set_clock_mode(project.id, "game")
 
-    # 2. Onboarding d'un NOUVEAU fournisseur au wizard, rattaché à un nœud existant.
+    # 2. Onboarding d'un NOUVEAU fournisseur au wizard, rattache a un noeud existant.
     onboarding = OnboardingService(service)
     target = next(n for n in service.repo.nodes() if n.rank == 1)
     node_id = onboarding.start_draft(project.id, "Atelier Pilote", "Workshop")
@@ -95,7 +95,7 @@ def test_session_serious_game_complete(service, tmp_path):
     assert rc.ok, rc.errors
     assert service.registry.get_node(node_id).onboarding_state == "complete"
 
-    # 3. Tour de jeu : avancer 2 semaines — les statuts hebdo basculent.
+    # 3. Tour de jeu : avancer 2 semaines - les statuts hebdo basculent.
     service.advance_week(project.id)
     service.advance_week(project.id)
     cycle = CycleHebdomadaire(service)
@@ -103,7 +103,7 @@ def test_session_serious_game_complete(service, tmp_path):
     assert etat.statut == StatutHebdo.EN_RETARD
     assert etat.semaines_de_retard == 2
 
-    # 4. Hebdo du joueur : nouvel AHP + événement calibré + décision tracée.
+    # 4. Hebdo du joueur : nouvel AHP + evenement calibre + decision tracee.
     assessment = SupplyScoreService.build_assessment(
         node_id=node_id,
         project_id=project.id,
@@ -129,7 +129,7 @@ def test_session_serious_game_complete(service, tmp_path):
     )
     assert decision.scores["ur"] is not None
 
-    # 5. Les scores vivent : le nœud a un état complet.
+    # 5. Les scores vivent : le noeud a un etat complet.
     states = service.evaluate_all(persist=True)
     state = states[node_id]
     assert state.ud is not None and state.ur is not None and state.adequation is not None
@@ -142,7 +142,7 @@ def test_session_serious_game_complete(service, tmp_path):
     assert {"noeuds", "evenements", "decisions", "evaluations"} <= set(wb.sheetnames)
     wb.close()
 
-    # 7. Sauvegarde zip + restauration sur un répertoire neuf : aucune perte.
+    # 7. Sauvegarde zip + restauration sur un repertoire neuf : aucune perte.
     zip_path = ServiceSauvegarde(service.db_dir, clock=service.clock).backup_all()
     assert zipfile.is_zipfile(zip_path)
 

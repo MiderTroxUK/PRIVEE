@@ -1,24 +1,24 @@
-"""Déclarants Ud — brique partagée entre les deux paliers (U7).
+"""Declarants Ud - brique partagee entre les deux paliers (U7).
 
-Ce module porte ce qui est COMMUN aux deux paliers de déclarants :
+Ce module porte ce qui est COMMUN aux deux paliers de declarants :
 
-- le contrat gelé ``respond(node_id, tour, features, rng) -> {"bipolar":
-  list[int] (6 dans [-8, 8]), "scores_ui": list[int] (4 dans [1, 6])}`` —
-  implémenté ici par :class:`RidgeDeclarant` (palier 1) et par
-  ``llm_farm.ClaudeCliDeclarant`` (palier 2, même signature) ;
+- le contrat gele ``respond(node_id, tour, features, rng) -> {"bipolar":
+  list[int] (6 dans [-8, 8]), "scores_ui": list[int] (4 dans [1, 6])}`` -
+  implemente ici par :class:`RidgeDeclarant` (palier 1) et par
+  ``llm_farm.ClaudeCliDeclarant`` (palier 2, meme signature) ;
 - la reconstruction, en LECTURE SEULE depuis ``data/prepared/``, du dict
   ``features`` attendu par ce contrat (valeur courante, delta 1, delta 2 sur
   les 9 ``kpi_paths`` de ``make_briefings.FIELD_LABELS``, plus
   ``event_flag``/``press_flag``) ;
-- la vectorisation de ``features`` en x(p, t) numérique, utilisée à la fois
-  par l'ajustement (``analysis/behavior_model.py``) et par l'échantillonnage
-  (:class:`RidgeDeclarant`) — UNE seule définition, pour que les deux
-  restent structurellement synchronisés.
+- la vectorisation de ``features`` en x(p, t) numerique, utilisee a la fois
+  par l'ajustement (``analysis/behavior_model.py``) et par l'echantillonnage
+  (:class:`RidgeDeclarant`) - UNE seule definition, pour que les deux
+  restent structurellement synchronises.
 
-Volontairement scénario-agnostique : ce module n'importe ni ``scenario``
-(HÉLIOS) ni ``supplyscore`` — seuls ``node_ids``/``n_tours`` sont passés par
+Volontairement scenario-agnostique : ce module n'importe ni ``scenario``
+(HELIOS) ni ``supplyscore`` - seuls ``node_ids``/``n_tours`` sont passes par
 l'appelant. Il vit dans ``projects/factory`` (et non ``simu_semiconducteurs``)
-pour rester réutilisable par une future campagne.
+pour rester reutilisable par une future campagne.
 """
 
 from __future__ import annotations
@@ -31,10 +31,7 @@ from pathlib import Path
 
 import numpy as np
 
-#: Ordre canonique des 9 chemins KPI montrés au consultant — DOIT rester
-#: synchronisé avec ``make_briefings.FIELD_LABELS`` (vérifié par une
-#: assertion au chargement de ``analysis/behavior_model.py``, seule source
-#: de vérité pour le libellé français ; ici on ne retient que l'ordre).
+#: Ordre canonique des 9 chemins KPI montres au consultant - DOIT rester synchronise avec ``make_briefings.FIELD_LABELS`` (verifie par une assertion au chargement de ``analysis/behavior_model.py``, seule source de verite pour le libelle francais ; ici on ne retient que l'ordre).
 KPI_PATHS: tuple[str, ...] = (
     "network.demand",
     "inventory.flow_rate",
@@ -50,38 +47,34 @@ KPI_PATHS: tuple[str, ...] = (
 #: 3 features par KPI (val, d1, d2) + event_flag + press_flag.
 N_FEATURES: int = 3 * len(KPI_PATHS) + 2
 
-#: Les 10 dimensions de sortie du questionnaire AHP : 4 notes UI [1, 6] puis
-#: 6 comparaisons bipolaires [-8, 8] (ordre des paires = PAIRS gelé, cf.
-#: llm_farm.py et supplyscore.web_ui.pages.questionnaire.PAIRS).
+#: Les 10 dimensions de sortie du questionnaire AHP : 4 notes UI [1, 6] puis 6 comparaisons bipolaires [-8, 8] (ordre des paires = PAIRS gele, cf. llm_farm.py et supplyscore.web_ui.pages.questionnaire.PAIRS).
 SCORE_DIMS: tuple[str, ...] = tuple(f"scores_ui_{k}" for k in range(4))
 BIPOLAR_DIMS: tuple[str, ...] = tuple(f"bipolar_{k}" for k in range(6))
 DIMENSIONS: tuple[str, ...] = SCORE_DIMS + BIPOLAR_DIMS
 
-#: Tours où la revue de presse (canal commun à tous les nœuds) porte un
-#: signal notable dans le scénario HÉLIOS (cf. scenario.NARRATIVE) — gelé
-#: dans le contrat U7, pas dérivé dynamiquement.
+#: Tours ou la revue de presse (canal commun a tous les noeuds) porte un signal notable dans le scenario HELIOS (cf. scenario.NARRATIVE) - gele dans le contrat U7, pas derive dynamiquement.
 DEFAULT_PRESS_TOURS: frozenset[int] = frozenset({6, 7, 13})
 
 
-# --- Reconstruction des features depuis data/prepared/ (lecture seule) -------------
+# Reconstruction des features depuis data/prepared/ (lecture seule)
 
 
 def kpi_history(prepared_dir: Path, n_tours: int) -> dict[tuple[str, str], dict[int, float]]:
     """Historique creux ``{(node_id, kpi_path): {tour: valeur}}``.
 
-    Lit UNIQUEMENT ``tour_NN.csv`` (mêmes fichiers que
-    ``make_briefings._node_data_upto``) : un couple (nœud, KPI) absent d'un
-    ``tour_NN.csv`` n'a pas changé ce tour-là (valeur portée depuis le
-    dernier tour où il apparaît — cf. :func:`carried_value`), jamais une
+    Lit UNIQUEMENT ``tour_NN.csv`` (memes fichiers que
+    ``make_briefings._node_data_upto``) : un couple (noeud, KPI) absent d'un
+    ``tour_NN.csv`` n'a pas change ce tour-la (valeur portee depuis le
+    dernier tour ou il apparait - cf. :func:`carried_value`), jamais une
     valeur absente par construction (anti-fuite structurelle : aucune
-    lecture de l'état vivant du service).
+    lecture de l'etat vivant du service).
 
     Args:
         prepared_dir: dossier ``data/prepared`` (lecture seule).
         n_tours: dernier tour de campagne (inclus).
 
     Returns:
-        Dict creux indexé par (nœud, chemin KPI), valeurs par tour observé.
+        Dict creux indexe par (noeud, chemin KPI), valeurs par tour observe.
     """
     prepared_dir = Path(prepared_dir)
     hist: dict[tuple[str, str], dict[int, float]] = {}
@@ -102,17 +95,17 @@ def carried_value(
     kpi_path: str,
     tour: int,
 ) -> float | None:
-    """Dernière valeur connue de ``(node_id, kpi_path)`` au tour <= ``tour``.
+    """Derniere valeur connue de ``(node_id, kpi_path)`` au tour <= ``tour``.
 
     Args:
         hist: historique creux produit par :func:`kpi_history`.
-        node_id: identifiant du nœud.
+        node_id: identifiant du noeud.
         kpi_path: chemin KPI (ex. ``"network.demand"``).
-        tour: tour courant (la recherche ne regarde jamais au-delà).
+        tour: tour courant (la recherche ne regarde jamais au-dela).
 
     Returns:
-        La valeur portée, ou ``None`` si ce KPI n'a jamais été observé pour
-        ce nœud jusqu'à ce tour inclus — jamais une extrapolation.
+        La valeur portee, ou ``None`` si ce KPI n'a jamais ete observe pour
+        ce noeud jusqu'a ce tour inclus - jamais une extrapolation.
     """
     series = hist.get((node_id, kpi_path))
     if not series:
@@ -124,7 +117,7 @@ def carried_value(
 
 
 def _event_nodes_by_tour(prepared_dir: Path, n_tours: int) -> dict[int, set[str]]:
-    """``{tour: {node_id ayant un événement ce tour-là}}`` depuis events_NN.json."""
+    """``{tour: {node_id ayant un evenement ce tour-la}}`` depuis events_NN.json."""
     prepared_dir = Path(prepared_dir)
     out: dict[int, set[str]] = {}
     for t in range(n_tours + 1):
@@ -145,27 +138,27 @@ def reconstruct_features(
     kpi_paths: Sequence[str] = KPI_PATHS,
     press_tours: frozenset[int] = DEFAULT_PRESS_TOURS,
 ) -> dict[tuple[str, int], dict]:
-    """Reconstruit le dict ``features`` du contrat gelé pour chaque (nœud, tour).
+    """Reconstruit le dict ``features`` du contrat gele pour chaque (noeud, tour).
 
-    Pour chaque chemin KPI : ``val`` = dernière valeur connue (0.0 si ce KPI
-    n'a jamais été observé pour ce nœud — un nœud sans ce KPI porte un
-    vecteur neutre plutôt qu'une valeur manquante, cf. :func:`vectorize_features`),
-    ``d1``/``d2`` = différences 1/2 par rapport aux tours précédents (``None``
+    Pour chaque chemin KPI : ``val`` = derniere valeur connue (0.0 si ce KPI
+    n'a jamais ete observe pour ce noeud - un noeud sans ce KPI porte un
+    vecteur neutre plutot qu'une valeur manquante, cf. :func:`vectorize_features`),
+    ``d1``/``d2`` = differences 1/2 par rapport aux tours precedents (``None``
     tant que l'historique est trop court, jamais une extrapolation).
     ``event_flag``/``press_flag`` sont lus depuis ``events_NN.json`` /
     ``press_tours``.
 
     Args:
         prepared_dir: dossier ``data/prepared`` (lecture seule).
-        node_ids: nœuds à couvrir.
-        n_tours: dernier tour de campagne (inclus) ; produit des entrées
+        node_ids: noeuds a couvrir.
+        n_tours: dernier tour de campagne (inclus) ; produit des entrees
             pour tours 0..n_tours.
-        kpi_paths: ordre des 9 chemins KPI (défaut :data:`KPI_PATHS`).
-        press_tours: tours à presse notable (défaut :data:`DEFAULT_PRESS_TOURS`).
+        kpi_paths: ordre des 9 chemins KPI (defaut :data:`KPI_PATHS`).
+        press_tours: tours a presse notable (defaut :data:`DEFAULT_PRESS_TOURS`).
 
     Returns:
-        ``{(node_id, tour): features}`` où ``features`` suit exactement le
-        contrat gelé U7.
+        ``{(node_id, tour): features}`` ou ``features`` suit exactement le
+        contrat gele U7.
     """
     prepared_dir = Path(prepared_dir)
     hist = kpi_history(prepared_dir, n_tours)
@@ -190,16 +183,16 @@ def reconstruct_features(
 
 
 def vectorize_features(features: dict, kpi_paths: Sequence[str] = KPI_PATHS) -> list[float]:
-    """Vectorise ``features`` (contrat gelé) en x(p, t) numérique, ordre fixe.
+    """Vectorise ``features`` (contrat gele) en x(p, t) numerique, ordre fixe.
 
     Pour chaque chemin KPI (ordre ``kpi_paths``) : ``val`` (0.0 si absent),
     ``d1``/``d2`` (0.0 si ``None``/absent) ; puis ``event_flag``,
     ``press_flag`` (0.0/1.0). Longueur toujours ``3*len(kpi_paths) + 2``
-    (:data:`N_FEATURES` pour l'ordre par défaut), quel que soit le nœud.
+    (:data:`N_FEATURES` pour l'ordre par defaut), quel que soit le noeud.
 
     Args:
-        features: dict du contrat gelé (cf. :func:`reconstruct_features`).
-        kpi_paths: ordre des chemins KPI (défaut :data:`KPI_PATHS`).
+        features: dict du contrat gele (cf. :func:`reconstruct_features`).
+        kpi_paths: ordre des chemins KPI (defaut :data:`KPI_PATHS`).
 
     Returns:
         Vecteur x(p, t), longueur fixe.
@@ -218,30 +211,30 @@ def vectorize_features(features: dict, kpi_paths: Sequence[str] = KPI_PATHS) -> 
 
 
 def clip_round_int(value: float, lo: int, hi: int) -> int:
-    """Arrondit à l'entier le plus proche puis borne à ``[lo, hi]``."""
+    """Arrondit a l'entier le plus proche puis borne a ``[lo, hi]``."""
     return int(min(max(round(value), lo), hi))
 
 
-# --- Palier 1 : échantillonneur ridge -----------------------------------------------
+# Palier 1 : echantillonneur ridge
 
 
 class RidgeDeclarant:
-    """Palier 1 — déclarant échantillonné par le modèle ridge (behavior_model.py).
+    """Palier 1 - declarant echantillonne par le modele ridge (behavior_model.py).
 
-    Implémente le contrat gelé ``respond(node_id, tour, features, rng) ->
+    Implemente le contrat gele ``respond(node_id, tour, features, rng) ->
     {"bipolar": list[int], "scores_ui": list[int]}``. Charge
     ``behavior_params.json`` (poids w_d, phi_d, intercepts alpha par
-    persona + un persona générique ``"__generic__"`` (alpha=0) pour un
-    ``node_id`` inconnu du jeu d'entraînement, pools de résidus pour le
+    persona + un persona generique ``"__generic__"`` (alpha=0) pour un
+    ``node_id`` inconnu du jeu d'entrainement, pools de residus pour le
     tirage bootstrap).
 
-    État interne : dernière déclaration produite par nœud (terme AR),
-    remise à zéro (0.0) tant qu'aucune déclaration n'a encore été émise
-    pour ce nœud — cf. :meth:`respond`.
+    Etat interne : derniere declaration produite par noeud (terme AR),
+    remise a zero (0.0) tant qu'aucune declaration n'a encore ete emise
+    pour ce noeud - cf. :meth:`respond`.
     """
 
     def __init__(self, params_path: str | Path) -> None:
-        """Charge les paramètres sérialisés par ``analysis/behavior_model.py``.
+        """Charge les parametres serialises par ``analysis/behavior_model.py``.
 
         Args:
             params_path: chemin vers ``behavior_params.json``.
@@ -260,18 +253,18 @@ class RidgeDeclarant:
     def respond(
         self, node_id: str, tour: int, features: dict, rng: random.Random
     ) -> dict[str, list[int]]:
-        """Contrat gelé : prédiction ridge + résidu bootstrap, bornée/arrondie.
+        """Contrat gele : prediction ridge + residu bootstrap, bornee/arrondie.
 
-        ``tour`` n'entre pas directement dans la prédiction : la dépendance
-        temporelle passe par le terme AR (état interne par nœud), fidèle à
-        y_d(p,t) = alpha + x(p,t)·w_d + phi_d·y_d(p,t-1) + eps.
+        ``tour`` n'entre pas directement dans la prediction : la dependance
+        temporelle passe par le terme AR (etat interne par noeud), fidele a
+        y_d(p,t) = alpha + x(p,t)-w_d + phi_d-y_d(p,t-1) + eps.
 
         Args:
-            node_id: identifiant du nœud (persona).
-            tour: tour courant (non utilisé directement, cf. ci-dessus).
-            features: dict du contrat gelé (cf. :func:`reconstruct_features`).
-            rng: générateur utilisé pour le tirage bootstrap du résidu —
-                déterministe si ``rng`` l'est.
+            node_id: identifiant du noeud (persona).
+            tour: tour courant (non utilise directement, cf. ci-dessus).
+            features: dict du contrat gele (cf. :func:`reconstruct_features`).
+            rng: generateur utilise pour le tirage bootstrap du residu -
+                deterministe si ``rng`` l'est.
 
         Returns:
             ``{"bipolar": [6 int dans [-8,8]], "scores_ui": [4 int dans [1,6]]}``.

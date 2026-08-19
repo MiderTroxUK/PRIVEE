@@ -401,15 +401,41 @@ The criticality service answers one question systematically: which node, if it f
 completely, would cause the most damage to final-customer delivery? For every active node
 in turn, the service forces the node's local real urgency to $1.0$, re-runs the ascending
 propagation, and measures two deltas, the rise of $U_r$ at the final-customer nodes and the
-largest rise anywhere in the network. Nodes are ranked by the first, then the second, then
-by name. Figure~\ref{fig:shock_simulation} traces a single iteration of that sweep, from
-the forced saturation of one node to the deltas it produces downstream.
+largest rise anywhere in the network. Every shock is run twice, once on the standard
+pipeline and once on an $\varepsilon$-regularised twin that carries the same propagation in
+log-survival, $\ell(p) = -\ln(1-p)$, with urgency clipped to $1-\varepsilon$ so that a
+survival product is never exactly zero. Nodes are ranked by the rise at the final customer
+first, then by the corresponding log-survival delta $\Delta \ell_{\text{final}}$, then by
+name. Figure~\ref{fig:shock_simulation} traces a single iteration of that sweep, from the
+forced saturation of one node to the deltas it produces downstream.
 
-One behaviour of this index matters for interpretation. A node already saturated at
-$U_r \ge 1.0$ yields a delta of zero and sinks to the bottom of the ranking, since its risk
-is already realised in the baseline. In a network-wide crisis, where many nodes saturate at
-once, the index degenerates. This documented behaviour drives the exclusion rule used by
-hypothesis H3 in Section~\ref{sec:methods_campaign}.
+One behaviour of this index matters for interpretation, and it is what the second sort key
+exists for. A node already saturated at $U_r \ge 1.0$ yields a delta of zero and sinks to the
+bottom of the ranking, since its risk is already realised in the baseline. In a network-wide
+crisis, where many nodes saturate at once, $\Delta U_r$ collapses to zero throughout and the
+ranking degenerates exactly where it would be most useful; nine of the nineteen campaign
+turns are in that state, which is what the exclusion rule used by hypothesis H3 in
+Section~\ref{sec:methods_campaign} was written for.
+
+Because $\ell$ is strictly increasing, $\Delta \ell_{\text{final}}$ and the standard delta
+at the final customer are two monotone transforms of the same shocked urgency, so outside
+saturation they induce the same order and the ranking is unchanged. This is stated as a
+property-based invariant and tested as one. Inside saturation the clip that flattens
+$\Delta U_r$ does not flatten $\Delta \ell$, which continues to measure how much deeper a
+shock drives an already saturated network. Section~\ref{sec:res_repair} reports what that
+recovers on the campaign.
+
+A second entry point answers the distributional question rather than the worst case. Instead
+of forcing local urgency to $1.0$, it draws shock severities from the graduated flat-rate
+severities of the calibrated event engine, minor, major and critical failures at $0.4$, $0.7$
+and $1.0$ and financial alerts at $0.3$, $0.6$ and $0.9$, the two families weighted equally
+and, within a family, by decreasing field frequency. Each draw is applied as a ratchet,
+$\max(U_{r,\text{local}}, \text{severity})$, on the same principle as the event engine,
+since a failure never improves a node's state. The batch is propagated in one vectorised
+pass, in duplicate for both measures, and each node receives
+$P(\Delta U_{r,\text{final}} > 0.2)$ together with the median and ninth decile of its
+$\Delta \ell_{\text{final}}$ distribution. The computation is read-only, seeded and
+deterministic.
 
 \begin{figure}[htbp]
     \centering
@@ -665,6 +691,44 @@ observed availability is $A_{\text{obs}} \approx 0.9286$. Updating a baseline av
 of $0.95$ with $\lambda = 0.5$ gives $A_{\text{new}} \approx 0.9393$, while risk severity
 updates in ratchet mode to $\max(0.30, 0.50) = 0.50$.
 
+\subsubsection{The Forecast Layer}
+\label{sec:methods_forecast}
+
+The results of this thesis turn on one component, so it is specified here rather than left
+implicit behind the phrase used in the scoring protocol below. The forecast service projects
+every active node over one to four weeks from that node's own persisted weekly history, and
+emits the probability $p_h$ that an adverse outcome occurs within the horizon.
+
+Three quantities are estimated from the history and then simulated forward. Local urgency is
+extrapolated by a first-order autoregression fitted by least squares. The rate of adverse
+events is a Beta posterior, the same conjugate revision the event engine uses. The lead time
+is resolved to a distribution and resampled by parametric bootstrap. The rollout then draws a
+node's future trajectory, and $p_h$ is the fraction of trajectories in which the outcome
+occurs.
+
+The estimator is deliberately tied to the target. What $p_h$ estimates is exactly the adverse
+outcome of the calibration service, a missed milestone or a non-reverted event of gravity
+critical or defect; the third condition of that definition, node abandonment, is not
+simulated, because only active nodes are projected and abandonment is an outcome to
+anticipate rather than an input state. The forecast is therefore the prospective estimator of
+the quantity the calibration service measures retrospectively. Section~\ref{sec:res_target_trap}
+shows how much rests on that alignment.
+
+Uncertainty is decomposed rather than lumped. The simulation is nested: $K = 20$ outer draws
+of the parameters themselves, the autoregression coefficient and residual scale through their
+least-squares standard errors, the event rate through its Beta posterior and the lead-time
+moments through the bootstrap, each carrying $n/K$ inner trajectories. The variance of $p_h$
+splits into a Monte Carlo component within outer draws and a parametric component between
+them, and the reported interval is labelled by the sources it covers. This matters for the
+reliability analysis of Section~\ref{sec:res_armA_scored}, since an interval that hides which
+uncertainty it represents cannot be read.
+
+Two disciplines are enforced in the code rather than by convention. The service never writes,
+so a forecast cannot perturb the state it forecasts. And counterfactual comparisons, which
+price a corrective action by rerunning two branches on common random numbers, are named
+throughout as an effect according to the model and never as a measured effect, because both
+branches are simulated and neither is an observation.
+
 \subsubsection{Explainability, Export and Operational Hardening}
 \label{sec:explain_export}
 
@@ -840,15 +904,20 @@ allows the effect of a treatment to be separated from the behaviour of the scena
     confirms my assessment, revised upward, or revised downward. That field is the direct
     measure of the treatment effect.
     \item[Arm C, closed loop.] The agents act on the terrain through a catalogue of
-    interventions, so the ground truth itself changes. Arm C is designed but not executed,
-    and is reported in Section~\ref{sec:future_work} as future work.
+    interventions applied by the mutation service and recorded in an intervention journal, so
+    the ground truth itself changes. Arm C was executed in its agent version after the repair
+    of Section~\ref{sec:res_repair}, over the same nineteen turns; because action destroys the
+    reference truth, it is judged by comparing its final state with arm A rather than by
+    scoring its forecasts.
 \end{description}
 
 The distinction between B and C is one of nature rather than degree. In arm B the ground
 truth is fixed, so the predictions are scorable with proper scoring rules and the treatment
 effect is measured on perception. In arm C, action destroys the reference truth, because a
-rupture avoided thanks to an alert makes a good prediction look wrong, so arm C could only
-be judged by comparing its final state with arm A.
+rupture avoided thanks to an alert makes a good prediction look wrong, so arm C can only be
+judged by comparing its final state with arm A. That comparison is reported in
+Section~\ref{sec:res_repair}, and it is why the headline count of unfinished milestones is
+not the figure to read.
 
 Two properties of this design are worth stating explicitly, because the results depend on
 them. First, the agents are language models, one per role, each confined to its own role

@@ -53,7 +53,7 @@ def _full_kpis() -> KPIBundle:
     return kpis
 
 
-# --- Sérialisation KPIBundle ---------------------------------------------------
+# Serialisation KPIBundle
 
 
 class TestKPISerialization:
@@ -61,7 +61,7 @@ class TestKPISerialization:
         kpis = _full_kpis()
         rebuilt = kpis_from_json(kpis_to_json(kpis))
         assert rebuilt == kpis
-        # Les propriétés calculées se recalculent (non sérialisées).
+        # Les proprietes calculees se recalculent (non serialisees).
         assert rebuilt.oee.oee == pytest.approx(0.9 * 0.85 * 0.95)
         assert rebuilt.co2.total_g_h == pytest.approx(1800.0)
         assert rebuilt.inventory.remaining_volume_m3 == pytest.approx(750.0)
@@ -82,7 +82,7 @@ class TestKPISerialization:
         assert kpis_from_json("") == KPIBundle()
 
 
-# --- RegistryDatabase ------------------------------------------------------------
+# RegistryDatabase
 
 
 class TestRegistryDatabase:
@@ -196,7 +196,7 @@ class TestRegistryDatabase:
             assert db.get_node("a").name == "A"
 
 
-# --- ClientDatabase ---------------------------------------------------------------
+# ClientDatabase
 
 
 def _assessment(node_id="n1", ts=1000.0, ud=0.4) -> AHPAssessment:
@@ -288,12 +288,12 @@ class TestClientDatabase:
         ):
             db_a.save_assessment(_assessment(node_id="nA"))
             assert db_a.db_path != db_b.db_path
-            # L'évaluation du client A n'existe pas chez B (isolation).
+            # L'evaluation du client A n'existe pas chez B (isolation).
             assert db_b.latest_assessment("nA") is None
 
         assert (tmp_path / "client-A.sqlite").exists()
         assert (tmp_path / "client-B.sqlite").exists()
-        # Le registre est un troisième fichier, distinct des bases clients.
+        # Le registre est un troisieme fichier, distinct des bases clients.
         with RegistryDatabase(tmp_path):
             pass
         assert (tmp_path / "registry.sqlite").exists()

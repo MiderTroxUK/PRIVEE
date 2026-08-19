@@ -1,21 +1,21 @@
-"""Insights décisionnels en ligne de commande — LE contrat de fin HÉLIOS v7.
+"""Insights decisionnels en ligne de commande - LE contrat de fin HELIOS v7.
 
 Usage::
 
     python -m supplyscore.tools.insights --db-dir data_store --project <id> \
         [--model models/latest/artifact.json] [--json]
 
-Tente une prévision complète via :class:`~supplyscore.services.prediction.\
-PredictionService` (import PARESSEUX — le module U11 peut être absent de cet
+Tente une prevision complete via :class:`~supplyscore.services.prediction.\
+PredictionService` (import PARESSEUX - le module U11 peut etre absent de cet
 environnement). Si le module est indisponible, si aucun artefact n'est
-fourni/lisible, ou si la prévision échoue pour toute autre raison, l'outil
-avertit clairement puis bascule en MODE DÉGRADÉ : des insights fondés
-UNIQUEMENT sur la criticité systématique (:class:`~supplyscore.services.\
-criticite.ServiceCriticite`) et les signaux H/F du dépôt sont produits sans
-aucun artefact de modèle (jamais un P(≤4) fabriqué).
+fourni/lisible, ou si la prevision echoue pour toute autre raison, l'outil
+avertit clairement puis bascule en MODE DEGRADE : des insights fondes
+UNIQUEMENT sur la criticite systematique (:class:`~supplyscore.services.\
+criticite.ServiceCriticite`) et les signaux H/F du depot sont produits sans
+aucun artefact de modele (jamais un P(<=4) fabrique).
 
-Code retour : 0 si des insights sont produits (même liste vide), 1 si le
-projet est inconnu du registre (message français sur la sortie d'erreur).
+Code retour : 0 si des insights sont produits (meme liste vide), 1 si le
+projet est inconnu du registre (message francais sur la sortie d'erreur).
 """
 
 from __future__ import annotations
@@ -34,11 +34,10 @@ from supplyscore.services import SupplyScoreService
 from supplyscore.services.criticite import ServiceCriticite
 from supplyscore.services.insights import Insight, InsightService
 
-#: Emplacement par défaut de l'artefact de modèle (contrat 5 figé, U10) — même
-#: valeur que :mod:`supplyscore.tools.predict`.
+#: Emplacement par defaut de l'artefact de modele (contrat 5 fige, U10) - meme valeur que :mod:`supplyscore.tools.predict`.
 _DEFAULT_MODEL = "models/latest/artifact.json"
 
-#: Ordre d'affichage des sections groupées par sévérité.
+#: Ordre d'affichage des sections groupees par severite.
 _ORDRE_SEVERITE: tuple[str, ...] = ("alerte", "attention", "info")
 
 
@@ -46,7 +45,7 @@ def build_parser() -> argparse.ArgumentParser:
     """Construit le parseur d'arguments de l'outil d'insights.
 
     Returns:
-        Le :class:`argparse.ArgumentParser` configuré (``--db-dir``,
+        Le :class:`argparse.ArgumentParser` configure (``--db-dir``,
         ``--project``, ``--model``, ``--json``).
     """
     parser = argparse.ArgumentParser(
@@ -71,18 +70,18 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-# --- Points minimaux (mode dégradé, sans artefact) -----------------------------------------
+# Points minimaux (mode degrade, sans artefact)
 
 
 @dataclasses.dataclass(frozen=True)
 class _PointMinimal:
-    """Point minimal reproduisant structurellement le contrat 6 (mode dégradé CLI).
+    """Point minimal reproduisant structurellement le contrat 6 (mode degrade CLI).
 
-    Tous les champs de prévision restent neutres/absents (aucun P(≤4) n'est
-    fabriqué) ; seuls ``node_id``, ``node_name`` et ``impact_frac``
-    (criticité, calculable sans aucun modèle) sont renseignés — cf.
+    Tous les champs de prevision restent neutres/absents (aucun P(<=4) n'est
+    fabrique) ; seuls ``node_id``, ``node_name`` et ``impact_frac``
+    (criticite, calculable sans aucun modele) sont renseignes - cf.
     :class:`~supplyscore.services.insights.InsightService`, qui relit par
-    ailleurs H/F et les arcs de secours EN DIRECT sur la façade.
+    ailleurs H/F et les arcs de secours EN DIRECT sur la facade.
     """
 
     node_id: str
@@ -101,16 +100,16 @@ class _PointMinimal:
 
 
 def _points_degrades(service: SupplyScoreService, project_id: str) -> list[_PointMinimal]:
-    """Points minimaux (criticité + rien d'autre) pour le mode dégradé, sans artefact.
+    """Points minimaux (criticite + rien d'autre) pour le mode degrade, sans artefact.
 
     Args:
-        service: façade applicative (dépôt de graphe déjà chargé du registre).
-        project_id: projet à analyser.
+        service: facade applicative (depot de graphe deja charge du registre).
+        project_id: projet a analyser.
 
     Returns:
-        Un :class:`_PointMinimal` par nœud ACTIF (onboarding terminé) du
-        projet ; ``impact_frac`` est renseigné si la criticité est
-        calculable (au moins un nœud actif), None sinon.
+        Un :class:`_PointMinimal` par noeud ACTIF (onboarding termine) du
+        projet ; ``impact_frac`` est renseigne si la criticite est
+        calculable (au moins un noeud actif), None sinon.
     """
     noeuds = [
         n
@@ -124,7 +123,7 @@ def _points_degrades(service: SupplyScoreService, project_id: str) -> list[_Poin
         if n_total:
             impact_par_noeud = {p.node_id: p.nb_impactes / n_total for p in points_crit}
     except ValueError:
-        pass  # aucun nœud actif : criticité indisponible, impact_frac restera absent
+        pass  # aucun noeud actif : criticite indisponible, impact_frac restera absent
 
     return [
         _PointMinimal(
@@ -149,21 +148,21 @@ def _points_degrades(service: SupplyScoreService, project_id: str) -> list[_Poin
 def _construire_points(
     service: SupplyScoreService, project_id: str, model_path: Path
 ) -> tuple[Sequence[Any], list[str]]:
-    """Points de prévision réels si possible, sinon points dégradés (jamais fatal).
+    """Points de prevision reels si possible, sinon points degrades (jamais fatal).
 
     Tente ``PredictionService`` (import paresseux) UNIQUEMENT si l'artefact
     existe sur disque ; toute autre situation (module absent, artefact
-    illisible, échec de prévision) bascule en mode dégradé avec un
-    avertissement français explicite — jamais une exception propagée d'ici.
+    illisible, echec de prevision) bascule en mode degrade avec un
+    avertissement francais explicite - jamais une exception propagee d'ici.
 
     Args:
-        service: façade applicative (dépôt de graphe déjà chargé du registre).
-        project_id: projet à analyser.
-        model_path: chemin de l'artefact de modèle candidat.
+        service: facade applicative (depot de graphe deja charge du registre).
+        project_id: projet a analyser.
+        model_path: chemin de l'artefact de modele candidat.
 
     Returns:
-        ``(points, avertissements)`` — les points (réels ou dégradés) et les
-        avertissements français à afficher après le rendu.
+        ``(points, avertissements)`` - les points (reels ou degrades) et les
+        avertissements francais a afficher apres le rendu.
     """
     try:
         module = importlib.import_module("supplyscore.services.prediction")
@@ -183,7 +182,7 @@ def _construire_points(
     try:
         pred_service = module.PredictionService(service, model_path)
         points = pred_service.predict(project_id)
-    except Exception as exc:  # dégradation volontaire : jamais fatal pour cet outil
+    except Exception as exc:  # degradation volontaire : jamais fatal pour cet outil
         return _points_degrades(service, project_id), [
             f"Prévision indisponible ({exc}). Mode dégradé : insights fondés sur la"
             " criticité et H/F uniquement, sans artefact."
@@ -192,14 +191,14 @@ def _construire_points(
     return points, avertissements
 
 
-# --- Rendu humain ----------------------------------------------------------------------------
+# Rendu humain
 
 
 def _imprimer_insights(insights: list[Insight]) -> None:
-    """Imprime les insights groupés par sévérité (alerte, attention, info).
+    """Imprime les insights groupes par severite (alerte, attention, info).
 
     Args:
-        insights: insights à afficher, déjà triés par :meth:`InsightService.insights`.
+        insights: insights a afficher, deja tries par :meth:`InsightService.insights`.
     """
     par_severite: dict[str, list[Insight]] = {severite: [] for severite in _ORDRE_SEVERITE}
     for insight in insights:
@@ -216,43 +215,41 @@ def _imprimer_insights(insights: list[Insight]) -> None:
                 print(f"  Action suggérée : {insight.action}")
 
 
-# --- Rendu JSON ------------------------------------------------------------------------------
+# Rendu JSON
 
 
 def _insight_vers_json(insight: Insight) -> dict[str, Any]:
-    """Convertit un :class:`Insight` en dictionnaire JSON-sérialisable.
+    """Convertit un :class:`Insight` en dictionnaire JSON-serialisable.
 
     Args:
-        insight: insight à convertir.
+        insight: insight a convertir.
 
     Returns:
-        Le dictionnaire prêt pour ``json.dumps``.
+        Le dictionnaire pret pour ``json.dumps``.
     """
     return dataclasses.asdict(insight)
 
 
-# --- Point d'entrée ----------------------------------------------------------------------------
+# Point d'entree
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Point d'entrée : produit les insights du projet et les affiche.
+    """Point d'entree : produit les insights du projet et les affiche.
 
     Args:
         argv: arguments de la ligne de commande (``sys.argv[1:]`` si None).
 
     Returns:
-        0 si des insights sont produits (même liste vide), 1 si le projet est
-        inconnu du registre (message français sur la sortie d'erreur).
+        0 si des insights sont produits (meme liste vide), 1 si le projet est
+        inconnu du registre (message francais sur la sortie d'erreur).
     """
     args = build_parser().parse_args(argv)
     service = SupplyScoreService(db_dir=args.db_dir)
     try:
-        # Le dépôt de graphe en mémoire démarre vide : il faut le réhydrater
-        # depuis le registre SQLite (même motif que tools/predict.py).
+        # Le depot de graphe en memoire demarre vide : il faut le rehydrater depuis le registre SQLite (meme motif que tools/predict.py).
         service.load_graph_from_registry()
 
-        # _construire_points ne lève JAMAIS (dégradation interne complète, cf. sa
-        # docstring) : seule InsightService.insights peut échouer (projet inconnu).
+        # _construire_points ne leve JAMAIS (degradation interne complete, cf. sa docstring) : seule InsightService.insights peut echouer (projet inconnu).
         points, avertissements = _construire_points(service, args.project, Path(args.model))
 
         try:

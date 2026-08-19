@@ -1,29 +1,29 @@
-"""Moteur d'explicabilité — « pourquoi A = 32 » (phase E8, Lot 8.1).
+"""Moteur d'explicabilite - " pourquoi A = 32 " (phase E8, Lot 8.1).
 
-Décompositions EXACTES des quatre étages du pipeline SupplyScore :
+Decompositions EXACTES des quatre etages du pipeline SupplyScore :
 
-- **Ud (AHP)** : Ud = Σ_j w_j·(s_j − 1)/8 est additive — la contribution
-  κ_j = w_j·(s_j − 1)/8 du critère j vérifie Σκ_j = Ud exactement ;
-- **Ur_local (blocs KPI)** : Ur = 1 − Π_m (1 − u_m)^ω_m n'est pas additive
+- **Ud (AHP)** : Ud = Sigma_j w_j-(s_j - 1)/8 est additive - la contribution
+  kappa_j = w_j-(s_j - 1)/8 du critere j verifie Sigmakappa_j = Ud exactement ;
+- **Ur_local (blocs KPI)** : Ur = 1 - Pi_m (1 - u_m)^omega_m n'est pas additive
   dans l'espace des urgences, mais l'est dans l'espace log-survie : en
-  posant l_m = −ω_m·ln(1 − u_m) ≥ 0, Ur = 1 − exp(−Σ l_m) et la part
-  exacte du bloc m est l_m / Σ l (somme 1 sur les blocs actifs) ;
-- **propagation** : Ur_i = 1 − (1 − Ur_loc)·Π_j (1 − β_ji·Ur_j) a la même
-  structure produit → mêmes parts log-survie (une part locale plus une
-  part par fournisseur, somme 1) ; symétrique pour Ud descendant avec
-  γ_ik·Ud_k (quels clients tirent le besoin) ;
-- **adéquation** : pas de décomposition additive — l'équation est
-  instanciée chiffrée (e_under, e_over, penalty) telle que la calcule
+  posant l_m = -omega_m-ln(1 - u_m) >= 0, Ur = 1 - exp(-Sigma l_m) et la part
+  exacte du bloc m est l_m / Sigma l (somme 1 sur les blocs actifs) ;
+- **propagation** : Ur_i = 1 - (1 - Ur_loc)-Pi_j (1 - beta_ji-Ur_j) a la meme
+  structure produit -> memes parts log-survie (une part locale plus une
+  part par fournisseur, somme 1) ; symetrique pour Ud descendant avec
+  gamma_ik-Ud_k (quels clients tirent le besoin) ;
+- **adequation** : pas de decomposition additive - l'equation est
+  instanciee chiffree (e_under, e_over, penalty) telle que la calcule
   :class:`AdequationEngine`.
 
-Règle de défendabilité : ce module APPELLE les mêmes fonctions que le
+Regle de defendabilite : ce module APPELLE les memes fonctions que le
 pipeline (:meth:`UrModel.blocks`, :meth:`UrModel.ur_local`,
 :func:`compute_ud`, :meth:`AdequationEngine.adequation_asym`,
 :mod:`supplyscore.core.status_rules`) au lieu de recopier les formules ;
-la reconstruction ``1 − exp(−Σ l)`` coïncide avec ``ur_local()`` à 1e-12
-près. Les statuts DONE et ABANDONED court-circuitent Ur_local EN AMONT
-(status_rules : DONE → 0.0, ABANDONED → 1.0) : la décomposition par blocs
-ne s'applique donc qu'aux nœuds ACTIVE.
+la reconstruction ``1 - exp(-Sigma l)`` coincide avec ``ur_local()`` a 1e-12
+pres. Les statuts DONE et ABANDONED court-circuitent Ur_local EN AMONT
+(status_rules : DONE -> 0.0, ABANDONED -> 1.0) : la decomposition par blocs
+ne s'applique donc qu'aux noeuds ACTIVE.
 """
 
 from __future__ import annotations
@@ -40,27 +40,27 @@ from supplyscore.core.ur_model import BLOCKS, UrModel, _clip01
 from supplyscore.domain.milestones import Milestone, next_active_milestone, theoretical_progress
 from supplyscore.domain.models import ArcKind, KPIBundle, SupplyArc, SupplyNode
 
-#: Seuil de saturation : u ≥ 1 − ε ⇒ facteur de survie nul (part forcée).
+#: Seuil de saturation : u >= 1 - epsilon => facteur de survie nul (part forcee).
 _EPS_SAT: float = 1e-9
 
 
-# --- Structures de résultat ---------------------------------------------------------
+# Structures de resultat
 
 
 @dataclass(frozen=True)
 class BlockContribution:
-    """Contribution d'un bloc KPI à l'urgence réelle locale Ur.
+    """Contribution d'un bloc KPI a l'urgence reelle locale Ur.
 
     Attributes:
         block: nom du bloc (cf. :data:`supplyscore.core.ur_model.BLOCKS`).
         u: urgence partielle u_m du bloc, ou None si non calculable.
-        omega: poids d'agrégation effectif ω_m du bloc.
-        share: part EXACTE l_m/Σl en log-survie (somme 1 sur les blocs
-            actifs ; 0 pour les blocs inactifs ; cas saturés et tout-nuls
-            traités, cf. :func:`explain_ur_local`).
-        delta_without: contribution marginale Ur − Ur_sans_m (« sans ce
-            bloc, Ur vaudrait… ») — intuitive mais NON additive :
-            Σ delta_without ≠ Ur en général.
+        omega: poids d'agregation effectif omega_m du bloc.
+        share: part EXACTE l_m/Sigmal en log-survie (somme 1 sur les blocs
+            actifs ; 0 pour les blocs inactifs ; cas satures et tout-nuls
+            traites, cf. :func:`explain_ur_local`).
+        delta_without: contribution marginale Ur - Ur_sans_m (" sans ce
+            bloc, Ur vaudrait... ") - intuitive mais NON additive :
+            Sigma delta_without != Ur en general.
     """
 
     block: str
@@ -72,15 +72,15 @@ class BlockContribution:
 
 @dataclass(frozen=True)
 class CriterionContribution:
-    """Contribution additive exacte d'un critère AHP à Ud.
+    """Contribution additive exacte d'un critere AHP a Ud.
 
     Attributes:
-        index: indice du critère (ordre de :data:`supplyscore.core.ahp.CRITERIA`).
-        label: libellé du critère.
-        weight: poids AHP normalisé w_j (Σ w = 1, comme dans ``compute_ud``).
-        score: note s_j du critère sur l'échelle de Saaty [1, 9].
-        contribution: κ_j = w_j·(s_j − 1)/8 — additive : Σ κ_j = Ud
-            exactement (à l'associativité flottante près, < 1e-12).
+        index: indice du critere (ordre de :data:`supplyscore.core.ahp.CRITERIA`).
+        label: libelle du critere.
+        weight: poids AHP normalise w_j (Sigma w = 1, comme dans ``compute_ud``).
+        score: note s_j du critere sur l'echelle de Saaty [1, 9].
+        contribution: kappa_j = w_j-(s_j - 1)/8 - additive : Sigma kappa_j = Ud
+            exactement (a l'associativite flottante pres, < 1e-12).
     """
 
     index: int
@@ -92,15 +92,15 @@ class CriterionContribution:
 
 @dataclass(frozen=True)
 class EdgeContribution:
-    """Contribution d'un voisin (fournisseur ou client) à l'urgence propagée.
+    """Contribution d'un voisin (fournisseur ou client) a l'urgence propagee.
 
     Attributes:
-        neighbor_id: identifiant du nœud voisin.
-        neighbor_name: nom lisible du nœud voisin.
-        coeff: coefficient de l'arc (β_ji en montant, γ_ik en descendant).
-        u_neighbor: urgence propagée du voisin utilisée par le pipeline
+        neighbor_id: identifiant du noeud voisin.
+        neighbor_name: nom lisible du noeud voisin.
+        coeff: coefficient de l'arc (beta_ji en montant, gamma_ik en descendant).
+        u_neighbor: urgence propagee du voisin utilisee par le pipeline
             (Ur_j en montant, Ud_k en descendant).
-        share: part log-survie de ce voisin (part locale + Σ parts = 1).
+        share: part log-survie de ce voisin (part locale + Sigma parts = 1).
     """
 
     neighbor_id: str
@@ -112,16 +112,16 @@ class EdgeContribution:
 
 @dataclass(frozen=True)
 class AdequationTrace:
-    """Équation d'adéquation instanciée chiffrée (pas de décomposition additive).
+    """Equation d'adequation instanciee chiffree (pas de decomposition additive).
 
     Attributes:
-        e_under: sous-estimation [Ur − Ud]+ (risque caché).
-        e_over: surestimation [Ud − Ur]+ (fausse urgence).
-        penalty: pénalité λ_under·e_under^α + λ_over·e_over^α.
-        adequation: score A ∈ [0, 100] tel que rendu par
-            :meth:`AdequationEngine.adequation_asym` (même appel).
-        lambda_under: pénalité de sous-estimation du moteur.
-        lambda_over: pénalité de surestimation du moteur.
+        e_under: sous-estimation [Ur - Ud]+ (risque cache).
+        e_over: surestimation [Ud - Ur]+ (fausse urgence).
+        penalty: penalite lambda_under-e_under^alpha + lambda_over-e_over^alpha.
+        adequation: score A  dans  [0, 100] tel que rendu par
+            :meth:`AdequationEngine.adequation_asym` (meme appel).
+        lambda_under: penalite de sous-estimation du moteur.
+        lambda_over: penalite de surestimation du moteur.
         alpha: courbure psychophysique du moteur.
     """
 
@@ -139,13 +139,19 @@ class UTimeTrace:
     """Trace lisible de la modulation planning de u_time v2.
 
     Attributes:
-        u_base: socle probabiliste P(L > d − t), ou None (v1 sans KPIs
-            suffisants, ou retard avéré : pas de décomposition).
-        p_th: avancement théorique du jalon actif M*, ou None hors v2.
-        progress: avancement déclaré du jalon actif, ou None hors v2.
-        planning_adjust: κ_r·[r]+ − κ_a·[−r]+ avec r = p_th − progress
-            (0.0 si pas de jalon actif ou retard avéré).
-        final: u_time rendu par le pipeline — en v2 hors retard avéré,
+        u_base: socle probabiliste. En v1, P(L > d - t). En v2,
+            P(L_restant + retard_choc > d* - t) - il AGREGE donc le cycle
+            restant et le temps perdu ; ``retard_choc_h`` isole le second
+            terme pour que la trace montre la meme decomposition que le
+            calcul. None si v1 sans KPIs suffisants, ou retard avere.
+        retard_choc_h: temps de production perdu et non rattrape
+            (``time.delay_h``, heures) entre dans u_base ; 0.0 hors v2 ou sans
+            choc en cours.
+        p_th: avancement theorique du jalon actif M*, ou None hors v2.
+        progress: avancement declare du jalon actif, ou None hors v2.
+        planning_adjust: kappa_r-[r]+ - kappa_a-[-r]+ avec r = p_th - progress
+            (0.0 si pas de jalon actif ou retard avere).
+        final: u_time rendu par le pipeline - en v2 hors retard avere,
             final = clip01(u_base + planning_adjust).
     """
 
@@ -154,20 +160,21 @@ class UTimeTrace:
     progress: float | None
     planning_adjust: float
     final: float | None
+    retard_choc_h: float = 0.0
 
 
-# --- Aides log-survie ---------------------------------------------------------------
+# Aides log-survie
 
 
 def _log_survival(u: float, omega: float) -> float:
-    """Log-survie pondérée l = −ω·ln(1 − clip01(u)) d'un facteur d'urgence.
+    """Log-survie ponderee l = -omega-ln(1 - clip01(u)) d'un facteur d'urgence.
 
     Args:
-        u: urgence du facteur (clipée sur [0, 1] comme dans ``ur_local``).
-        omega: poids d'agrégation ω ≥ 0 du facteur.
+        u: urgence du facteur (clipee sur [0, 1] comme dans ``ur_local``).
+        omega: poids d'agregation omega >= 0 du facteur.
 
     Returns:
-        l ≥ 0 ; ``math.inf`` si le facteur est saturé (u ≥ 1).
+        l >= 0 ; ``math.inf`` si le facteur est sature (u >= 1).
     """
     survival = 1.0 - _clip01(u)
     if survival <= 0.0:
@@ -178,20 +185,20 @@ def _log_survival(u: float, omega: float) -> float:
 def _local_and_edge_shares(u_local: float, terms: list[float]) -> tuple[float, list[float]]:
     """Parts log-survie (part locale, parts des arcs) d'un produit de survie.
 
-    Cas limites, par priorité :
+    Cas limites, par priorite :
 
-    - u_local ≥ 1 − ε (retard avéré ou ABANDONED) → part locale 1.0, arcs
-      à 0 : la cause locale est unique, pas de calcul de parts ;
-    - sinon, termes d'arc saturés → ils se partagent 1 à parts égales ;
-    - Σ l = 0 (aucune urgence nulle part) → toutes les parts à 0.
+    - u_local >= 1 - epsilon (retard avere ou ABANDONED) -> part locale 1.0, arcs
+      a 0 : la cause locale est unique, pas de calcul de parts ;
+    - sinon, termes d'arc satures -> ils se partagent 1 a parts egales ;
+    - Sigma l = 0 (aucune urgence nulle part) -> toutes les parts a 0.
 
     Args:
-        u_local: urgence locale effective du nœud.
-        terms: termes d'arc coeff·u_voisin, dans l'ordre des voisins.
+        u_local: urgence locale effective du noeud.
+        terms: termes d'arc coeff-u_voisin, dans l'ordre des voisins.
 
     Returns:
-        Tuple ``(part_locale, parts_par_arc)`` ; part_locale + Σ parts = 1
-        sauf dans le cas tout-nul où tout vaut 0.
+        Tuple ``(part_locale, parts_par_arc)`` ; part_locale + Sigma parts = 1
+        sauf dans le cas tout-nul ou tout vaut 0.
     """
     if _clip01(u_local) >= 1.0 - _EPS_SAT:
         return 1.0, [0.0] * len(terms)
@@ -207,27 +214,27 @@ def _local_and_edge_shares(u_local: float, terms: list[float]) -> tuple[float, l
     return ell_loc / total, [ell / total for ell in ells]
 
 
-# --- Décompositions -------------------------------------------------------------------
+# Decompositions
 
 
 def explain_ud(weights: np.ndarray, scores: np.ndarray) -> list[CriterionContribution]:
-    """Décomposition additive exacte de Ud par critère AHP.
+    """Decomposition additive exacte de Ud par critere AHP.
 
-    Ud = Σ_j w_j·(s_j − 1)/8 ⇒ κ_j = w_j·(s_j − 1)/8 et Σ κ_j = Ud
-    exactement. La validation et la renormalisation défensive des poids
-    sont déléguées à :func:`supplyscore.core.ahp.compute_ud` (même appel
-    que le pipeline). Les libellés proviennent de :data:`CRITERIA`.
+    Ud = Sigma_j w_j-(s_j - 1)/8 => kappa_j = w_j-(s_j - 1)/8 et Sigma kappa_j = Ud
+    exactement. La validation et la renormalisation defensive des poids
+    sont deleguees a :func:`supplyscore.core.ahp.compute_ud` (meme appel
+    que le pipeline). Les libelles proviennent de :data:`CRITERIA`.
 
     Args:
-        weights: poids AHP (renormalisés défensivement à somme 1).
-        scores: notes par critère sur l'échelle de Saaty [1, 9].
+        weights: poids AHP (renormalises defensivement a somme 1).
+        scores: notes par critere sur l'echelle de Saaty [1, 9].
 
     Returns:
-        Une contribution par critère, dans l'ordre des indices.
+        Une contribution par critere, dans l'ordre des indices.
 
     Raises:
-        ValueError: si les longueurs diffèrent ou si une note sort de
-            [1, 9] (mêmes règles que ``compute_ud``).
+        ValueError: si les longueurs different ou si une note sort de
+            [1, 9] (memes regles que ``compute_ud``).
     """
     compute_ud(weights, scores)  # Validation du pipeline (dimensions, bornes).
     w = np.asarray(weights, dtype=float)
@@ -255,36 +262,36 @@ def explain_ur_local(
     model: UrModel,
     t0_ts: float = 0.0,
 ) -> list[BlockContribution]:
-    """Décomposition de Ur_local par bloc KPI, en parts log-survie exactes.
+    """Decomposition de Ur_local par bloc KPI, en parts log-survie exactes.
 
-    Les blocs sont calculés par :meth:`UrModel.blocks` (même appel que le
-    pipeline). Pour chaque bloc actif (u_m non-None et ω_m > 0) on pose
-    l_m = −ω_m·ln(1 − u_m) ; alors Ur = 1 − exp(−Σ l) coïncide avec
-    :meth:`UrModel.ur_local` à 1e-12 près et la part exacte du bloc est
-    share = l_m / Σ l (somme 1, additive dans l'espace log-survie).
+    Les blocs sont calcules par :meth:`UrModel.blocks` (meme appel que le
+    pipeline). Pour chaque bloc actif (u_m non-None et omega_m > 0) on pose
+    l_m = -omega_m-ln(1 - u_m) ; alors Ur = 1 - exp(-Sigma l) coincide avec
+    :meth:`UrModel.ur_local` a 1e-12 pres et la part exacte du bloc est
+    share = l_m / Sigma l (somme 1, additive dans l'espace log-survie).
 
     Cas limites :
 
-    - bloc saturé (u_m ≥ 1 − ε, ε = 1e-9) : l = ∞ — les blocs saturés se
-      partagent share = 1 à parts égales, les autres reçoivent 0 ;
-    - Σ l = 0 (tous les u actifs nuls) : toutes les parts valent 0 ;
-    - bloc inactif (u_m None ou ω_m = 0) : share = 0, delta_without = 0.
+    - bloc sature (u_m >= 1 - epsilon, epsilon = 1e-9) : l = ? - les blocs satures se
+      partagent share = 1 a parts egales, les autres recoivent 0 ;
+    - Sigma l = 0 (tous les u actifs nuls) : toutes les parts valent 0 ;
+    - bloc inactif (u_m None ou omega_m = 0) : share = 0, delta_without = 0.
 
-    ``delta_without`` est la contribution marginale Ur − Ur_sans_m, où
-    Ur_sans_m est ``ur_local`` recalculé avec ω_m = 0 (même appel que le
-    pipeline) : intuitive (« sans ce bloc, Ur vaudrait… ») mais NON
-    additive — Σ delta_without ≠ Ur en général.
+    ``delta_without`` est la contribution marginale Ur - Ur_sans_m, ou
+    Ur_sans_m est ``ur_local`` recalcule avec omega_m = 0 (meme appel que le
+    pipeline) : intuitive (" sans ce bloc, Ur vaudrait... ") mais NON
+    additive - Sigma delta_without != Ur en general.
 
-    La décomposition vaut pour un nœud ACTIVE : les statuts DONE (Ur → 0)
-    et ABANDONED (Ur → 1) court-circuitent ``ur_local`` en amont via
+    La decomposition vaut pour un noeud ACTIVE : les statuts DONE (Ur -> 0)
+    et ABANDONED (Ur -> 1) court-circuitent ``ur_local`` en amont via
     :mod:`supplyscore.core.status_rules`, sans passer par les blocs.
 
     Args:
         t: date courante (heures depuis t0 projet).
-        kpis: bundle KPI du nœud.
-        milestones: jalons du nœud, propagés au bloc ``time`` (u_time v2).
-        model: modèle Ur du pipeline (poids ω, gains κ).
-        t0_ts: origine du référentiel projet (epoch s).
+        kpis: bundle KPI du noeud.
+        milestones: jalons du noeud, propages au bloc ``time`` (u_time v2).
+        model: modele Ur du pipeline (poids omega, gains kappa).
+        t0_ts: origine du referentiel projet (epoch s).
 
     Returns:
         Une contribution par bloc, dans l'ordre de :data:`BLOCKS`.
@@ -340,52 +347,60 @@ def explain_u_time(
     model: UrModel,
     t0_ts: float = 0.0,
 ) -> UTimeTrace:
-    """Trace de u_time : socle probabiliste et modulation planning isolés.
+    """Trace de u_time : socle probabiliste et modulation planning isoles.
 
-    ``final`` est TOUJOURS le résultat de :meth:`UrModel.u_time` (même
-    appel que le pipeline). Trois régimes :
+    ``final`` est TOUJOURS le resultat de :meth:`UrModel.u_time` (meme
+    appel que le pipeline). Trois regimes :
 
-    - **v1** (pas de jalon actif) : pas de modulation — u_base = final,
+    - **v1** (pas de jalon actif) : pas de modulation - u_base = final,
       p_th = progress = None, planning_adjust = 0.0 ;
-    - **v2, retard avéré** (t > d*) : u_time est forcé à 1.0, cause
-      unique — pas de décomposition (u_base = p_th = None,
+    - **v2, retard avere** (t > d*) : u_time est force a 1.0, cause
+      unique - pas de decomposition (u_base = p_th = None,
       planning_adjust = 0.0) ;
-    - **v2 nominal** : u_base = P(L_restant > d* − t) via
-      :meth:`~supplyscore.core.ur_model.UrModel.u_base_jalon` (socle porté
-      par le travail restant, 0.0 si lead time absent), p_th avancement
-      théorique,
-      planning_adjust = κ_r·[r]+ − κ_a·[−r]+ avec r = p_th − progress, et
-      final = clip01(u_base + planning_adjust) à 1e-12 près.
+    - **v2 nominal** : u_base = P(L_restant + retard_choc > d* - t) via
+      :meth:`~supplyscore.core.ur_model.UrModel.u_base_jalon` - socle porte
+      par le travail restant ET le temps perdu, ce dernier repris tel quel
+      dans ``retard_choc_h`` pour rester lisible. Sans lead time le socle
+      vaut 0.0, SAUF si le temps perdu excede a lui seul la marge, auquel
+      cas il vaut 1.0. p_th est l'avancement theorique,
+      planning_adjust = kappa_r-[r]+ - kappa_a-[-r]+ avec r = p_th - progress, et
+      final = clip01(u_base + planning_adjust) a 1e-12 pres.
 
     Args:
         t: date courante (heures depuis t0 projet).
-        kpis: bundle KPI du nœud (bloc ``time``).
-        milestones: jalons du nœud ; None ou sans jalon ACTIVE → v1.
-        model: modèle Ur du pipeline (gains κ_retard / κ_avance).
-        t0_ts: origine du référentiel projet (epoch s).
+        kpis: bundle KPI du noeud (bloc ``time``).
+        milestones: jalons du noeud ; None ou sans jalon ACTIVE -> v1.
+        model: modele Ur du pipeline (gains kappa_retard / kappa_avance).
+        t0_ts: origine du referentiel projet (epoch s).
 
     Returns:
-        :class:`UTimeTrace` cohérente avec le pipeline.
+        :class:`UTimeTrace` coherente avec le pipeline.
     """
     final = model.u_time(t, kpis, milestones=milestones, t0_ts=t0_ts)
     m_star = next_active_milestone(milestones) if milestones else None
     if m_star is None:
-        # v1 : pas de modulation planning, le socle EST le résultat.
+        # v1 : pas de modulation planning, le socle EST le resultat.
         return UTimeTrace(u_base=final, p_th=None, progress=None, planning_adjust=0.0, final=final)
     d_star = (m_star.deadline_ts - t0_ts) / 3600.0
     if t > d_star:
-        # Retard avéré : u_time forcé à 1.0, cause unique, pas de parts.
+        # Retard avere : u_time force a 1.0, cause unique, pas de parts.
         return UTimeTrace(
             u_base=None, p_th=None, progress=m_star.progress, planning_adjust=0.0, final=final
         )
     tk = kpis.time
-    # Même appel que UrModel.u_time (cohérence structurelle, pas de duplication).
-    u_base = model.u_base_jalon(d_star - t, tk, m_star.progress)
+    retard = max(tk.delay_h or 0.0, 0.0)
+    # Meme appel que UrModel.u_time (coherence structurelle, pas de duplication).
+    u_base = model.u_base_jalon(d_star - t, tk, m_star.progress, retard)
     p_th = theoretical_progress(m_star, t0_ts + t * 3600.0)
     r = p_th - m_star.progress
     adjust = model.kappa_retard * max(r, 0.0) - model.kappa_avance * max(-r, 0.0)
     return UTimeTrace(
-        u_base=u_base, p_th=p_th, progress=m_star.progress, planning_adjust=adjust, final=final
+        u_base=u_base,
+        p_th=p_th,
+        progress=m_star.progress,
+        planning_adjust=adjust,
+        final=final,
+        retard_choc_h=retard,
     )
 
 
@@ -394,24 +409,24 @@ def explain_propagation_up(
     predecessors: list[SupplyNode],
     arcs_by_source: dict[str, SupplyArc],
 ) -> tuple[float, list[EdgeContribution]]:
-    """Décomposition de Ur propagé : part locale vs parts des fournisseurs.
+    """Decomposition de Ur propage : part locale vs parts des fournisseurs.
 
-    Le pipeline calcule Ur_i = 1 − (1 − Ur_loc)·Π_j (1 − β_ji·Ur_j) ; en
-    log-survie l_loc = −ln(1 − Ur_loc) et l_j = −ln(1 − β_ji·Ur_j), d'où
-    part_locale = l_loc/Σ et part_j = l_j/Σ (somme 1). Ur_loc est
-    l'urgence locale EFFECTIVE (:func:`effective_ur_local`, mêmes règles
-    de statut que :class:`PropagationEngine`) et Ur_j l'urgence propagée
-    du fournisseur (``urgency.ur``, None compté 0.0).
+    Le pipeline calcule Ur_i = 1 - (1 - Ur_loc)-Pi_j (1 - beta_ji-Ur_j) ; en
+    log-survie l_loc = -ln(1 - Ur_loc) et l_j = -ln(1 - beta_ji-Ur_j), d'ou
+    part_locale = l_loc/Sigma et part_j = l_j/Sigma (somme 1). Ur_loc est
+    l'urgence locale EFFECTIVE (:func:`effective_ur_local`, memes regles
+    de statut que :class:`PropagationEngine`) et Ur_j l'urgence propagee
+    du fournisseur (``urgency.ur``, None compte 0.0).
 
-    Cas limites : Ur_loc ≥ 1 (retard avéré ou ABANDONED) → part locale
-    1.0 et parts fournisseurs à 0 (cause locale unique) ; arcs de secours
-    (BACKUP) exclus, inertes comme dans le pipeline ; tout nul → toutes
-    les parts à 0.
+    Cas limites : Ur_loc >= 1 (retard avere ou ABANDONED) -> part locale
+    1.0 et parts fournisseurs a 0 (cause locale unique) ; arcs de secours
+    (BACKUP) exclus, inertes comme dans le pipeline ; tout nul -> toutes
+    les parts a 0.
 
     Args:
-        node: nœud expliqué (client des arcs).
-        predecessors: fournisseurs directs du nœud (Ur déjà propagé).
-        arcs_by_source: arcs entrants indexés par id de fournisseur.
+        node: noeud explique (client des arcs).
+        predecessors: fournisseurs directs du noeud (Ur deja propage).
+        arcs_by_source: arcs entrants indexes par id de fournisseur.
 
     Returns:
         Tuple ``(part_locale, contributions fournisseurs)``.
@@ -452,19 +467,19 @@ def explain_propagation_down(
     successors: list[SupplyNode],
     arcs_by_target: dict[str, SupplyArc],
 ) -> tuple[float, list[EdgeContribution]]:
-    """Décomposition de Ud propagé : part locale vs parts des clients.
+    """Decomposition de Ud propage : part locale vs parts des clients.
 
-    Symétrique de :func:`explain_propagation_up` pour la propagation
-    descendante Ud_i = 1 − (1 − Ud_loc)·Π_k (1 − γ_ik·Ud_k) : quels
-    CLIENTS tirent le besoin déclaré. Ud_loc est l'urgence déclarée
-    effective (:func:`effective_ud_local`) et Ud_k l'urgence propagée du
-    client (``urgency.ud``, None compté 0.0). Mêmes cas limites (Ud_loc
-    saturé → part locale 1.0 ; arcs BACKUP exclus ; tout nul → parts 0).
+    Symetrique de :func:`explain_propagation_up` pour la propagation
+    descendante Ud_i = 1 - (1 - Ud_loc)-Pi_k (1 - gamma_ik-Ud_k) : quels
+    CLIENTS tirent le besoin declare. Ud_loc est l'urgence declaree
+    effective (:func:`effective_ud_local`) et Ud_k l'urgence propagee du
+    client (``urgency.ud``, None compte 0.0). Memes cas limites (Ud_loc
+    sature -> part locale 1.0 ; arcs BACKUP exclus ; tout nul -> parts 0).
 
     Args:
-        node: nœud expliqué (fournisseur des arcs).
-        successors: clients directs du nœud (Ud déjà propagé).
-        arcs_by_target: arcs sortants indexés par id de client.
+        node: noeud explique (fournisseur des arcs).
+        successors: clients directs du noeud (Ud deja propage).
+        arcs_by_target: arcs sortants indexes par id de client.
 
     Returns:
         Tuple ``(part_locale, contributions clients)``.
@@ -501,21 +516,21 @@ def explain_propagation_down(
 
 
 def explain_adequation(ud: float, ur: float, engine: AdequationEngine) -> AdequationTrace:
-    """Équation d'adéquation instanciée chiffrée pour un couple (Ud, Ur).
+    """Equation d'adequation instanciee chiffree pour un couple (Ud, Ur).
 
-    e_under et e_over proviennent des MÊMES appels que le pipeline
+    e_under et e_over proviennent des MEMES appels que le pipeline
     (:meth:`AdequationEngine.hidden_risk` / :meth:`false_urgency`), le
-    score de :meth:`AdequationEngine.adequation_asym` ; la pénalité est
-    instanciée avec les paramètres du moteur :
-    penalty = λ_under·e_under^α + λ_over·e_over^α.
+    score de :meth:`AdequationEngine.adequation_asym` ; la penalite est
+    instanciee avec les parametres du moteur :
+    penalty = lambda_under-e_under^alpha + lambda_over-e_over^alpha.
 
     Args:
-        ud: urgence déclarée ∈ [0, 1].
-        ur: urgence réelle (≥ 0, peut dépasser 1 si retard).
-        engine: moteur d'adéquation du pipeline (λ, α).
+        ud: urgence declaree  dans  [0, 1].
+        ur: urgence reelle (>= 0, peut depasser 1 si retard).
+        engine: moteur d'adequation du pipeline (lambda, alpha).
 
     Returns:
-        :class:`AdequationTrace` chiffrée, cohérente avec le moteur.
+        :class:`AdequationTrace` chiffree, coherente avec le moteur.
     """
     e_under = engine.hidden_risk(ud, ur)
     e_over = engine.false_urgency(ud, ur)

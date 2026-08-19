@@ -41,8 +41,7 @@ plt.rcParams.update({
 
 D = dt.date
 
-# (label, start, end, colour band)
-#   framing / build / validate / capitalise
+# (label, start, end, colour band) framing / build / validate / capitalise
 PHASES = [
     ("Framing: literature, vocabulary, subject convergence", D(2026, 4, 13), D(2026, 5, 1), AZURE_LIGHT),
     ("First pipeline: initial model and modules",            D(2026, 4, 27), D(2026, 6, 1), AZURE_LIGHT),

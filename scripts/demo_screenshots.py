@@ -1,4 +1,4 @@
-"""Captures d'écran de l'application pour une présentation (Chrome headless).
+"""Captures d'ecran de l'application pour une presentation (Chrome headless).
 
 Usage :
     .venv\\Scripts\\python.exe scripts\\demo_screenshots.py
@@ -6,11 +6,11 @@ Usage :
         [--db-dir %LOCALAPPDATA%\\SupplyScore\\demo_presentation]
         [--out docs\\presentation\\screenshots]
 
-Le script découvre le projet et les nœuds dans ``registry.sqlite`` (lecture
-seule), injecte la sélection de projet/opérateur dans le ``sessionStorage``
+Le script decouvre le projet et les noeuds dans ``registry.sqlite`` (lecture
+seule), injecte la selection de projet/operateur dans le ``sessionStorage``
 (stores Dash de session), visite chaque page et enregistre des PNG 1920x1080
-(+ une variante pleine page pour les pages longues). L'application doit déjà
-tourner sur ``--base-url``. Outil de présentation uniquement — aucune écriture
+(+ une variante pleine page pour les pages longues). L'application doit deja
+tourner sur ``--base-url``. Outil de presentation uniquement - aucune ecriture
 en base.
 """
 
@@ -24,14 +24,14 @@ import sys
 import time
 from pathlib import Path
 
-#: Cache local des chromedrivers (même emplacement que tests/ui/conftest.py).
+#: Cache local des chromedrivers (meme emplacement que tests/ui/conftest.py).
 _CACHE_DRIVERS = (
     Path(os.environ.get("LOCALAPPDATA", str(Path.home()))) / "supplyscore" / "chromedriver"
 )
 
 
 def _prepend_chromedriver_path() -> None:
-    """Prépend au PATH le chromedriver le plus récent du cache local."""
+    """Prepend au PATH le chromedriver le plus recent du cache local."""
     if not _CACHE_DRIVERS.is_dir():
         return
     versions = sorted(
@@ -44,7 +44,7 @@ def _prepend_chromedriver_path() -> None:
 
 
 def _registry_ids(db_dir: Path) -> dict:
-    """Projet actif + nœuds remarquables (client, rang 1, nœud le plus profond)."""
+    """Projet actif + noeuds remarquables (client, rang 1, noeud le plus profond)."""
     db = db_dir / "registry.sqlite"
     con = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
     try:
@@ -81,7 +81,7 @@ def _registry_ids(db_dir: Path) -> dict:
 
 
 def _pages(ids: dict) -> list[tuple[str, str, float, bool]]:
-    """(slug, chemin, délai de rendu en s, capture pleine page en plus)."""
+    """(slug, chemin, delai de rendu en s, capture pleine page en plus)."""
     return [
         ("01-projets", "/", 4.0, True),
         ("02-onboarding", "/onboarding", 3.0, True),
@@ -100,17 +100,17 @@ def _pages(ids: dict) -> list[tuple[str, str, float, bool]]:
 
 
 def _select_dropdown(driver, css_id: str, texte: str) -> bool:
-    """Sélectionne une option d'un dcc.Dropdown par son texte (plusieurs stratégies)."""
+    """Selectionne une option d'un dcc.Dropdown par son texte (plusieurs strategies)."""
     import time as _time
 
     from selenium.webdriver.common.by import By
     from selenium.webdriver.common.keys import Keys
 
-    _ = Keys  # import conservé pour d'éventuelles stratégies clavier
+    _ = Keys  # import conserve pour d'eventuelles strategies clavier
     driver.find_element(By.CSS_SELECTOR, f"#{css_id}").click()
     _time.sleep(1.0)
     cible = texte.lower()[:18]
-    # Dropdown Dash 4 : options « .dash-dropdown-option » dans un portail radix.
+    # Dropdown Dash 4 : options " .dash-dropdown-option " dans un portail radix.
     clique = False
     for opt in driver.find_elements(By.CSS_SELECTOR, ".dash-dropdown-option"):
         try:
@@ -128,7 +128,7 @@ def _select_dropdown(driver, css_id: str, texte: str) -> bool:
 
 
 def _scenes(driver, base_url: str, ids: dict, out: Path, rapport_html: Path | None):
-    """Captures interactives : hebdo remplie, choc simulé, criticité, rapport."""
+    """Captures interactives : hebdo remplie, choc simule, criticite, rapport."""
     import time as _time
 
     from selenium.webdriver.common.by import By
@@ -156,7 +156,7 @@ def _scenes(driver, base_url: str, ids: dict, out: Path, rapport_html: Path | No
 
     nom_crise = ids["worst_name"] or ids["deepest_name"]
 
-    # Scène A — revue hebdo du nœud en crise (4 volets remplis).
+    # Scene A - revue hebdo du noeud en crise (4 volets remplis).
     driver.get(base_url + "/hebdo")
     _time.sleep(3.0)
     if _select_dropdown(driver, "hebdo-node-dd", nom_crise):
@@ -165,7 +165,7 @@ def _scenes(driver, base_url: str, ids: dict, out: Path, rapport_html: Path | No
     else:
         print("?? scène hebdo : sélection du nœud échouée")
 
-    # Scène B — choc simulé sur un nœud profond (défaillance totale par défaut).
+    # Scene B - choc simule sur un noeud profond (defaillance totale par defaut).
     driver.get(base_url + "/simulation")
     _time.sleep(3.0)
     if _select_dropdown(driver, "sim-node-dd", ids["deepest_name"]):
@@ -175,7 +175,7 @@ def _scenes(driver, base_url: str, ids: dict, out: Path, rapport_html: Path | No
     else:
         print("?? scène simulation : sélection du nœud échouée")
 
-    # Scène C — criticité systématique (tornado top 15).
+    # Scene C - criticite systematique (tornado top 15).
     try:
         driver.find_element(By.CSS_SELECTOR, "#sim-crit-btn").click()
         _time.sleep(20.0)
@@ -183,7 +183,7 @@ def _scenes(driver, base_url: str, ids: dict, out: Path, rapport_html: Path | No
     except Exception as exc:
         print(f"?? scène criticité : {exc}")
 
-    # Scène D — rapport de session HTML (fichier généré par le scénario).
+    # Scene D - rapport de session HTML (fichier genere par le scenario).
     if rapport_html and rapport_html.is_file():
         driver.get(rapport_html.resolve().as_uri())
         _time.sleep(6.0)
@@ -257,7 +257,7 @@ def main(argv: list[str] | None = None) -> int:
                 height = driver.execute_script(
                     "return Math.min(6000, Math.max(document.body.scrollHeight, 1080))"
                 )
-                if height > 1140:  # ne dupliquer que si la page dépasse vraiment l'écran
+                if height > 1140:  # ne dupliquer que si la page depasse vraiment l'ecran
                     driver.set_window_size(1920, int(height) + 120)
                     time.sleep(1.0)
                     target_full = out / f"{slug}-pleine-page.png"

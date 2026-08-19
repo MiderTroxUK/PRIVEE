@@ -1,54 +1,54 @@
-"""Constructeur de dataset personne-période (U8) + extraction du journal d'interventions.
+"""Constructeur de dataset personne-periode (U8) + extraction du journal d'interventions.
 
-Consomme les artefacts gelés produits par les autres unités HÉLIOS v7 (voir
-plan v7, unités U4/U5/U6) sous un dossier ``--runs`` parcouru récursivement :
-tout dossier contenant des fichiers ``tour_NN.json`` est traité comme UN run
-(``chain_id`` = nom de ce dossier), avec ses fichiers frères optionnels
+Consomme les artefacts geles produits par les autres unites HELIOS v7 (voir
+plan v7, unites U4/U5/U6) sous un dossier ``--runs`` parcouru recursivement :
+tout dossier contenant des fichiers ``tour_NN.json`` est traite comme UN run
+(``chain_id`` = nom de ce dossier), avec ses fichiers freres optionnels
 ``variant_manifest.json``, ``dgp_manifest.json`` et ``interventions_truth.jsonl``.
 
-Deux sorties indépendantes :
+Deux sorties independantes :
 
-OUTPUT 1 (dataset personne-période, transférable)::
+OUTPUT 1 (dataset personne-periode, transferable)::
 
     python build_dataset.py --runs DIR --out dataset.csv [--horizon 4] [--append] [--validate]
 
-Une ligne par ``(chain_id, node_id, t)``. AUCUNE feature d'identité :
+Une ligne par ``(chain_id, node_id, t)``. AUCUNE feature d'identite :
 ``chain_id``/``node_id``/``dgp_params_id`` sont des colonnes de GROUPE
-seulement, jamais des features de modèle. Labels ``y1``/``y{horizon}``
-censurés à VIDE (jamais 0 silencieux) quand la fenêtre d'observation dépasse
-le dernier tour connu de la chaîne. Voir :func:`build_feature_schema` pour le
-schéma complet (colonnes, dtypes, sémantique).
+seulement, jamais des features de modele. Labels ``y1``/``y{horizon}``
+censures a VIDE (jamais 0 silencieux) quand la fenetre d'observation depasse
+le dernier tour connu de la chaine. Voir :func:`build_feature_schema` pour le
+schema complet (colonnes, dtypes, semantique).
 
-OUTPUT 2 (journal d'interventions agrégé)::
+OUTPUT 2 (journal d'interventions agrege)::
 
     python build_dataset.py --runs DIR --interventions --out interventions.csv [--validate]
 
-Agrège tous les ``interventions_truth.jsonl`` trouvés sous ``--runs``. Les
+Agrege tous les ``interventions_truth.jsonl`` trouves sous ``--runs``. Les
 colonnes ``stress_latent``, ``delta_u_vrai`` et ``effet_vrai_param`` sont de
-la vérité terrain de l'USINE synthétique — marquées VALIDATION_ONLY (ligne de
-commentaire en tête de fichier + ``feature_schema.json``) : jamais des
-features du modèle d'effet (U17), utilisées uniquement pour le scorer.
+la verite terrain de l'USINE synthetique - marquees VALIDATION_ONLY (ligne de
+commentaire en tete de fichier + ``feature_schema.json``) : jamais des
+features du modele d'effet (U17), utilisees uniquement pour le scorer.
 
-Décisions de conception documentées (ambiguïtés du contrat gelé tranchées ici) :
+Decisions de conception documentees (ambiguites du contrat gele tranchees ici) :
 
 - ``dernier tour`` (pour la censure y1/y4) = le plus grand tour parmi les
-  ``tour_NN.json`` RÉELLEMENT présents pour la chaîne — jamais déduit de
-  l'étendue d'``events_truth`` (qui peut décrire un calendrier plus long que
-  ce que la campagne a effectivement joué). Choix conservateur : on ne
-  déclare jamais une fenêtre « entièrement observée » à tort.
-- ``H`` dans ``d{k}_H`` = ``hidden_risk`` (risque caché), le seul autre champ
-  de dynamique demandé en plus de ``ur_local``.
-- « événement » (labels y1/y4, dynamique ``event_recent``/``weeks_since_event``,
-  postérieur bayésien) = entrée ``events_truth`` de gravité dans
-  {"critique", "defaut"} — définition UNIQUE réutilisée partout dans ce module.
+  ``tour_NN.json`` REELLEMENT presents pour la chaine - jamais deduit de
+  l'etendue d'``events_truth`` (qui peut decrire un calendrier plus long que
+  ce que la campagne a effectivement joue). Choix conservateur : on ne
+  declare jamais une fenetre " entierement observee " a tort.
+- ``H`` dans ``d{k}_H`` = ``hidden_risk`` (risque cache), le seul autre champ
+  de dynamique demande en plus de ``ur_local``.
+- " evenement " (labels y1/y4, dynamique ``event_recent``/``weeks_since_event``,
+  posterieur bayesien) = entree ``events_truth`` de gravite dans
+  {"critique", "defaut"} - definition UNIQUE reutilisee partout dans ce module.
 - ``arcs`` (pour ``in_deg``/``out_deg``/le voisinage) est un champ D'EXTENSION
-  optionnel, absent des contrats gelés listés : lu défensivement dans
+  optionnel, absent des contrats geles listes : lu defensivement dans
   ``variant_manifest.json`` puis ``dgp_manifest.json`` (``[{"source","target"}]``),
-  colonnes vides quand absent — jamais fabriqué.
-- ``--append`` fusionne par remplacement : les lignes des ``chain_id`` traités
+  colonnes vides quand absent - jamais fabrique.
+- ``--append`` fusionne par remplacement : les lignes des ``chain_id`` traites
   dans l'appel courant remplacent leurs anciennes lignes dans le fichier
-  existant (les autres chaînes déjà présentes sont conservées telles quelles).
-  Rejoue le même ``--runs`` deux fois de suite ⇒ fichier final identique
+  existant (les autres chaines deja presentes sont conservees telles quelles).
+  Rejoue le meme ``--runs`` deux fois de suite => fichier final identique
   (idempotent), sans jamais dupliquer une ligne.
 """
 
@@ -66,12 +66,12 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-# --- Constantes gelées ---------------------------------------------------------------
+# Constantes gelees
 
 SCHEMA_VERSION = 1
-N0_BETA = 26.0  # convention dépôt (supplyscore.domain.events.N0_PSEUDO_OBSERVATIONS)
+N0_BETA = 26.0  # convention depot (supplyscore.domain.events.N0_PSEUDO_OBSERVATIONS)
 EMA_RHO = 0.3
-QUALIFYING_GRAVITES = frozenset({"critique", "defaut"})  # définition gelée d'un « événement »
+QUALIFYING_GRAVITES = frozenset({"critique", "defaut"})  # definition gelee d'un " evenement "
 # Blocs KPI de ur_local, cf. supplyscore.core.ur_model.BLOCKS = ("time","cap",...,"co2").
 U_BLOC_KEYS = ("u_time", "u_cap", "u_perf", "u_risk", "u_cost", "u_co2")
 HIDDEN_RISK_ALIAS = "H"  # alias des colonnes dynamiques d{k}_H = hidden_risk
@@ -85,18 +85,18 @@ TOUR_RE = re.compile(r"^tour_(\d+)\.json$")
 Json = dict[str, Any]
 
 
-# --- Chargement des runs ---------------------------------------------------------------
+# Chargement des runs
 
 
 @dataclass
 class RunData:
-    """Un run chargé : snapshots par tour + manifestes gelés (contrats U4/U6)."""
+    """Un run charge : snapshots par tour + manifestes geles (contrats U4/U6)."""
 
     chain_id: str
     snapshots: dict[int, Json] = field(default_factory=dict)  # tour -> {"nodes", "criticite"}
     events_truth: dict[int, list[Json]] = field(default_factory=dict)  # tour -> [{"node",...}]
     dgp_params_id: str = HELIOS_DGP_PARAMS_ID
-    arcs: list[tuple[str, str]] | None = None  # None = inconnus ; [] = connus, réseau sans arc
+    arcs: list[tuple[str, str]] | None = None  # None = inconnus ; [] = connus, reseau sans arc
 
 
 def _read_json(path: Path) -> Json:
@@ -115,10 +115,10 @@ def _read_jsonl(path: Path) -> list[Json]:
 
 
 def discover_runs(runs_root: Path) -> dict[str, Path]:
-    """Trouve chaque dossier de run sous ``runs_root`` (récursif).
+    """Trouve chaque dossier de run sous ``runs_root`` (recursif).
 
     Un dossier de run = tout dossier contenant au moins un ``tour_NN.json``.
-    ``chain_id`` = nom de ce dossier ; doit être unique sous ``runs_root``.
+    ``chain_id`` = nom de ce dossier ; doit etre unique sous ``runs_root``.
     """
     found: dict[str, Path] = {}
     for path in sorted(runs_root.rglob("tour_*.json")):
@@ -137,7 +137,7 @@ def discover_runs(runs_root: Path) -> dict[str, Path]:
 
 
 def load_run(chain_id: str, run_dir: Path) -> RunData:
-    """Charge un run : snapshots + manifestes optionnels, tolère les clés surnuméraires."""
+    """Charge un run : snapshots + manifestes optionnels, tolere les cles surnumeraires."""
     snapshots: dict[int, Json] = {}
     for path in sorted(run_dir.glob("tour_*.json")):
         m = TOUR_RE.match(path.name)
@@ -181,11 +181,11 @@ def load_run(chain_id: str, run_dir: Path) -> RunData:
 
 
 def load_all_runs(runs_root: Path) -> dict[str, RunData]:
-    """Découvre et charge tous les runs sous ``runs_root`` (triés par chain_id)."""
+    """Decouvre et charge tous les runs sous ``runs_root`` (tries par chain_id)."""
     return {cid: load_run(cid, d) for cid, d in sorted(discover_runs(runs_root).items())}
 
 
-# --- Définition d'un « événement » (gelée, réutilisée partout) ------------------------
+# Definition d'un " evenement " (gelee, reutilisee partout)
 
 
 def _has_qualifying_event(events_truth: dict[int, list[Json]], node_id: str, tour: int) -> bool:
@@ -211,7 +211,7 @@ def _weeks_since_event(events_truth: dict[int, list[Json]], node_id: str, t: int
     return (t - max(seen)) if seen else None
 
 
-# --- Labels y1 / y{horizon} (censure explicite, jamais 0 silencieux) ------------------
+# Labels y1 / y{horizon} (censure explicite, jamais 0 silencieux)
 
 
 def _label_y1(
@@ -233,10 +233,10 @@ def _label_censored_window(
         return 1
     if last_tour >= window_end:
         return 0
-    return None  # censuré : fenêtre non entièrement observée et aucun événement trouvé
+    return None  # censure : fenetre non entierement observee et aucun evenement trouve
 
 
-# --- Criticité / structure par tour -----------------------------------------------------
+# Criticite / structure par tour
 
 
 def _criticite_by_node(snapshot: Json) -> dict[str, Json]:
@@ -260,11 +260,11 @@ def _diff(curr: float | None, prev: float | None) -> float | None:
     return None if curr is None or prev is None else curr - prev
 
 
-# --- Postérieur Beta-Bernoulli (prior partagé, force N0=26) ---------------------------
+# Posterieur Beta-Bernoulli (prior partage, force N0=26)
 
 
 def compute_global_base_rate(runs: dict[str, RunData]) -> float:
-    """Taux de base d'événement (nœud-tour) sur l'ensemble des runs — prior partagé."""
+    """Taux de base d'evenement (noeud-tour) sur l'ensemble des runs - prior partage."""
     total_obs = 0
     total_events = 0
     for run in runs.values():
@@ -277,7 +277,7 @@ def compute_global_base_rate(runs: dict[str, RunData]) -> float:
 
 
 def _beta_posterior(alpha0: float, beta0: float, successes: int, n_obs: int) -> tuple[float, float]:
-    """Retourne (moyenne, variance) du postérieur Beta(alpha0+succès, beta0+échecs)."""
+    """Retourne (moyenne, variance) du posterieur Beta(alpha0+succes, beta0+echecs)."""
     a_post = alpha0 + successes
     b_post = beta0 + (n_obs - successes)
     mean = a_post / (a_post + b_post)
@@ -285,7 +285,7 @@ def _beta_posterior(alpha0: float, beta0: float, successes: int, n_obs: int) -> 
     return mean, var
 
 
-# --- Construction des lignes du dataset -------------------------------------------------
+# Construction des lignes du dataset
 
 
 def _dataset_columns(horizon: int) -> list[str]:
@@ -316,7 +316,7 @@ def build_rows(run: RunData, alpha0: float, beta0: float, horizon: int) -> list[
         return []
     last_tour = tours_sorted[-1]
 
-    # Historique par nœud (accès direct par tour, pour les différences arrière indexées).
+    # Historique par noeud (acces direct par tour, pour les differences arriere indexees).
     node_history: dict[str, dict[int, Json]] = defaultdict(dict)
     for t in tours_sorted:
         for node_id, n in run.snapshots[t]["nodes"].items():
@@ -339,7 +339,7 @@ def build_rows(run: RunData, alpha0: float, beta0: float, horizon: int) -> list[
                 "chain_id": run.chain_id,
                 "node_id": node_id,
                 "dgp_params_id": run.dgp_params_id,
-                "_tour": t,  # colonne interne, retirée avant écriture (utile au voisinage)
+                "_tour": t,  # colonne interne, retiree avant ecriture (utile au voisinage)
             }
 
             row["y1"] = _label_y1(run.events_truth, node_id, t, last_tour)
@@ -368,7 +368,7 @@ def build_rows(run: RunData, alpha0: float, beta0: float, horizon: int) -> list[
             ur_local = n.get("ur_local")
             prev_ema = running_ema.get(node_id)
             if ur_local is None:
-                ema = None  # jamais imputé : l'EMA reste gelée à sa dernière valeur connue
+                ema = None  # jamais impute : l'EMA reste gelee a sa derniere valeur connue
             elif prev_ema is None:
                 ema = ur_local
             else:
@@ -392,7 +392,7 @@ def build_rows(run: RunData, alpha0: float, beta0: float, horizon: int) -> list[
             row["beta_var"] = beta_var
             row["beta_n"] = running_n_obs[node_id]
 
-            row["p_retard_jalon"] = None  # réservée : aucune unité ne la produit encore
+            row["p_retard_jalon"] = None  # reservee : aucune unite ne la produit encore
             c = crit.get(node_id)
             row["p_impact_final"] = c.get("p_impact_final") if c else None
             row["delta_ell_final"] = c.get("delta_ell_final") if c else None
@@ -424,7 +424,7 @@ def build_rows(run: RunData, alpha0: float, beta0: float, horizon: int) -> list[
 def enrich_neighborhood(
     rows_by_chain: dict[str, list[dict[str, Any]]], runs: dict[str, RunData]
 ) -> None:
-    """Remplit les colonnes de voisinage en place (nécessite beta_mean déjà calculé)."""
+    """Remplit les colonnes de voisinage en place (necessite beta_mean deja calcule)."""
     for chain_id, rows in rows_by_chain.items():
         run = runs[chain_id]
         if run.arcs is None:
@@ -451,7 +451,7 @@ def enrich_neighborhood(
 
 
 def build_dataset(runs_root: Path, horizon: int) -> list[dict[str, Any]]:
-    """Pipeline complet OUTPUT 1 : découverte -> chargement -> lignes -> voisinage."""
+    """Pipeline complet OUTPUT 1 : decouverte -> chargement -> lignes -> voisinage."""
     runs = load_all_runs(runs_root)
     base_rate = compute_global_base_rate(runs)
     alpha0, beta0 = base_rate * N0_BETA, (1.0 - base_rate) * N0_BETA
@@ -465,7 +465,7 @@ def build_dataset(runs_root: Path, horizon: int) -> list[dict[str, Any]]:
     return all_rows
 
 
-# --- Écriture / lecture CSV (dataset) ----------------------------------------------------
+# Ecriture / lecture CSV (dataset)
 
 
 def _row_to_csv_dict(row: dict[str, Any], columns: list[str]) -> dict[str, str]:
@@ -484,7 +484,7 @@ def _row_to_csv_dict(row: dict[str, Any], columns: list[str]) -> dict[str, str]:
 def write_dataset_csv(
     rows: list[dict[str, Any]], out_path: Path, horizon: int, append: bool
 ) -> None:
-    """Écrit ``dataset.csv``. En mode ``--append``, remplace les lignes des chaînes traitées."""
+    """Ecrit ``dataset.csv``. En mode ``--append``, remplace les lignes des chaines traitees."""
     columns = _dataset_columns(horizon)
     chains_written = {row["chain_id"] for row in rows}
 
@@ -511,7 +511,7 @@ def write_dataset_csv(
 
 
 def _summarize_dataset_csv(out_path: Path, horizon: int) -> None:
-    """Relit le fichier ÉCRIT (reflète l'état final, y compris après --append) et résume en FR."""
+    """Relit le fichier ECRIT (reflete l'etat final, y compris apres --append) et resume en FR."""
     y1_col, yh_col = "y1", f"y{horizon}"
     chains: set[str] = set()
     n = 0
@@ -546,7 +546,7 @@ def _summarize_dataset_csv(out_path: Path, horizon: int) -> None:
 
 
 def validate_dataset_csv(out_path: Path, horizon: int) -> None:
-    """Relit le fichier écrit et vérifie le schéma (échoue fort en cas d'anomalie)."""
+    """Relit le fichier ecrit et verifie le schema (echoue fort en cas d'anomalie)."""
     columns = _dataset_columns(horizon)
     label_cols = ("y1", f"y{horizon}")
     int_cols = {"beta_n", "in_deg", "out_deg", "weeks_since_event", "event_recent", *label_cols}
@@ -560,7 +560,7 @@ def validate_dataset_csv(out_path: Path, horizon: int) -> None:
                 f"--validate : en-tête inattendu.\nAttendu : {columns}\nObtenu  : {fieldnames}"
             )
         n = 0
-        for i, r in enumerate(reader, start=2):  # ligne 1 = en-tête
+        for i, r in enumerate(reader, start=2):  # ligne 1 = en-tete
             n += 1
             for g in group_cols:
                 if not r[g]:
@@ -587,7 +587,7 @@ def validate_dataset_csv(out_path: Path, horizon: int) -> None:
     print(f"Validation OK : {out_path} ({n} ligne(s), {len(columns)} colonnes, schéma conforme).")
 
 
-# --- OUTPUT 2 : extraction du journal d'interventions ----------------------------------
+# OUTPUT 2 : extraction du journal d'interventions
 
 
 def _interventions_columns(ea_columns: list[str]) -> list[str]:
@@ -599,7 +599,7 @@ def _interventions_columns(ea_columns: list[str]) -> list[str]:
 
 
 def extract_interventions(runs_root: Path) -> tuple[list[dict[str, Any]], list[str]]:
-    """Agrège tous les ``interventions_truth.jsonl`` trouvés sous ``runs_root``."""
+    """Agrege tous les ``interventions_truth.jsonl`` trouves sous ``runs_root``."""
     run_dirs = discover_runs(runs_root)
     raw_records: list[tuple[str, Json]] = []
     ea_keys: set[str] = set()
@@ -645,14 +645,14 @@ def extract_interventions(runs_root: Path) -> tuple[list[dict[str, Any]], list[s
 def write_interventions_csv(
     records: list[dict[str, Any]], ea_columns: list[str], out_path: Path
 ) -> None:
-    """Écrit ``interventions.csv`` (ligne de commentaire VALIDATION_ONLY en tête)."""
+    """Ecrit ``interventions.csv`` (ligne de commentaire VALIDATION_ONLY en tete)."""
     columns = _interventions_columns(ea_columns)
     with out_path.open("w", encoding="utf-8", newline="") as f:
         f.write(
             "# VALIDATION_ONLY (vérité terrain de l'usine, jamais des features du modèle "
             "d'effet — utilisées uniquement pour le scorer) : "
             + ", ".join(VALIDATION_ONLY_INTERVENTION_COLUMNS)
-            + "\r\n"  # cohérent avec le \r\n par défaut de csv.writer (fichier ouvert newline="")
+            + "\r\n"  # coherent avec le \r\n par defaut de csv.writer (fichier ouvert newline="")
         )
         writer = csv.DictWriter(f, fieldnames=columns)
         writer.writeheader()
@@ -661,7 +661,7 @@ def write_interventions_csv(
 
 
 def validate_interventions_csv(out_path: Path) -> None:
-    """Relit le fichier écrit et vérifie le schéma + le marquage VALIDATION_ONLY."""
+    """Relit le fichier ecrit et verifie le schema + le marquage VALIDATION_ONLY."""
     with out_path.open(encoding="utf-8", newline="") as f:
         first_line = f.readline()
         if not first_line.startswith("#") or "VALIDATION_ONLY" not in first_line:
@@ -694,7 +694,7 @@ def validate_interventions_csv(out_path: Path) -> None:
                 )
 
         n = 0
-        for i, r in enumerate(reader, start=3):  # ligne 1 = commentaire, ligne 2 = en-tête
+        for i, r in enumerate(reader, start=3):  # ligne 1 = commentaire, ligne 2 = en-tete
             n += 1
             for g in ("chain_id", "node_id", "action_id"):
                 if not r[g]:
@@ -722,11 +722,11 @@ def validate_interventions_csv(out_path: Path) -> None:
     )
 
 
-# --- feature_schema.json (v1) -----------------------------------------------------------
+# feature_schema.json (v1)
 
 
 def build_feature_schema(horizon: int = DEFAULT_HORIZON) -> Json:
-    """Construit le schéma de features versionné (dataset + interventions)."""
+    """Construit le schema de features versionne (dataset + interventions)."""
     if horizon < 2:
         raise ValueError(
             "horizon doit être >= 2 (y1 est toujours l'horizon à 1 tour, distinct de "
@@ -1110,11 +1110,11 @@ def build_feature_schema(horizon: int = DEFAULT_HORIZON) -> Json:
     }
 
 
-# --- CLI ---------------------------------------------------------------------------------
+# CLI
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Point d'entrée CLI : construction du dataset ou extraction des interventions."""
+    """Point d'entree CLI : construction du dataset ou extraction des interventions."""
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")  # console Windows cp1252
 
@@ -1149,8 +1149,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
-    # Validé AVANT --emit-schema : horizon=1 collisionnerait avec la colonne fixe y1
-    # (y{horizon} redeviendrait "y1"), y compris en mode --emit-schema seul.
+    # Valide AVANT --emit-schema : horizon=1 collisionnerait avec la colonne fixe y1 (y{horizon} redeviendrait "y1"), y compris en mode --emit-schema seul.
     if args.horizon < 2:
         parser.error(
             "--horizon doit être >= 2 (y1 est toujours l'horizon à 1 tour, distinct de y{horizon})."

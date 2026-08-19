@@ -1,13 +1,13 @@
 """Moteur de graphe DAG multi-rangs et propagation des urgences.
 
 API publique :
-- GraphRepository        : interface abstraite du dépôt de graphe ;
-- InMemoryGraphRepository : implémentation networkx (référence, tests) ;
-- Neo4jGraphRepository   : implémentation persistante (driver neo4j optionnel,
-                           importé paresseusement dans le constructeur) ;
+- GraphRepository        : interface abstraite du depot de graphe ;
+- InMemoryGraphRepository : implementation networkx (reference, tests) ;
+- Neo4jGraphRepository   : implementation persistante (driver neo4j optionnel,
+                           importe paresseusement dans le constructeur) ;
 - PropagationEngine      : propagation Ud descendante / Ur montante,
-                           simulation de choc (ΔUr et Δl), application de statut ;
-- ShockDetail            : résultat détaillé d'un choc what-if (ΔUr + Δl).
+                           simulation de choc (DeltaUr et Deltal), application de statut ;
+- ShockDetail            : resultat detaille d'un choc what-if (DeltaUr + Deltal).
 """
 
 from supplyscore.graph.memory_repo import InMemoryGraphRepository

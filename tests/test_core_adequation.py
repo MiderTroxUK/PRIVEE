@@ -1,4 +1,4 @@
-"""Tests du moteur d'adéquation Ud/Ur."""
+"""Tests du moteur d'adequation Ud/Ur."""
 
 from itertools import pairwise
 
@@ -23,7 +23,7 @@ class TestAdequationSimple:
         assert engine.adequation_simple(1.0, 0.0) == pytest.approx(0.0)
 
     def test_ur_superieur_a_1_ecart_borne(self, engine):
-        """Tâche en retard (ur > 1) : l'écart est borné à 1."""
+        """Tache en retard (ur > 1) : l'ecart est borne a 1."""
         assert engine.adequation_simple(0.5, 3.0) == pytest.approx(0.0)
         assert engine.adequation_simple(1.0, 1.0) == pytest.approx(1.0)
 
@@ -38,7 +38,7 @@ class TestPathologies:
         assert engine.hidden_risk(0.8, 0.3) == 0.0
 
     def test_f_et_h_exclusifs(self, engine):
-        """F et H ne peuvent pas être tous deux > 0 pour un même couple."""
+        """F et H ne peuvent pas etre tous deux > 0 pour un meme couple."""
         for ud, ur in [(0.2, 0.9), (0.9, 0.2), (0.5, 0.5), (0.0, 1.0)]:
             f = engine.false_urgency(ud, ur)
             h = engine.hidden_risk(ud, ur)
@@ -53,17 +53,17 @@ class TestAdequationAsym:
         assert engine.adequation_asym(1.0, 1.0) == pytest.approx(100.0)
 
     def test_ecart_maximal_sous_estimation_0(self, engine):
-        """|écart| = 1 dans la direction la plus pénalisée -> score 0."""
+        """|ecart| = 1 dans la direction la plus penalisee -> score 0."""
         assert engine.adequation_asym(0.0, 1.0) == pytest.approx(0.0)
 
     def test_asymetrie_sous_estimation_plus_penalisee(self, engine):
-        """Risque caché (ur > ud) pénalisé plus fort que fausse urgence."""
+        """Risque cache (ur > ud) penalise plus fort que fausse urgence."""
         hidden = engine.adequation_asym(ud=0.2, ur=0.8)
         false = engine.adequation_asym(ud=0.8, ur=0.2)
         assert hidden < false
 
     def test_monotonie_en_ecart(self, engine):
-        """Plus l'écart grandit, plus le score baisse."""
+        """Plus l'ecart grandit, plus le score baisse."""
         scores = [engine.adequation_asym(0.5, 0.5 + d) for d in (0.0, 0.1, 0.3, 0.5)]
         assert all(b < a for a, b in pairwise(scores))
 

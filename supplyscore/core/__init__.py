@@ -1,4 +1,4 @@
-"""Cœur mathématique de SupplyScore : AHP (Ud), modèle Ur et adéquation."""
+"""Coeur mathematique de SupplyScore : AHP (Ud), modele Ur et adequation."""
 
 from supplyscore.core.adequation import AdequationEngine
 from supplyscore.core.ahp import (

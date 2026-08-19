@@ -1,54 +1,54 @@
-"""Journal des interventions — actions correctives tracées (contrat n°9, HÉLIOS v7).
+"""Journal des interventions - actions correctives tracees (contrat no9, HELIOS v7).
 
 :class:`InterventionJournal` consigne le cycle de vie complet d'une
-intervention décidée sur un nœud : ouverture (état AVANT observable, action,
-acteur, objectif opérationnel déclaré), exécution effective (date d'effet),
-PROPOSITION — jamais imposition — d'un résultat opérationnel calculé sur la
-fenêtre ``[date_effet, date_effet + 4 semaines[``, et clôture humaine.
+intervention decidee sur un noeud : ouverture (etat AVANT observable, action,
+acteur, objectif operationnel declare), execution effective (date d'effet),
+PROPOSITION - jamais imposition - d'un resultat operationnel calcule sur la
+fenetre ``[date_effet, date_effet + 4 semaines[``, et cloture humaine.
 Le rail suivi ici est :class:`~supplyscore.services.decisions.DecisionService`
-(snapshot automatique depuis ``node.urgency``, horloge du PROJET du nœud via
-``clock_for``, écriture dans la base CLIENT du nœud, opérateur souverain).
+(snapshot automatique depuis ``node.urgency``, horloge du PROJET du noeud via
+``clock_for``, ecriture dans la base CLIENT du noeud, operateur souverain).
 
-Définitions FIGÉES (voir ``docs/modele_mathematique.md``, §13) :
+Definitions FIGEES (voir ``docs/modele_mathematique.md``, section 13) :
 
-- **Rupture (« issue défavorable »)** : UNE SEULE définition dans tout le
-  système, celle de :mod:`~supplyscore.services.calibration` (jalon raté, OU
-  nœud abandonné, OU événement critique/défaut non annulé) — réutilisée ici
+- **Rupture (" issue defavorable ")** : UNE SEULE definition dans tout le
+  systeme, celle de :mod:`~supplyscore.services.calibration` (jalon rate, OU
+  noeud abandonne, OU evenement critique/defaut non annule) - reutilisee ici
   via :func:`~supplyscore.services.calibration.issues_defavorables`, jamais
-  redupliquée.
-- **Résultat opérationnel** (label CAUSAL, model-free), sur la fenêtre
+  redupliquee.
+- **Resultat operationnel** (label CAUSAL, model-free), sur la fenetre
   ``[date_effet, date_effet + 4 semaines[`` :
 
-  - ``'resolu'`` : aucune issue défavorable ET l'objectif opérationnel
-    déclaré à l'ouverture est atteint — proxy model-free (:meth:`
+  - ``'resolu'`` : aucune issue defavorable ET l'objectif operationnel
+    declare a l'ouverture est atteint - proxy model-free (:meth:`
     InterventionJournal.proposer_resultat` ne regarde jamais Ud/Ur/H, voir
-    plus bas) : au moins un jalon du nœud, dont l'échéance tombe DANS la
-    fenêtre, a été livré (DONE) ;
-  - ``'partiel'`` : amélioration du KPI cible sans atteinte — dans ce module,
-    aucune issue défavorable mais aucun jalon livré dans la fenêtre (y
-    compris quand aucun jalon n'y échoit : l'atteinte n'est alors pas
-    vérifiable automatiquement, l'opérateur tranche via :meth:`clore`) ;
-  - ``'echec'`` : issue défavorable constatée dans la fenêtre, OU
-    l'intervention a été explicitement marquée non exécutée ;
-  - ``'en_cours'`` : pas encore de date d'effet posée, ou fenêtre
-    d'observation pas encore écoulée sans issue constatée (censure à droite,
-    même logique que :mod:`~supplyscore.services.calibration`).
+    plus bas) : au moins un jalon du noeud, dont l'echeance tombe DANS la
+    fenetre, a ete livre (DONE) ;
+  - ``'partiel'`` : amelioration du KPI cible sans atteinte - dans ce module,
+    aucune issue defavorable mais aucun jalon livre dans la fenetre (y
+    compris quand aucun jalon n'y echoit : l'atteinte n'est alors pas
+    verifiable automatiquement, l'operateur tranche via :meth:`clore`) ;
+  - ``'echec'`` : issue defavorable constatee dans la fenetre, OU
+    l'intervention a ete explicitement marquee non executee ;
+  - ``'en_cours'`` : pas encore de date d'effet posee, ou fenetre
+    d'observation pas encore ecoulee sans issue constatee (censure a droite,
+    meme logique que :mod:`~supplyscore.services.calibration`).
 
-  :meth:`proposer_resultat` ne fait QUE proposer (aucune écriture) : « en
-  revue comme ailleurs dans SupplyScore, l'opérateur reste l'autorité finale »
-  — c'est :meth:`clore` qui écrit le résultat que l'humain retient.
-- **État de risque** (sortie d'alerte, ΔP, ΔUr) : information D'INTERFACE
-  SEULEMENT, portée par des colonnes SÉPARÉES (``etat_risque_avant``/
-  ``etat_risque_apres``, capturées AUTOMATIQUEMENT depuis ``node.urgency`` à
-  l'ouverture et à la clôture) — jamais lue par :meth:`proposer_resultat`,
+  :meth:`proposer_resultat` ne fait QUE proposer (aucune ecriture) : " en
+  revue comme ailleurs dans SupplyScore, l'operateur reste l'autorite finale "
+  - c'est :meth:`clore` qui ecrit le resultat que l'humain retient.
+- **Etat de risque** (sortie d'alerte, DeltaP, DeltaUr) : information D'INTERFACE
+  SEULEMENT, portee par des colonnes SEPAREES (``etat_risque_avant``/
+  ``etat_risque_apres``, capturees AUTOMATIQUEMENT depuis ``node.urgency`` a
+  l'ouverture et a la cloture) - jamais lue par :meth:`proposer_resultat`,
   jamais un label d'apprentissage.
 
 ``etat_avant``/``etat_apres`` (colonnes ``etat_*_json``, DISTINCTES des
-colonnes ``etat_risque_*``) portent l'état OBSERVABLE contractuel du contrat
-n°9 : ``ur_local``, ``ud_local``, ``hidden_risk``, ``false_urgency``, et
+colonnes ``etat_risque_*``) portent l'etat OBSERVABLE contractuel du contrat
+no9 : ``ur_local``, ``ud_local``, ``hidden_risk``, ``false_urgency``, et
 ``p_issue`` si l'appelant le fournit (``p_issue`` n'existe pas sur
-:class:`~supplyscore.domain.models.UrgencyState` — probabilité d'issue d'un
-modèle de prescription externe, jamais calculée par ce module).
+:class:`~supplyscore.domain.models.UrgencyState` - probabilite d'issue d'un
+modele de prescription externe, jamais calculee par ce module).
 """
 
 from __future__ import annotations
@@ -69,44 +69,44 @@ if TYPE_CHECKING:
     from supplyscore.domain.models import SupplyNode, UrgencyState
     from supplyscore.services.orchestrator import SupplyScoreService
 
-#: Longueur de la fenêtre d'observation du résultat opérationnel, en semaines.
+#: Longueur de la fenetre d'observation du resultat operationnel, en semaines.
 _FENETRE_SEMAINES: int = 4
 
-#: Valeurs autorisées de la colonne ``resultat`` (contrat n°9).
+#: Valeurs autorisees de la colonne ``resultat`` (contrat no9).
 _RESULTATS_VALIDES: frozenset[str] = frozenset({"resolu", "partiel", "echec", "en_cours"})
 
 
 @dataclass(frozen=True)
 class Intervention:
-    """Intervention consignée dans le journal (contrat n°9).
+    """Intervention consignee dans le journal (contrat no9).
 
     Attributes:
         id: identifiant unique (UUID4).
-        node_id: nœud sur lequel l'intervention agit.
+        node_id: noeud sur lequel l'intervention agit.
         date_ts: date d'ouverture de la ligne (= ``decidee_ts``), ancre
             chronologique de l'index ``idx_interventions_node_date``.
-        etat_avant: état OBSERVABLE déclaré à l'ouverture (``ur_local``,
+        etat_avant: etat OBSERVABLE declare a l'ouverture (``ur_local``,
             ``ud_local``, ``hidden_risk``, ``false_urgency``, et ``p_issue``
-            si fourni) — jamais l'état de risque d'interface.
-        action_id: identifiant de l'action de prescription appliquée.
-        acteur: personne ou rôle ayant décidé/exécuté l'intervention.
-        objectif_operationnel: objectif déclaré à l'ouverture (texte libre).
-        decidee_ts: instant de la décision, en secondes epoch.
-        executee: None (pas encore statué), True (exécutée) ou False (ne
-            sera pas exécutée).
-        executee_ts: instant où :meth:`InterventionJournal.marquer_executee`
-            a été appelée, ou None.
-        date_effet_ts: instant à partir duquel l'action produit son effet —
-            ancre la fenêtre d'observation du résultat opérationnel.
+            si fourni) - jamais l'etat de risque d'interface.
+        action_id: identifiant de l'action de prescription appliquee.
+        acteur: personne ou role ayant decide/execute l'intervention.
+        objectif_operationnel: objectif declare a l'ouverture (texte libre).
+        decidee_ts: instant de la decision, en secondes epoch.
+        executee: None (pas encore statue), True (executee) ou False (ne
+            sera pas executee).
+        executee_ts: instant ou :meth:`InterventionJournal.marquer_executee`
+            a ete appelee, ou None.
+        date_effet_ts: instant a partir duquel l'action produit son effet -
+            ancre la fenetre d'observation du resultat operationnel.
         resultat: ``'resolu'`` | ``'partiel'`` | ``'echec'`` | ``'en_cours'``.
-        etat_apres: état OBSERVABLE déclaré à la clôture, ou None tant que
+        etat_apres: etat OBSERVABLE declare a la cloture, ou None tant que
             l'intervention n'est pas close.
-        etat_risque_avant: état de risque D'INTERFACE à l'ouverture (snapshot
-            complet de ``node.urgency``), jamais lu pour le résultat.
-        etat_risque_apres: état de risque D'INTERFACE à la clôture, ou None.
-        succes: dérivé de ``resultat`` à la clôture (resolu -> True,
+        etat_risque_avant: etat de risque D'INTERFACE a l'ouverture (snapshot
+            complet de ``node.urgency``), jamais lu pour le resultat.
+        etat_risque_apres: etat de risque D'INTERFACE a la cloture, ou None.
+        succes: derive de ``resultat`` a la cloture (resolu -> True,
             echec -> False, partiel/en_cours -> None).
-        effets_voisins: effets observés sur des nœuds voisins (texte libre).
+        effets_voisins: effets observes sur des noeuds voisins (texte libre).
         notes: commentaire libre.
     """
 
@@ -131,7 +131,7 @@ class Intervention:
 
 
 def _row_from_intervention(iv: Intervention) -> dict[str, Any]:
-    """Sérialise une :class:`Intervention` en ligne prête pour ``insert_intervention``."""
+    """Serialise une :class:`Intervention` en ligne prete pour ``insert_intervention``."""
     return {
         "id": iv.id,
         "node_id": iv.node_id,
@@ -189,35 +189,35 @@ def _intervention_from_row(row: Mapping[str, Any]) -> Intervention:
 
 
 class InterventionJournal:
-    """Journal des interventions : ouverture, exécution, proposition, clôture.
+    """Journal des interventions : ouverture, execution, proposition, cloture.
 
-    S'appuie sur la façade :class:`SupplyScoreService` : le registre fournit
-    les nœuds (état d'urgence courant, jalons), ``clock_for`` l'horloge
-    effective du projet, et la base CLIENT du nœud porte la table
+    S'appuie sur la facade :class:`SupplyScoreService` : le registre fournit
+    les noeuds (etat d'urgence courant, jalons), ``clock_for`` l'horloge
+    effective du projet, et la base CLIENT du noeud porte la table
     ``interventions``.
     """
 
     def __init__(self, service: SupplyScoreService) -> None:
-        """Initialise le journal des interventions au-dessus de la façade.
+        """Initialise le journal des interventions au-dessus de la facade.
 
         Args:
-            service: façade applicative (registre, bases client, horloges).
+            service: facade applicative (registre, bases client, horloges).
         """
         self._service = service
 
-    # -- aides internes (mêmes que DecisionService) --
+    # aides internes (memes que DecisionService)
 
     def _node(self, node_id: str) -> SupplyNode:
-        """Lecture fraîche du nœud depuis le registre.
+        """Lecture fraiche du noeud depuis le registre.
 
         Args:
-            node_id: identifiant du nœud.
+            node_id: identifiant du noeud.
 
         Returns:
             Le :class:`~supplyscore.domain.models.SupplyNode` du registre.
 
         Raises:
-            ValueError: si le nœud est inconnu du registre.
+            ValueError: si le noeud est inconnu du registre.
         """
         node = self._service.registry.get_node(node_id)
         if node is None:
@@ -225,23 +225,23 @@ class InterventionJournal:
         return node
 
     def _clock_of(self, node: SupplyNode) -> Clock:
-        """Horloge effective du nœud : celle de SON projet (réelle ou de jeu)."""
+        """Horloge effective du noeud : celle de SON projet (reelle ou de jeu)."""
         if node.project_id:
             return self._service.clock_for(node.project_id)
         return self._service.clock
 
     def _row(self, intervention_id: str, node_id: str) -> dict[str, Any]:
-        """Ligne brute de l'intervention (pas de getter dédié : filtrage en Python).
+        """Ligne brute de l'intervention (pas de getter dedie : filtrage en Python).
 
         Args:
-            intervention_id: id de l'intervention recherchée.
-            node_id: nœud porteur (chaque nœud a sa propre base CLIENT).
+            intervention_id: id de l'intervention recherchee.
+            node_id: noeud porteur (chaque noeud a sa propre base CLIENT).
 
         Returns:
-            La ligne brute (dict, clés = colonnes SQL) correspondante.
+            La ligne brute (dict, cles = colonnes SQL) correspondante.
 
         Raises:
-            ValueError: aucune intervention de cet id sur ce nœud.
+            ValueError: aucune intervention de cet id sur ce noeud.
         """
         for row in self._service.client_db(node_id).list_interventions(node_id):
             if row["id"] == intervention_id:
@@ -250,7 +250,7 @@ class InterventionJournal:
 
     @staticmethod
     def _etat_observable(urgence: UrgencyState) -> dict[str, float | None]:
-        """Sous-ensemble OBSERVABLE contractuel de l'urgence courante (contrat n°9)."""
+        """Sous-ensemble OBSERVABLE contractuel de l'urgence courante (contrat no9)."""
         return {
             "ur_local": urgence.ur_local,
             "ud_local": urgence.ud_local,
@@ -260,7 +260,7 @@ class InterventionJournal:
 
     @staticmethod
     def _etat_risque(urgence: UrgencyState) -> dict[str, float | None]:
-        """Snapshot COMPLET de l'urgence courante — information d'INTERFACE seulement."""
+        """Snapshot COMPLET de l'urgence courante - information d'INTERFACE seulement."""
         return {
             "ud_local": urgence.ud_local,
             "ur_local": urgence.ur_local,
@@ -271,7 +271,7 @@ class InterventionJournal:
             "hidden_risk": urgence.hidden_risk,
         }
 
-    # -- écriture : ouverture --
+    # ecriture : ouverture
 
     def record(
         self,
@@ -282,32 +282,32 @@ class InterventionJournal:
         etat_avant: dict[str, Any] | None = None,
         notes: str = "",
     ) -> Intervention:
-        """Ouvre une intervention : capture l'état AVANT et journalise son objectif.
+        """Ouvre une intervention : capture l'etat AVANT et journalise son objectif.
 
-        ``etat_avant``, non fourni, est capturé AUTOMATIQUEMENT depuis
-        ``node.urgency`` (lecture fraîche du registre, observables
-        contractuels seulement — ``p_issue`` n'y figure jamais
-        automatiquement, un appelant qui dispose d'une probabilité d'issue
-        externe peut la fournir en écrasant ``etat_avant``).
-        ``etat_risque_avant`` (interface) est TOUJOURS capturé automatiquement,
+        ``etat_avant``, non fourni, est capture AUTOMATIQUEMENT depuis
+        ``node.urgency`` (lecture fraiche du registre, observables
+        contractuels seulement - ``p_issue`` n'y figure jamais
+        automatiquement, un appelant qui dispose d'une probabilite d'issue
+        externe peut la fournir en ecrasant ``etat_avant``).
+        ``etat_risque_avant`` (interface) est TOUJOURS capture automatiquement,
         pleinement, et n'est jamais surchargeable.
 
         Args:
-            node_id: identifiant du nœud concerné.
-            action_id: identifiant de l'action de prescription appliquée.
-            acteur: personne ou rôle décidant l'intervention (non vide).
-            objectif_operationnel: objectif déclaré à l'ouverture (non vide).
-            etat_avant: état observable à l'ouverture ; None -> capturé
+            node_id: identifiant du noeud concerne.
+            action_id: identifiant de l'action de prescription appliquee.
+            acteur: personne ou role decidant l'intervention (non vide).
+            objectif_operationnel: objectif declare a l'ouverture (non vide).
+            etat_avant: etat observable a l'ouverture ; None -> capture
                 automatiquement depuis ``node.urgency``.
             notes: commentaire libre initial.
 
         Returns:
-            L':class:`Intervention` telle que persistée (``resultat`` vaut
+            L':class:`Intervention` telle que persistee (``resultat`` vaut
             ``'en_cours'``).
 
         Raises:
             ValueError: ``acteur``/``objectif_operationnel`` vide (ou blanc),
-                ou nœud inconnu du registre — rien n'est alors écrit.
+                ou noeud inconnu du registre - rien n'est alors ecrit.
         """
         if not acteur.strip():
             raise ValueError("L'acteur de l'intervention ne peut pas être vide.")
@@ -341,7 +341,7 @@ class InterventionJournal:
         self._service.client_db(node_id).insert_intervention(_row_from_intervention(intervention))
         return intervention
 
-    # -- écriture : exécution --
+    # ecriture : execution
 
     def marquer_executee(
         self,
@@ -350,21 +350,21 @@ class InterventionJournal:
         executee: bool,
         date_effet_ts: float | None,
     ) -> None:
-        """Marque l'intervention comme exécutée (ou non) et pose sa date d'effet.
+        """Marque l'intervention comme executee (ou non) et pose sa date d'effet.
 
-        ``date_effet_ts`` ancre la fenêtre d'observation
+        ``date_effet_ts`` ancre la fenetre d'observation
         ``[date_effet, date_effet + 4 semaines[`` de :meth:`proposer_resultat` ;
-        sans elle, le résultat opérationnel reste ``'en_cours'`` indéfiniment.
+        sans elle, le resultat operationnel reste ``'en_cours'`` indefiniment.
 
         Args:
-            intervention_id: id de l'intervention à mettre à jour.
-            node_id: nœud porteur de l'intervention.
-            executee: True si l'action a été effectivement exécutée.
-            date_effet_ts: instant (epoch s) à partir duquel l'action produit
+            intervention_id: id de l'intervention a mettre a jour.
+            node_id: noeud porteur de l'intervention.
+            executee: True si l'action a ete effectivement executee.
+            date_effet_ts: instant (epoch s) a partir duquel l'action produit
                 son effet, ou None si non encore connu.
 
         Raises:
-            ValueError: intervention inconnue sur ce nœud, ou nœud inconnu
+            ValueError: intervention inconnue sur ce noeud, ou noeud inconnu
                 du registre.
         """
         node = self._node(node_id)
@@ -379,33 +379,33 @@ class InterventionJournal:
             },
         )
 
-    # -- lecture : proposition (jamais d'écriture) --
+    # lecture : proposition (jamais d'ecriture)
 
     def proposer_resultat(self, intervention_id: str, node_id: str) -> tuple[str, list[str]]:
-        """Propose un résultat opérationnel — NE modifie jamais la base.
+        """Propose un resultat operationnel - NE modifie jamais la base.
 
-        Applique la définition FIGÉE du module sur la fenêtre
-        ``[date_effet, date_effet + 4 semaines[`` : issue défavorable
+        Applique la definition FIGEE du module sur la fenetre
+        ``[date_effet, date_effet + 4 semaines[`` : issue defavorable
         (:func:`~supplyscore.services.calibration.issues_defavorables`, sur
-        les jalons et événements du nœud) d'abord, puis atteinte de
-        l'objectif (proxy model-free : jalon livré DANS la fenêtre) une fois
-        la fenêtre entièrement écoulée. Ne lit JAMAIS Ud/Ur/H — seulement des
-        faits (jalons, événements, statut du nœud) — conformément à la
-        séparation stricte entre résultat causal et état de risque
+        les jalons et evenements du noeud) d'abord, puis atteinte de
+        l'objectif (proxy model-free : jalon livre DANS la fenetre) une fois
+        la fenetre entierement ecoulee. Ne lit JAMAIS Ud/Ur/H - seulement des
+        faits (jalons, evenements, statut du noeud) - conformement a la
+        separation stricte entre resultat causal et etat de risque
         d'interface (voir le docstring du module).
 
         Args:
-            intervention_id: id de l'intervention à évaluer.
-            node_id: nœud porteur de l'intervention.
+            intervention_id: id de l'intervention a evaluer.
+            node_id: noeud porteur de l'intervention.
 
         Returns:
-            ``(resultat_propose, causes)`` — ``causes`` explicite la
-            proposition en français (``[]`` pour ``'en_cours'`` sans motif
-            particulier). RIEN n'est écrit : c'est :meth:`clore` qui
-            persiste le résultat retenu par l'opérateur.
+            ``(resultat_propose, causes)`` - ``causes`` explicite la
+            proposition en francais (``[]`` pour ``'en_cours'`` sans motif
+            particulier). RIEN n'est ecrit : c'est :meth:`clore` qui
+            persiste le resultat retenu par l'operateur.
 
         Raises:
-            ValueError: intervention inconnue sur ce nœud, ou nœud inconnu
+            ValueError: intervention inconnue sur ce noeud, ou noeud inconnu
                 du registre.
         """
         row = self._row(intervention_id, node_id)
@@ -438,12 +438,7 @@ class InterventionJournal:
         if now_ts < fin_ts:
             return "en_cours", []
 
-        # Fenêtre entièrement écoulée, aucune issue défavorable : l'atteinte
-        # de l'objectif s'évalue sur les jalons échéant DANS la fenêtre (proxy
-        # KPI cible model-free — jamais Ud/Ur/H). Tout jalon ACTIVE encore en
-        # jeu dans la fenêtre aurait déjà été signalé ci-dessus par
-        # ``issues_defavorables`` une fois la fenêtre close : seuls des jalons
-        # DONE peuvent donc subsister ici.
+        # Fenetre entierement ecoulee, aucune issue defavorable : l'atteinte de l'objectif s'evalue sur les jalons echeant DANS la fenetre (proxy KPI cible model-free - jamais Ud/Ur/H). Tout jalon ACTIVE encore en jeu dans la fenetre aurait deja ete signale ci-dessus par ``issues_defavorables`` une fois la fenetre close : seuls des jalons DONE peuvent donc subsister ici.
         jalons_fenetre = [m for m in milestones if date_effet_ts <= m.deadline_ts < fin_ts]
         jalons_livres = [m for m in jalons_fenetre if m.status is MilestoneStatus.DONE]
         if jalons_livres:
@@ -456,7 +451,7 @@ class InterventionJournal:
             " automatiquement, confirmation de l'opérateur requise via clore()"
         ]
 
-    # -- écriture : clôture (humaine) --
+    # ecriture : cloture (humaine)
 
     def clore(
         self,
@@ -467,28 +462,28 @@ class InterventionJournal:
         effets_voisins: list[str] | None = None,
         notes: str = "",
     ) -> None:
-        """Clôture l'intervention avec le résultat RETENU par l'opérateur.
+        """Cloture l'intervention avec le resultat RETENU par l'operateur.
 
-        ``etat_apres``, non fourni, est capturé AUTOMATIQUEMENT depuis
-        ``node.urgency`` (même règle que :meth:`record`). ``etat_risque_apres``
-        (interface) est TOUJOURS capturé automatiquement. ``succes`` est
-        DÉRIVÉ de ``resultat`` : ``'resolu'`` -> True, ``'echec'`` -> False,
+        ``etat_apres``, non fourni, est capture AUTOMATIQUEMENT depuis
+        ``node.urgency`` (meme regle que :meth:`record`). ``etat_risque_apres``
+        (interface) est TOUJOURS capture automatiquement. ``succes`` est
+        DERIVE de ``resultat`` : ``'resolu'`` -> True, ``'echec'`` -> False,
         ``'partiel'``/``'en_cours'`` -> None.
 
         Args:
-            intervention_id: id de l'intervention à clôturer.
-            node_id: nœud porteur de l'intervention.
+            intervention_id: id de l'intervention a cloturer.
+            node_id: noeud porteur de l'intervention.
             resultat: ``'resolu'`` | ``'partiel'`` | ``'echec'`` | ``'en_cours'``
-                — c'est L'OPÉRATEUR qui choisit, éventuellement après avoir
-                consulté :meth:`proposer_resultat`.
-            etat_apres: état observable à la clôture ; None -> capturé
+                - c'est L'OPERATEUR qui choisit, eventuellement apres avoir
+                consulte :meth:`proposer_resultat`.
+            etat_apres: etat observable a la cloture ; None -> capture
                 automatiquement depuis ``node.urgency``.
-            effets_voisins: effets observés sur des nœuds voisins.
+            effets_voisins: effets observes sur des noeuds voisins.
             notes: commentaire libre (remplace les notes existantes).
 
         Raises:
-            ValueError: ``resultat`` hors des 4 valeurs autorisées, ou
-                intervention/nœud inconnu — rien n'est alors écrit.
+            ValueError: ``resultat`` hors des 4 valeurs autorisees, ou
+                intervention/noeud inconnu - rien n'est alors ecrit.
         """
         if resultat not in _RESULTATS_VALIDES:
             raise ValueError(
@@ -518,29 +513,29 @@ class InterventionJournal:
             },
         )
 
-    # -- lecture --
+    # lecture
 
     def list_for_node(self, node_id: str, only_open: bool = False) -> list[Intervention]:
-        """Interventions du nœud, les plus anciennes d'abord.
+        """Interventions du noeud, les plus anciennes d'abord.
 
         Args:
-            node_id: identifiant du nœud.
+            node_id: identifiant du noeud.
             only_open: si True, ne retourne que les interventions dont le
-                résultat opérationnel est encore ``'en_cours'``.
+                resultat operationnel est encore ``'en_cours'``.
 
         Returns:
-            Les :class:`Intervention` du nœud, triées par ``date_ts`` croissant.
+            Les :class:`Intervention` du noeud, triees par ``date_ts`` croissant.
         """
         rows = self._service.client_db(node_id).list_interventions(node_id, only_open=only_open)
         return [_intervention_from_row(row) for row in rows]
 
     def stats_par_action(self, project_id: str) -> dict[str, dict[str, int]]:
-        """Statistiques d'interventions par action, agrégées sur le projet entier.
+        """Statistiques d'interventions par action, agregees sur le projet entier.
 
-        Balaie le journal de CHAQUE nœud du projet (chaque nœud a sa propre
-        base CLIENT) — c'est l'entrée temps réel du modèle d'effet des
-        actions de prescription (nombre d'essais, taux d'exécution, taux de
-        succès observés par action).
+        Balaie le journal de CHAQUE noeud du projet (chaque noeud a sa propre
+        base CLIENT) - c'est l'entree temps reel du modele d'effet des
+        actions de prescription (nombre d'essais, taux d'execution, taux de
+        succes observes par action).
 
         Args:
             project_id: identifiant du projet.
@@ -548,7 +543,7 @@ class InterventionJournal:
         Returns:
             Un dict ``action_id -> {"n", "n_executees", "n_succes",
             "n_echecs"}`` (compteurs entiers ; ``n`` compte TOUTES les
-            interventions de l'action, exécutées ou non).
+            interventions de l'action, executees ou non).
         """
         stats: dict[str, dict[str, int]] = {}
         for node in self._service.registry.list_nodes(project_id):
@@ -565,34 +560,34 @@ class InterventionJournal:
                     bucket["n_echecs"] += 1
         return stats
 
-    # -- bootstrap / tests --
+    # bootstrap / tests
 
     def import_synthetic(
         self, path_jsonl: str | Path, node_mapping: dict[str, str] | None = None
     ) -> int:
-        """Rejoue un fichier JSONL synthétique (« interventions_truth ») dans le journal.
+        """Rejoue un fichier JSONL synthetique (" interventions_truth ") dans le journal.
 
-        Format toléré (une intervention par ligne JSON) : ``tour`` (numéro de
-        semaine synthétique — ancré arbitrairement sur l'epoch Unix, 0 = la
-        semaine du 1er janvier 1970 ; ``date_ts = tour × 604 800`` s, un
-        ancrage arbitraire mais déterministe, suffisant pour un rejeu de
-        test/bootstrap), ``node`` (id de nœud, réécrit par ``node_mapping``
-        si fourni), ``action_id``, ``etat_avant`` (dict, stocké tel quel),
+        Format tolere (une intervention par ligne JSON) : ``tour`` (numero de
+        semaine synthetique - ancre arbitrairement sur l'epoch Unix, 0 = la
+        semaine du 1er janvier 1970 ; ``date_ts = tour x 604 800`` s, un
+        ancrage arbitraire mais deterministe, suffisant pour un rejeu de
+        test/bootstrap), ``node`` (id de noeud, reecrit par ``node_mapping``
+        si fourni), ``action_id``, ``etat_avant`` (dict, stocke tel quel),
         ``decidee`` (bool ; si explicitement ``False``, la ligne est une
-        candidate NON retenue par le générateur et n'est PAS importée),
-        ``executee`` (bool), ``date_effet`` (numéro de semaine synthétique,
+        candidate NON retenue par le generateur et n'est PAS importee),
+        ``executee`` (bool), ``date_effet`` (numero de semaine synthetique,
         comme ``tour``), ``resultat_operationnel`` (une des 4 valeurs
-        figées ; retombe sur ``'en_cours'`` si absente ou invalide),
-        ``effets_voisins`` (liste). Clés inconnues tolérées et ignorées.
+        figees ; retombe sur ``'en_cours'`` si absente ou invalide),
+        ``effets_voisins`` (liste). Cles inconnues tolerees et ignorees.
 
         Args:
-            path_jsonl: chemin du fichier JSONL à rejouer.
-            node_mapping: réécriture optionnelle ``id du fichier -> id réel``
-                (rejoue un fichier générique sur des ids de nœuds différents).
+            path_jsonl: chemin du fichier JSONL a rejouer.
+            node_mapping: reecriture optionnelle ``id du fichier -> id reel``
+                (rejoue un fichier generique sur des ids de noeuds differents).
 
         Returns:
-            Le nombre de lignes effectivement importées (les candidates
-            ``decidee: false`` ne sont pas comptées).
+            Le nombre de lignes effectivement importees (les candidates
+            ``decidee: false`` ne sont pas comptees).
 
         Raises:
             ValueError: une ligne non vide n'est pas un objet JSON valide,
@@ -612,7 +607,7 @@ class InterventionJournal:
                         f"{chemin} ligne {numero_ligne} : JSON invalide ({exc})"
                     ) from exc
                 if ligne.get("decidee") is False:
-                    continue  # candidate non retenue par le générateur : pas une vraie intervention
+                    continue  # candidate non retenue par le generateur : pas une vraie intervention
                 node_id = ligne.get("node")
                 action_id = ligne.get("action_id")
                 if not node_id or not action_id:

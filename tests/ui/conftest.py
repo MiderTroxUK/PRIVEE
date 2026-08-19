@@ -1,24 +1,24 @@
 """Infrastructure des tests navigateur de bout en bout (Lot 16.7).
 
-Règles d'exécution (mêmes principes que ``tests/benchmarks/conftest.py``) :
+Regles d'execution (memes principes que ``tests/benchmarks/conftest.py``) :
 
-- le marqueur ``ui`` est enregistré ICI (conftest local, aucun réglage pytest
+- le marqueur ``ui`` est enregistre ICI (conftest local, aucun reglage pytest
   global) ;
-- la suite rapide SAUTE tous les tests marqués ``ui`` à la collecte tant que
-  la variable d'environnement ``SUPPLYSCORE_UI`` ne vaut pas ``"1"`` (posée
+- la suite rapide SAUTE tous les tests marques ``ui`` a la collecte tant que
+  la variable d'environnement ``SUPPLYSCORE_UI`` ne vaut pas ``"1"`` (posee
   par ``scripts/ci.ps1 -Ui``) ;
-- si Chrome ou chromedriver sont indisponibles, les tests sont SKIPPÉS avec
-  un message explicite — JAMAIS d'échec d'infrastructure ;
+- si Chrome ou chromedriver sont indisponibles, les tests sont SKIPPES avec
+  un message explicite - JAMAIS d'echec d'infrastructure ;
 - Chrome tourne en HEADLESS via le hook ``pytest_setup_options`` de
-  dash.testing (options consommées par la fixture ``dash_duo`` standard).
+  dash.testing (options consommees par la fixture ``dash_duo`` standard).
 
-NOTE chromedriver : l'extra ``dash[testing]`` épingle ``selenium <= 4.2.0``,
-qui NE contient PAS Selenium Manager (arrivé en 4.6) — le driver doit donc
-être trouvable sur le PATH du processus. :func:`_raison_indisponibilite`
+NOTE chromedriver : l'extra ``dash[testing]`` epingle ``selenium <= 4.2.0``,
+qui NE contient PAS Selenium Manager (arrive en 4.6) - le driver doit donc
+etre trouvable sur le PATH du processus. :func:`_raison_indisponibilite`
 cherche chromedriver sur le PATH, puis dans un cache local
 (``%LOCALAPPDATA%/supplyscore/chromedriver/<version>``), et en dernier
-recours le télécharge depuis « Chrome for Testing » (même rôle que Selenium
-Manager) ; tout échec se traduit par un skip gracieux.
+recours le telecharge depuis " Chrome for Testing " (meme role que Selenium
+Manager) ; tout echec se traduit par un skip gracieux.
 """
 
 from __future__ import annotations
@@ -48,17 +48,17 @@ _CHROME_CANDIDATS: tuple[Path, ...] = (
     / "Google/Chrome/Application/chrome.exe",
 )
 
-#: Cache local des chromedrivers téléchargés (hors dépôt, par version complète).
+#: Cache local des chromedrivers telecharges (hors depot, par version complete).
 _CACHE_DRIVERS = (
     Path(os.environ.get("LOCALAPPDATA", str(Path.home()))) / "supplyscore" / "chromedriver"
 )
 
-#: Gabarit d'URL « Chrome for Testing » du zip chromedriver win64 d'une version.
+#: Gabarit d'URL " Chrome for Testing " du zip chromedriver win64 d'une version.
 _URL_CHROMEDRIVER = "https://storage.googleapis.com/chrome-for-testing-public/{version}/win64/chromedriver-win64.zip"
 
 
 def pytest_configure(config: pytest.Config) -> None:
-    """Enregistre le marqueur local des tests navigateur (porté par tous les tests UI)."""
+    """Enregistre le marqueur local des tests navigateur (porte par tous les tests UI)."""
     config.addinivalue_line(
         "markers",
         "ui: test navigateur de bout en bout — exécuté seulement si SUPPLYSCORE_UI=1",
@@ -66,7 +66,7 @@ def pytest_configure(config: pytest.Config) -> None:
 
 
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
-    """SKIP tous les tests marqués ``ui`` si SUPPLYSCORE_UI != '1' (suite rapide)."""
+    """SKIP tous les tests marques ``ui`` si SUPPLYSCORE_UI != '1' (suite rapide)."""
     if os.environ.get("SUPPLYSCORE_UI") == "1":
         return
     skip_ui = pytest.mark.skip(
@@ -78,7 +78,7 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
 
 
 def pytest_setup_options():
-    """Options Chrome des fixtures dash.testing : headless, fenêtre 1400x1000."""
+    """Options Chrome des fixtures dash.testing : headless, fenetre 1400x1000."""
     from selenium.webdriver.chrome.options import Options
 
     options = Options()
@@ -88,7 +88,7 @@ def pytest_setup_options():
     return options
 
 
-# --- Résolution Chrome / chromedriver (skip gracieux, jamais d'échec d'infra) ---------
+# Resolution Chrome / chromedriver (skip gracieux, jamais d'echec d'infra)
 
 
 def _chrome_exe() -> Path | None:
@@ -104,7 +104,7 @@ def _chrome_exe() -> Path | None:
 
 
 def _versions_chrome(chrome: Path) -> list[str]:
-    """Versions complètes installées (dossiers « 149.0.7827.102 »), plus récentes d'abord."""
+    """Versions completes installees (dossiers " 149.0.7827.102 "), plus recentes d'abord."""
     versions = [
         d.name
         for d in chrome.parent.iterdir()
@@ -114,7 +114,7 @@ def _versions_chrome(chrome: Path) -> list[str]:
 
 
 def _telecharger_chromedriver(version: str) -> Path | None:
-    """Télécharge le chromedriver win64 de ``version`` dans le cache local."""
+    """Telecharge le chromedriver win64 de ``version`` dans le cache local."""
     cible = _CACHE_DRIVERS / version
     exe = cible / "chromedriver.exe"
     if exe.is_file():
@@ -131,23 +131,23 @@ def _telecharger_chromedriver(version: str) -> Path | None:
 
 @functools.lru_cache(maxsize=1)
 def _raison_indisponibilite() -> str | None:
-    """None si Chrome ET chromedriver sont prêts, sinon le motif de skip (français).
+    """None si Chrome ET chromedriver sont prets, sinon le motif de skip (francais).
 
-    Effet de bord assumé : le dossier du chromedriver retenu est PRÉPENDU au
-    PATH du processus (c'est là que selenium 4.2 le cherche).
+    Effet de bord assume : le dossier du chromedriver retenu est PREPENDU au
+    PATH du processus (c'est la que selenium 4.2 le cherche).
     """
     chrome = _chrome_exe()
     if chrome is None:
         return "Chrome introuvable sur ce poste : tests navigateur sautés."
     if shutil.which("chromedriver"):
-        return None  # déjà sur le PATH : on lui fait confiance
+        return None  # deja sur le PATH : on lui fait confiance
     versions = _versions_chrome(chrome)
     if not versions:
         return f"Version de Chrome indéterminable depuis {chrome} : tests navigateur sautés."
     for version in versions:
         try:
             exe = _telecharger_chromedriver(version)
-        except Exception:  # réseau coupé, zip corrompu… : on tente la version suivante
+        except Exception:  # reseau coupe, zip corrompu... : on tente la version suivante
             exe = None
         if exe is not None:
             os.environ["PATH"] = str(exe.parent) + os.pathsep + os.environ.get("PATH", "")
@@ -166,16 +166,16 @@ def _infra_navigateur() -> None:
         pytest.skip(raison)
 
 
-# --- Application sous test --------------------------------------------------------------
+# Application sous test
 
 
 @pytest.fixture
 def app_seedee(tmp_path: Path, _infra_navigateur: None):
-    """Application Dash complète sur un service seedé (démo n_ranks=2, seed=1).
+    """Application Dash complete sur un service seede (demo n_ranks=2, seed=1).
 
     Le service vit dans ``tmp_path`` (bases SQLite jetables) ; ``create_app``
-    pose le service GLOBAL du module web_ui — il est nettoyé en teardown pour
-    ne pas fuiter d'un test à l'autre.
+    pose le service GLOBAL du module web_ui - il est nettoye en teardown pour
+    ne pas fuiter d'un test a l'autre.
     """
     service = SupplyScoreService(db_dir=tmp_path / "ui_store")
     service.seed_demo(n_ranks=2, seed=1)

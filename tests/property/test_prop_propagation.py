@@ -1,22 +1,22 @@
-"""Propriétés Hypothesis de la propagation Ud/Ur sur DAG — PLAN.md, Lot 9.3 (E9).
+"""Proprietes Hypothesis de la propagation Ud/Ur sur DAG - PLAN.md, Lot 9.3 (E9).
 
-Invariants vérifiés sur des DAG aléatoires (``RandomSupplyChainGenerator`` seedé
-par Hypothesis, puis ``ud_local``/``ur_local``/γ/β re-tirés dans [0, 1]) :
+Invariants verifies sur des DAG aleatoires (``RandomSupplyChainGenerator`` seede
+par Hypothesis, puis ``ud_local``/``ur_local``/gamma/beta re-tires dans [0, 1]) :
 
-1.  bornes : Ud, Ur ∈ [0, 1] pour tous les nœuds ;
-2.  idempotence : deux ``propagate_all()`` sans changement ⇒ valeurs identiques (==) ;
-3.  monotonie : augmenter ``ur_local`` (resp. ``ud_local``, γ) ne diminue aucun Ur
+1.  bornes : Ud, Ur  dans  [0, 1] pour tous les noeuds ;
+2.  idempotence : deux ``propagate_all()`` sans changement => valeurs identiques (==) ;
+3.  monotonie : augmenter ``ur_local`` (resp. ``ud_local``, gamma) ne diminue aucun Ur
     (resp. aucun Ud) ;
-4.  localité : modifier ``ur_local(i)`` ne touche Ur(k) que si k est atteignable
-    depuis i via les arcs nominaux (fournisseur → client) — sinon delta exactement 0 ;
-5.  stabilité : même graphe, ordres d'insertion mélangés ⇒ résultats à 1e-15 ;
-6.  ``simulate_shock(i, valeur courante de i)`` ⇒ tous les deltas == 0 ;
-7.  cas dégénérés : γ=0 partout ⇒ Ud == ud_local effectif ; β=1 et fournisseur
-    saturé (ur_local=1) ⇒ son client a Ur == 1 exactement ;
-8.  pureté : ``simulate_shock`` ne modifie aucune ``UrgencyState`` du dépôt ;
-9.  sémantique DONE (décision de modélisation n°1) : un nœud DONE transmet
-    l'urgence amont — test DESCRIPTIF, cf. docs/modele_mathematique.md ;
-10. arcs backup : inertes pour Ud comme pour Ur, même avec une source saturée.
+4.  localite : modifier ``ur_local(i)`` ne touche Ur(k) que si k est atteignable
+    depuis i via les arcs nominaux (fournisseur -> client) - sinon delta exactement 0 ;
+5.  stabilite : meme graphe, ordres d'insertion melanges => resultats a 1e-15 ;
+6.  ``simulate_shock(i, valeur courante de i)`` => tous les deltas == 0 ;
+7.  cas degeneres : gamma=0 partout => Ud == ud_local effectif ; beta=1 et fournisseur
+    sature (ur_local=1) => son client a Ur == 1 exactement ;
+8.  purete : ``simulate_shock`` ne modifie aucune ``UrgencyState`` du depot ;
+9.  semantique DONE (decision de modelisation no1) : un noeud DONE transmet
+    l'urgence amont - test DESCRIPTIF, cf. docs/modele_mathematique.md ;
+10. arcs backup : inertes pour Ud comme pour Ur, meme avec une source saturee.
 """
 
 from __future__ import annotations
@@ -32,16 +32,16 @@ from supplyscore.data.generator import RandomSupplyChainGenerator
 from supplyscore.domain.models import ArcKind, SupplyArc, SupplyNode, TaskStatus, UrgencyState
 from supplyscore.graph import InMemoryGraphRepository, PropagationEngine
 
-# Urgences et coefficients tirés dans [0, 1], sans NaN ni infinis (cf. PLAN.md, risques E9).
+# Urgences et coefficients tires dans [0, 1], sans NaN ni infinis (cf. PLAN.md, risques E9).
 _UNIT = st.floats(min_value=0.0, max_value=1.0, allow_nan=False, allow_infinity=False)
 
 
-# --- Stratégies et aides -------------------------------------------------------------
+# Strategies et aides
 
 
 @st.composite
 def dag_cases(draw: st.DrawFn) -> tuple[list[SupplyNode], list[SupplyArc]]:
-    """DAG par rangs via le générateur seedé ; ud_local/ur_local/γ/β re-tirés dans [0, 1]."""
+    """DAG par rangs via le generateur seede ; ud_local/ur_local/gamma/beta re-tires dans [0, 1]."""
     seed = draw(st.integers(min_value=0, max_value=2**32 - 1))
     n_ranks = draw(st.integers(min_value=1, max_value=3))
     _project, nodes, arcs = RandomSupplyChainGenerator(seed=seed).generate(
@@ -56,7 +56,7 @@ def dag_cases(draw: st.DrawFn) -> tuple[list[SupplyNode], list[SupplyArc]]:
 
 
 def _build_repo(nodes: list[SupplyNode], arcs: list[SupplyArc]) -> InMemoryGraphRepository:
-    """Charge nœuds puis arcs dans un dépôt mémoire et recalcule les rangs."""
+    """Charge noeuds puis arcs dans un depot memoire et recalcule les rangs."""
     repo = InMemoryGraphRepository()
     for node in nodes:
         repo.add_node(node)
@@ -67,7 +67,7 @@ def _build_repo(nodes: list[SupplyNode], arcs: list[SupplyArc]) -> InMemoryGraph
 
 
 def _snapshot(repo: InMemoryGraphRepository) -> tuple[dict[str, float], dict[str, float]]:
-    """Copie {id: ud} et {id: ur} en floats nus (les UrgencyState sont mutées en place)."""
+    """Copie {id: ud} et {id: ur} en floats nus (les UrgencyState sont mutees en place)."""
     ud: dict[str, float] = {}
     ur: dict[str, float] = {}
     for node in repo.nodes():
@@ -93,7 +93,7 @@ def _reachable_via_nominal(repo: InMemoryGraphRepository, start_id: str) -> set[
 def _chain_repo(
     ur_local: dict[str, float], beta: dict[tuple[str, str], float]
 ) -> InMemoryGraphRepository:
-    """Chaîne historique C (rang 2) → B (rang 1) → A (rang 0, client final)."""
+    """Chaine historique C (rang 2) -> B (rang 1) -> A (rang 0, client final)."""
     repo = InMemoryGraphRepository()
     for node_id in ("A", "B", "C"):
         repo.add_node(
@@ -111,14 +111,14 @@ def _chain_repo(
     return repo
 
 
-# --- 1. Bornes ------------------------------------------------------------------------
+# 1. Bornes
 
 
 @given(case=dag_cases())
 def test_propagated_values_stay_in_unit_interval(
     case: tuple[list[SupplyNode], list[SupplyArc]],
 ) -> None:
-    """Avec ud_local/ur_local ∈ [0,1] en entrée, Ud et Ur restent dans [0,1] partout."""
+    """Avec ud_local/ur_local  dans  [0,1] en entree, Ud et Ur restent dans [0,1] partout."""
     nodes, arcs = case
     repo = _build_repo(nodes, arcs)
     states = PropagationEngine(repo).propagate_all()
@@ -129,14 +129,14 @@ def test_propagated_values_stay_in_unit_interval(
         assert 0.0 <= state.ur <= 1.0
 
 
-# --- 2. Idempotence ---------------------------------------------------------------------
+# 2. Idempotence
 
 
 @given(case=dag_cases())
 def test_propagate_all_is_idempotent_bitwise(
     case: tuple[list[SupplyNode], list[SupplyArc]],
 ) -> None:
-    """Deux propagate_all() sans changement ⇒ Ud/Ur strictement identiques (==)."""
+    """Deux propagate_all() sans changement => Ud/Ur strictement identiques (==)."""
     nodes, arcs = case
     repo = _build_repo(nodes, arcs)
     engine = PropagationEngine(repo)
@@ -148,14 +148,14 @@ def test_propagate_all_is_idempotent_bitwise(
     assert ur_second == ur_first
 
 
-# --- 3. Monotonie ------------------------------------------------------------------------
+# 3. Monotonie
 
 
 @given(case=dag_cases(), data=st.data())
 def test_increasing_ur_local_never_decreases_any_ur(
     case: tuple[list[SupplyNode], list[SupplyArc]], data: st.DataObject
 ) -> None:
-    """Augmenter le ur_local d'un nœud ⇒ aucun Ur ne diminue (tolérance 1e-12)."""
+    """Augmenter le ur_local d'un noeud => aucun Ur ne diminue (tolerance 1e-12)."""
     nodes, arcs = case
     repo = _build_repo(nodes, arcs)
     engine = PropagationEngine(repo)
@@ -178,7 +178,7 @@ def test_increasing_ur_local_never_decreases_any_ur(
 def test_increasing_ud_local_never_decreases_any_ud(
     case: tuple[list[SupplyNode], list[SupplyArc]], data: st.DataObject
 ) -> None:
-    """Augmenter le ud_local d'un nœud ⇒ aucun Ud ne diminue (tolérance 1e-12)."""
+    """Augmenter le ud_local d'un noeud => aucun Ud ne diminue (tolerance 1e-12)."""
     nodes, arcs = case
     repo = _build_repo(nodes, arcs)
     engine = PropagationEngine(repo)
@@ -201,7 +201,7 @@ def test_increasing_ud_local_never_decreases_any_ud(
 def test_increasing_gamma_never_decreases_any_ud(
     case: tuple[list[SupplyNode], list[SupplyArc]], data: st.DataObject
 ) -> None:
-    """Augmenter le γ d'un arc ⇒ aucun Ud ne diminue (tolérance 1e-12)."""
+    """Augmenter le gamma d'un arc => aucun Ud ne diminue (tolerance 1e-12)."""
     nodes, arcs = case
     repo = _build_repo(nodes, arcs)
     engine = PropagationEngine(repo)
@@ -210,7 +210,7 @@ def test_increasing_gamma_never_decreases_any_ud(
 
     arc = arcs[data.draw(st.integers(0, len(arcs) - 1), label="indice de l'arc")]
     bump = data.draw(_UNIT, label="fraction d'augmentation")
-    arc.gamma = arc.gamma + bump * (1.0 - arc.gamma)  # objet partagé avec le dépôt
+    arc.gamma = arc.gamma + bump * (1.0 - arc.gamma)  # objet partage avec le depot
 
     engine.propagate_all()
     ud_after, _ = _snapshot(repo)
@@ -218,14 +218,14 @@ def test_increasing_gamma_never_decreases_any_ud(
         assert ud_after[node_id] >= before - 1e-12
 
 
-# --- 4. Localité -----------------------------------------------------------------------
+# 4. Localite
 
 
 @given(case=dag_cases(), data=st.data())
 def test_shock_only_touches_nodes_reachable_downstream(
     case: tuple[list[SupplyNode], list[SupplyArc]], data: st.DataObject
 ) -> None:
-    """ΔUr(k) ≠ 0 seulement si k est atteignable depuis i (arcs nominaux) ; sinon delta == 0."""
+    """DeltaUr(k) != 0 seulement si k est atteignable depuis i (arcs nominaux) ; sinon delta == 0."""
     nodes, arcs = case
     repo = _build_repo(nodes, arcs)
     engine = PropagationEngine(repo)
@@ -237,23 +237,23 @@ def test_shock_only_touches_nodes_reachable_downstream(
     reachable = _reachable_via_nominal(repo, origin.id)
     for node_id, delta in deltas.items():
         if node_id not in reachable:
-            # Hors du cône aval : mêmes entrées, mêmes opérations ⇒ delta EXACTEMENT 0.
+            # Hors du cone aval : memes entrees, memes operations => delta EXACTEMENT 0.
             assert delta == 0.0
 
 
-# --- 5. Stabilité vis-à-vis de l'ordre d'insertion ----------------------------------------
+# 5. Stabilite vis-a-vis de l'ordre d'insertion
 
 
 @given(case=dag_cases(), data=st.data())
 def test_insertion_order_does_not_change_results(
     case: tuple[list[SupplyNode], list[SupplyArc]], data: st.DataObject
 ) -> None:
-    """Même graphe, add_node/add_arc permutés ⇒ Ud et Ur identiques à 1e-15."""
+    """Meme graphe, add_node/add_arc permutes => Ud et Ur identiques a 1e-15."""
     nodes, arcs = case
     shuffled_nodes = data.draw(st.permutations(nodes), label="ordre des nœuds")
     shuffled_arcs = data.draw(st.permutations(arcs), label="ordre des arcs")
 
-    # Deux dépôts construits sur des copies INDÉPENDANTES : la propagation mute les nœuds.
+    # Deux depots construits sur des copies INDEPENDANTES : la propagation mute les noeuds.
     repo_ref = _build_repo(copy.deepcopy(nodes), copy.deepcopy(arcs))
     repo_mix = _build_repo(copy.deepcopy(shuffled_nodes), copy.deepcopy(shuffled_arcs))
     PropagationEngine(repo_ref).propagate_all()
@@ -267,14 +267,14 @@ def test_insertion_order_does_not_change_results(
         assert abs(ur_mix[node_id] - ur_ref[node_id]) <= 1e-15
 
 
-# --- 6. Choc neutre ----------------------------------------------------------------------
+# 6. Choc neutre
 
 
 @given(case=dag_cases(), data=st.data())
 def test_shock_at_current_value_yields_zero_deltas(
     case: tuple[list[SupplyNode], list[SupplyArc]], data: st.DataObject
 ) -> None:
-    """simulate_shock(i, valeur courante de i) ⇒ tous les deltas == 0 exactement."""
+    """simulate_shock(i, valeur courante de i) => tous les deltas == 0 exactement."""
     nodes, arcs = case
     repo = _build_repo(nodes, arcs)
     engine = PropagationEngine(repo)
@@ -285,20 +285,20 @@ def test_shock_at_current_value_yields_zero_deltas(
     assert all(delta == 0.0 for delta in deltas.values())
 
 
-# --- 7. Cas dégénérés --------------------------------------------------------------------
+# 7. Cas degeneres
 
 
 @given(case=dag_cases())
 def test_gamma_zero_everywhere_makes_ud_purely_local(
     case: tuple[list[SupplyNode], list[SupplyArc]],
 ) -> None:
-    """γ=0 partout ⇒ Ud == ud_local effectif sur chaque nœud.
+    """gamma=0 partout => Ud == ud_local effectif sur chaque noeud.
 
-    Tolérance 1e-15 (et non ==) : l'identité passe par ``1 - (1 - x) * 1.0``,
-    qui introduit au plus un demi-ulp de 1.0 (≈ 1.1e-16) de double arrondi —
+    Tolerance 1e-15 (et non ==) : l'identite passe par ``1 - (1 - x) * 1.0``,
+    qui introduit au plus un demi-ulp de 1.0 (~= 1.1e-16) de double arrondi -
     p. ex. ``1 - (1 - 0.1) == 0.09999999999999998``. Ce n'est pas un
-    affaiblissement d'invariant : c'est la tolérance d'identité algébrique
-    flottante prévue par PLAN.md (risques E9).
+    affaiblissement d'invariant : c'est la tolerance d'identite algebrique
+    flottante prevue par PLAN.md (risques E9).
     """
     nodes, arcs = case
     for arc in arcs:
@@ -314,10 +314,10 @@ def test_gamma_zero_everywhere_makes_ud_purely_local(
 def test_beta_one_with_saturated_supplier_saturates_client(
     case: tuple[list[SupplyNode], list[SupplyArc]], data: st.DataObject
 ) -> None:
-    """β=1 et fournisseur à ur_local=1 ⇒ Ur du fournisseur ET du client == 1 exactement.
+    """beta=1 et fournisseur a ur_local=1 => Ur du fournisseur ET du client == 1 exactement.
 
-    Exactitude attendue : Ur_fournisseur = 1 - (1-1)·att = 1.0 ; côté client le
-    facteur (1 - 1.0·1.0) annule le produit d'atténuation, d'où Ur = 1 - x·0 = 1.0.
+    Exactitude attendue : Ur_fournisseur = 1 - (1-1)-att = 1.0 ; cote client le
+    facteur (1 - 1.0-1.0) annule le produit d'attenuation, d'ou Ur = 1 - x-0 = 1.0.
     """
     nodes, arcs = case
     arc = arcs[data.draw(st.integers(0, len(arcs) - 1), label="indice de l'arc")]
@@ -334,41 +334,41 @@ def test_beta_one_with_saturated_supplier_saturates_client(
     assert client.urgency.ur == 1.0
 
 
-# --- 8. Pureté de simulate_shock -----------------------------------------------------------
+# 8. Purete de simulate_shock
 
 
 @given(case=dag_cases(), data=st.data())
 def test_simulate_shock_leaves_repository_state_untouched(
     case: tuple[list[SupplyNode], list[SupplyArc]], data: st.DataObject
 ) -> None:
-    """simulate_shock ne modifie aucune UrgencyState persistée (comparaison de copies)."""
+    """simulate_shock ne modifie aucune UrgencyState persistee (comparaison de copies)."""
     nodes, arcs = case
     repo = _build_repo(nodes, arcs)
     engine = PropagationEngine(repo)
-    engine.propagate_all()  # part d'un état propagé réaliste avant le what-if
+    engine.propagate_all()  # part d'un etat propage realiste avant le what-if
 
     before = {node.id: copy.deepcopy(node.urgency) for node in repo.nodes()}
     origin = nodes[data.draw(st.integers(0, len(nodes) - 1), label="indice du nœud")]
     engine.simulate_shock(origin.id, data.draw(_UNIT, label="nouveau ur_local"))
 
     after = {node.id: node.urgency for node in repo.nodes()}
-    assert after == before  # UrgencyState est un dataclass : égalité champ à champ
+    assert after == before  # UrgencyState est un dataclass : egalite champ a champ
 
 
-# --- 9. Sémantique DONE (descriptif) + cas chiffré de référence -----------------------------
+# 9. Semantique DONE (descriptif) + cas chiffre de reference
 
 
 def test_done_node_still_transmits_upstream_urgency() -> None:
-    """DESCRIPTIF — décision de modélisation n°1 (docs/modele_mathematique.md).
+    """DESCRIPTIF - decision de modelisation no1 (docs/modele_mathematique.md).
 
-    Un nœud DONE annule sa contribution PROPRE (ur_local effectif 0.0,
+    Un noeud DONE annule sa contribution PROPRE (ur_local effectif 0.0,
     cf. supplyscore.core.status_rules) mais TRANSMET l'urgence de ses
-    fournisseurs : le risque amont traverse les tâches terminées (écart n°11
-    du PLAN, tranché en E9). Chaîne C → B → A, B en DONE, C.ur_local = 1.0 :
+    fournisseurs : le risque amont traverse les taches terminees (ecart no11
+    du PLAN, tranche en E9). Chaine C -> B -> A, B en DONE, C.ur_local = 1.0 :
 
         Ur_C = 1.0
-        Ur_B = 1 - (1 - 0.0) · (1 - 0.5·1.0)  = 0.5    (propre contribution annulée)
-        Ur_A = 1 - (1 - 0.1) · (1 - 0.7·0.5)  = 0.415  > Ur_loc(A) = 0.1
+        Ur_B = 1 - (1 - 0.0) - (1 - 0.5-1.0)  = 0.5    (propre contribution annulee)
+        Ur_A = 1 - (1 - 0.1) - (1 - 0.7-0.5)  = 0.415  > Ur_loc(A) = 0.1
     """
     repo = _chain_repo(
         ur_local={"A": 0.1, "B": 0.3, "C": 1.0},
@@ -387,12 +387,12 @@ def test_done_node_still_transmits_upstream_urgency() -> None:
 
 
 def test_reference_chain_ur_a_equals_0_4213() -> None:
-    """Cas chiffré historique : C → B → A, β=(0.5, 0.7), ur_loc=(0.1, 0.3, 0.6).
+    """Cas chiffre historique : C -> B -> A, beta=(0.5, 0.7), ur_loc=(0.1, 0.3, 0.6).
 
     Recalcul manuel :
         Ur_C = 0.6
-        Ur_B = 1 - (1 - 0.3) · (1 - 0.5·0.6)  = 1 - 0.7·0.70  = 0.51
-        Ur_A = 1 - (1 - 0.1) · (1 - 0.7·0.51) = 1 - 0.9·0.643 = 0.4213
+        Ur_B = 1 - (1 - 0.3) - (1 - 0.5-0.6)  = 1 - 0.7-0.70  = 0.51
+        Ur_A = 1 - (1 - 0.1) - (1 - 0.7-0.51) = 1 - 0.9-0.643 = 0.4213
     """
     repo = _chain_repo(
         ur_local={"A": 0.1, "B": 0.3, "C": 0.6},
@@ -404,27 +404,25 @@ def test_reference_chain_ur_a_equals_0_4213() -> None:
     assert node_a.urgency.ur == pytest.approx(0.4213, abs=1e-4)
 
 
-# --- 10. Arcs backup inertes ----------------------------------------------------------------
+# 10. Arcs backup inertes
 
 
 @given(case=dag_cases(), data=st.data())
 def test_backup_arc_with_saturated_source_changes_nothing(
     case: tuple[list[SupplyNode], list[SupplyArc]], data: st.DataObject
 ) -> None:
-    """Un arc backup (même β=1, source à ur_local=1) ne change ni Ud ni Ur (== strict)."""
+    """Un arc backup (meme beta=1, source a ur_local=1) ne change ni Ud ni Ur (== strict)."""
     nodes, arcs = case
     arc = arcs[data.draw(st.integers(0, len(arcs) - 1), label="indice de l'arc nominal")]
     by_id = {node.id: node for node in nodes}
-    by_id[arc.target_id].urgency.ur_local = 1.0  # future source du backup, saturée
+    by_id[arc.target_id].urgency.ur_local = 1.0  # future source du backup, saturee
 
     repo = _build_repo(nodes, arcs)
     engine = PropagationEngine(repo)
     engine.propagate_all()
     ud_before, ur_before = _snapshot(repo)
 
-    # Backup target → source : jamais déjà présent (l'inverse nominal fermerait un
-    # cycle, impossible dans un DAG) et source ≠ target. Il peut fermer un cycle
-    # APPARENT : autorisé pour un backup, purement documentaire.
+    # Backup target -> source : jamais deja present (l'inverse nominal fermerait un cycle, impossible dans un DAG) et source != target. Il peut fermer un cycle APPARENT : autorise pour un backup, purement documentaire.
     repo.add_arc(
         SupplyArc(
             source_id=arc.target_id,

@@ -1,38 +1,38 @@
-"""Scénario « Programme HÉLIOS » — crise des semi-conducteurs 2020-2022 rejouée.
+"""Scenario " Programme HELIOS " - crise des semi-conducteurs 2020-2022 rejouee.
 
-Source de vérité UNIQUE de la campagne de validation : réseau, coefficients,
-jalons, événements par tour, personas, narration par point de vue, correspondance
-tour <-> mois réel, ancrages documentaires.
+Source de verite UNIQUE de la campagne de validation : reseau, coefficients,
+jalons, evenements par tour, personas, narration par point de vue, correspondance
+tour <-> mois reel, ancrages documentaires.
 
 Ce fichier est INTERNE (facilitateur/doctorante). Les consultants ne voient que
-les fiches générées par make_briefings.py, qui ne contiennent jamais les mois
-réels, les ancrages, ni les sections d'autres nœuds.
+les fiches generees par make_briefings.py, qui ne contiennent jamais les mois
+reels, les ancrages, ni les sections d'autres noeuds.
 
 Convention temporelle (compression narrative) :
-    1 tour de jeu = 1 semaine moteur (advance_week) = 1 mois réel raconté.
-    Les durées réelles sont convergées en heures moteur via REAL_WEEK_ENGINE_H :
-    1 semaine réelle ≈ 38.66 h moteur (168 h / 4.345 semaines par mois).
+    1 tour de jeu = 1 semaine moteur (advance_week) = 1 mois reel raconte.
+    Les durees reelles sont convergees en heures moteur via REAL_WEEK_ENGINE_H :
+    1 semaine reelle ~= 38.66 h moteur (168 h / 4.345 semaines par mois).
 """
 
 from __future__ import annotations
 
-# --- Compression temporelle -----------------------------------------------------
+# Compression temporelle
 
-#: Heures moteur représentant une semaine réelle (1 mois réel = 1 semaine moteur).
-REAL_WEEK_ENGINE_H: float = 168.0 / 4.345  # ≈ 38.66 h
+#: Heures moteur representant une semaine reelle (1 mois reel = 1 semaine moteur).
+REAL_WEEK_ENGINE_H: float = 168.0 / 4.345  # ~= 38.66 h
 
 
 def real_weeks_h(weeks: float) -> float:
-    """Convertit des semaines réelles en heures moteur (compression 1 mois = 1 tour)."""
+    """Convertit des semaines reelles en heures moteur (compression 1 mois = 1 tour)."""
     return round(weeks * REAL_WEEK_ENGINE_H, 1)
 
 
 def real_days_h(days: float) -> float:
-    """Convertit des jours réels en heures moteur."""
+    """Convertit des jours reels en heures moteur."""
     return real_weeks_h(days / 7.0)
 
 
-# --- Identité du programme -------------------------------------------------------
+# Identite du programme
 
 PROJECT_NAME = "Programme HÉLIOS"
 PROJECT_DESCRIPTION = (
@@ -41,10 +41,10 @@ PROJECT_DESCRIPTION = (
     "pénalités de retard lourdes."
 )
 
-#: Nombre de tours de campagne (hors T0 d'entraînement).
+#: Nombre de tours de campagne (hors T0 d'entrainement).
 N_TOURS = 18
 
-#: Correspondance tour -> mois réel (INTERNE, jamais montrée aux consultants).
+#: Correspondance tour -> mois reel (INTERNE, jamais montree aux consultants).
 TOUR_TO_MONTH: dict[int, str] = {
     0: "fictif (entraînement)",
     1: "2020-09", 2: "2020-10", 3: "2020-11", 4: "2020-12",
@@ -54,8 +54,7 @@ TOUR_TO_MONTH: dict[int, str] = {
     17: "2022-01", 18: "2022-02",
 }
 
-# --- Réseau : 8 nœuds ancrés sur des acteurs réels -------------------------------
-# Ancrage réel en commentaire — jamais dans les briefings.
+# Reseau : 8 noeuds ancres sur des acteurs reels Ancrage reel en commentaire - jamais dans les briefings.
 
 NODES: list[dict] = [
     {
@@ -101,7 +100,7 @@ NODES: list[dict] = [
         "rank": 3,
         "location": "Le Havre, France",
         "consultant": "C5",
-        # Ancrage : Kuehne+Nagel / DHL GF (taux de fret, Suez, congestion côte ouest).
+        # Ancrage : Kuehne+Nagel / DHL GF (taux de fret, Suez, congestion cote ouest).
     },
     {
         "id": "novafab",
@@ -110,8 +109,7 @@ NODES: list[dict] = [
         "rank": 4,
         "location": "Taishan (île d'Asie de l'Est) + fab Texas",
         "consultant": "C6",
-        # Ancrage composite documenté : TSMC (sécheresse Taïwan, surbooking) +
-        # Samsung/NXP/Infineon Austin (gel Texas février 2021).
+        # Ancrage composite documente : TSMC (secheresse Taiwan, surbooking) + Samsung/NXP/Infineon Austin (gel Texas fevrier 2021).
     },
     {
         "id": "meridian",
@@ -120,7 +118,7 @@ NODES: list[dict] = [
         "rank": 4,
         "location": "Dresde, Allemagne",
         "consultant": "C7",
-        # Ancrage : GlobalFoundries (carnet plein 2021 — le backup inerte).
+        # Ancrage : GlobalFoundries (carnet plein 2021 - le backup inerte).
     },
     {
         "id": "silpure",
@@ -129,12 +127,11 @@ NODES: list[dict] = [
         "rank": 5,
         "location": "Kyūshū, Japon",
         "consultant": "C8",
-        # Ancrage : Shin-Etsu / SUMCO (~60 % des wafers ; polysilicium ×3 en 2021).
+        # Ancrage : Shin-Etsu / SUMCO (~60 % des wafers ; polysilicium x3 en 2021).
     },
 ]
 
-#: Arcs fournisseur -> client. gamma = atténuation Ud (descendante),
-#: beta = amplification Ur (montante), kind "backup" = inerte (documentaire).
+#: Arcs fournisseur -> client. gamma = attenuation Ud (descendante), beta = amplification Ur (montante), kind "backup" = inerte (documentaire).
 ARCS: list[dict] = [
     {"source": "aviosys", "target": "orbitalys", "gamma": 0.9, "beta": 0.8, "kind": "nominal"},
     {"source": "electis", "target": "aviosys", "gamma": 0.8, "beta": 0.7, "kind": "nominal"},
@@ -145,17 +142,28 @@ ARCS: list[dict] = [
     {"source": "silpure", "target": "novafab", "gamma": 0.7, "beta": 0.6, "kind": "nominal"},
 ]
 
-# --- KPIs initiaux (T0) par nœud ---------------------------------------------------
-# Valeurs u_risk sourcées (voir plan U5bis) : env_exposure et political_risk
-# sont des ALÉAS MENSUELS [0, 0.10], obtenus en rebasant les rangs WorldRiskIndex
-# 2021 / WGI Political Stability sur cette bande (le modèle les compose par OU
-# probabiliste direct : les indices bruts 0.3-0.5 satureraient Ur — constaté au
-# dry run). Facteur de rebasage = constante posée, testée en sensibilité (HD3) ;
-# failure_probability = p_base par taille d'acteur (sensibilité ±50 % en U10) ;
-# recovery_time_h = durées réelles documentées converties en heures moteur.
+# KPIs initiaux (T0) par noeud Valeurs u_risk sourcees (voir plan U5bis) : env_exposure et political_risk sont des ALEAS MENSUELS [0, 0.10], obtenus en rebasant les rangs WorldRiskIndex 2021 / WGI Political Stability sur cette bande (le modele les compose par OU probabiliste direct : les indices bruts 0.3-0.5 satureraient Ur - constate au dry run). Facteur de rebasage = constante posee, testee en sensibilite (HD3) ; failure_probability = p_base par taille d'acteur (sensibilite +/-50 % en U10) ; recovery_time_h = durees reelles documentees converties en heures moteur.
 
 BASELINE_KPIS: dict[str, dict[str, float]] = {
     "orbitalys": {
+        # Completion U19 : le noeud de rang 0 n'avait AUCUN KPI hors risque. Consequence mesuree : socle de risque de jalon nul PAR CONSTRUCTION (repli " lead time absent -> u_base = 0 "), sur le noeud dont l'urgence EST celle du programme. Couverture KPI globale : 25,6 %. AIT satellite (assemblage, integration, tests) ~= 9 mois reels chez un maitre d'oeuvre europeen - ancrage Thales Alenia Space / Airbus D&S.
+        "time.lead_time_h": real_weeks_h(39),
+        "time.lead_time_std_h": real_weeks_h(6),
+        "network.demand": 100.0,
+        "inventory.flow_rate": 100.0,
+        "inventory.max_volume_m3": 400.0,  # hall d'integration
+        "inventory.current_volume_m3": 120.0,
+        "oee.availability": 0.90,  # AIT : creneaux de salle blanche contraints
+        "oee.performance": 0.88,
+        "oee.quality": 0.995,  # zero defaut tolere sur charge utile
+        "cost.nominal_op_cost": 100.0,
+        "cost.op_cost": 100.0,
+        "cost.storage_cost": 40.0,
+        # CO2 : intensite operatoire + mix electrique du site (g/h moteur). Cible = engagement contractuel programme, max = plafond au-dela duquel le noeud est en depassement caracterise.
+        "co2.op_emission_g_h": 900.0,
+        "co2.energy_mix_g_h": 600.0,
+        "co2.co2_target_g_h": 1400.0,
+        "co2.co2_max_g_h": 2600.0,
         "risk.failure_probability": 0.01,
         "risk.recovery_time_h": real_weeks_h(2),
         "risk.severity": 0.2,
@@ -163,27 +171,48 @@ BASELINE_KPIS: dict[str, dict[str, float]] = {
         "risk.political_risk": 0.01,
     },
     "aviosys": {
-        "time.lead_time_h": real_weeks_h(6),   # cycle d'intégration + qualification
+        # Completion U19 : blocs perf et cout manquants.
+        "oee.availability": 0.94,  # integration avionique, bancs partages
+        "oee.performance": 0.91,
+        "oee.quality": 0.995,  # aeronautique : reprise couteuse
+        "cost.nominal_op_cost": 100.0,
+        "cost.op_cost": 100.0,
+        "cost.storage_cost": 25.0,
+        # CO2 : intensite operatoire + mix electrique du site (g/h moteur). Cible = engagement contractuel programme, max = plafond au-dela duquel le noeud est en depassement caracterise.
+        "co2.op_emission_g_h": 1100.0,
+        "co2.energy_mix_g_h": 700.0,
+        "co2.co2_target_g_h": 1700.0,
+        "co2.co2_max_g_h": 3200.0,
+        "time.lead_time_h": real_weeks_h(6),  # cycle d'integration + qualification
         "time.lead_time_std_h": real_weeks_h(1.5),
-        # Couverture de stock modélisée en capacité d'alimentation (flow/demand) :
-        # la sémantique volume du modèle mesure la SATURATION d'entrepôt
-        # (remaining = max - current), pas la couverture — constaté au dry run.
+        # Couverture de stock modelisee en capacite d'alimentation (flow/demand) : la semantique volume du modele mesure la SATURATION d'entrepot (remaining = max - current), pas la couverture - constate au dry run.
         "network.demand": 100.0,
         "inventory.flow_rate": 100.0,
         "risk.failure_probability": 0.01,
-        "risk.recovery_time_h": real_weeks_h(26),  # requalif composant ≈ 6 mois réels
+        "risk.recovery_time_h": real_weeks_h(26),  # requalif composant ~= 6 mois reels
         "risk.severity": 0.2,
         "risk.env_exposure": 0.02,
         "risk.political_risk": 0.01,
     },
     "electis": {
+        # Completion U19 : EMS sans lead time -> risque de jalon nul. Cycle CMS complet (appro, pose, test, conditionnement) ~= 8 semaines reelles hors penurie - ancrage Asteelflash / Lacroix Electronics.
+        "time.lead_time_h": real_weeks_h(8),
+        "time.lead_time_std_h": real_weeks_h(2),
+        "network.demand": 100.0,
+        "inventory.flow_rate": 100.0,
+        "cost.storage_cost": 15.0,
+        # CO2 : intensite operatoire + mix electrique du site (g/h moteur). Cible = engagement contractuel programme, max = plafond au-dela duquel le noeud est en depassement caracterise.
+        "co2.op_emission_g_h": 1400.0,
+        "co2.energy_mix_g_h": 900.0,
+        "co2.co2_target_g_h": 2100.0,
+        "co2.co2_max_g_h": 4000.0,
         "oee.availability": 0.92,
         "oee.performance": 0.90,
         "oee.quality": 0.985,
         "cost.nominal_op_cost": 100.0,
         "cost.op_cost": 100.0,
         "inventory.max_volume_m3": 60.0,
-        "inventory.current_volume_m3": 18.0,   # 30 % de remplissage (saturation basse)
+        "inventory.current_volume_m3": 18.0,  # 30 % de remplissage (saturation basse)
         "risk.failure_probability": 0.02,
         "risk.recovery_time_h": real_weeks_h(2),
         "risk.severity": 0.2,
@@ -191,8 +220,22 @@ BASELINE_KPIS: dict[str, dict[str, float]] = {
         "risk.political_risk": 0.01,
     },
     "compodis": {
-        "network.demand": 100.0,          # indice de demande clients (base 100)
-        "inventory.flow_rate": 100.0,     # débit servi (base 100)
+        # Completion U19 : distributeur sans lead time NOMINAL. Les delais subis (12 -> 25 semaines) arrivent par evenements ; il faut une base sur laquelle ils s'appliquent, sinon le premier retard fournisseur DEFINIT le lead time au lieu de le decaler.
+        "time.lead_time_h": real_weeks_h(12),
+        "time.lead_time_std_h": real_weeks_h(3),
+        "oee.availability": 0.97,  # entrepot : preparation de commandes
+        "oee.performance": 0.95,
+        "oee.quality": 0.999,
+        "cost.nominal_op_cost": 100.0,
+        "cost.op_cost": 100.0,
+        "cost.storage_cost": 60.0,  # hub Rotterdam, immobilisation composants
+        # CO2 : intensite operatoire + mix electrique du site (g/h moteur). Cible = engagement contractuel programme, max = plafond au-dela duquel le noeud est en depassement caracterise.
+        "co2.op_emission_g_h": 600.0,
+        "co2.energy_mix_g_h": 400.0,
+        "co2.co2_target_g_h": 1000.0,
+        "co2.co2_max_g_h": 1900.0,
+        "network.demand": 100.0,  # indice de demande clients (base 100)
+        "inventory.flow_rate": 100.0,  # debit servi (base 100)
         "inventory.max_volume_m3": 500.0,
         "inventory.current_volume_m3": 150.0,  # 30 % de remplissage (saturation basse)
         "cost.tariff": 1.0,
@@ -203,38 +246,67 @@ BASELINE_KPIS: dict[str, dict[str, float]] = {
         "risk.political_risk": 0.01,
     },
     "transglobal": {
-        "time.lead_time_h": real_weeks_h(5),   # transit intercontinental type
+        # Completion U19 : capacite et perf manquantes.
+        "network.demand": 100.0,
+        "inventory.flow_rate": 100.0,
+        "oee.availability": 0.94,  # disponibilite de creneaux / capacite navire
+        "oee.performance": 0.90,  # congestion portuaire structurelle 2021
+        "oee.quality": 0.99,
+        "cost.tariff": 1.0,
+        "cost.storage_cost": 30.0,  # demurrage / stationnement conteneurs
+        # CO2 : intensite operatoire + mix electrique du site (g/h moteur). Cible = engagement contractuel programme, max = plafond au-dela duquel le noeud est en depassement caracterise.
+        "co2.op_emission_g_h": 3200.0,
+        "co2.energy_mix_g_h": 500.0,
+        "co2.co2_target_g_h": 3400.0,
+        "co2.co2_max_g_h": 6500.0,
+        "time.lead_time_h": real_weeks_h(5),  # transit intercontinental type
         "time.lead_time_std_h": real_weeks_h(1),
         "cost.nominal_op_cost": 100.0,
         "cost.op_cost": 100.0,
         "risk.failure_probability": 0.03,
         "risk.recovery_time_h": real_days_h(3),
         "risk.severity": 0.2,
-        "risk.env_exposure": 0.06,   # routes maritimes mondiales
+        "risk.env_exposure": 0.06,  # routes maritimes mondiales
         "risk.political_risk": 0.02,
     },
     "novafab": {
-        "network.demand": 100.0,          # indice WSTS normalisé (base 100 = T0)
-        "inventory.flow_rate": 100.0,     # capacité servie
-        # Cycle de production PROPRE de la fab (stable) — les délais clients
-        # (12 -> 25 semaines) sont portés par compodis, qui les subit : un
-        # fondeur n'est pas « en retard » sur ses propres jalons parce que
-        # ses clients attendent longtemps (constaté au dry run v2).
+        # Completion U19 : cout de stockage et tarif.
+        "cost.tariff": 1.0,
+        "cost.storage_cost": 20.0,
+        # CO2 : intensite operatoire + mix electrique du site (g/h moteur). Cible = engagement contractuel programme, max = plafond au-dela duquel le noeud est en depassement caracterise.
+        "co2.op_emission_g_h": 5200.0,
+        "co2.energy_mix_g_h": 3800.0,
+        "co2.co2_target_g_h": 8600.0,
+        "co2.co2_max_g_h": 16000.0,
+        "network.demand": 100.0,  # indice WSTS normalise (base 100 = T0)
+        "inventory.flow_rate": 100.0,  # capacite servie
+        # Cycle de production PROPRE de la fab (stable) - les delais clients (12 -> 25 semaines) sont portes par compodis, qui les subit : un fondeur n'est pas " en retard " sur ses propres jalons parce que ses clients attendent longtemps (constate au dry run v2).
         "time.lead_time_h": real_weeks_h(10),
         "time.lead_time_std_h": real_weeks_h(1.5),
         "oee.availability": 0.95,
         "oee.performance": 0.95,
         "oee.quality": 0.99,
-        # Contexte coût : PPI semi-conducteurs US (Kaggle/BLS, contrôle HD5 OK).
+        # Contexte cout : PPI semi-conducteurs US (Kaggle/BLS, controle HD5 OK).
         "cost.nominal_op_cost": 100.0,
         "cost.op_cost": 100.0,
         "risk.failure_probability": 0.01,
-        "risk.recovery_time_h": real_weeks_h(4),  # redémarrage fab ≈ 1 mois (gel Texas)
+        "risk.recovery_time_h": real_weeks_h(4),  # redemarrage fab ~= 1 mois (gel Texas)
         "risk.severity": 0.2,
-        "risk.env_exposure": 0.08,   # WRI : typhons, sécheresse, séismes (île)
-        "risk.political_risk": 0.06,  # WGI inversé, tensions régionales 2021
+        "risk.env_exposure": 0.08,  # WRI : typhons, secheresse, seismes (ile)
+        "risk.political_risk": 0.06,  # WGI inverse, tensions regionales 2021
     },
     "meridian": {
+        # Completion U19 : qualite et bloc cout manquants.
+        "oee.quality": 0.985,
+        "cost.nominal_op_cost": 100.0,
+        "cost.op_cost": 100.0,
+        "cost.tariff": 1.0,
+        "cost.storage_cost": 20.0,
+        # CO2 : intensite operatoire + mix electrique du site (g/h moteur). Cible = engagement contractuel programme, max = plafond au-dela duquel le noeud est en depassement caracterise.
+        "co2.op_emission_g_h": 4400.0,
+        "co2.energy_mix_g_h": 3200.0,
+        "co2.co2_target_g_h": 7300.0,
+        "co2.co2_max_g_h": 13500.0,
         "network.demand": 100.0,
         "inventory.flow_rate": 100.0,
         "time.lead_time_h": real_weeks_h(10),
@@ -248,6 +320,21 @@ BASELINE_KPIS: dict[str, dict[str, float]] = {
         "risk.political_risk": 0.01,
     },
     "silpure": {
+        # Completion U19 : fournisseur de wafers sans lead time. Croissance de lingot Czochralski + decoupe + polissage ~= 14 semaines reelles - ancrage Shin-Etsu / SUMCO.
+        "time.lead_time_h": real_weeks_h(14),
+        "time.lead_time_std_h": real_weeks_h(2.5),
+        "oee.availability": 0.96,  # fours en marche continue
+        "oee.performance": 0.94,
+        "oee.quality": 0.998,  # purete wafer : rebut rare mais total
+        "inventory.max_volume_m3": 200.0,
+        "inventory.current_volume_m3": 60.0,
+        "cost.tariff": 1.0,
+        "cost.storage_cost": 18.0,
+        # CO2 : intensite operatoire + mix electrique du site (g/h moteur). Cible = engagement contractuel programme, max = plafond au-dela duquel le noeud est en depassement caracterise.
+        "co2.op_emission_g_h": 3800.0,
+        "co2.energy_mix_g_h": 2900.0,
+        "co2.co2_target_g_h": 6300.0,
+        "co2.co2_max_g_h": 11800.0,
         "cost.nominal_op_cost": 100.0,
         "cost.op_cost": 100.0,
         "inventory.flow_rate": 100.0,
@@ -255,26 +342,18 @@ BASELINE_KPIS: dict[str, dict[str, float]] = {
         "risk.failure_probability": 0.01,
         "risk.recovery_time_h": real_weeks_h(8),
         "risk.severity": 0.2,
-        "risk.env_exposure": 0.07,   # Japon : séismes
+        "risk.env_exposure": 0.07,  # Japon : seismes
         "risk.political_risk": 0.015,
     },
 }
 
-# --- Jalons (offsets en semaines moteur depuis t0) ---------------------------------
-# (node_id, nom, kind, start_week, deadline_week)
+# Jalons (offsets en semaines moteur depuis t0) (node_id, nom, kind, start_week, deadline_week)
 
-#: RÈGLE : chaque nœud garde AU MOINS un jalon ACTIVE jusqu'à la fin de la
-#: campagne — le modèle passe automatiquement un nœud DONE (Ur_local = 0)
-#: quand tous ses jalons sont terminés (constaté au dry run), et une entreprise
-#: réelle a toujours une prochaine livraison.
+#: REGLE : chaque noeud garde AU MOINS un jalon ACTIVE jusqu'a la fin de la campagne - le modele passe automatiquement un noeud DONE (Ur_local = 0) quand tous ses jalons sont termines (constate au dry run), et une entreprise reelle a toujours une prochaine livraison.
 MILESTONES: list[tuple[str, str, str, int, int]] = [
     ("orbitalys", "Livraison HÉLIOS-1", "livraison", 0, 8),
     ("orbitalys", "Livraison HÉLIOS-2", "livraison", 8, 16),
-    # Échéanciers calés pour que les pics mécaniques de fin de fenêtre
-    # (P(L > slack) -> 1 quand le lead time approche la fenêtre restante)
-    # tombent dans les phases de crise réelles, pas dans la baseline ni la
-    # décrue (constaté aux dry runs v2/v3) — les fenêtres finales gardent
-    # de la marge pour que la décrue P5 soit mesurable (HA6).
+    # Echeanciers cales pour que les pics mecaniques de fin de fenetre (P(L > slack) -> 1 quand le lead time approche la fenetre restante) tombent dans les phases de crise reelles, pas dans la baseline ni la decrue (constate aux dry runs v2/v3) - les fenetres finales gardent de la marge pour que la decrue P5 soit mesurable (HA6).
     ("aviosys", "Sous-système avionique lot 1", "serie", 0, 6),
     ("aviosys", "Sous-système avionique lot 2", "serie", 6, 11),
     ("aviosys", "Sous-système avionique lot 3", "serie", 12, 16),
@@ -289,18 +368,12 @@ MILESTONES: list[tuple[str, str, str, int, int]] = [
     ("novafab", "Allocation wafers HÉLIOS", "serie", 0, 10),
     ("novafab", "Allocation wafers HÉLIOS S2", "serie", 10, 22),
     ("meridian", "Créneaux de production engagés", "custom", 0, 20),
-    # Deadline 15 (pas 14) : à l'échéance exacte, l'égalité flottante t == d*
-    # bascule en « retard avéré » (u_time = 1.0) pour un tour — artefact qui
-    # polluerait le test HA5 à T13 (dry run v4).
+    # Deadline 15 (pas 14) : a l'echeance exacte, l'egalite flottante t == d* bascule en " retard avere " (u_time = 1.0) pour un tour - artefact qui polluerait le test HA5 a T13 (dry run v4).
     ("silpure", "Contrat wafers annuel", "livraison", 0, 15),
     ("silpure", "Contrat wafers année suivante", "livraison", 14, 20),
 ]
 
-#: Re-planifications OFFICIELLES de jalons en dérive : {(node, nom, tour): nouvelle
-#: deadline (semaines moteur)}. Pratique réelle (revue de programme) et
-#: narrativement ancrée : l'annonce de C. Vasseur à T13 EST la re-planification
-#: de HÉLIOS-1. Sans re-planification, un jalon en dépassement épingle
-#: u_time = 1.0 (retard avéré — comportement documenté du modèle).
+#: Re-planifications OFFICIELLES de jalons en derive : {(node, nom, tour): nouvelle deadline (semaines moteur)}. Pratique reelle (revue de programme) et narrativement ancree : l'annonce de C. Vasseur a T13 EST la re-planification de HELIOS-1. Sans re-planification, un jalon en depassement epingle u_time = 1.0 (retard avere - comportement documente du modele).
 MILESTONE_REPLAN: dict[tuple[str, str, int], int] = {
     ("orbitalys", "Livraison HÉLIOS-1", 13): 14,
     ("orbitalys", "Livraison HÉLIOS-2", 16): 19,
@@ -308,28 +381,26 @@ MILESTONE_REPLAN: dict[tuple[str, str, int], int] = {
     ("aviosys", "Sous-système avionique lot 3", 16): 18,
 }
 
-#: Progrès scripté des jalons : {(node_id, nom_jalon, tour): progress}.
-#: Seules les DÉRIVES par rapport au nominal sont listées ; le facilitateur pose
-#: progress = min(tour/deadline, 1.0) par défaut (avancement nominal).
+#: Progres scripte des jalons : {(node_id, nom_jalon, tour): progress}. Seules les DERIVES par rapport au nominal sont listees ; le facilitateur pose progress = min(tour/deadline, 1.0) par defaut (avancement nominal).
 MILESTONE_DRIFT: dict[tuple[str, str, int], float] = {
-    # AvioSys lot 2 (deadline T11) : dérive dès T9 (stock qualifié fond).
+    # AvioSys lot 2 (deadline T11) : derive des T9 (stock qualifie fond).
     ("aviosys", "Sous-système avionique lot 2", 9): 0.60,
     ("aviosys", "Sous-système avionique lot 2", 10): 0.75,
-    ("aviosys", "Sous-système avionique lot 2", 11): 0.85,  # livré en retard à T12
+    ("aviosys", "Sous-système avionique lot 2", 11): 0.85,  # livre en retard a T12
     # AvioSys lot 3 (deadline T16) : rupture effective en P4.
     ("aviosys", "Sous-système avionique lot 3", 14): 0.45,
     ("aviosys", "Sous-système avionique lot 3", 15): 0.60,
     ("aviosys", "Sous-système avionique lot 3", 16): 0.75,
     ("aviosys", "Sous-système avionique lot 3", 17): 0.90,
-    # HÉLIOS-1 (deadline T8) : glisse officiellement à T13 (annonce), livré T14.
+    # HELIOS-1 (deadline T8) : glisse officiellement a T13 (annonce), livre T14.
     ("orbitalys", "Livraison HÉLIOS-1", 7): 0.80,
     ("orbitalys", "Livraison HÉLIOS-1", 8): 0.88,
     ("orbitalys", "Livraison HÉLIOS-1", 13): 0.92,
-    # HÉLIOS-2 (deadline T16) : glisse, redevient atteignable en P5.
+    # HELIOS-2 (deadline T16) : glisse, redevient atteignable en P5.
     ("orbitalys", "Livraison HÉLIOS-2", 15): 0.70,
     ("orbitalys", "Livraison HÉLIOS-2", 16): 0.82,
     ("orbitalys", "Livraison HÉLIOS-2", 18): 0.95,
-    # Électis série B (deadline T13) : ralentie par le backend (T12).
+    # Electis serie B (deadline T13) : ralentie par le backend (T12).
     ("electis", "Cartes HÉLIOS série B", 12): 0.72,
     ("electis", "Cartes HÉLIOS série B", 13): 0.85,
     # NovaFab allocation (deadline T10) : tenue au prix d'arbitrages.
@@ -337,10 +408,9 @@ MILESTONE_DRIFT: dict[tuple[str, str, int], float] = {
     ("novafab", "Allocation wafers HÉLIOS", 10): 0.95,
 }
 
-#: Tour où chaque jalon passe DONE (progress forcé à 1.0 à ce tour).
-#: Un jalon absent reste ACTIVE jusqu'à la fin de la campagne.
+#: Tour ou chaque jalon passe DONE (progress force a 1.0 a ce tour). Un jalon absent reste ACTIVE jusqu'a la fin de la campagne.
 MILESTONE_DONE: dict[tuple[str, str], int] = {
-    ("orbitalys", "Livraison HÉLIOS-1"): 14,      # livré avec ~6 sem. de glissement
+    ("orbitalys", "Livraison HÉLIOS-1"): 14,  # livre avec ~6 sem. de glissement
     ("aviosys", "Sous-système avionique lot 1"): 6,
     ("aviosys", "Sous-système avionique lot 2"): 12,
     ("aviosys", "Sous-système avionique lot 3"): 18,
@@ -350,31 +420,23 @@ MILESTONE_DONE: dict[tuple[str, str], int] = {
     ("transglobal", "Contrat de flux annuel"): 12,
     ("novafab", "Allocation wafers HÉLIOS"): 11,
     ("silpure", "Contrat wafers annuel"): 14,
-    # HÉLIOS-2 et Couverture S2 restent ACTIVE jusqu'au bout (fin de fenêtre).
+    # HELIOS-2 et Couverture S2 restent ACTIVE jusqu'au bout (fin de fenetre).
 }
 
-#: Couverture de stock d'AvioSys (semaines), scriptée depuis la narration —
-#: aucune série externe n'existe pour le stock d'un intégrateur fictif ;
-#: assumé et étiqueté « scripté » (ancres narratives : 11 sem. à T6, 7 à T8).
+#: Couverture de stock d'AvioSys (semaines), scriptee depuis la narration - aucune serie externe n'existe pour le stock d'un integrateur fictif ; assume et etiquete " scripte " (ancres narratives : 11 sem. a T6, 7 a T8).
 AVIOSYS_COVERAGE_WEEKS: dict[int, float] = {
     0: 11.0, 1: 11.0, 2: 11.0, 3: 11.0, 4: 10.5, 5: 10.0, 6: 11.0, 7: 9.0,
     8: 7.0, 9: 6.0, 10: 5.0, 11: 4.5, 12: 4.0, 13: 3.0, 14: 3.5, 15: 4.0,
     16: 5.0, 17: 6.0, 18: 8.0,
 }
 
-#: Lead time fournisseur « constaté » (semaines RÉELLES), série reconstruite par
-#: interpolation entre ancres documentées (SOURCES['delais_broadcom'] et presse) :
-#: appliquée à novafab (annoncé) et compodis (constaté), converties via real_weeks_h.
+#: Lead time fournisseur " constate " (semaines REELLES), serie reconstruite par interpolation entre ancres documentees (SOURCES['delais_broadcom'] et presse) : appliquee a novafab (annonce) et compodis (constate), converties via real_weeks_h.
 LEAD_TIME_ANCHORS_WEEKS: dict[int, float] = {
     0: 12.5, 1: 13.0, 3: 14.0, 8: 22.2, 12: 24.0, 14: 25.0, 16: 25.0,
     17: 24.5, 18: 24.0,
 }
 
-# --- Événements moteur par tour ----------------------------------------------------
-# Champs validés contre EVENT_CALIBRATION (supplyscore/domain/events.py).
-# Choix documenté : le gel Texas (T6) est encodé en `accident` (arrêt de
-# production, révision bayésienne + récupération + sévérité cliquet) plutôt qu'en
-# `perte_capacite` (qui réduit le volume de STOCKAGE) — mécaniquement plus fidèle.
+# Evenements moteur par tour Champs valides contre EVENT_CALIBRATION (supplyscore/domain/events.py). Choix documente : le gel Texas (T6) est encode en `accident` (arret de production, revision bayesienne + recuperation + severite cliquet) plutot qu'en `perte_capacite` (qui reduit le volume de STOCKAGE) - mecaniquement plus fidele.
 
 EVENTS: dict[int, list[dict]] = {
     3: [
@@ -433,9 +495,7 @@ EVENTS: dict[int, list[dict]] = {
     ],
 }
 
-# --- Personas (niveau « jeu ») ------------------------------------------------------
-# RÈGLE D'ÉCRITURE (HC9) : le persona décrit comment l'entreprise parle et ce
-# qu'elle craint — JAMAIS combien il faut s'inquiéter ce tour-ci.
+# Personas (niveau " jeu ") REGLE D'ECRITURE (HC9) : le persona decrit comment l'entreprise parle et ce qu'elle craint - JAMAIS combien il faut s'inquieter ce tour-ci.
 
 PERSONAS: dict[str, dict[str, str]] = {
     "orbitalys": {
@@ -500,12 +560,7 @@ PERSONAS: dict[str, dict[str, str]] = {
     },
 }
 
-# --- Narration par tour et par canal -----------------------------------------------
-# Trois canaux : "presse" (identique pour tous), "bilateral" (par nœud : ce que
-# clients/fournisseurs directs lui disent), "interne" (par nœud : ses propres
-# constats). make_briefings.py assemble fiche = presse + bilateral[nœud] +
-# interne[nœud] + tableau de KPIs ≤ tour.
-# RÈGLE HC9 : aucun adjectif d'intensité hors citations de presse.
+# Narration par tour et par canal Trois canaux : "presse" (identique pour tous), "bilateral" (par noeud : ce que clients/fournisseurs directs lui disent), "interne" (par noeud : ses propres constats). make_briefings.py assemble fiche = presse + bilateral[noeud] + interne[noeud] + tableau de KPIs <= tour. REGLE HC9 : aucun adjectif d'intensite hors citations de presse.
 
 NARRATIVE: dict[int, dict] = {
     0: {
@@ -784,11 +839,7 @@ NARRATIVE: dict[int, dict] = {
     },
 }
 
-# --- Test placebo (HC4) -------------------------------------------------------------
-# Deux couples (nœud, tour) reçoivent une fiche à continuation alternative
-# plausible. Si le Ud suit le placebo, la mesure reflète la donnée fournie, pas
-# un souvenir de la crise réelle. Choisis à l'avance, hors nœuds à événement au
-# tour concerné.
+# Test placebo (HC4) Deux couples (noeud, tour) recoivent une fiche a continuation alternative plausible. Si le Ud suit le placebo, la mesure reflete la donnee fournie, pas un souvenir de la crise reelle. Choisis a l'avance, hors noeuds a evenement au tour concerne.
 
 PLACEBO: dict[tuple[str, int], dict[str, str]] = {
     ("aviosys", 9): {
@@ -808,8 +859,7 @@ PLACEBO: dict[tuple[str, int], dict[str, str]] = {
     },
 }
 
-# --- Profils synthétiques (dry run + baseline comparative U10) ----------------------
-# Biais appliqué au score de chaque critère AHP (sur l'échelle locale [1, 9]).
+# Profils synthetiques (dry run + baseline comparative U10) Biais applique au score de chaque critere AHP (sur l'echelle locale [1, 9]).
 
 SYNTHETIC_PROFILES: dict[str, dict] = {
     "paniqueur": {"bias": +2.0, "nodes": ["compodis", "orbitalys"]},
@@ -817,7 +867,7 @@ SYNTHETIC_PROFILES: dict[str, dict] = {
     "neutre": {"bias": 0.0, "nodes": ["aviosys", "electis", "transglobal", "meridian"]},
 }
 
-# --- Ancrages documentaires (MANIFEST / narration.md) --------------------------------
+# Ancrages documentaires (MANIFEST / narration.md)
 
 SOURCES: dict[str, str] = {
     "chronologie": "Wikipedia — 2020-2023 global chip shortage (timeline) ; "

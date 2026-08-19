@@ -1,4 +1,4 @@
-"""Tests du moteur d'explicabilité (E8, Lot 8.1) — cas chiffrés et invariants."""
+"""Tests du moteur d'explicabilite (E8, Lot 8.1) - cas chiffres et invariants."""
 
 from __future__ import annotations
 
@@ -50,7 +50,7 @@ def make_milestone(
     progress: float = 0.0,
     mid: str = "m1",
 ) -> Milestone:
-    """Jalon de test ancré sur T0, échéances exprimées en heures."""
+    """Jalon de test ancre sur T0, echeances exprimees en heures."""
     return Milestone(
         id=mid,
         node_id="n1",
@@ -71,7 +71,7 @@ def rebuilt_ur(contributions) -> float:
     return 1.0 - math.exp(-total)
 
 
-# --- Ud (AHP) -----------------------------------------------------------------------
+# Ud (AHP)
 
 
 class TestExplainUd:
@@ -87,7 +87,7 @@ class TestExplainUd:
         contribs = explain_ud(self.W, self.S)
         total = sum(c.contribution for c in contribs)
         assert total == pytest.approx(0.575, abs=1e-12)
-        # Et coïncide avec le Ud du pipeline (même appel compute_ud).
+        # Et coincide avec le Ud du pipeline (meme appel compute_ud).
         assert total == pytest.approx(compute_ud(self.W, self.S), abs=1e-12)
 
     def test_labels_et_indices(self):
@@ -106,7 +106,7 @@ class TestExplainUd:
             explain_ud(self.W, np.array([9.0, 5.0, 0.5, 3.0]))
 
 
-# --- Ur_local (blocs KPI) -------------------------------------------------------------
+# Ur_local (blocs KPI)
 
 
 def kpis_time_risk_05() -> KPIBundle:
@@ -125,8 +125,8 @@ def kpis_time_risk_05() -> KPIBundle:
 def kpis_risk09_perf01() -> KPIBundle:
     """KPIs donnant u_risk = 0.9 et u_perf = 0.1, autres blocs None.
 
-    - risk : fp = 1, t_recup = 24·ln 10, sev = 1 -> base = 1 - exp(-ln 10) = 0.9 ;
-    - perf : OEE = 0.9·1·1 -> u_perf = 1 - 0.9 = 0.1.
+    - risk : fp = 1, t_recup = 24-ln 10, sev = 1 -> base = 1 - exp(-ln 10) = 0.9 ;
+    - perf : OEE = 0.9-1-1 -> u_perf = 1 - 0.9 = 0.1.
     """
     return KPIBundle(
         risk=RiskKPIs(failure_probability=1.0, recovery_time_h=24.0 * math.log(10.0), severity=1.0),
@@ -143,7 +143,7 @@ class TestExplainUrLocal:
 
         assert par_bloc["time"].u == pytest.approx(0.5, abs=1e-9)
         assert par_bloc["risk"].u == pytest.approx(0.5, abs=1e-9)
-        # Ur = 1 - 0.5·0.5 = 0.75 ; parts égales ; delta chacun 0.25.
+        # Ur = 1 - 0.5-0.5 = 0.75 ; parts egales ; delta chacun 0.25.
         assert model.ur_local(0.0, kpis_time_risk_05()) == pytest.approx(0.75, abs=1e-9)
         assert par_bloc["time"].share == pytest.approx(0.5, abs=1e-9)
         assert par_bloc["risk"].share == pytest.approx(0.5, abs=1e-9)
@@ -224,7 +224,7 @@ class TestSaturation:
         # delta : sans time, Ur = u_perf = 0.3 -> delta = 1.0 - 0.3 = 0.7.
         assert par_bloc["time"].delta_without == pytest.approx(0.7, abs=1e-9)
         assert par_bloc["perf"].delta_without == pytest.approx(0.0, abs=1e-9)
-        # Aucun NaN/Inf dans les champs exposés.
+        # Aucun NaN/Inf dans les champs exposes.
         for c in contribs:
             assert math.isfinite(c.share)
             assert math.isfinite(c.delta_without)
@@ -246,7 +246,7 @@ class TestSaturation:
         assert sum(c.share for c in contribs) == pytest.approx(1.0, abs=1e-9)
 
 
-# --- u_time (trace planning) -----------------------------------------------------------
+# u_time (trace planning)
 
 
 class TestExplainUTime:
@@ -259,23 +259,21 @@ class TestExplainUTime:
         return KPIBundle(time=TimeKPIs(lead_time_h=100.0, lead_time_std_h=20.0))
 
     def test_cas_chiffre_v2(self, model, kpis):
-        # d* = 100 h, lead 100/std 20, t = 40, progress = 0.25.
-        # Socle sur travail restant : reste = 0.75 -> L_restant ~ N(75, 15),
-        # marge 60 -> z = -1 -> u_base = Phi(1) = 0.841345 ; r = 0.15.
+        # d* = 100 h, lead 100/std 20, t = 40, progress = 0.25. Socle sur travail restant : reste = 0.75 -> L_restant ~ N(75, 17.32) (sigma en RACINE du reste), marge 60 -> z = -0.866 -> u_base = 0.806762 ; r = 0.15.
         m = make_milestone(100.0, progress=0.25)
         trace = explain_u_time(40.0, kpis, [m], model, t0_ts=T0)
-        assert trace.u_base == pytest.approx(0.841345, abs=1e-4)
+        assert trace.u_base == pytest.approx(0.806762, abs=1e-4)
         assert trace.p_th == pytest.approx(0.4, abs=1e-12)
         assert trace.progress == pytest.approx(0.25, abs=1e-12)
         assert trace.planning_adjust == pytest.approx(0.075, abs=1e-12)
-        assert trace.final == pytest.approx(0.916345, abs=1e-4)
-        # final == pipeline (même appel) et == clip01(u_base + adjust).
+        assert trace.final == pytest.approx(0.881762, abs=1e-4)
+        # final == pipeline (meme appel) et == clip01(u_base + adjust).
         assert trace.final == model.u_time(40.0, kpis, milestones=[m], t0_ts=T0)
         reconstruit = min(max(trace.u_base + trace.planning_adjust, 0.0), 1.0)
         assert trace.final == pytest.approx(reconstruit, abs=1e-12)
 
     def test_avance_bonus_negatif(self, model, kpis):
-        # progress = 0.9 -> r = -0.5 -> adjust = -0.2·0.5 = -0.1.
+        # progress = 0.9 -> r = -0.5 -> adjust = -0.2-0.5 = -0.1.
         m = make_milestone(100.0, progress=0.9)
         trace = explain_u_time(40.0, kpis, [m], model, t0_ts=T0)
         assert trace.planning_adjust == pytest.approx(-0.1, abs=1e-12)
@@ -307,19 +305,19 @@ class TestExplainUTime:
         assert trace.planning_adjust == 0.0
 
     def test_v2_sans_lead_time_socle_nul(self, model):
-        # Choix documenté du pipeline : lead time absent -> u_base = 0.0.
+        # Choix documente du pipeline : lead time absent -> u_base = 0.0.
         m = make_milestone(100.0, progress=0.0)
         trace = explain_u_time(40.0, KPIBundle(), [m], model, t0_ts=T0)
         assert trace.u_base == 0.0
-        assert trace.planning_adjust == pytest.approx(0.2, abs=1e-12)  # 0.5·0.4
+        assert trace.planning_adjust == pytest.approx(0.2, abs=1e-12)  # 0.5-0.4
         assert trace.final == pytest.approx(0.2, abs=1e-12)
 
 
-# --- Propagation -----------------------------------------------------------------------
+# Propagation
 
 
 def make_pair_up() -> tuple[InMemoryGraphRepository, PropagationEngine]:
-    """Mini-graphe réel S (fournisseur, Ur_loc=0.5) -> I (client, Ur_loc=0.2), beta=0.8."""
+    """Mini-graphe reel S (fournisseur, Ur_loc=0.5) -> I (client, Ur_loc=0.2), beta=0.8."""
     repo = InMemoryGraphRepository()
     repo.add_node(SupplyNode(id="I", name="Client I", urgency=UrgencyState(ur_local=0.2)))
     repo.add_node(SupplyNode(id="S", name="Fournisseur S", urgency=UrgencyState(ur_local=0.5)))
@@ -332,7 +330,7 @@ class TestPropagationUp:
     def test_cas_chiffre_contre_propagation_engine(self):
         repo, engine = make_pair_up()
         ur = engine.propagate_ascending()
-        # Ur_I = 1 - (1 - 0.2)·(1 - 0.8·0.5) = 0.52 (vérifié contre le moteur).
+        # Ur_I = 1 - (1 - 0.2)-(1 - 0.8-0.5) = 0.52 (verifie contre le moteur).
         assert ur["I"] == pytest.approx(0.52, abs=1e-12)
 
         node = repo.get_node("I")
@@ -346,14 +344,14 @@ class TestPropagationUp:
         assert c.neighbor_name == "Fournisseur S"
         assert c.coeff == pytest.approx(0.8)
         assert c.u_neighbor == pytest.approx(0.5, abs=1e-12)
-        # Part propagée = ln(0.6) / (ln(0.8) + ln(0.6)) = 0.696.
+        # Part propagee = ln(0.6) / (ln(0.8) + ln(0.6)) = 0.696.
         attendu = math.log(0.6) / (math.log(0.8) + math.log(0.6))
         assert c.share == pytest.approx(attendu, abs=1e-12)
         assert c.share == pytest.approx(0.696, abs=1e-3)
         assert part_locale == pytest.approx(1.0 - attendu, abs=1e-12)
         # part_locale + somme des parts == 1.
         assert part_locale + sum(e.share for e in contribs) == pytest.approx(1.0, abs=1e-9)
-        # Reconstruction == Ur du moteur à 1e-12.
+        # Reconstruction == Ur du moteur a 1e-12.
         l_loc = -math.log(1.0 - 0.2)
         l_s = -math.log(1.0 - 0.8 * 0.5)
         assert 1.0 - math.exp(-(l_loc + l_s)) == pytest.approx(ur["I"], abs=1e-12)
@@ -411,7 +409,7 @@ class TestPropagationDown:
         assert contribs[0].coeff == pytest.approx(0.8)
         assert contribs[0].u_neighbor == pytest.approx(0.5, abs=1e-12)
         assert part_locale + sum(e.share for e in contribs) == pytest.approx(1.0, abs=1e-9)
-        # Reconstruction == Ud du moteur à 1e-12.
+        # Reconstruction == Ud du moteur a 1e-12.
         l_loc = -math.log(1.0 - 0.2)
         l_c = -math.log(1.0 - 0.8 * 0.5)
         assert 1.0 - math.exp(-(l_loc + l_c)) == pytest.approx(ud["I"], abs=1e-12)
@@ -423,7 +421,7 @@ class TestPropagationDown:
             explain_propagation_down(node, [succ], {})
 
 
-# --- Adéquation -------------------------------------------------------------------------
+# Adequation
 
 
 class TestExplainAdequation:
@@ -434,7 +432,7 @@ class TestExplainAdequation:
         assert trace.e_over == 0.0
         assert trace.penalty == pytest.approx(2.25 * 0.31**0.88, abs=1e-12)
         assert trace.penalty == pytest.approx(0.8027, abs=1e-3)
-        # Score : exactement la valeur du moteur (même appel).
+        # Score : exactement la valeur du moteur (meme appel).
         assert trace.adequation == engine.adequation_asym(0.21, 0.52)
         assert trace.adequation == pytest.approx(38.31, abs=0.2)
         assert trace.lambda_under == 2.25
@@ -465,11 +463,11 @@ class TestExplainAdequation:
         assert trace.adequation == pytest.approx(100.0, abs=1e-9)
 
 
-# --- Invariants Hypothesis ----------------------------------------------------------------
+# Invariants Hypothesis
 
 
 def opt_floats(lo: float, hi: float) -> st.SearchStrategy[float | None]:
-    """Float optionnel borné (None = KPI absent), jamais NaN/Inf."""
+    """Float optionnel borne (None = KPI absent), jamais NaN/Inf."""
     return st.one_of(st.none(), st.floats(min_value=lo, max_value=hi, allow_nan=False))
 
 
@@ -524,7 +522,7 @@ KPI_BUNDLES = st.builds(
 class TestInvariantsHypothesis:
     @given(kpis=KPI_BUNDLES, t=st.floats(0.0, 1000.0))
     def test_reconstruction_coincide_avec_ur_local(self, kpis, t):
-        # Cohérence OBLIGATOIRE : 1 - exp(-somme l) == ur_local() à 1e-12.
+        # Coherence OBLIGATOIRE : 1 - exp(-somme l) == ur_local() a 1e-12.
         model = UrModel()
         contribs = explain_ur_local(t, kpis, None, model)
         assert rebuilt_ur(contribs) == pytest.approx(model.ur_local(t, kpis), abs=1e-12)

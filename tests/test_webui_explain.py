@@ -1,11 +1,11 @@
-"""Tests de la page « Pourquoi ce score ? » (« /node/<id>/explication ») — sans serveur.
+"""Tests de la page " Pourquoi ce score ? " (" /node/<id>/explication ") - sans serveur.
 
-La page est en lecture seule : ``layout(node_id)`` est appelé directement sur
-un service seedé (FixedClock, set_service/teardown), aucun serveur Dash. Les
-branches conditionnelles sont couvertes : nœud évalué (bandeau chiffré, ≥ 3
-figures), nœud introuvable, nœud nu jamais évalué, nœud ABANDONED (encart
-« Retard avéré »), glissement de planning, audit des blocs dominants et
-événements ouverts.
+La page est en lecture seule : ``layout(node_id)`` est appele directement sur
+un service seede (FixedClock, set_service/teardown), aucun serveur Dash. Les
+branches conditionnelles sont couvertes : noeud evalue (bandeau chiffre, >= 3
+figures), noeud introuvable, noeud nu jamais evalue, noeud ABANDONED (encart
+" Retard avere "), glissement de planning, audit des blocs dominants et
+evenements ouverts.
 """
 
 from __future__ import annotations
@@ -25,13 +25,13 @@ from supplyscore.services.explain import NodeExplanation
 from supplyscore.web_ui import set_service
 from supplyscore.web_ui.pages import explain
 
-#: Mercredi 2026-06-10 12:00 locale — semaine ISO « 2026-S24 ».
+#: Mercredi 2026-06-10 12:00 locale - semaine ISO " 2026-S24 ".
 _NOW = datetime(2026, 6, 10, 12, 0).timestamp()
 
 
 @pytest.fixture
 def service(tmp_path):
-    """Service seedé avec une petite démo évaluée, partagé par la page."""
+    """Service seede avec une petite demo evaluee, partage par la page."""
     svc = SupplyScoreService(db_dir=tmp_path / "store", clock=FixedClock(_NOW))
     svc.seed_demo(n_ranks=2, seed=1)
     set_service(svc)
@@ -41,7 +41,7 @@ def service(tmp_path):
 
 
 def _demo_node(service):
-    """Premier nœud de la démo évalué (questionnaire AHP + scores propagés)."""
+    """Premier noeud de la demo evalue (questionnaire AHP + scores propages)."""
     for node in sorted(service.repo.nodes(), key=lambda n: (n.rank, n.name)):
         if (
             node.urgency.adequation is not None
@@ -52,7 +52,7 @@ def _demo_node(service):
 
 
 def _count_graphs(component) -> int:
-    """Nombre de dcc.Graph dans l'arbre de composants (récursif)."""
+    """Nombre de dcc.Graph dans l'arbre de composants (recursif)."""
     count = int(isinstance(component, dcc.Graph))
     children = getattr(component, "children", None)
     if isinstance(children, (list, tuple)):
@@ -62,7 +62,7 @@ def _count_graphs(component) -> int:
     return count
 
 
-# --- layout : nœud évalué -----------------------------------------------------------------
+# layout : noeud evalue
 
 
 def test_layout_demo_node_contains_sections_and_graphs(service):
@@ -86,7 +86,7 @@ def test_bandeau_values_match_node_urgency(service):
     assert f"Pourquoi A = {urgency.adequation:.1f} ?" in text
     assert f"Ud = {urgency.ud:.2f}" in text
     assert f"Ur = {urgency.ur:.2f}" in text
-    # Lien retour vers la fiche nœud.
+    # Lien retour vers la fiche noeud.
     assert f"/node/{node.id}" in text
 
 
@@ -95,12 +95,12 @@ def test_layout_demo_node_shows_last_assessment_and_empty_messages(service):
     text = str(explain.layout(node.id))
 
     assert "Dernière évaluation" in text
-    # seed_demo n'écrit ni audit MutationService ni événement : messages vides.
+    # seed_demo n'ecrit ni audit MutationService ni evenement : messages vides.
     assert "Aucune modification récente des blocs dominants" in text
     assert "Aucun événement ouvert" in text
 
 
-# --- layout : nœud introuvable --------------------------------------------------------------
+# layout : noeud introuvable
 
 
 def test_layout_unknown_node_shows_message_without_exception(service):
@@ -108,7 +108,7 @@ def test_layout_unknown_node_shows_message_without_exception(service):
     assert "introuvable" in text
 
 
-# --- layout : nœud nu jamais évalué ---------------------------------------------------------
+# layout : noeud nu jamais evalue
 
 
 def test_layout_naked_node_never_evaluated(service):
@@ -116,12 +116,12 @@ def test_layout_naked_node_never_evaluated(service):
     text = str(explain.layout("nu-1"))
 
     assert "Jamais évalué" in text
-    assert "Pourquoi ce score ?" in text  # adéquation None : titre dégénéré
-    assert "jamais été propagé" in text  # phrase de synthèse remplacée
+    assert "Pourquoi ce score ?" in text  # adequation None : titre degenere
+    assert "jamais été propagé" in text  # phrase de synthese remplacee
     assert "pas d'équation d'adéquation à instancier" in text
 
 
-# --- layout : nœud ABANDONED (retard avéré) -------------------------------------------------
+# layout : noeud ABANDONED (retard avere)
 
 
 def test_layout_abandoned_node_shows_retard_avere(service):
@@ -133,7 +133,7 @@ def test_layout_abandoned_node_shows_retard_avere(service):
     assert "u_time est forcé à 1" in text
 
 
-# --- carte Ur_local : ligne « glissement de planning » --------------------------------------
+# carte Ur_local : ligne " glissement de planning "
 
 
 def _explanation_with_planning_adjust() -> NodeExplanation:
@@ -168,7 +168,7 @@ def test_ur_local_card_shows_planning_adjust_line():
     assert "déclaré 30 % vs théorique 50 %" in text
 
 
-# --- versions liées : audit des blocs dominants et événements ouverts -----------------------
+# versions liees : audit des blocs dominants et evenements ouverts
 
 
 def test_layout_shows_audit_entries_after_dominant_block_mutation(service):
@@ -203,7 +203,7 @@ def test_layout_lists_open_events_with_french_label_and_week(service):
     assert "Aucun événement ouvert" not in text
 
 
-# --- register_callbacks ----------------------------------------------------------------------
+# register_callbacks
 
 
 def test_register_callbacks_does_not_raise():

@@ -1,24 +1,24 @@
-"""Service d'assemblage de l'explication d'un nœud (phase E8, Lot 8.2).
+"""Service d'assemblage de l'explication d'un noeud (phase E8, Lot 8.2).
 
-:class:`ExplainService` répond à « pourquoi ce nœud a-t-il ce score ? » en
+:class:`ExplainService` repond a " pourquoi ce noeud a-t-il ce score ? " en
 UNE structure :class:`NodeExplanation` : il reconstruit le contexte temporel
-du pipeline (mêmes règles que ``evaluate_all`` — horloge du PROJET du nœud,
-jalons chargés), appelle les décompositions EXACTES de
-:mod:`supplyscore.core.explain` (critères AHP, blocs KPI, trace u_time,
-parts de propagation montante/descendante, équation d'adéquation), puis y
-joint les versions liées : dernière évaluation AHP effective, lignes d'audit
-récentes des KPIs des deux blocs dominants, événements supply chain encore
+du pipeline (memes regles que ``evaluate_all`` - horloge du PROJET du noeud,
+jalons charges), appelle les decompositions EXACTES de
+:mod:`supplyscore.core.explain` (criteres AHP, blocs KPI, trace u_time,
+parts de propagation montante/descendante, equation d'adequation), puis y
+joint les versions liees : derniere evaluation AHP effective, lignes d'audit
+recentes des KPIs des deux blocs dominants, evenements supply chain encore
 ouverts.
 
-Le service est PUR EN LECTURE : aucune écriture, aucun recalcul persisté —
-les urgences exposées (``ud``, ``ur``, ``adequation``) sont celles posées par
-le pipeline sur ``node.urgency``, et deux appels successifs à
-:meth:`ExplainService.explain_node` rendent des résultats identiques tant que
-rien n'a muté par ailleurs.
+Le service est PUR EN LECTURE : aucune ecriture, aucun recalcul persiste -
+les urgences exposees (``ud``, ``ur``, ``adequation``) sont celles posees par
+le pipeline sur ``node.urgency``, et deux appels successifs a
+:meth:`ExplainService.explain_node` rendent des resultats identiques tant que
+rien n'a mute par ailleurs.
 
-Choix documenté : ``adequation_trace`` vaut ``None`` tant que le pipeline n'a
-jamais propagé le nœud (``urgency.ud`` ou ``urgency.ur`` absent) — il n'y a
-alors aucune équation d'adéquation à instancier.
+Choix documente : ``adequation_trace`` vaut ``None`` tant que le pipeline n'a
+jamais propage le noeud (``urgency.ud`` ou ``urgency.ur`` absent) - il n'y a
+alors aucune equation d'adequation a instancier.
 """
 
 from __future__ import annotations
@@ -47,10 +47,10 @@ from supplyscore.data.audit import AuditEntry, AuditTrail
 from supplyscore.domain.models import SupplyArc, SupplyNode
 from supplyscore.services.events import EventEngine, SupplyEvent
 
-if TYPE_CHECKING:  # import différé : évite tout cycle services.explain <-> orchestrator
+if TYPE_CHECKING:  # import differe : evite tout cycle services.explain <-> orchestrator
     from supplyscore.services.orchestrator import SupplyScoreService
 
-#: Correspondance bloc d'urgence -> blocs du KPIBundle (préfixes des champs audités).
+#: Correspondance bloc d'urgence -> blocs du KPIBundle (prefixes des champs audites).
 _BLOCK_KPI_PREFIXES: dict[str, tuple[str, ...]] = {
     "time": ("time",),
     "cap": ("inventory", "network"),
@@ -63,47 +63,46 @@ _BLOCK_KPI_PREFIXES: dict[str, tuple[str, ...]] = {
 #: Nombre de blocs dominants dont l'historique d'audit KPI est joint.
 _TOP_BLOCKS: int = 2
 
-#: Entrées d'audit relues avant filtrage par préfixe — ``AuditTrail.history``
-#: ne filtre que par champ exact, le filtrage par bloc se fait donc en Python.
+#: Entrees d'audit relues avant filtrage par prefixe - ``AuditTrail.history`` ne filtre que par champ exact, le filtrage par bloc se fait donc en Python.
 _AUDIT_FETCH_LIMIT: int = 50
 
-#: Nombre maximal d'entrées d'audit conservées dans l'explication.
+#: Nombre maximal d'entrees d'audit conservees dans l'explication.
 _AUDIT_MAX: int = 10
 
-#: Seuil de saturation « retard avéré » (même valeur que ``core.explain``).
+#: Seuil de saturation " retard avere " (meme valeur que ``core.explain``).
 _EPS_SAT: float = 1e-9
 
 
 @dataclass(frozen=True)
 class NodeExplanation:
-    """Explication complète d'un nœud — les 5 décompositions et leurs versions liées.
+    """Explication complete d'un noeud - les 5 decompositions et leurs versions liees.
 
     Attributes:
-        node_id: identifiant du nœud expliqué.
-        node_name: nom lisible du nœud.
-        ud: urgence déclarée propagée (telle que posée par le pipeline).
-        ur: urgence réelle propagée (telle que posée par le pipeline).
-        adequation: score A ∈ [0, 100] posé par le pipeline.
-        criteres: contributions additives des critères AHP au Ud du dernier
-            questionnaire effectif (``[]`` si le nœud n'a jamais été évalué).
-        blocs: décomposition de Ur_local par bloc KPI (parts log-survie).
+        node_id: identifiant du noeud explique.
+        node_name: nom lisible du noeud.
+        ud: urgence declaree propagee (telle que posee par le pipeline).
+        ur: urgence reelle propagee (telle que posee par le pipeline).
+        adequation: score A  dans  [0, 100] pose par le pipeline.
+        criteres: contributions additives des criteres AHP au Ud du dernier
+            questionnaire effectif (``[]`` si le noeud n'a jamais ete evalue).
+        blocs: decomposition de Ur_local par bloc KPI (parts log-survie).
         u_time_trace: trace socle/modulation planning du bloc ``time``.
-        part_locale_ur: part log-survie locale de l'urgence réelle propagée.
-        fournisseurs: parts des fournisseurs directs dans Ur propagé
-            (part_locale_ur + Σ parts = 1, arcs nominaux seuls).
-        part_locale_ud: part log-survie locale du besoin déclaré propagé.
-        clients: parts des clients directs dans Ud propagé.
-        adequation_trace: équation d'adéquation instanciée chiffrée, ou
-            ``None`` si le pipeline n'a jamais propagé le nœud (choix
-            documenté : pas de Ud/Ur propagés, pas d'équation à instancier).
+        part_locale_ur: part log-survie locale de l'urgence reelle propagee.
+        fournisseurs: parts des fournisseurs directs dans Ur propage
+            (part_locale_ur + Sigma parts = 1, arcs nominaux seuls).
+        part_locale_ud: part log-survie locale du besoin declare propage.
+        clients: parts des clients directs dans Ud propage.
+        adequation_trace: equation d'adequation instanciee chiffree, ou
+            ``None`` si le pipeline n'a jamais propage le noeud (choix
+            documente : pas de Ud/Ur propages, pas d'equation a instancier).
         derniere_evaluation: ``{operateur, semaine, ud, cr, notes}`` du
             dernier questionnaire AHP effectif, ou ``None`` si aucun.
-        audits_recents: entrées d'audit des KPIs des 2 blocs dominants
-            (``entity_type="node_kpis"``, 10 max, plus récentes d'abord).
-        evenements_ouverts: événements supply chain non annulés du nœud,
-            du plus récent au plus ancien.
-        retard_avere: True si Ur_local effectif >= 1 (retard avéré ou nœud
-            abandonné) — la décomposition log-survie n'est pas définie, la
+        audits_recents: entrees d'audit des KPIs des 2 blocs dominants
+            (``entity_type="node_kpis"``, 10 max, plus recentes d'abord).
+        evenements_ouverts: evenements supply chain non annules du noeud,
+            du plus recent au plus ancien.
+        retard_avere: True si Ur_local effectif >= 1 (retard avere ou noeud
+            abandonne) - la decomposition log-survie n'est pas definie, la
             cause locale est unique.
     """
 
@@ -127,45 +126,45 @@ class NodeExplanation:
 
 
 class ExplainService:
-    """Assembleur d'explications — lecture seule au-dessus de la façade.
+    """Assembleur d'explications - lecture seule au-dessus de la facade.
 
     Toutes les lectures passent par les composants du
     :class:`~supplyscore.services.orchestrator.SupplyScoreService` fourni
-    (graphe en mémoire, registre, bases client, horloges par projet, modèles
+    (graphe en memoire, registre, bases client, horloges par projet, modeles
     du pipeline) : le service ne recalcule rien hors des fonctions
-    d'explication et n'écrit jamais.
+    d'explication et n'ecrit jamais.
     """
 
     def __init__(self, service: SupplyScoreService) -> None:
-        """Initialise le service d'explication sur la façade de l'application.
+        """Initialise le service d'explication sur la facade de l'application.
 
         Args:
-            service: façade :class:`~supplyscore.services.orchestrator.SupplyScoreService`
-                (graphe, registre, bases client, horloges, modèles).
+            service: facade :class:`~supplyscore.services.orchestrator.SupplyScoreService`
+                (graphe, registre, bases client, horloges, modeles).
         """
         self._service = service
         self._events = EventEngine(service)
 
-    # --- API publique -------------------------------------------------------------------
+    # API publique
 
     def explain_node(self, node_id: str) -> NodeExplanation:
-        """Assemble l'explication complète d'un nœud (PUR en lecture).
+        """Assemble l'explication complete d'un noeud (PUR en lecture).
 
-        Le contexte temporel est reconstruit avec les MÊMES règles que
-        ``evaluate_all`` : t = heures écoulées depuis l'origine du projet du
-        nœud selon SON horloge (réelle ou de jeu), t0 = origine epoch du
-        projet, jalons chargés depuis le registre (u_time v2). Les
-        décompositions sont ensuite déléguées à
-        :mod:`supplyscore.core.explain` sur l'état courant du graphe.
+        Le contexte temporel est reconstruit avec les MEMES regles que
+        ``evaluate_all`` : t = heures ecoulees depuis l'origine du projet du
+        noeud selon SON horloge (reelle ou de jeu), t0 = origine epoch du
+        projet, jalons charges depuis le registre (u_time v2). Les
+        decompositions sont ensuite deleguees a
+        :mod:`supplyscore.core.explain` sur l'etat courant du graphe.
 
         Args:
-            node_id: identifiant du nœud à expliquer.
+            node_id: identifiant du noeud a expliquer.
 
         Returns:
-            L'explication assemblée :class:`NodeExplanation`.
+            L'explication assemblee :class:`NodeExplanation`.
 
         Raises:
-            KeyError: si le nœud est inconnu du graphe.
+            KeyError: si le noeud est inconnu du graphe.
         """
         service = self._service
         node = service.repo.get_node(node_id)
@@ -175,7 +174,7 @@ class ExplainService:
         t_h, t0 = self._project_time(node)
         milestones = service.registry.list_milestones(node_id)
 
-        # Ud : critères du dernier questionnaire AHP effectif (base CLIENT).
+        # Ud : criteres du dernier questionnaire AHP effectif (base CLIENT).
         assessment = service.client_db(node_id).latest_assessment(node_id)
         criteres: list[CriterionContribution] = []
         derniere_evaluation: dict[str, float | str] | None = None
@@ -192,11 +191,11 @@ class ExplainService:
                 "notes": assessment.notes,
             }
 
-        # Ur_local : décomposition par blocs et trace u_time (mêmes appels que le pipeline).
+        # Ur_local : decomposition par blocs et trace u_time (memes appels que le pipeline).
         blocs = explain_ur_local(t_h, node.kpis, milestones, service.ur_model, t0_ts=t0)
         u_time_trace = explain_u_time(t_h, node.kpis, milestones, service.ur_model, t0_ts=t0)
 
-        # Propagation : parts locales vs voisins (arcs nominaux, Ur/Ud déjà propagés).
+        # Propagation : parts locales vs voisins (arcs nominaux, Ur/Ud deja propages).
         predecessors = service.repo.predecessors(node_id)
         part_locale_ur, fournisseurs = explain_propagation_up(
             node, predecessors, self._arcs_from(predecessors, node_id)
@@ -206,7 +205,7 @@ class ExplainService:
             node, successors, self._arcs_to(node_id, successors)
         )
 
-        # Adéquation : équation instanciée si le pipeline a déjà propagé le nœud.
+        # Adequation : equation instanciee si le pipeline a deja propage le noeud.
         state = node.urgency
         adequation_trace: AdequationTrace | None = None
         if state.ud is not None and state.ur is not None:
@@ -235,18 +234,18 @@ class ExplainService:
             retard_avere=retard_avere,
         )
 
-    # --- Aides internes (lecture seule) ---------------------------------------------------
+    # Aides internes (lecture seule)
 
     def _project_time(self, node: SupplyNode) -> tuple[float, float]:
-        """Contexte temporel du nœud : ``(t_heures, t0_ts)`` de SON projet.
+        """Contexte temporel du noeud : ``(t_heures, t0_ts)`` de SON projet.
 
-        Mêmes règles que ``evaluate_all`` / ``_project_times`` : l'horloge
-        effective du projet (réelle ou de jeu) donne « maintenant », l'origine
-        du projet donne t0. Sans projet rattaché (ou projet inconnu du
-        registre), le référentiel dégénère en ``(0.0, 0.0)``.
+        Memes regles que ``evaluate_all`` / ``_project_times`` : l'horloge
+        effective du projet (reelle ou de jeu) donne " maintenant ", l'origine
+        du projet donne t0. Sans projet rattache (ou projet inconnu du
+        registre), le referentiel degenere en ``(0.0, 0.0)``.
 
         Args:
-            node: nœud expliqué.
+            node: noeud explique.
 
         Returns:
             Tuple ``(t en heures depuis t0, t0 en secondes epoch)``.
@@ -261,15 +260,15 @@ class ExplainService:
         return project_hours(now, origin), origin
 
     def _arcs_from(self, predecessors: list[SupplyNode], node_id: str) -> dict[str, SupplyArc]:
-        """Arcs entrants ``fournisseur -> nœud``, indexés par id de fournisseur.
+        """Arcs entrants ``fournisseur -> noeud``, indexes par id de fournisseur.
 
         Args:
-            predecessors: fournisseurs directs (arcs nominaux) du nœud.
-            node_id: identifiant du nœud client des arcs.
+            predecessors: fournisseurs directs (arcs nominaux) du noeud.
+            node_id: identifiant du noeud client des arcs.
 
         Returns:
             Dictionnaire ``{id de fournisseur: arc}`` (les voisins viennent du
-            même dépôt : l'arc existe toujours).
+            meme depot : l'arc existe toujours).
         """
         arcs: dict[str, SupplyArc] = {}
         for pred in predecessors:
@@ -279,15 +278,15 @@ class ExplainService:
         return arcs
 
     def _arcs_to(self, node_id: str, successors: list[SupplyNode]) -> dict[str, SupplyArc]:
-        """Arcs sortants ``nœud -> client``, indexés par id de client.
+        """Arcs sortants ``noeud -> client``, indexes par id de client.
 
         Args:
-            node_id: identifiant du nœud fournisseur des arcs.
-            successors: clients directs (arcs nominaux) du nœud.
+            node_id: identifiant du noeud fournisseur des arcs.
+            successors: clients directs (arcs nominaux) du noeud.
 
         Returns:
             Dictionnaire ``{id de client: arc}`` (les voisins viennent du
-            même dépôt : l'arc existe toujours).
+            meme depot : l'arc existe toujours).
         """
         arcs: dict[str, SupplyArc] = {}
         for succ in successors:
@@ -297,19 +296,19 @@ class ExplainService:
         return arcs
 
     def _recent_kpi_audits(self, node_id: str, blocs: list[BlockContribution]) -> list[AuditEntry]:
-        """Audit récent des KPIs des blocs dominants (base CLIENT du nœud).
+        """Audit recent des KPIs des blocs dominants (base CLIENT du noeud).
 
-        Les deux blocs au ``share`` le plus élevé sont retenus (tri stable :
-        à parts égales, l'ordre de :data:`~supplyscore.core.ur_model.BLOCKS`
-        départage), leurs blocs KPI sont traduits en préfixes de champ via
+        Les deux blocs au ``share`` le plus eleve sont retenus (tri stable :
+        a parts egales, l'ordre de :data:`~supplyscore.core.ur_model.BLOCKS`
+        departage), leurs blocs KPI sont traduits en prefixes de champ via
         :data:`_BLOCK_KPI_PREFIXES`, puis l'historique ``node_kpis`` est relu
-        (50 entrées) et filtré par préfixe en Python —
+        (50 entrees) et filtre par prefixe en Python -
         :meth:`~supplyscore.data.audit.AuditTrail.history` ne filtre que par
-        champ exact. 10 entrées max, les plus récentes d'abord.
+        champ exact. 10 entrees max, les plus recentes d'abord.
 
         Args:
-            node_id: identifiant du nœud (= id de la base client).
-            blocs: décomposition de Ur_local par bloc (parts log-survie).
+            node_id: identifiant du noeud (= id de la base client).
+            blocs: decomposition de Ur_local par bloc (parts log-survie).
 
         Returns:
             Les :class:`~supplyscore.data.audit.AuditEntry` retenues.

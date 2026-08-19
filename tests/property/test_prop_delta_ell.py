@@ -1,19 +1,19 @@
-"""Propriété Hypothesis de la dé-saturation Δl (HÉLIOS v7, U3).
+"""Propriete Hypothesis de la de-saturation Deltal (HELIOS v7, U3).
 
-Invariant : sur un DAG NON saturé (``ur_local`` ∈ [0, 0.9], β ∈ [0.1, 0.9],
-un seul client final), le classement des nœuds induit par ``delta_ell_final``
-(Δl log-survie au client final, jumeau ε-régularisé de
+Invariant : sur un DAG NON sature (``ur_local``  dans  [0, 0.9], beta  dans  [0.1, 0.9],
+un seul client final), le classement des noeuds induit par ``delta_ell_final``
+(Deltal log-survie au client final, jumeau epsilon-regularise de
 ``simulate_shock_detailed``) est IDENTIQUE au classement induit par
-``delta_ur_final`` (ΔUr standard au client final) pour le pire choc local
+``delta_ur_final`` (DeltaUr standard au client final) pour le pire choc local
 ``ur_local -> 1.0``.
 
-Justification : au client final f, la référence Ur_f est commune à tous les
-chocs candidats et l(p) = −ln(1−p) est strictement croissante — Δl_f et
-ΔUr_f sont deux transformées monotones de la même urgence choquée Ur'_f.
-Encodage robuste au bruit flottant : implication par paires — si
-ΔUr_final(X) > ΔUr_final(Y) + tol alors Δl_final(X) >= Δl_final(Y) − tol
-(les quasi-égalités, départagées par le nom dans les deux tris, sont
-ignorées).
+Justification : au client final f, la reference Ur_f est commune a tous les
+chocs candidats et l(p) = -ln(1-p) est strictement croissante - Deltal_f et
+DeltaUr_f sont deux transformees monotones de la meme urgence choquee Ur'_f.
+Encodage robuste au bruit flottant : implication par paires - si
+DeltaUr_final(X) > DeltaUr_final(Y) + tol alors Deltal_final(X) >= Deltal_final(Y) - tol
+(les quasi-egalites, departagees par le nom dans les deux tris, sont
+ignorees).
 """
 
 from __future__ import annotations
@@ -25,20 +25,19 @@ from supplyscore.data.generator import RandomSupplyChainGenerator
 from supplyscore.domain.models import SupplyArc, SupplyNode, UrgencyState
 from supplyscore.graph import InMemoryGraphRepository, PropagationEngine
 
-#: Urgences locales non saturées : marge franche sous 1.0 (pas de clip actif).
+#: Urgences locales non saturees : marge franche sous 1.0 (pas de clip actif).
 _UR_LOCAL = st.floats(min_value=0.0, max_value=0.9, allow_nan=False, allow_infinity=False)
 
-#: Coefficients β ni nuls ni saturants (propagation effective, jamais dégénérée).
+#: Coefficients beta ni nuls ni saturants (propagation effective, jamais degeneree).
 _BETA = st.floats(min_value=0.1, max_value=0.9, allow_nan=False, allow_infinity=False)
 
-#: Tolérance de quasi-égalité des ΔUr (les paires plus proches sont des
-#: ex æquo : départagées par le nom, identiquement dans les deux tris).
+#: Tolerance de quasi-egalite des DeltaUr (les paires plus proches sont des ex aequo : departagees par le nom, identiquement dans les deux tris).
 _TOL = 1e-9
 
 
 @st.composite
 def dag_cases(draw: st.DrawFn) -> tuple[list[SupplyNode], list[SupplyArc]]:
-    """DAG par rangs (générateur seedé), ur_local ∈ [0, 0.9] et β ∈ [0.1, 0.9]."""
+    """DAG par rangs (generateur seede), ur_local  dans  [0, 0.9] et beta  dans  [0.1, 0.9]."""
     seed = draw(st.integers(min_value=0, max_value=2**32 - 1))
     n_ranks = draw(st.integers(min_value=1, max_value=3))
     _project, nodes, arcs = RandomSupplyChainGenerator(seed=seed).generate(
@@ -55,7 +54,7 @@ def dag_cases(draw: st.DrawFn) -> tuple[list[SupplyNode], list[SupplyArc]]:
 def test_ranking_delta_ell_final_equals_ranking_delta_ur_final(
     case: tuple[list[SupplyNode], list[SupplyArc]],
 ) -> None:
-    """Hors saturation, Δl_final et ΔUr_final induisent le même classement."""
+    """Hors saturation, Deltal_final et DeltaUr_final induisent le meme classement."""
     nodes, arcs = case
     repo = InMemoryGraphRepository()
     for node in nodes:

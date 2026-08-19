@@ -5,10 +5,36 @@
 
 This research set out to determine whether the gap between declared and computed urgency can
 be measured reliably enough, inside a working digital twin, to be used as a decision aid
-rather than as a descriptive statistic. On the evidence gathered the answer is not yet, and
-the value of the work lies in establishing why with enough precision to act on.
+rather than as a descriptive statistic. The evidence gathered answers that in two parts, and
+they must not be run together.
 
-Four contributions are claimed.
+As a device for deciding where to look, it works. On the campaign, the nodes the adequacy
+signal flags in the six turns before the shortage becomes public are, without a single false
+alarm, nodes that go on to miss a delivery commitment, and the worst-scoring of them is
+flagged eight turns before its miss while its own manager reports that all is well. As a
+device for attaching a calibrated probability to a named week, it does not work yet: the
+Brier skill remains negative after a repair that halved it. The first of those is the
+decision a coordinator actually takes and the one the architecture was designed around; the
+second is a harder problem that the campaign turned from an unknown into a measured distance.
+
+What bounds both statements is the evidence base rather than the design. Eight nodes of which
+four are positive, eleven observable milestones and one scripted scenario cannot establish a
+rate, however clean the pattern. The contributions below are therefore claimed as a working
+instrument with a measured behaviour and a method for interrogating it, not as validated
+performance figures.
+
+Five contributions are claimed.
+
+\paragraph{A signal that identifies the right nodes, early, from the gap alone.} Over the six
+turns preceding the public onset of the crisis, hidden risk flags three nodes, all three of
+which later miss a commitment at its originally committed deadline, with no false alarm on any
+turn; three of the four eventual failures are caught, and the earliest and worst is flagged
+eight turns ahead. The flag is raised on a node whose declared urgency is $0.001$, which is
+the construction working as specified: neither the indicators alone nor the declaration alone
+would have selected it, and only their divergence does. The signal weakens once the crisis is
+public, which is the expected behaviour of a perception-gap measure rather than a defect, and
+it scopes the instrument to early warning. Section~\ref{sec:res_targeting} gives the
+measurement and states plainly that four positives cannot establish a rate.
 
 \paragraph{An implemented adequacy architecture.} A multi-block noisy-OR real urgency model,
 propagated bidirectionally across a supply chain DAG and confronted with a
@@ -18,15 +44,29 @@ that Section~\ref{sec:lit_gaps} identifies as absent from the reviewed literatur
 decomposition is exact rather than approximate, which is what made the diagnosis below
 possible from the application rather than by hand.
 
-\paragraph{A diagnosed failure with an identified and repairable cause.} The forecast layer is
-shown to be badly miscalibrated on the campaign, with a Brier skill between $-3.4$ and
-$-6.9$ against a base-rate forecaster and twenty-one confident predictions of which none
-materialised. That failure is traced to a single block: the time block computes milestone
-risk from a lead-time distribution while the event engine writes only to capacity, cost and
-failure probability, so no path connects a shock to the quantity the milestone probability
-reads. Mid-crisis the block reads as numerically zero at six of eight nodes. This is a
-property of the model, not of the scenario, and the repair is a change to the event mapping
-rather than to the mathematics.
+\paragraph{A diagnosed failure with an identified cause, repaired and re-measured.} The
+forecast layer is shown to be badly miscalibrated on the campaign, with a Brier skill between
+$-3.4$ and $-6.9$ against a base-rate forecaster and twenty-one confident predictions of
+which none materialised under the production outcome definition. That failure is traced to a
+single block: the time block computes milestone risk from a lead-time distribution while the
+event engine writes only to capacity, cost and failure probability, so no path connects a
+shock to the quantity the milestone probability reads. The claim rests on a count rather than
+an inference: across the whole campaign the accumulated-delay field was written a non-zero
+value exactly zero times, on every node and at every turn. Mid-crisis the block reads as
+numerically zero at six of eight nodes.
+
+The repair was then carried out and re-measured on the identical frozen forecasts, and it
+changed the recommendation as well as the model. Making the events write a lead-time impact,
+the obvious reading of the diagnosis, does not work: a quantity routed into the lead time is
+scaled by the fraction of work remaining and therefore attenuates to nothing on the
+milestones nearest their deadline. Lost time must be added to the completion date. With that
+correction the Brier deficit roughly halves at every horizon, from $-0.553$ to $-0.216$ at
+four weeks, and the discrimination rises; the skill nonetheless remains negative, so the
+system moves from badly wrong to less wrong rather than to useful. Two further defects were
+exposed by the first and are reported with it: the forecast treated declared progress as an
+exact value, which made the milestone probability binary in $85\%$ of cases, and the campaign
+ran with indicator coverage at $25.6\%$ and three of six urgency blocks inert, which is a
+diagnosis about the data rather than the mathematics.
 
 \paragraph{A measured first-exposure effect of showing a forecast to the declarant.} On the
 turn the predictive analysis first became visible, all eight declarants either revised their
@@ -40,9 +80,17 @@ human operators is unestablished.
 Scoring identical forecasts against a plausible but naive outcome definition instead of the
 production one moves the base rate from $5.0\%$ to $38.7\%$ and improves the apparent Brier
 skill by a factor of more than five, while leaving discrimination essentially unchanged. A
-calibration figure reported without its outcome definition carries little information.
+third definition, which keeps the production notion of an adverse outcome but judges a
+milestone against the deadline first committed to rather than the deadline it currently
+carries, raises the four-week AUC from $0.485$ to $0.654$ and the skill from $-3.36$ to
+$-0.55$. The three disagree by more than any modelling decision taken in this work. The same
+trap was then met from the opposite direction: a post-hoc calibration layer fitted against a
+target that differed from the product's improved calibration while degrading ranking, and was
+deliberately not connected. A calibration figure reported without its outcome definition
+carries little information, and a calibration layer fitted without checking its target can
+degrade a system that works.
 
-A fifth result, reported as an opening rather than a contribution, establishes that
+A sixth result, reported as an opening rather than a contribution, establishes that
 individual loading docks are not observable from directly overhead because of canopy
 occlusion rather than insufficient resolution, and that the reframed problem of delimiting an
 equipped facade is both learnable and sufficient for capacity estimation.
@@ -73,7 +121,9 @@ gap to open. \\
 \midrule
 H3 criticality & Not confirmed & Not confirmed & Top-1 on 7 of 10 informative turns, $70\%$
 against a threshold of $80\%$. Identical across runs, since the test does not depend on
-$U_d$. \\
+$U_d$. Nine turns were excluded as saturated; Section~\ref{sec:res_repair} reports what a
+log-survival sort key recovers from them, as an exploratory re-measurement rather than a
+revised verdict. \\
 \midrule
 H4 predictive validity & Not confirmed & Not confirmed & Precision and recall both $0.00$ at
 the threshold. Section~\ref{sec:res_mechanism} attributes this to the time block rather than
@@ -88,10 +138,14 @@ over the recovery turns, so the comparison is not meaningful on this scenario. \
 \end{tabularx}
 \end{table}
 
-One hypothesis of six is confirmed. Two qualifications belong with that count. H4 fails for
-an identified mechanical reason rather than because the adequacy concept is unsound, and its
-verdict should be revisited once the time block is repaired. H6 was never testable on this
-scenario, because the script does not de-escalate far enough for a decay rate to be
+One hypothesis of six is confirmed. Three qualifications belong with that count. H4 fails for
+an identified mechanical reason rather than because the adequacy concept is unsound. That
+mechanism has since been repaired (Section~\ref{sec:res_repair}), but H4 has \emph{not} been
+re-decided here: the verdict is a precision and recall measured on the arm A declarations at
+a pre-registered threshold, and re-running it on a model that has changed would not answer
+the question the register asked. It should be re-decided on the human campaign, against the
+repaired model, with the outcome definition written into the register. H6 was never testable
+on this scenario, because the script does not de-escalate far enough for a decay rate to be
 compared, which is a design fault in the scenario rather than a result.
 
 %% ═══════════════════════════════════════════════════════════════════════════
@@ -111,10 +165,24 @@ with their operational implication.
 \toprule
 \textbf{Limitation} & \textbf{Implication} \\
 \midrule
-The time block is blind to shocks & Measured, not suspected: the calibrated events write to
-capacity, cost and failure probability but never to lead time, so milestone risk cannot
-respond to a disruption and reads as numerically zero mid-crisis at six of eight nodes. This
-is the cause of the H4 failure and the first thing to repair. \\[3pt]
+The time block was blind to shocks, and the repair does not make it good & Measured, not
+suspected: on the campaign the calibrated events wrote nothing on the time axis, so milestone
+risk could not respond to a disruption and read as numerically zero mid-crisis at six of
+eight nodes. This is the cause of the H4 failure. The path has since been built and measured
+(Section~\ref{sec:res_repair}); the Brier deficit halves and remains negative, and the
+milestone probability is still binary in $71.7\%$ of cases. \\[3pt]
+\midrule
+The campaign ran on a quarter of its indicators & Coverage on the campaign database was
+$25.6\%$, with 24 of 42 indicators empty on every node and only three of the six urgency
+blocks contributing. A node with no lead time received a risk floor of zero through a
+documented fallback, so an absence of data presented itself as a reassuring prediction. Any
+calibration performed before this was found would have been fitted to that absence. \\[3pt]
+\midrule
+One predictive indicator class is missing rather than empty & The model reads current flow
+but not the forward booking horizon, that is, how far ahead a node's capacity is already
+sold. In the real shortage that signal preceded the degradation of every flow indicator by
+months. The gap is general to any capacity-constrained link, not specific to
+semiconductors. \\[3pt]
 \midrule
 Validation rests on agent declarants & The campaign was executed with eight isolated
 language-model agents, not human consultants. Every statement about declaration behaviour is
@@ -173,20 +241,73 @@ which depends on the pitch constant instead, is unaffected. \\
 %% ═══════════════════════════════════════════════════════════════════════════
 
 The work divides into what must happen before the framework can be evaluated fairly, and
-what becomes worth doing afterwards.
+what becomes worth doing afterwards. Two items dominate both lists and are stated first
+because every other entry is bounded by them.
 
-\paragraph{Repair the time block first.} Nothing else should be measured until the calibrated
-events write a lead-time impact alongside their existing capacity, cost and failure-probability
-effects. Until then the forecast layer cannot respond to a disruption, H4 cannot be tested
-fairly, and any campaign run against it will reproduce the same result. This is the single
-highest-value change identified by this thesis and it is small.
+\paragraph{Separate misperception from discretion; the present instrument cannot.} The second
+chain (Section~\ref{sec:res_second_chain}) established that $[U_r - U_d]_+$ selects failing
+nodes when declarants misjudge their own state and selects nothing when they judge it
+correctly and choose not to escalate. Both are concealment operationally, and only the first
+is visible to a questionnaire, because a questionnaire records what an actor perceives while
+withholding is something an actor does. This is the sharpest open question the work raises,
+and it is a question about \emph{what} is measured rather than how well. Two routes are
+available and neither requires new theory: instrument the escalation channel itself, so that
+the interval between a declarant recognising a problem and communicating it downstream becomes
+observable alongside the declared severity; or read the free-text note the system already
+collects at every turn, in which the declarants of the second chain stated their intention to
+delay contacting their customers while marking near-maximal severity in the same submission.
+The second route costs nothing in data collection and would be the natural first test, with
+the caveat that a measure taken on generated text must be validated against human declarants
+before it can carry weight.
 
-\paragraph{Add a calibration layer, trained off-scenario.} The reliability profile of
-Section~\ref{sec:res_armA_scored} is the shape that post-hoc calibration
-addresses~\autocite{niculescu2005predicting,guo2017calibration}, and the correction is a thin
-layer rather than a model change. One methodological constraint should be respected: the
-calibration must be fitted on data other than the evaluation scenario, otherwise it is tuned
-to the test and the system's generality is lost.
+\paragraph{Widen the evidence base; it remains the binding constraint.} The quantitative
+claims of this thesis rest on two chains: eight nodes with four positives and eleven
+observable milestones on one scripted scenario, and fifteen nodes with three positives and
+twenty-two observable milestones on a second, unscripted one. That is why a precision of
+$1.00$ over six turns is reported as an observation rather than a rate, why the confidence
+interval on the four-week AUC spans $0.21$ to $0.87$, and why no movement in discrimination
+between model versions can be attributed. The second chain was worth its cost --- it bounded a
+central claim, which one chain could not have done --- and it also shows the limit of the
+approach: two scenarios authored by the same hand cannot separate a property of supply chains
+from a property of the author. None of this is repaired by a better model. It is repaired by
+running the same instrument on more chains, longer horizons and more milestones, and three
+routes are open without new science: replaying further documented disruptions on the same
+harness, which costs only scenario authoring; instrumenting a live chain through the weekly
+review, which the system already supports; and generating scale synthetically for the
+calibration layer while keeping the real campaigns as the evaluation set. A campaign an order
+of magnitude larger in positives would let the node-level result be stated as a rate with an
+interval, and would let the calibration layer be trained on the product's own target, which is
+the single step currently blocking a positive skill.
+
+\paragraph{The time block is repaired, and doing it corrected the instruction.} This thesis
+first recommended making the calibrated events write a lead-time impact. That was
+implemented, measured and found wrong (Section~\ref{sec:res_repair}): lost time must be added
+to the completion date, not multiplied into it, or the shock vanishes on exactly the
+milestones a warning would serve. The generalisable form is that a parameter describing a
+node's capacity to recover and a state accumulating what it has already lost share their
+units and are easy to confuse, and the confusion stays invisible while the database is
+incomplete. What remains on this axis is smoothing the milestone alarm, which today moves
+from $0.05$ to $1.00$ in a single turn and is correct but unusable as advance warning.
+
+\paragraph{Fill the indicators before calibrating anything else.} The campaign that produced
+the negative result ran at $25.6\%$ coverage with half the urgency blocks inert. Completing
+them from public figures of the shortage raised coverage to $49.1\%$, activated all six
+blocks, and exposed one model bug that had been undetectable while the database was empty. No
+amount of calibration compensates for a missing input, and this step is the only one on the
+list that is general by construction: it tunes no constant to this scenario.
+
+\paragraph{Rebuild the calibration layer's training label on the product's target.} The
+reliability profile of Section~\ref{sec:res_armA_scored} is the shape that post-hoc
+calibration addresses~\autocite{niculescu2005predicting,guo2017calibration}, and the
+correction is a thin layer rather than a model change. Such a layer was trained off-scenario
+on a synthetic factory, which respects the constraint that it must not be fitted to the
+evaluation data, and measured: it improves the Brier skill by $30.8\%$ on its own training
+distribution, and on the campaign it improves calibration while dropping the four-week AUC
+from $0.721$ to $0.580$. Its label is an event at exactly $t+1$; the product displays a
+missed milestone or a critical event over $(t, t+4]$. It is therefore not connected.
+Connecting it requires the synthetic factory's snapshots to record milestone truth so that
+the training label can be aligned with what the product shows, which is a concrete blocked
+step rather than an open question.
 
 \paragraph{Make the forecast state its own ignorance.} Given the arm B result, an advisory layer
 that cannot anticipate exogenous shocks should not present a low probability in a confident
@@ -199,13 +320,19 @@ which some turns display a deliberately uninformative forecast would separate th
 the content from the effect of the display, and would establish whether the first-exposure
 effect is a response to the numbers or to being given a number at all.
 
-\paragraph{Run the human campaign, then arm C.} The frozen protocol, the hashed data pack and
-the operating scripts are ready. Only the human campaign can decide the hypotheses as they
-were written, and it should be run only after the time block is repaired, since running it
-against a known-defective forecast would waste the participants. Arm C, the closed loop in
-which declarants act on the terrain, follows: it cannot be scored by prediction accuracy,
-because an averted rupture makes a correct prediction look wrong, so it must be judged by
-comparing its final state against arm A.
+\paragraph{Run the human campaign.} The frozen protocol, the hashed data pack and the
+operating scripts are ready. Only the human campaign can decide the hypotheses as they were
+written, and it should now be run against the repaired model rather than against the
+known-defective one, which would have wasted the participants.
+
+Arm C, the closed loop in which declarants act on the terrain, has been executed in its
+agent version on the repaired system (Section~\ref{sec:res_repair}), and its result sets the
+expectation for the human run rather than replacing it. Judged as it must be, by final state
+rather than by prediction accuracy, it met five milestones of eleven on their original
+commitment against five of eleven for arm A: the loop changed which milestone was met, not
+how many, saving one and replanning one that would have held. With eleven milestones that is
+a fact of one campaign and not a result, and it is the quantity the human run should be
+powered to measure.
 
 \paragraph{Put the outcome definition in the pre-registration.} Section~\ref{sec:res_target_trap}
 shows the outcome definition moving the reported skill by a factor of five. It belongs

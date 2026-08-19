@@ -1,18 +1,18 @@
 [0] Config.pm:328> INFO - This is Biber 2.21
-[0] Config.pm:331> INFO - Logfile is 'main.blg'
-[308] biber-MSWIN64:342> INFO - === 
-[482] Biber.pm:421> INFO - Reading 'main.bcf'
-[577] Biber.pm:1002> INFO - Found 55 citekeys in bib section 0
-[589] Biber.pm:4487> INFO - Processing section 0
-[623] Biber.pm:4678> INFO - Looking for bibtex file '../BST_DISCO_JH_2026/Utilities/Bibliography.bib' for section 0
-[707] bibtex.pm:1713> INFO - LaTeX decoding ...
-[862] bibtex.pm:1519> INFO - Found BibTeX data source '../BST_DISCO_JH_2026/Utilities/Bibliography.bib'
-[1282] Biber.pm:4678> INFO - Looking for bibtex file '../Thesis_Cranfield_JH_2026/Utilities/Bibliography_thesis.bib' for section 0
-[1367] bibtex.pm:1713> INFO - LaTeX decoding ...
-[1407] bibtex.pm:1519> INFO - Found BibTeX data source '../Thesis_Cranfield_JH_2026/Utilities/Bibliography_thesis.bib'
-[1511] UCollate.pm:68> INFO - Overriding locale 'fr-FR' defaults 'variable = shifted' with 'variable = non-ignorable'
-[1511] UCollate.pm:68> INFO - Overriding locale 'fr-FR' defaults 'normalization = NFD' with 'normalization = prenormalized'
-[1511] Biber.pm:4307> INFO - Sorting list 'nyt/global//global/global/global' of type 'entry' with template 'nyt' and locale 'fr-FR'
-[1511] Biber.pm:4313> INFO - No sort tailoring available for locale 'fr-FR'
-[1685] bbl.pm:676> INFO - Writing 'main.bbl' with encoding 'UTF-8'
-[1719] bbl.pm:779> INFO - Output to main.bbl
+[1] Config.pm:331> INFO - Logfile is 'main.blg'
+[332] biber-MSWIN64:342> INFO - === 
+[484] Biber.pm:421> INFO - Reading 'main.bcf'
+[734] Biber.pm:1002> INFO - Found 55 citekeys in bib section 0
+[765] Biber.pm:4487> INFO - Processing section 0
+[807] Biber.pm:4678> INFO - Looking for bibtex file '../BST_DISCO_JH_2026/Utilities/Bibliography.bib' for section 0
+[924] bibtex.pm:1713> INFO - LaTeX decoding ...
+[1371] bibtex.pm:1519> INFO - Found BibTeX data source '../BST_DISCO_JH_2026/Utilities/Bibliography.bib'
+[1977] Biber.pm:4678> INFO - Looking for bibtex file '../Thesis_Cranfield_JH_2026/Utilities/Bibliography_thesis.bib' for section 0
+[2069] bibtex.pm:1713> INFO - LaTeX decoding ...
+[2115] bibtex.pm:1519> INFO - Found BibTeX data source '../Thesis_Cranfield_JH_2026/Utilities/Bibliography_thesis.bib'
+[2345] UCollate.pm:68> INFO - Overriding locale 'fr-FR' defaults 'normalization = NFD' with 'normalization = prenormalized'
+[2345] UCollate.pm:68> INFO - Overriding locale 'fr-FR' defaults 'variable = shifted' with 'variable = non-ignorable'
+[2345] Biber.pm:4307> INFO - Sorting list 'nyt/global//global/global/global' of type 'entry' with template 'nyt' and locale 'fr-FR'
+[2345] Biber.pm:4313> INFO - No sort tailoring available for locale 'fr-FR'
+[2570] bbl.pm:676> INFO - Writing 'main.bbl' with encoding 'UTF-8'
+[2686] bbl.pm:779> INFO - Output to main.bbl

@@ -1,7 +1,7 @@
 """Scoring contre la vraie cible du modele : l'ISSUE DEFAVORABLE.
 
-Le premier scoring confrontait les previsions a « un evenement quelconque sur
-le noeud » — ce n'est PAS ce que le modele predit. ``ForecastService`` estime
+Le premier scoring confrontait les previsions a " un evenement quelconque sur
+le noeud " - ce n'est PAS ce que le modele predit. ``ForecastService`` estime
 l'issue defavorable au sens de ``CalibrationService`` : JALON RATE ou evenement
 critique/defaut. On rescore ici contre cette cible.
 
@@ -40,7 +40,7 @@ def jalons_rates(dernier_tour: int) -> dict[str, set[int]]:
     """{node: {tours ou un jalon a rate son echeance contractuelle}}.
 
     Un jalon dont l'echeance tombe APRES la fin de campagne n'a jamais eu
-    l'occasion d'etre rate : il est NON OBSERVE, pas manque. On l'exclut —
+    l'occasion d'etre rate : il est NON OBSERVE, pas manque. On l'exclut -
     le compter comme positif gonflerait artificiellement les scores en fin
     de campagne.
     """

@@ -1,16 +1,16 @@
-"""Framework de migrations de schéma SQLite versionnées par ``PRAGMA user_version``.
+"""Framework de migrations de schema SQLite versionnees par ``PRAGMA user_version``.
 
-Chaque base (registre global ou base client) porte sa version de schéma dans
-l'entête SQLite (``PRAGMA user_version``). :func:`apply_migrations` rejoue,
-dans l'ordre, toutes les migrations dont la version est supérieure à la
+Chaque base (registre global ou base client) porte sa version de schema dans
+l'entete SQLite (``PRAGMA user_version``). :func:`apply_migrations` rejoue,
+dans l'ordre, toutes les migrations dont la version est superieure a la
 version courante de la base, puis retourne la version finale.
 
 Conventions :
-- la migration v1 reproduit le schéma historique EXACT en ``CREATE TABLE IF
+- la migration v1 reproduit le schema historique EXACT en ``CREATE TABLE IF
   NOT EXISTS`` : elle est idempotente et "passe par-dessus" une base existante
-  créée par l'ancien code (tables déjà présentes mais ``user_version = 0``) ;
-- chaque migration se termine par ``PRAGMA user_version = N`` dans la même
-  transaction que ses DDL/DML : une migration est appliquée entièrement ou pas
+  creee par l'ancien code (tables deja presentes mais ``user_version = 0``) ;
+- chaque migration se termine par ``PRAGMA user_version = N`` dans la meme
+  transaction que ses DDL/DML : une migration est appliquee entierement ou pas
   du tout.
 """
 
@@ -24,11 +24,11 @@ from supplyscore.core.clock import iso_week
 
 MigrationFn = Callable[[sqlite3.Connection], None]
 
-# --- Migrations du registre global ----------------------------------------------
+# Migrations du registre global
 
 
 def _registry_v1(conn: sqlite3.Connection) -> None:
-    """v1 registre : schéma historique (projects, nodes, arcs), idempotent."""
+    """v1 registre : schema historique (projects, nodes, arcs), idempotent."""
     with conn:
         conn.execute(
             """
@@ -80,22 +80,21 @@ def _registry_v2(conn: sqlite3.Connection) -> None:
 
     SQLite ne supporte pas ``ALTER TABLE ... ADD CONSTRAINT`` : les tables
     ``nodes`` et ``arcs`` sont reconstruites (CREATE nouvelle table avec FK,
-    INSERT ... SELECT, DROP, RENAME). ``PRAGMA foreign_keys`` est désactivé
+    INSERT ... SELECT, DROP, RENAME). ``PRAGMA foreign_keys`` est desactive
     pendant la reconstruction (la pragma est sans effet dans une transaction,
-    elle est donc basculée hors transaction) puis réactivé.
+    elle est donc basculee hors transaction) puis reactive.
 
-    Les vieilles bases peuvent contenir des références pendantes : les arcs
-    orphelins sont purgés et les ``project_id`` inconnus remis à NULL AVANT la
-    reconstruction, pour que ``PRAGMA foreign_key_check`` soit vide après coup.
+    Les vieilles bases peuvent contenir des references pendantes : les arcs
+    orphelins sont purges et les ``project_id`` inconnus remis a NULL AVANT la
+    reconstruction, pour que ``PRAGMA foreign_key_check`` soit vide apres coup.
     """
     conn.commit()  # garantit qu'aucune transaction n'est ouverte
     conn.execute("PRAGMA foreign_keys=OFF")
     try:
-        # BEGIN explicite : les DDL participent aussi à la transaction (le
-        # mode legacy de sqlite3 n'ouvre une transaction implicite que sur DML).
+        # BEGIN explicite : les DDL participent aussi a la transaction (le mode legacy de sqlite3 n'ouvre une transaction implicite que sur DML).
         conn.execute("BEGIN IMMEDIATE")
         try:
-            # a. états d'urgence courants par nœud (cache de redémarrage).
+            # a. etats d'urgence courants par noeud (cache de redemarrage).
             conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS node_urgency (
@@ -111,7 +110,7 @@ def _registry_v2(conn: sqlite3.Connection) -> None:
                 )
                 """
             )
-            # b. réglages par projet (valeurs JSON arbitraires).
+            # b. reglages par projet (valeurs JSON arbitraires).
             conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS project_settings (
@@ -122,7 +121,7 @@ def _registry_v2(conn: sqlite3.Connection) -> None:
                 )
                 """
             )
-            # c. assainissement des références pendantes AVANT la reconstruction.
+            # c. assainissement des references pendantes AVANT la reconstruction.
             conn.execute(
                 """
                 DELETE FROM arcs
@@ -193,7 +192,7 @@ def _registry_v2(conn: sqlite3.Connection) -> None:
             )
             conn.execute("DROP TABLE arcs")
             conn.execute("ALTER TABLE arcs_new RENAME TO arcs")
-            # d. index de filtrage des nœuds par projet.
+            # d. index de filtrage des noeuds par projet.
             conn.execute("CREATE INDEX IF NOT EXISTS idx_nodes_project ON nodes(project_id)")
             conn.execute("PRAGMA user_version = 2")
             conn.commit()
@@ -207,28 +206,28 @@ def _registry_v2(conn: sqlite3.Connection) -> None:
 def _registry_v3(conn: sqlite3.Connection) -> None:
     """v3 registre : t0 projet, onboarding, arcs backup, jalons et tags.
 
-    Ajouts : colonne ``projects.t0_ts`` (backfillée sur ``created_at``),
+    Ajouts : colonne ``projects.t0_ts`` (backfillee sur ``created_at``),
     ``nodes.onboarding_state``, ``arcs.arc_kind``, tables ``milestones``,
     ``tag_categories``/``tags``/``node_tags`` et ``onboarding_progress``.
 
     SQLite ne supporte pas ``ALTER TABLE ... ADD COLUMN IF NOT EXISTS`` : la
-    rejouabilité est garantie par le garde ``user_version`` du framework, et
-    l'atomicité par la transaction explicite (``BEGIN IMMEDIATE`` ... commit) —
+    rejouabilite est garantie par le garde ``user_version`` du framework, et
+    l'atomicite par la transaction explicite (``BEGIN IMMEDIATE`` ... commit) -
     une interruption laisse la base en v2, rejouable proprement.
     """
     conn.commit()  # garantit qu'aucune transaction n'est ouverte
     conn.execute("BEGIN IMMEDIATE")
     try:
-        # a. origine temporelle du projet, backfillée sur la date de création.
+        # a. origine temporelle du projet, backfillee sur la date de creation.
         conn.execute("ALTER TABLE projects ADD COLUMN t0_ts REAL")
         conn.execute("UPDATE projects SET t0_ts = created_at WHERE t0_ts IS NULL")
-        # b. état d'onboarding du nœud ('draft' tant que le wizard n'est pas fini).
+        # b. etat d'onboarding du noeud ('draft' tant que le wizard n'est pas fini).
         conn.execute(
             "ALTER TABLE nodes ADD COLUMN onboarding_state TEXT NOT NULL DEFAULT 'complete'"
         )
         # c. nature de l'arc (backup = inerte dans tous les calculs).
         conn.execute("ALTER TABLE arcs ADD COLUMN arc_kind TEXT NOT NULL DEFAULT 'nominal'")
-        # d. jalons datés du cahier des charges d'un nœud.
+        # d. jalons dates du cahier des charges d'un noeud.
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS milestones (
@@ -251,7 +250,7 @@ def _registry_v3(conn: sqlite3.Connection) -> None:
         conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_milestones_node ON milestones(node_id, position)"
         )
-        # e. taxonomie par projet : catégories contrôlées, tags libres, liaisons.
+        # e. taxonomie par projet : categories controlees, tags libres, liaisons.
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS tag_categories (
@@ -284,7 +283,7 @@ def _registry_v3(conn: sqlite3.Connection) -> None:
             """
         )
         conn.execute("CREATE INDEX IF NOT EXISTS idx_node_tags_tag ON node_tags(tag_id)")
-        # f. progression du wizard d'onboarding (brouillon JSON par nœud).
+        # f. progression du wizard d'onboarding (brouillon JSON par noeud).
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS onboarding_progress (
@@ -304,11 +303,11 @@ def _registry_v3(conn: sqlite3.Connection) -> None:
 
 
 def _create_audit_log(conn: sqlite3.Connection) -> None:
-    """Crée la table ``audit_log`` et ses index (DDL partagé registre/client).
+    """Cree la table ``audit_log`` et ses index (DDL partage registre/client).
 
-    Journal d'audit générique : une ligne par changement de champ d'une entité
-    (``old_value``/``new_value`` sérialisées en texte), horodatée et rattachée
-    à une semaine ISO. Idempotent (``IF NOT EXISTS`` partout) ; l'appelant est
+    Journal d'audit generique : une ligne par changement de champ d'une entite
+    (``old_value``/``new_value`` serialisees en texte), horodatee et rattachee
+    a une semaine ISO. Idempotent (``IF NOT EXISTS`` partout) ; l'appelant est
     responsable de la transaction.
     """
     conn.execute(
@@ -344,11 +343,11 @@ def _registry_v4(conn: sqlite3.Connection) -> None:
 
 
 def _registry_v5(conn: sqlite3.Connection) -> None:
-    """v5 registre : scénarios nommés par projet (table ``scenarios``), idempotent.
+    """v5 registre : scenarios nommes par projet (table ``scenarios``), idempotent.
 
-    Un scénario est un instantané nommé de paramètres de simulation rattaché à
+    Un scenario est un instantane nomme de parametres de simulation rattache a
     un projet. Son contenu (``payload_json``) est OPAQUE pour la couche data :
-    stocké et restitué tel quel, sans interprétation. Le nom est unique PAR
+    stocke et restitue tel quel, sans interpretation. Le nom est unique PAR
     projet (``UNIQUE(project_id, nom)``) ; l'index ``idx_scenarios_project``
     sert les listages par projet.
     """
@@ -370,11 +369,11 @@ def _registry_v5(conn: sqlite3.Connection) -> None:
         conn.execute("PRAGMA user_version = 5")
 
 
-# --- Migrations des bases client ---------------------------------------------------
+# Migrations des bases client
 
 
 def _client_v1(conn: sqlite3.Connection) -> None:
-    """v1 client : schéma historique (assessments, kpi_snapshots, urgency_history)."""
+    """v1 client : schema historique (assessments, kpi_snapshots, urgency_history)."""
     with conn:
         conn.execute(
             """
@@ -424,7 +423,7 @@ def _client_v1(conn: sqlite3.Connection) -> None:
 
 
 def _client_v2(conn: sqlite3.Connection) -> None:
-    """v2 client : cahier des charges versionné (spec_sheet) et journal d'événements."""
+    """v2 client : cahier des charges versionne (spec_sheet) et journal d'evenements."""
     with conn:
         conn.execute(
             """
@@ -460,22 +459,22 @@ def _client_v2(conn: sqlite3.Connection) -> None:
 
 
 def _client_v3(conn: sqlite3.Connection) -> None:
-    """v3 client : journal d'audit, index temporel des snapshots, corrections d'évaluations.
+    """v3 client : journal d'audit, index temporel des snapshots, corrections d'evaluations.
 
-    Ajouts : table ``audit_log`` (même contenu que côté registre, v4), index
+    Ajouts : table ``audit_log`` (meme contenu que cote registre, v4), index
     ``idx_kpi_snap_node_ts`` pour les lectures temporelles (``kpis_at``) et
-    colonne ``assessments.replaces_id`` (NULL = évaluation originale, sinon id
-    de l'évaluation que cette ligne corrige).
+    colonne ``assessments.replaces_id`` (NULL = evaluation originale, sinon id
+    de l'evaluation que cette ligne corrige).
 
-    L'``ALTER TABLE ... ADD COLUMN`` n'est pas rejouable : la rejouabilité est
-    garantie par le garde ``user_version`` du framework, et l'atomicité par la
-    transaction explicite (``BEGIN IMMEDIATE`` ... commit) — une interruption
+    L'``ALTER TABLE ... ADD COLUMN`` n'est pas rejouable : la rejouabilite est
+    garantie par le garde ``user_version`` du framework, et l'atomicite par la
+    transaction explicite (``BEGIN IMMEDIATE`` ... commit) - une interruption
     laisse la base en v2, rejouable proprement.
     """
     conn.commit()  # garantit qu'aucune transaction n'est ouverte
     conn.execute("BEGIN IMMEDIATE")
     try:
-        # a. journal d'audit partagé avec le registre.
+        # a. journal d'audit partage avec le registre.
         _create_audit_log(conn)
         # b. index de lecture temporelle des snapshots KPI (kpis_at).
         conn.execute(
@@ -484,7 +483,7 @@ def _client_v3(conn: sqlite3.Connection) -> None:
             ON kpi_snapshots(node_id, timestamp)
             """
         )
-        # c. chaînage des corrections d'évaluations (NULL = originale).
+        # c. chainage des corrections d'evaluations (NULL = originale).
         conn.execute("ALTER TABLE assessments ADD COLUMN replaces_id INTEGER")
         conn.execute("PRAGMA user_version = 3")
         conn.commit()
@@ -494,18 +493,18 @@ def _client_v3(conn: sqlite3.Connection) -> None:
 
 
 def _client_v4(conn: sqlite3.Connection) -> None:
-    """v4 client : semaine ISO matérialisée sur les évaluations et l'historique d'urgence.
+    """v4 client : semaine ISO materialisee sur les evaluations et l'historique d'urgence.
 
-    Ajoute la colonne ``iso_week`` (libellé « AAAA-Sxx ») aux tables
+    Ajoute la colonne ``iso_week`` (libelle " AAAA-Sxx ") aux tables
     ``assessments`` et ``urgency_history``, backfille chaque ligne existante en
-    Python via :func:`supplyscore.core.clock.iso_week` appliquée à son
+    Python via :func:`supplyscore.core.clock.iso_week` appliquee a son
     ``timestamp`` (heure locale), puis pose les index ``idx_assessments_week``
     et ``idx_urgency_week`` qui servent le cycle hebdomadaire
     (:mod:`supplyscore.services.weekly`).
 
-    L'``ALTER TABLE ... ADD COLUMN`` n'est pas rejouable : la rejouabilité est
-    garantie par le garde ``user_version`` du framework, et l'atomicité par la
-    transaction explicite (``BEGIN IMMEDIATE`` ... commit) — une interruption
+    L'``ALTER TABLE ... ADD COLUMN`` n'est pas rejouable : la rejouabilite est
+    garantie par le garde ``user_version`` du framework, et l'atomicite par la
+    transaction explicite (``BEGIN IMMEDIATE`` ... commit) - une interruption
     laisse la base en v3, rejouable proprement.
     """
     conn.commit()  # garantit qu'aucune transaction n'est ouverte
@@ -539,12 +538,12 @@ def _client_v4(conn: sqlite3.Connection) -> None:
 
 
 def _client_v5(conn: sqlite3.Connection) -> None:
-    """v5 client : revue hebdomadaire par volets et journal des décisions.
+    """v5 client : revue hebdomadaire par volets et journal des decisions.
 
     Ajouts : table ``weekly_reviews`` (avancement des volets de la revue d'une
-    semaine ISO d'un nœud — ``volets_json`` de la forme ``{"ahp": 0|1, ...}`` —
-    avec horodatages de démarrage et de complétion) et table ``decisions``
-    (journal des décisions prises en revue, chacune emportant un snapshot des
+    semaine ISO d'un noeud - ``volets_json`` de la forme ``{"ahp": 0|1, ...}`` -
+    avec horodatages de demarrage et de completion) et table ``decisions``
+    (journal des decisions prises en revue, chacune emportant un snapshot des
     scores ``{ud, ur, a, f, h}`` au moment T), plus l'index
     ``idx_decisions_node_week``. Idempotent (``IF NOT EXISTS`` partout).
     """
@@ -583,16 +582,16 @@ def _client_v5(conn: sqlite3.Connection) -> None:
 def _client_v6(conn: sqlite3.Connection) -> None:
     """v6 client : index temporels manquants (faiblesse #15), idempotent.
 
-    Constat avant ajout : ``idx_kpi_snap_node_ts`` (v3) couvre déjà
-    ``kpi_snapshots(node_id, timestamp)`` et, côté registre, ``idx_audit_entity``
-    / ``idx_audit_week`` existent depuis la v4 — seuls manquent les index
+    Constat avant ajout : ``idx_kpi_snap_node_ts`` (v3) couvre deja
+    ``kpi_snapshots(node_id, timestamp)`` et, cote registre, ``idx_audit_entity``
+    / ``idx_audit_week`` existent depuis la v4 - seuls manquent les index
     temporels des tables ``urgency_history`` et ``assessments`` (leurs index v4
     ``idx_urgency_week``/``idx_assessments_week`` ne couvrent que
     ``(node_id, iso_week)``, pas les tris par ``timestamp``) :
 
-    - ``idx_urgency_node_ts`` sur ``urgency_history(node_id, timestamp)`` —
+    - ``idx_urgency_node_ts`` sur ``urgency_history(node_id, timestamp)`` -
       sert ``urgency_series`` (``WHERE node_id ORDER BY timestamp``) ;
-    - ``idx_assessments_node_ts`` sur ``assessments(node_id, timestamp)`` —
+    - ``idx_assessments_node_ts`` sur ``assessments(node_id, timestamp)`` -
       sert ``latest_assessment`` et ``list_assessments``.
     """
     with conn:
@@ -612,17 +611,17 @@ def _client_v6(conn: sqlite3.Connection) -> None:
 
 
 def _client_v7(conn: sqlite3.Connection) -> None:
-    """v7 client : journal des interventions (contrat n°9, HÉLIOS v7), idempotent.
+    """v7 client : journal des interventions (contrat no9, HELIOS v7), idempotent.
 
-    Ajoute la table ``interventions`` : une ligne par intervention décidée sur
-    un nœud, de l'ouverture (``etat_avant_json`` — état OBSERVABLE seulement —
-    ``action_id``, ``acteur``, ``objectif_operationnel``, ``decidee_ts``) à la
-    clôture (``resultat`` causal, ``etat_apres_json``, ``succes`` dérivé,
-    ``effets_voisins_json``). L'état de risque (``etat_risque_avant_json`` /
-    ``etat_risque_apres_json``) est porté par des colonnes SÉPARÉES des
+    Ajoute la table ``interventions`` : une ligne par intervention decidee sur
+    un noeud, de l'ouverture (``etat_avant_json`` - etat OBSERVABLE seulement -
+    ``action_id``, ``acteur``, ``objectif_operationnel``, ``decidee_ts``) a la
+    cloture (``resultat`` causal, ``etat_apres_json``, ``succes`` derive,
+    ``effets_voisins_json``). L'etat de risque (``etat_risque_avant_json`` /
+    ``etat_risque_apres_json``) est porte par des colonnes SEPAREES des
     colonnes ``etat_*_json`` : c'est une information d'INTERFACE, jamais le
-    label causal du résultat opérationnel (voir docs/modele_mathematique.md,
-    §13, et :mod:`supplyscore.services.interventions`). Index
+    label causal du resultat operationnel (voir docs/modele_mathematique.md,
+    section 13, et :mod:`supplyscore.services.interventions`). Index
     ``idx_interventions_node_date`` sur ``(node_id, date_ts)``.
     """
     with conn:
@@ -659,7 +658,7 @@ def _client_v7(conn: sqlite3.Connection) -> None:
         conn.execute("PRAGMA user_version = 7")
 
 
-# --- Registres de migrations ---------------------------------------------------------
+# Registres de migrations
 
 _REGISTRY_MIGRATIONS: list[tuple[int, MigrationFn]] = [
     (1, _registry_v1),
@@ -686,7 +685,7 @@ _MIGRATIONS_BY_KIND: dict[str, list[tuple[int, MigrationFn]]] = {
 
 
 def schema_version(conn: sqlite3.Connection) -> int:
-    """Retourne la version de schéma courante (``PRAGMA user_version``)."""
+    """Retourne la version de schema courante (``PRAGMA user_version``)."""
     row = conn.execute("PRAGMA user_version").fetchone()
     return int(row[0])
 
@@ -695,11 +694,11 @@ def apply_migrations(conn: sqlite3.Connection, kind: Literal["registry", "client
     """Applique les migrations manquantes de la base ``kind`` et retourne sa version.
 
     Args:
-        conn: connexion SQLite ouverte sur la base à migrer.
+        conn: connexion SQLite ouverte sur la base a migrer.
         kind: ``"registry"`` (registre global) ou ``"client"`` (base par client).
 
     Returns:
-        La version finale du schéma (``PRAGMA user_version``) après migration.
+        La version finale du schema (``PRAGMA user_version``) apres migration.
     """
     migrations = _MIGRATIONS_BY_KIND[kind]
     current = schema_version(conn)

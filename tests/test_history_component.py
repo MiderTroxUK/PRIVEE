@@ -1,7 +1,7 @@
 """Tests des composants UI d'historique (journal d'audit et trajectoire KPI).
 
-Les entrées du tableau sont des SimpleNamespace : le composant lit les
-attributs en duck-typing (getattr), sans dépendre de la dataclass AuditEntry.
+Les entrees du tableau sont des SimpleNamespace : le composant lit les
+attributs en duck-typing (getattr), sans dependre de la dataclass AuditEntry.
 """
 
 from datetime import datetime
@@ -38,7 +38,7 @@ def _entry(**overrides) -> SimpleNamespace:
     return SimpleNamespace(**base)
 
 
-# --- history_table -----------------------------------------------------------------
+# history_table
 
 
 def test_history_table_columns_and_rows():
@@ -61,7 +61,7 @@ def test_history_table_columns_and_rows():
     assert first["Source"] == "questionnaire"
     assert first["Opérateur"] == "alice"
 
-    # None -> « — », et l'ordre des lignes est celui fourni par l'appelant.
+    # None -> " - ", et l'ordre des lignes est celui fourni par l'appelant.
     assert table.data[1]["Date"] == "09/03/2026 08:05"
     assert table.data[1]["Ancienne valeur"] == "—"
     assert table.data[2]["Nouvelle valeur"] == "—"
@@ -75,7 +75,7 @@ def test_history_table_read_only_no_native_sort():
 
 
 def test_history_table_tolerates_missing_attributes():
-    # Vieil objet sans operator_id ni source : getattr avec défaut, pas de crash.
+    # Vieil objet sans operator_id ni source : getattr avec defaut, pas de crash.
     legacy = SimpleNamespace(
         timestamp=_ts(2026, 1, 5, 9, 0),
         iso_week="2026-W02",
@@ -96,7 +96,7 @@ def test_history_table_empty_entries():
     assert [c["name"] for c in table.columns] == FRENCH_COLUMNS
 
 
-# --- kpi_trajectory_figure -----------------------------------------------------------
+# kpi_trajectory_figure
 
 
 def test_kpi_trajectory_figure_step_curve():
@@ -114,7 +114,7 @@ def test_kpi_trajectory_figure_step_curve():
     assert len(trace.x) == 4
     assert trace.y == (120.0, 110.0, None, 96.0)
     assert fig.layout.title.text == "Trajectoire — time.lead_time_h (h)"
-    assert fig.layout.template.layout.plot_bgcolor is not None  # plotly_white appliqué
+    assert fig.layout.template.layout.plot_bgcolor is not None  # plotly_white applique
 
 
 def test_kpi_trajectory_figure_title_without_unit():

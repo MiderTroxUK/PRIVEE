@@ -1,14 +1,14 @@
-"""Tests du Lot 11.2 : SessionReport (HTML autonome) + page « Rapport ».
+"""Tests du Lot 11.2 : SessionReport (HTML autonome) + page " Rapport ".
 
-Couvre : la partie simulée (FixedClock + seed_demo en mode jeu + 4 semaines +
-un événement appliqué + une décision enregistrée → rapport contenant le nom du
-projet, les sections « Synthèse », « Chronologie », « Calibration », la
-description de la décision, le libellé FR de l'événement, au moins 2 blocs
-plotly et l'avertissement d'échantillon réduit), le projet inconnu
-(ValueError), la création du répertoire de destination, le projet vide
+Couvre : la partie simulee (FixedClock + seed_demo en mode jeu + 4 semaines +
+un evenement applique + une decision enregistree -> rapport contenant le nom du
+projet, les sections " Synthese ", " Chronologie ", " Calibration ", la
+description de la decision, le libelle FR de l'evenement, au moins 2 blocs
+plotly et l'avertissement d'echantillon reduit), le projet inconnu
+(ValueError), la creation du repertoire de destination, le projet vide
 (branches sans historique / sans point de calibration) et les callbacks de la
-page (sans projet → message d'erreur ; avec projet → données de
-téléchargement non nulles).
+page (sans projet -> message d'erreur ; avec projet -> donnees de
+telechargement non nulles).
 """
 
 from __future__ import annotations
@@ -27,17 +27,21 @@ from supplyscore.core.clock import FixedClock
 from supplyscore.domain.models import Project, TaskStatus
 from supplyscore.services import SupplyScoreService
 from supplyscore.services import report as report_module
+from supplyscore.services.calibration import CalibrationService
 from supplyscore.services.decisions import DecisionService
 from supplyscore.services.events import EventEngine
 from supplyscore.services.report import SessionReport
 from supplyscore.web_ui import set_service
 from supplyscore.web_ui.pages import report as report_page
 
-#: Mercredi 2026-06-10 12:00 locale — horodatage de fichier « 20260610_120000 ».
+#: Mercredi 2026-06-10 12:00 locale - horodatage de fichier " 20260610_120000 ".
 _NOW = datetime(2026, 6, 10, 12, 0).timestamp()
 _STAMP = "20260610_120000"
 
 _DESCRIPTION_DECISION = "Doubler le stock de sécurité du fournisseur critique"
+
+#: Horizon d'appariement prediction/realite de ``SessionReport.build`` (son defaut).
+_HORIZON = 4
 
 
 @pytest.fixture
@@ -49,7 +53,7 @@ def service(tmp_path: Path):
 
 @pytest.fixture
 def partie(service: SupplyScoreService) -> Project:
-    """Partie simulée : démo en mode jeu, 4 semaines, un événement, une décision."""
+    """Partie simulee : demo en mode jeu, 4 semaines, un evenement, une decision."""
     projet = service.seed_demo(n_ranks=2, seed=1)
     service.set_clock_mode(projet.id, "game")
     for _ in range(4):
@@ -71,12 +75,12 @@ def partie(service: SupplyScoreService) -> Project:
 
 @pytest.fixture
 def rapport(service: SupplyScoreService, partie: Project, tmp_path: Path) -> str:
-    """Texte HTML du rapport généré sur la partie simulée."""
+    """Texte HTML du rapport genere sur la partie simulee."""
     path = SessionReport(service).build(partie.id, dest_dir=tmp_path / "exports")
     return path.read_text(encoding="utf-8")
 
 
-# --- build : partie simulée ---------------------------------------------------------------
+# build : partie simulee
 
 
 class TestBuildPartieSimulee:
@@ -95,26 +99,34 @@ class TestBuildPartieSimulee:
         assert "Calibration" in rapport
         assert "Graphe final" in rapport
         assert "temps de jeu" in rapport  # mode horloge du projet
-        assert "10/06/2026" in rapport  # « généré le » : horloge du service
+        assert "10/06/2026" in rapport  # " genere le " : horloge du service
 
     def test_chronologie_evenement_fr_et_decision(self, rapport: str) -> None:
         texte = html_lib.unescape(rapport)  # l'autoescape encode les apostrophes
-        assert "Panne machine" in texte  # libellé FR du type d'événement
-        assert "Durée d'arrêt" in texte  # paramètre traduit
-        assert "actif" in texte  # événement non annulé
+        assert "Panne machine" in texte  # libelle FR du type d'evenement
+        assert "Durée d'arrêt" in texte  # parametre traduit
+        assert "actif" in texte  # evenement non annule
         assert _DESCRIPTION_DECISION in texte
         assert "Scores au moment T" in texte
         assert "op-2" in texte
 
     def test_au_moins_deux_blocs_plotly_et_cdn_unique(self, rapport: str) -> None:
-        # Évolutions par nœud + graphe final : au moins 2 figures embarquées.
+        # Evolutions par noeud + graphe final : au moins 2 figures embarquees.
         assert rapport.count("plotly-graph-div") >= 2
-        # Le JS Plotly est chargé UNE seule fois, via CDN, dans le <head>.
+        # Le JS Plotly est charge UNE seule fois, via CDN, dans le <head>.
         assert rapport.count("cdn.plot.ly") == 1
 
-    def test_avertissement_echantillon_reduit(self, rapport: str) -> None:
-        # Une partie de démo = quelques dizaines de points au plus : avertissement.
-        assert "Échantillon réduit" in rapport
+    def test_avertissement_echantillon_reduit(
+        self, service: SupplyScoreService, partie: Project, rapport: str
+    ) -> None:
+        # Une partie de demo = quelques dizaines de points au plus : avertissement. La precondition est VERIFIEE, pas supposee : l'effectif depend du nombre de noeuds du graphe seede x le nombre de semaines jouees, et un graphe plus large ferait disparaitre l'avertissement - ce qui doit se lire dans le message d'echec, pas comme une chaine introuvable.
+        points = CalibrationService(service).outcomes(partie.id, horizon_weeks=_HORIZON)
+        seuil = report_module._SEUIL_PETIT_ECHANTILLON
+        assert len(points) < seuil, (
+            f"la partie de démo n'est plus un petit échantillon "
+            f"({len(points)} points >= {seuil}) : l'avertissement ne s'applique plus"
+        )
+        assert f"Échantillon réduit ({len(points)} point(s) nœud-semaine)" in rapport
 
     def test_evenement_annule_affiche_annule_le(
         self, service: SupplyScoreService, partie: Project, tmp_path: Path
@@ -133,7 +145,7 @@ class TestBuildPartieSimulee:
         assert "annulé le" in texte
 
 
-# --- build : erreurs, destination, projet vide ---------------------------------------------
+# build : erreurs, destination, projet vide
 
 
 class TestBuildErreursEtBranches:
@@ -170,18 +182,18 @@ class TestBuildErreursEtBranches:
         assert "Aucun événement ni décision" in texte
         assert "Aucun point de calibration" in texte
         assert "Échantillon réduit (0 point(s)" in texte
-        # Le graphe final est rendu même vide (figure « Aucun nœud »).
+        # Le graphe final est rendu meme vide (figure " Aucun noeud ").
         assert texte.count("plotly-graph-div") == 1
 
 
-# --- helpers recopiés de services.exports ---------------------------------------------------
+# helpers recopies de services.exports
 
 
 def test_fmt_date_none_chaine_vide() -> None:
     assert report_module._fmt_date(None) == ""
 
 
-# --- page : layout --------------------------------------------------------------------------
+# page : layout
 
 
 class TestLayout:
@@ -195,12 +207,12 @@ class TestLayout:
         assert "report-msg" in texte
 
 
-# --- page : callback -------------------------------------------------------------------------
+# page : callback
 
 
 @pytest.fixture
 def ui(service: SupplyScoreService):
-    """Service partagé avec la page (set_service/teardown)."""
+    """Service partage avec la page (set_service/teardown)."""
     set_service(service)
     yield service
     set_service(None)
@@ -271,7 +283,7 @@ class TestGenerateReportCallback:
         assert horizons == [horizon_attendu]
 
 
-# --- page : register_callbacks ----------------------------------------------------------------
+# page : register_callbacks
 
 
 def test_register_callbacks_branche_le_callback() -> None:

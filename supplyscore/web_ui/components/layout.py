@@ -1,4 +1,4 @@
-"""Éléments de mise en page partagés : barre de navigation, cartes, styles."""
+"""Elements de mise en page partages : barre de navigation, cartes, styles."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from dash import dcc, html
 
 from supplyscore.domain.models import SupplyNode, TaskStatus
 
-#: Libellés français des statuts de tâche.
+#: Libelles francais des statuts de tache.
 STATUS_FR: dict[TaskStatus, str] = {
     TaskStatus.ACTIVE: "Active",
     TaskStatus.DONE: "Terminée",
@@ -90,8 +90,8 @@ def navbar(right: html.Div | None = None) -> html.Div:
     """Barre de navigation principale (les 4 pages de l'application).
 
     Args:
-        right: composant optionnel ancré à droite de la barre (ex. le
-            sélecteur d'opérateur global).
+        right: composant optionnel ancre a droite de la barre (ex. le
+            selecteur d'operateur global).
     """
     link_style = {
         "color": "#dfe9f0",
@@ -142,7 +142,7 @@ def navbar(right: html.Div | None = None) -> html.Div:
 
 
 def card(title: str, children: list, subtitle: str | None = None) -> html.Div:
-    """Carte standard avec titre (sections homogènes sur toutes les pages)."""
+    """Carte standard avec titre (sections homogenes sur toutes les pages)."""
     header: list = [html.H3(title, style={"margin": "0 0 4px", "fontSize": "17px"})]
     if subtitle:
         header.append(
@@ -156,7 +156,7 @@ def card(title: str, children: list, subtitle: str | None = None) -> html.Div:
 
 
 def labelled(label: str, component, width: str = "220px") -> html.Div:
-    """Champ de formulaire : libellé au-dessus du composant."""
+    """Champ de formulaire : libelle au-dessus du composant."""
     return html.Div(
         [html.Label(label, style=LABEL_STYLE), component],
         style={
@@ -170,10 +170,10 @@ def labelled(label: str, component, width: str = "220px") -> html.Div:
 
 
 def node_option(node: SupplyNode) -> dict:
-    """Option de dropdown pour un nœud : « Nom (rang r — label) »."""
+    """Option de dropdown pour un noeud : " Nom (rang r - label) "."""
     return {"label": f"{node.name} (rang {node.rank} — {node.label})", "value": node.id}
 
 
 def node_options(nodes: list[SupplyNode]) -> list[dict]:
-    """Options de dropdown pour une liste de nœuds, triées par rang puis nom."""
+    """Options de dropdown pour une liste de noeuds, triees par rang puis nom."""
     return [node_option(n) for n in sorted(nodes, key=lambda n: (n.rank, n.name))]

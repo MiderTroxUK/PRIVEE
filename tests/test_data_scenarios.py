@@ -1,10 +1,10 @@
-"""Tests de la persistance des scénarios nommés (Lot 15.3).
+"""Tests de la persistance des scenarios nommes (Lot 15.3).
 
 Couvre : round-trip complet d'un payload JSON arbitraire, upsert (rename,
-``updated_at`` rafraîchi, ``created_at`` préservé), unicité du nom PAR projet
-(ValueError français), tri de ``list_scenarios``, suppression, validation du
-JSON avant écriture, réouverture de fichier et migration registre v4 -> v5
-(idempotente, sur base réelle peuplée).
+``updated_at`` rafraichi, ``created_at`` preserve), unicite du nom PAR projet
+(ValueError francais), tri de ``list_scenarios``, suppression, validation du
+JSON avant ecriture, reouverture de fichier et migration registre v4 -> v5
+(idempotente, sur base reelle peuplee).
 """
 
 from __future__ import annotations
@@ -24,7 +24,7 @@ from supplyscore.data.migrations import (
     apply_migrations,
 )
 
-# Payload arbitraire : dicts imbriqués, listes, types JSON variés.
+# Payload arbitraire : dicts imbriques, listes, types JSON varies.
 _PAYLOAD = {
     "criticite": {"seuils": [0.2, 0.5, 0.8], "mode": "strict"},
     "noeuds_geles": ["n1", "n7"],
@@ -34,7 +34,7 @@ _PAYLOAD = {
 }
 
 
-# --- CRUD des scénarios --------------------------------------------------------------
+# CRUD des scenarios
 
 
 class TestScenarioRoundTrip:
@@ -78,15 +78,15 @@ class TestScenarioUpsert:
             assert scenario is not None
             assert scenario["nom"] == "Après"
             assert scenario["payload"] == {"v": 2}
-            assert scenario["created_at"] == 1000.0  # préservé
-            assert scenario["updated_at"] == 2000.0  # rafraîchi
-            # Pas de doublon : l'upsert a mis à jour la MÊME ligne.
+            assert scenario["created_at"] == 1000.0  # preserve
+            assert scenario["updated_at"] == 2000.0  # rafraichi
+            # Pas de doublon : l'upsert a mis a jour la MEME ligne.
             assert len(db.list_scenarios("p1")) == 1
 
     def test_upsert_meme_nom_meme_id_ok(self, tmp_path: Path) -> None:
         with RegistryDatabase(tmp_path) as db:
             db.save_scenario("s1", "p1", "Stable", json.dumps({"v": 1}), now=1000.0)
-            # Réécriture sous le même nom et le même id : pas de conflit.
+            # Reecriture sous le meme nom et le meme id : pas de conflit.
             db.save_scenario("s1", "p1", "Stable", json.dumps({"v": 2}), now=2000.0)
 
             scenario = db.get_scenario("s1")
@@ -104,7 +104,7 @@ class TestScenarioUniciteNom:
             with pytest.raises(ValueError, match="un scénario de ce nom existe déjà"):
                 db.save_scenario("s2", "p1", "Hiver", json.dumps({"v": 2}), now=2000.0)
 
-            # La ligne existante est intacte, la nouvelle n'a pas été écrite.
+            # La ligne existante est intacte, la nouvelle n'a pas ete ecrite.
             scenario = db.get_scenario("s1")
             assert scenario is not None and scenario["payload"] == {"v": 1}
             assert db.get_scenario("s2") is None
@@ -114,11 +114,11 @@ class TestScenarioUniciteNom:
             db.save_scenario("s1", "p1", "Hiver", json.dumps({"v": 1}), now=1000.0)
             db.save_scenario("s2", "p1", "Été", json.dumps({"v": 2}), now=1100.0)
 
-            # Renommer s2 vers le nom déjà porté par s1 : refusé.
+            # Renommer s2 vers le nom deja porte par s1 : refuse.
             with pytest.raises(ValueError, match="un scénario de ce nom existe déjà"):
                 db.save_scenario("s2", "p1", "Hiver", json.dumps({"v": 3}), now=2000.0)
 
-            # s2 est resté tel quel (transaction annulée).
+            # s2 est reste tel quel (transaction annulee).
             scenario = db.get_scenario("s2")
             assert scenario is not None
             assert scenario["nom"] == "Été"
@@ -140,11 +140,11 @@ class TestScenarioListEtDelete:
             db.save_scenario("s1", "p1", "Un", json.dumps({}), now=1000.0)
             db.save_scenario("s2", "p1", "Deux", json.dumps({}), now=2000.0)
             db.save_scenario("s3", "p1", "Trois", json.dumps({}), now=3000.0)
-            # s1 mis à jour en dernier : il remonte en tête.
+            # s1 mis a jour en dernier : il remonte en tete.
             db.save_scenario("s1", "p1", "Un", json.dumps({"maj": True}), now=4000.0)
 
             assert [s["id"] for s in db.list_scenarios("p1")] == ["s1", "s3", "s2"]
-            # Un projet sans scénario : liste vide (pas d'erreur).
+            # Un projet sans scenario : liste vide (pas d'erreur).
             assert db.list_scenarios("projet-vide") == []
 
     def test_delete_scenario(self, tmp_path: Path) -> None:
@@ -172,7 +172,7 @@ class TestScenarioPayloadInvalide:
             with pytest.raises(ValueError, match="JSON valide"):
                 db.save_scenario("s1", "p1", "Cassé", "{ pas du json", now=1000.0)
 
-            # Rien n'a été écrit (validation AVANT l'INSERT).
+            # Rien n'a ete ecrit (validation AVANT l'INSERT).
             assert db.get_scenario("s1") is None
             assert db.list_scenarios("p1") == []
 
@@ -189,7 +189,7 @@ class TestScenarioPayloadInvalide:
             assert scenario["updated_at"] == 1000.0
 
 
-# --- Migration registre v4 -> v5 ------------------------------------------------------
+# Migration registre v4 -> v5
 
 
 def _table_names(conn: sqlite3.Connection) -> set[str]:
@@ -203,7 +203,7 @@ def _index_names(conn: sqlite3.Connection) -> set[str]:
 
 
 def _build_v4_registry_with_data(db_file: Path) -> None:
-    """Construit une vraie base registre v4 peuplée (projet + nœud + audit)."""
+    """Construit une vraie base registre v4 peuplee (projet + noeud + audit)."""
     conn = sqlite3.connect(str(db_file))
     _registry_v1(conn)
     _registry_v2(conn)
@@ -243,11 +243,11 @@ class TestRegistryV5Migration:
         assert apply_migrations(conn, "registry") == 5
         assert conn.execute("PRAGMA user_version").fetchone()[0] == 5
 
-        # Nouvelle table et son index présents.
+        # Nouvelle table et son index presents.
         assert "scenarios" in _table_names(conn)
         assert "idx_scenarios_project" in _index_names(conn)
 
-        # Données préservées.
+        # Donnees preservees.
         row = conn.execute("SELECT name, created_at, t0_ts FROM projects").fetchone()
         assert row == ("Projet", 1000.0, 900.0)
         assert conn.execute("SELECT COUNT(*) FROM nodes").fetchone()[0] == 1
@@ -261,14 +261,14 @@ class TestRegistryV5Migration:
         conn = sqlite3.connect(str(db_file))
 
         assert apply_migrations(conn, "registry") == 5
-        # Un scénario écrit APRÈS la première migration survit à la re-application.
+        # Un scenario ecrit APRES la premiere migration survit a la re-application.
         conn.execute(
             "INSERT INTO scenarios (id, project_id, nom, payload_json, created_at, updated_at) "
             "VALUES ('s1', 'p1', 'Référence', '{}', 1.0, 1.0)"
         )
         conn.commit()
 
-        # Re-application : no-op, données intactes.
+        # Re-application : no-op, donnees intactes.
         assert apply_migrations(conn, "registry") == 5
         assert conn.execute("PRAGMA user_version").fetchone()[0] == 5
         assert conn.execute("SELECT COUNT(*) FROM scenarios").fetchone()[0] == 1

@@ -1,4 +1,4 @@
-"""Tests du cahier des charges structuré (supplyscore.domain.specsheet)."""
+"""Tests du cahier des charges structure (supplyscore.domain.specsheet)."""
 
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ from supplyscore.domain.specsheet import (
 
 
 def _full_cdc() -> CahierDesCharges:
-    """CdC complet : 3 livrables, 2 pénalités, normes et certifications."""
+    """CdC complet : 3 livrables, 2 penalites, normes et certifications."""
     return CahierDesCharges(
         deliverables=[
             Deliverable(name="Carter usiné", quantity=120.0, unit="pièces", milestone_id="m-proto"),
@@ -52,7 +52,7 @@ def _full_cdc() -> CahierDesCharges:
     )
 
 
-# --- Round-trip ------------------------------------------------------------------
+# Round-trip
 
 
 class TestRoundTrip:
@@ -81,11 +81,11 @@ class TestRoundTrip:
         assert rebuilt.quality.max_scrap_rate == pytest.approx(0.02)
 
     def test_to_json_is_stable(self):
-        # Clés triées : deux sérialisations du même objet sont identiques.
+        # Cles triees : deux serialisations du meme objet sont identiques.
         assert cdc_to_json(_full_cdc()) == cdc_to_json(_full_cdc())
 
 
-# --- Tolérance au schéma -----------------------------------------------------------
+# Tolerance au schema
 
 
 class TestSchemaTolerance:
@@ -129,7 +129,7 @@ class TestSchemaTolerance:
             cdc_from_json("[1, 2, 3]")
 
 
-# --- Propriété : round-trip exact (hypothesis) -------------------------------------
+# Propriete : round-trip exact (hypothesis)
 
 _text = st.text(max_size=30)
 _finite = st.floats(allow_nan=False, allow_infinity=False)

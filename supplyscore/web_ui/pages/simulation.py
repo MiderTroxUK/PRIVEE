@@ -1,23 +1,23 @@
-"""Page « Simulation » : du choc unitaire au scénario composite (Lot 15.4).
+"""Page " Simulation " : du choc unitaire au scenario composite (Lot 15.4).
 
 Quatre volets, du plus simple au plus riche :
 
 - **choc unitaire** (historique, intact) : :meth:`SupplyScoreService.simulate_shock`
-  sur un nœud, sans persistance ; la carte « Appliquer réellement » reste la
+  sur un noeud, sans persistance ; la carte " Appliquer reellement " reste la
   SEULE action persistante de la page (confirmation explicite) ;
-- **scénario composite** : liste DYNAMIQUE de chocs (Ur forcé, statut simulé,
-  rupture d'arc — lignes pattern-matching ``{"type": ..., "index": uuid}``),
-  évaluée par :class:`~supplyscore.graph.scenario.MoteurScenario` — calcul
-  PUR, aucune écriture, ni dépôt ni ``UrgencyState`` ;
-- **criticité systématique** : :class:`~supplyscore.services.criticite.ServiceCriticite`
-  → tornado top 15 ;
-- **scénarios enregistrés** : sérialisation JSON du scénario courant dans le
+- **scenario composite** : liste DYNAMIQUE de chocs (Ur force, statut simule,
+  rupture d'arc - lignes pattern-matching ``{"type": ..., "index": uuid}``),
+  evaluee par :class:`~supplyscore.graph.scenario.MoteurScenario` - calcul
+  PUR, aucune ecriture, ni depot ni ``UrgencyState`` ;
+- **criticite systematique** : :class:`~supplyscore.services.criticite.ServiceCriticite`
+  -> tornado top 15 ;
+- **scenarios enregistres** : serialisation JSON du scenario courant dans le
   registre (``save_scenario``), rechargement (reconstruction des lignes) et
-  suppression. Les ``multiplicateurs_lead_time`` (réservés au mode Monte
-  Carlo) ne sont PAS édités par l'UI : un scénario chargé n'en reconstruit pas.
+  suppression. Les ``multiplicateurs_lead_time`` (reserves au mode Monte
+  Carlo) ne sont PAS edites par l'UI : un scenario charge n'en reconstruit pas.
 
 Les chocs ne s'additionnent PAS (propagation multiplicative, cf. E15.1) :
-seul le scénario composite donne la vraie valeur combinée — d'où ce volet.
+seul le scenario composite donne la vraie valeur combinee - d'ou ce volet.
 """
 
 from __future__ import annotations
@@ -57,29 +57,20 @@ from supplyscore.web_ui.components.layout import (
     node_options,
 )
 
-#: Style du bouton d'application réelle (action destructive).
+#: Style du bouton d'application reelle (action destructive).
 BUTTON_DANGER_STYLE = {**BUTTON_STYLE, "backgroundColor": COLORS["alert"]}
 
-#: Valeur du type de choc « Ur forcé » (les statuts utilisent ``str(TaskStatus)``).
+#: Valeur du type de choc " Ur force " (les statuts utilisent ``str(TaskStatus)``).
 CHOC_UR = "ur"
 
-#: Options du dropdown « type de choc » d'une ligne de scénario.
+#: Options du dropdown " type de choc " d'une ligne de scenario.
 CHOC_KIND_OPTIONS = [
     {"label": "Ur forcé", "value": CHOC_UR},
     {"label": "Statut abandonné", "value": str(TaskStatus.ABANDONED)},
     {"label": "Statut terminé", "value": str(TaskStatus.DONE)},
 ]
 
-#: Mapping SIMPLE des 14 événements calibrés (E2) vers un choc pré-réglé.
-#:
-#: Heuristique documentée, volontairement grossière (le preset reste éditable) :
-#: un défaut financier avéré équivaut à un ABANDON du nœud ; les autres
-#: événements forcent le ``ur_local`` à un niveau forfaitaire reflétant leur
-#: gravité type — 0.9 arrêt franc (panne, accident), 0.8 indisponibilité forte
-#: (rupture matière, cyber), 0.7 capacité dégradée (grève, perte de capacité),
-#: 0.6 flux retardé (retard fournisseur, transport), 0.5 qualité ou contexte
-#: dégradé (non-conformité, instabilité politique), 0.4 tension de demande,
-#: 0.3 choc purement tarifaire (tarif, énergie).
+#: Mapping SIMPLE des 14 evenements calibres (E2) vers un choc pre-regle. Heuristique documentee, volontairement grossiere (le preset reste editable) : un defaut financier avere equivaut a un ABANDON du noeud ; les autres evenements forcent le ``ur_local`` a un niveau forfaitaire refletant leur gravite type - 0.9 arret franc (panne, accident), 0.8 indisponibilite forte (rupture matiere, cyber), 0.7 capacite degradee (greve, perte de capacite), 0.6 flux retarde (retard fournisseur, transport), 0.5 qualite ou contexte degrade (non-conformite, instabilite politique), 0.4 tension de demande, 0.3 choc purement tarifaire (tarif, energie).
 PRESET_CHOCS: dict[str, tuple[str, float]] = {
     "panne_machine": (CHOC_UR, 0.9),
     "accident": (CHOC_UR, 0.9),
@@ -97,10 +88,10 @@ PRESET_CHOCS: dict[str, tuple[str, float]] = {
     "alerte_financiere_fournisseur": (str(TaskStatus.ABANDONED), 1.0),
 }
 
-#: Seuil en deçà duquel un ΔUr est réputé nul (cohérent avec criticite.py).
+#: Seuil en deca duquel un DeltaUr est repute nul (coherent avec criticite.py).
 _EPS_DELTA = 1e-12
 
-#: Colonnes du tableau comparatif baseline/scénario.
+#: Colonnes du tableau comparatif baseline/scenario.
 _SCN_COLUMNS = [
     {"name": "Nœud", "id": "Nœud"},
     {"name": "Ur avant", "id": "Ur avant"},
@@ -127,30 +118,30 @@ _NOTE_NON_ADDITIVITE = (
 
 
 def _triggered_id() -> Any:
-    """Id du composant déclencheur (None hors contexte de requête Dash)."""
-    try:  # ctx indisponible hors requête Dash (appel direct en test)
+    """Id du composant declencheur (None hors contexte de requete Dash)."""
+    try:  # ctx indisponible hors requete Dash (appel direct en test)
         return ctx.triggered_id
     except Exception:
         return None
 
 
 def _fr(value: float, digits: int = 3, signe: bool = False) -> str:
-    """Nombre formaté à la française (virgule décimale) pour les PHRASES.
+    """Nombre formate a la francaise (virgule decimale) pour les PHRASES.
 
-    Réservé aux messages français visibles — jamais aux inputs ni aux
-    colonnes numériques de DataTable (Dash exige le point).
+    Reserve aux messages francais visibles - jamais aux inputs ni aux
+    colonnes numeriques de DataTable (Dash exige le point).
 
     Args:
-        value: valeur à formater.
-        digits: nombre de décimales.
-        signe: True pour forcer le signe (« +0,500 »).
+        value: valeur a formater.
+        digits: nombre de decimales.
+        signe: True pour forcer le signe (" +0,500 ").
     """
     texte = f"{value:+.{digits}f}" if signe else f"{value:.{digits}f}"
     return texte.replace(".", ",")
 
 
 def layout() -> html.Div:
-    """Construit la page Simulation (état du service relu à chaque navigation)."""
+    """Construit la page Simulation (etat du service relu a chaque navigation)."""
     service = get_service()
     return html.Div(
         [
@@ -203,8 +194,7 @@ def layout() -> html.Div:
             card(
                 "Propagation du choc",
                 [
-                    # E16.6 — dcc.Loading autour des zones lentes (figures et
-                    # tableaux recalculés) : l'id reste sur le composant interne.
+                    # E16.6 - dcc.Loading autour des zones lentes (figures et tableaux recalcules) : l'id reste sur le composant interne.
                     dcc.Loading(
                         type="circle",
                         children=dcc.Graph(
@@ -405,11 +395,11 @@ def layout() -> html.Div:
     )
 
 
-# --- Aides : lignes dynamiques et construction du Scenario -----------------------
+# Aides : lignes dynamiques et construction du Scenario
 
 
 def _slider_style(visible: bool) -> dict:
-    """Style du conteneur du slider « Ur forcé » : visible ou masqué."""
+    """Style du conteneur du slider " Ur force " : visible ou masque."""
     return {"display": "inline-block"} if visible else {"display": "none"}
 
 
@@ -420,7 +410,7 @@ def _choc_row(
     valeur: float = 1.0,
     node_id: str | None = None,
 ) -> html.Div:
-    """Ligne « choc sur un nœud » : nœud, type de choc, slider Ur (si Ur forcé)."""
+    """Ligne " choc sur un noeud " : noeud, type de choc, slider Ur (si Ur force)."""
     return html.Div(
         [
             labelled(
@@ -466,7 +456,7 @@ def _choc_row(
 
 
 def _arc_row(uid: str, options: list[dict], value: str | None = None) -> html.Div:
-    """Ligne « rupture d'arc » : dropdown des arcs nominaux (fournisseur → client)."""
+    """Ligne " rupture d'arc " : dropdown des arcs nominaux (fournisseur -> client)."""
     return html.Div(
         [
             labelled(
@@ -485,7 +475,7 @@ def _arc_row(uid: str, options: list[dict], value: str | None = None) -> html.Di
 
 
 def _project_nodes(service, project_data) -> list[SupplyNode]:
-    """Nœuds du projet actif (tout le graphe si aucun projet sélectionné)."""
+    """Noeuds du projet actif (tout le graphe si aucun projet selectionne)."""
     pid = (project_data or {}).get("project_id")
     nodes = service.repo.nodes()
     if pid:
@@ -497,8 +487,8 @@ def _arc_options(service, project_data) -> list[dict]:
     """Options du dropdown des arcs : arcs NOMINAUX internes au projet actif.
 
     Les arcs de secours (backup) sont exclus : inertes dans tous les calculs,
-    leur rupture serait un choc à vide. Valeur = ``"source_id->target_id"``
-    (le format de :attr:`SupplyArc.id`), libellé = « source → cible » en noms.
+    leur rupture serait un choc a vide. Valeur = ``"source_id->target_id"``
+    (le format de :attr:`SupplyArc.id`), libelle = " source -> cible " en noms.
     """
     nodes = _project_nodes(service, project_data)
     ids = {n.id for n in nodes}
@@ -519,7 +509,7 @@ def _arc_options(service, project_data) -> list[dict]:
 
 
 def _rows_from_payload(payload: dict, options: list[dict], arc_options: list[dict]) -> list:
-    """Reconstruit les lignes dynamiques depuis un payload de scénario chargé."""
+    """Reconstruit les lignes dynamiques depuis un payload de scenario charge."""
     rows: list = []
     for node_id, valeur in (payload.get("surcharges_ur") or {}).items():
         rows.append(
@@ -548,9 +538,9 @@ def _scenario_from_rows(
 
     Les lignes de choc sont parcourues par ``id["index"]`` CROISSANT (l'ordre
     DOM des composants pattern-matching n'est pas garanti par Dash, comme dans
-    ``parse_event_params``) ; une ligne incomplète (nœud ou type manquant) est
-    ignorée ; si un même nœud apparaît plusieurs fois, la dernière ligne (au
-    sens du tri par index) l'emporte. Slider absent → Ur forcé à 1.0.
+    ``parse_event_params``) ; une ligne incomplete (noeud ou type manquant) est
+    ignoree ; si un meme noeud apparait plusieurs fois, la derniere ligne (au
+    sens du tri par index) l'emporte. Slider absent -> Ur force a 1.0.
     """
     lignes: dict[str, dict[str, Any]] = {}
     for champ, ids, values in (
@@ -567,7 +557,7 @@ def _scenario_from_rows(
         ligne = lignes[index]
         node_id, kind = ligne.get("node"), ligne.get("kind")
         if not node_id or not kind:
-            continue  # ligne incomplète : ignorée
+            continue  # ligne incomplete : ignoree
         if kind == CHOC_UR:
             valeur = ligne.get("val")
             statuts.pop(node_id, None)
@@ -580,7 +570,7 @@ def _scenario_from_rows(
     arc_pairs = sorted(zip(arc_ids, arc_values, strict=True), key=lambda p: str(p[0]["index"]))
     for _id, value in arc_pairs:
         if not value:
-            continue  # ligne incomplète : ignorée
+            continue  # ligne incomplete : ignoree
         source_id, sep, target_id = str(value).partition("->")
         if sep and source_id and target_id and (source_id, target_id) not in arcs:
             arcs.append((source_id, target_id))
@@ -593,7 +583,7 @@ def _scenario_from_rows(
 
 
 def _payload_json(scenario: Scenario) -> str:
-    """Sérialise un :class:`Scenario` en JSON (statuts en str, arcs en listes)."""
+    """Serialise un :class:`Scenario` en JSON (statuts en str, arcs en listes)."""
     payload = dataclasses.asdict(scenario)
     payload["statuts"] = {nid: str(statut) for nid, statut in scenario.statuts.items()}
     payload["arcs_supprimes"] = [list(arc) for arc in scenario.arcs_supprimes]
@@ -601,7 +591,7 @@ def _payload_json(scenario: Scenario) -> str:
 
 
 def _table_comparative(resultat: ResultatScenario, nodes: list[SupplyNode]) -> list[dict]:
-    """Tableau baseline/scénario : top 20 des nœuds du périmètre par ``|ΔUr|``."""
+    """Tableau baseline/scenario : top 20 des noeuds du perimetre par ``|DeltaUr|``."""
     retenus = sorted(nodes, key=lambda n: (-abs(resultat.delta_ur.get(n.id, 0.0)), n.name, n.id))[
         :20
     ]
@@ -618,23 +608,23 @@ def _table_comparative(resultat: ResultatScenario, nodes: list[SupplyNode]) -> l
 
 
 def _scenario_options(service, pid) -> list[dict]:
-    """Options du dropdown des scénarios enregistrés du projet (vide sans projet)."""
+    """Options du dropdown des scenarios enregistres du projet (vide sans projet)."""
     if not pid:
         return []
     return [{"label": s["nom"], "value": s["id"]} for s in service.registry.list_scenarios(pid)]
 
 
-# --- Callbacks (fonctions nommées, testables sans serveur) -----------------------
+# Callbacks (fonctions nommees, testables sans serveur)
 
 
 def node_options_callback(project_data):
-    """Restreint le dropdown aux nœuds du projet actif (tout le graphe sinon)."""
+    """Restreint le dropdown aux noeuds du projet actif (tout le graphe sinon)."""
     service = get_service()
     return node_options(_project_nodes(service, project_data))
 
 
 def preset_callback(n_fail, n_ok):
-    """Présets du slider : défaillance totale (1.0) ou retour à la normale (0.0)."""
+    """Presets du slider : defaillance totale (1.0) ou retour a la normale (0.0)."""
     triggered = ctx.triggered_id
     if triggered == "sim-preset-fail":
         return 1.0
@@ -644,7 +634,7 @@ def preset_callback(n_fail, n_ok):
 
 
 def simulate_callback(n_clicks, node_id, ur_value, project_data):
-    """Lance le what-if : figures DAG + barres et texte récapitulatif."""
+    """Lance le what-if : figures DAG + barres et texte recapitulatif."""
     if not n_clicks:
         raise PreventUpdate
     service = get_service()
@@ -687,7 +677,7 @@ def simulate_callback(n_clicks, node_id, ur_value, project_data):
 
 
 def apply_status_callback(submit_n_clicks, node_id, status_value):
-    """Applique RÉELLEMENT le statut choisi (persistant) après confirmation."""
+    """Applique REELLEMENT le statut choisi (persistant) apres confirmation."""
     if not submit_n_clicks:
         raise PreventUpdate
     service = get_service()
@@ -708,9 +698,9 @@ def rows_callback(n_choc, n_arc, n_preset, n_load, rows, preset_type, scn_id, pr
     """Liste dynamique des chocs : ajout, preset, rupture d'arc et chargement.
 
     UN SEUL callback alimente ``sim-chocs-rows.children`` (contrainte Dash) :
-    le déclencheur est dispatché via :func:`_triggered_id`. « Charger »
-    REMPLACE les lignes par celles du scénario enregistré ; les autres
-    déclencheurs APPENDENT une ligne (index = ``uuid4().hex[:8]``).
+    le declencheur est dispatche via :func:`_triggered_id`. " Charger "
+    REMPLACE les lignes par celles du scenario enregistre ; les autres
+    declencheurs APPENDENT une ligne (index = ``uuid4().hex[:8]``).
     """
     service = get_service()
     triggered = _triggered_id()
@@ -737,7 +727,7 @@ def rows_callback(n_choc, n_arc, n_preset, n_load, rows, preset_type, scn_id, pr
 
 
 def toggle_choc_val_callback(kind):
-    """Affiche le slider « Ur forcé » de la ligne si (et seulement si) ce type."""
+    """Affiche le slider " Ur force " de la ligne si (et seulement si) ce type."""
     return _slider_style(kind == CHOC_UR)
 
 
@@ -753,11 +743,11 @@ def evaluate_scenario_callback(
     arc_ids,
     project_data,
 ):
-    """Évalue le scénario composite : tableau comparatif, DAG des ΔUr, messages.
+    """Evalue le scenario composite : tableau comparatif, DAG des DeltaUr, messages.
 
-    PURETÉ : tout passe par :meth:`MoteurScenario.evaluer` — aucune écriture,
-    ni dans le dépôt ni dans les ``UrgencyState`` (rien à « appliquer » ici,
-    l'application réelle reste la carte statut dédiée).
+    PURETE : tout passe par :meth:`MoteurScenario.evaluer` - aucune ecriture,
+    ni dans le depot ni dans les ``UrgencyState`` (rien a " appliquer " ici,
+    l'application reelle reste la carte statut dediee).
     """
     if not n_clicks:
         raise PreventUpdate
@@ -816,7 +806,7 @@ def evaluate_scenario_callback(
 
 
 def criticite_callback(n_clicks, project_data):
-    """Analyse de criticité systématique du projet actif → tornado top 15."""
+    """Analyse de criticite systematique du projet actif -> tornado top 15."""
     if not n_clicks:
         raise PreventUpdate
     service = get_service()
@@ -845,12 +835,12 @@ def scenario_registry_callback(
     arc_values,
     arc_ids,
 ):
-    """Sauvegarde/suppression des scénarios nommés + options du dropdown.
+    """Sauvegarde/suppression des scenarios nommes + options du dropdown.
 
-    La sauvegarde sérialise le scénario COURANT (les lignes du formulaire) en
-    JSON via :func:`_payload_json` — id ``uuid4``, horodatage = horloge du
-    service ; un doublon de nom (ValueError du registre) est affiché tel quel.
-    Déclenché aussi par ``store-project`` pour peupler le dropdown à l'arrivée
+    La sauvegarde serialise le scenario COURANT (les lignes du formulaire) en
+    JSON via :func:`_payload_json` - id ``uuid4``, horodatage = horloge du
+    service ; un doublon de nom (ValueError du registre) est affiche tel quel.
+    Declenche aussi par ``store-project`` pour peupler le dropdown a l'arrivee
     sur la page (message vide dans ce cas).
     """
     service = get_service()
@@ -897,8 +887,7 @@ def scenario_registry_callback(
     return _scenario_options(service, pid), message
 
 
-#: États partagés des lignes dynamiques (chocs + ruptures d'arc), dans l'ordre
-#: des paramètres ``node_values, node_ids, ..., arc_values, arc_ids``.
+#: Etats partages des lignes dynamiques (chocs + ruptures d'arc), dans l'ordre des parametres ``node_values, node_ids, ..., arc_values, arc_ids``.
 _ROWS_STATES = (
     State({"type": "sim-choc-node", "index": ALL}, "value"),
     State({"type": "sim-choc-node", "index": ALL}, "id"),

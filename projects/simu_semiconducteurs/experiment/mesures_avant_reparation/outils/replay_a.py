@@ -2,7 +2,7 @@
 
 Aucun appel LLM : on rejoue les reponses DEJA enregistrees du pilote
 (analysis/llm_pilot_run/sandbox_<node>/results.jsonl) a travers le harnais en
-mode ``control`` — les previsions sont donc calculees et journalisees a chaque
+mode ``control`` - les previsions sont donc calculees et journalisees a chaque
 tour, mais jamais montrees (ce qui est exactement la condition du bras A).
 
 Usage : python replay_a.py <dossier_de_travail> [tour_max]

@@ -1,8 +1,8 @@
-"""Tests unitaires PROMETHEE II — phase E12, Lot 12.1.
+"""Tests unitaires PROMETHEE II - phase E12, Lot 12.1.
 
-Cas analytique de référence calculé à la main (PLAN.md E12), sens « min »,
-les six fonctions de préférence sur leurs valeurs clés, règle des valeurs
-manquantes vérifiée à la main, renormalisation des poids et erreurs.
+Cas analytique de reference calcule a la main (PLAN.md E12), sens " min ",
+les six fonctions de preference sur leurs valeurs cles, regle des valeurs
+manquantes verifiee a la main, renormalisation des poids et erreurs.
 """
 
 import pytest
@@ -19,27 +19,11 @@ from supplyscore.mcda import (
     VShape,
 )
 
-# ---------------------------------------------------------------------------
-# Cas analytique de référence (PLAN.md E12) — calcul complet à la main
-# ---------------------------------------------------------------------------
-#
-# 3 alternatives A/B/C, 2 critères « max », fonction Usuelle :
-#   g1 = (A: 0.8, B: 0.5, C: 0.2), poids 0.6
-#   g2 = (A: 0.1, B: 0.4, C: 0.7), poids 0.4
-#
-# Indices de préférence π (Usuelle : le gagnant du critère empoche son poids) :
-#   π(A,B) = 0.6 (A gagne g1)   π(B,A) = 0.4 (B gagne g2)
-#   π(A,C) = 0.6 (A gagne g1)   π(C,A) = 0.4 (C gagne g2)
-#   π(B,C) = 0.6 (B gagne g1)   π(C,B) = 0.4 (C gagne g2)
-#
-# Flux (n − 1 = 2) :
-#   φ⁺(A) = (0.6 + 0.6)/2 = 0.6   φ⁻(A) = (0.4 + 0.4)/2 = 0.4   φ(A) = +0.2
-#   φ⁺(B) = (0.4 + 0.6)/2 = 0.5   φ⁻(B) = (0.6 + 0.4)/2 = 0.5   φ(B) =  0.0
-#   φ⁺(C) = (0.4 + 0.4)/2 = 0.4   φ⁻(C) = (0.6 + 0.6)/2 = 0.6   φ(C) = −0.2
+# Cas analytique de reference (PLAN.md E12) - calcul complet a la main 3 alternatives A/B/C, 2 criteres " max ", fonction Usuelle : g1 = (A: 0.8, B: 0.5, C: 0.2), poids 0.6 g2 = (A: 0.1, B: 0.4, C: 0.7), poids 0.4 Indices de preference pi (Usuelle : le gagnant du critere empoche son poids) : pi(A,B) = 0.6 (A gagne g1) pi(B,A) = 0.4 (B gagne g2) pi(A,C) = 0.6 (A gagne g1) pi(C,A) = 0.4 (C gagne g2) pi(B,C) = 0.6 (B gagne g1) pi(C,B) = 0.4 (C gagne g2) Flux (n - 1 = 2) : phi^+(A) = (0.6 + 0.6)/2 = 0.6 phi^-(A) = (0.4 + 0.4)/2 = 0.4 phi(A) = +0.2 phi^+(B) = (0.4 + 0.6)/2 = 0.5 phi^-(B) = (0.6 + 0.4)/2 = 0.5 phi(B) = 0.0 phi^+(C) = (0.4 + 0.4)/2 = 0.4 phi^-(C) = (0.6 + 0.6)/2 = 0.6 phi(C) = -0.2
 
 
 class TestCasAnalytique:
-    """Cas de référence chiffré du PLAN.md E12 (3 alternatives, 2 critères max)."""
+    """Cas de reference chiffre du PLAN.md E12 (3 alternatives, 2 criteres max)."""
 
     @pytest.fixture
     def resultat(self) -> ResultatPromethee:
@@ -74,7 +58,7 @@ class TestCasAnalytique:
         assert resultat.classement == ["A", "B", "C"]
 
     def test_poids_non_normalises_acceptes(self):
-        """Poids {g1: 3, g2: 2} ≡ {g1: 0.6, g2: 0.4} après renormalisation."""
+        """Poids {g1: 3, g2: 2} ? {g1: 0.6, g2: 0.4} apres renormalisation."""
         criteres = [Critere("g1", "max", Usuelle()), Critere("g2", "max", Usuelle())]
         moteur = PrometheeII(criteres, poids={"g1": 3.0, "g2": 2.0})
         assert moteur.poids["g1"] == pytest.approx(0.6, abs=1e-12)
@@ -91,14 +75,12 @@ class TestCasAnalytique:
         assert res.classement == ["A", "B", "C"]
 
 
-# ---------------------------------------------------------------------------
-# Sens « min » : l'écart est inversé (d = g(b) − g(a))
-# ---------------------------------------------------------------------------
+# Sens " min " : l'ecart est inverse (d = g(b) - g(a))
 
 
 class TestSensMin:
     def test_min_inverse_le_classement_d_un_critere(self):
-        """Sur un critère unique, passer de « max » à « min » inverse le classement."""
+        """Sur un critere unique, passer de " max " a " min " inverse le classement."""
         valeurs: dict[str, dict[str, float | None]] = {
             "A": {"delai": 0.2},
             "B": {"delai": 0.8},
@@ -107,21 +89,19 @@ class TestSensMin:
         res_min = PrometheeII([Critere("delai", "min", Usuelle())], {"delai": 1.0}).classer(valeurs)
         assert res_max.classement == ["B", "A"]
         assert res_min.classement == ["A", "B"]
-        # n = 2 : φ(A) = π(A,B) − π(B,A) ; en « min », A (plus petit délai) domine.
+        # n = 2 : phi(A) = pi(A,B) - pi(B,A) ; en " min ", A (plus petit delai) domine.
         assert res_min.phi["A"] == pytest.approx(1.0, abs=1e-12)
         assert res_min.phi["B"] == pytest.approx(-1.0, abs=1e-12)
 
 
-# ---------------------------------------------------------------------------
-# Fonctions de préférence — valeurs clés (q, p, bornes)
-# ---------------------------------------------------------------------------
+# Fonctions de preference - valeurs cles (q, p, bornes)
 
 
 class TestFonctionsPreference:
     def test_usuelle(self):
         f = Usuelle()
         assert f(-0.5) == 0.0
-        assert f(0.0) == 0.0  # d > 0 strict : l'égalité ne préfère pas
+        assert f(0.0) == 0.0  # d > 0 strict : l'egalite ne prefere pas
         assert f(1e-9) == 1.0
         assert f(0.7) == 1.0
 
@@ -129,7 +109,7 @@ class TestFonctionsPreference:
         f = UShape(q=0.2)
         assert f(-0.1) == 0.0
         assert f(0.0) == 0.0
-        assert f(0.2) == 0.0  # d <= q : indifférence (borne incluse)
+        assert f(0.2) == 0.0  # d <= q : indifference (borne incluse)
         assert f(0.2000001) == 1.0
         assert f(0.9) == 1.0
 
@@ -139,7 +119,7 @@ class TestFonctionsPreference:
         assert f(0.0) == 0.0
         assert f(0.25) == pytest.approx(0.5, abs=1e-12)  # d/p
         assert f(0.5) == pytest.approx(1.0, abs=1e-12)  # saturation exacte en d = p
-        assert f(0.8) == 1.0  # min(d/p, 1) au-delà de p
+        assert f(0.8) == 1.0  # min(d/p, 1) au-dela de p
 
     def test_palier(self):
         f = Palier(q=0.1, p=0.3)
@@ -150,14 +130,14 @@ class TestFonctionsPreference:
         assert f(0.30001) == 1.0  # d > p
 
     def test_lineaire_indifference_defauts(self):
-        """Défauts q = 0.05 et p = 0.30 (critères dans [0, 1])."""
+        """Defauts q = 0.05 et p = 0.30 (criteres dans [0, 1])."""
         f = LineaireIndifference()
         assert f.q == 0.05
         assert f.p == 0.30
         assert f(-0.1) == 0.0
         assert f(0.05) == 0.0  # d <= q
-        assert f(0.175) == pytest.approx(0.5, abs=1e-12)  # (d − q)/(p − q) à mi-chemin
-        assert f(0.30) == pytest.approx(1.0, abs=1e-12)  # borne p : préférence pleine
+        assert f(0.175) == pytest.approx(0.5, abs=1e-12)  # (d - q)/(p - q) a mi-chemin
+        assert f(0.30) == pytest.approx(1.0, abs=1e-12)  # borne p : preference pleine
         assert f(0.9) == 1.0  # d > p
 
     def test_gaussienne(self):
@@ -166,7 +146,7 @@ class TestFonctionsPreference:
         f = Gaussienne(s=0.2)
         assert f(-0.3) == 0.0
         assert f(0.0) == 0.0
-        # En d = s : P = 1 − exp(−1/2).
+        # En d = s : P = 1 - exp(-1/2).
         assert f(0.2) == pytest.approx(1.0 - math.exp(-0.5), abs=1e-12)
         assert f(10.0) == pytest.approx(1.0, abs=1e-9)  # asymptote vers 1
 
@@ -208,22 +188,7 @@ class TestValidationParametres:
             Gaussienne(s=0.0)
 
 
-# ---------------------------------------------------------------------------
-# Valeurs manquantes — renormalisation par paire vérifiée à la main
-# ---------------------------------------------------------------------------
-#
-# Critères « max », Usuelle, poids 0.6 / 0.4. C n'a pas de valeur sur g2.
-#   A : g1 = 0.8, g2 = 0.1   B : g1 = 0.5, g2 = 0.4   C : g1 = 0.2, g2 = None
-#
-# Paire (A,B) — les deux critères présents :        π(A,B) = 0.6, π(B,A) = 0.4
-# Paire (A,C) — seul g1 présent, poids renormalisé 0.6/0.6 = 1 :
-#   d1(A,C) = +0.6 > 0  ⇒  π(A,C) = 1.0, π(C,A) = 0.0
-# Paire (B,C) — idem :  π(B,C) = 1.0, π(C,B) = 0.0
-#
-# Flux (n − 1 = 2) :
-#   φ⁺(A) = (0.6 + 1.0)/2 = 0.8   φ⁻(A) = (0.4 + 0.0)/2 = 0.2   φ(A) = +0.6
-#   φ⁺(B) = (0.4 + 1.0)/2 = 0.7   φ⁻(B) = (0.6 + 0.0)/2 = 0.3   φ(B) = +0.4
-#   φ⁺(C) = (0.0 + 0.0)/2 = 0.0   φ⁻(C) = (1.0 + 1.0)/2 = 1.0   φ(C) = −1.0
+# Valeurs manquantes - renormalisation par paire verifiee a la main Criteres " max ", Usuelle, poids 0.6 / 0.4. C n'a pas de valeur sur g2. A : g1 = 0.8, g2 = 0.1 B : g1 = 0.5, g2 = 0.4 C : g1 = 0.2, g2 = None Paire (A,B) - les deux criteres presents : pi(A,B) = 0.6, pi(B,A) = 0.4 Paire (A,C) - seul g1 present, poids renormalise 0.6/0.6 = 1 : d1(A,C) = +0.6 > 0 => pi(A,C) = 1.0, pi(C,A) = 0.0 Paire (B,C) - idem : pi(B,C) = 1.0, pi(C,B) = 0.0 Flux (n - 1 = 2) : phi^+(A) = (0.6 + 1.0)/2 = 0.8 phi^-(A) = (0.4 + 0.0)/2 = 0.2 phi(A) = +0.6 phi^+(B) = (0.4 + 1.0)/2 = 0.7 phi^-(B) = (0.6 + 0.0)/2 = 0.3 phi(B) = +0.4 phi^+(C) = (0.0 + 0.0)/2 = 0.0 phi^-(C) = (1.0 + 1.0)/2 = 1.0 phi(C) = -1.0
 
 
 class TestValeursManquantes:
@@ -233,7 +198,7 @@ class TestValeursManquantes:
         return PrometheeII(criteres, poids={"g1": 0.6, "g2": 0.4})
 
     def test_renormalisation_par_paire(self, moteur: PrometheeII):
-        """None sur g2 pour C : la paire (·, C) ne pèse que sur g1, renormalisé à 1."""
+        """None sur g2 pour C : la paire (-, C) ne pese que sur g1, renormalise a 1."""
         res = moteur.classer(
             {
                 "A": {"g1": 0.8, "g2": 0.1},
@@ -246,12 +211,12 @@ class TestValeursManquantes:
         assert res.phi["A"] == pytest.approx(0.6, abs=1e-12)
         assert res.phi["B"] == pytest.approx(0.4, abs=1e-12)
         assert res.phi["C"] == pytest.approx(-1.0, abs=1e-12)
-        # Σφ = 0 même avec des valeurs manquantes.
+        # Sigmaphi = 0 meme avec des valeurs manquantes.
         assert sum(res.phi.values()) == pytest.approx(0.0, abs=1e-12)
         assert res.classement == ["A", "B", "C"]
 
     def test_cle_absente_equivaut_a_none(self, moteur: PrometheeII):
-        """Une clé absente du dict de valeurs est traitée comme None."""
+        """Une cle absente du dict de valeurs est traitee comme None."""
         avec_none = moteur.classer(
             {
                 "A": {"g1": 0.8, "g2": 0.1},
@@ -269,7 +234,7 @@ class TestValeursManquantes:
         assert sans_cle.phi == avec_none.phi
 
     def test_aucun_critere_present_pi_nul(self, moteur: PrometheeII):
-        """Paire sans aucun critère présent : π = 0 dans les deux sens, φ = 0."""
+        """Paire sans aucun critere present : pi = 0 dans les deux sens, phi = 0."""
         res = moteur.classer(
             {
                 "A": {"g1": None, "g2": None},
@@ -279,18 +244,16 @@ class TestValeursManquantes:
         assert res.phi == {"A": 0.0, "B": 0.0}
         assert res.phi_plus == {"A": 0.0, "B": 0.0}
         assert res.phi_moins == {"A": 0.0, "B": 0.0}
-        # Départage à φ égal : identifiant croissant.
+        # Departage a phi egal : identifiant croissant.
         assert res.classement == ["A", "B"]
 
 
-# ---------------------------------------------------------------------------
-# Cas dégénérés et erreurs
-# ---------------------------------------------------------------------------
+# Cas degeneres et erreurs
 
 
 class TestCasDegeneresEtErreurs:
     def test_une_seule_alternative_flux_nuls(self):
-        """n == 1 : φ = φ⁺ = φ⁻ = 0 (aucune paire à comparer)."""
+        """n == 1 : phi = phi^+ = phi^- = 0 (aucune paire a comparer)."""
         moteur = PrometheeII([Critere("g1", "max", Usuelle())], {"g1": 1.0})
         res = moteur.classer({"seul": {"g1": 0.5}})
         assert res.phi == {"seul": 0.0}
@@ -324,7 +287,7 @@ class TestCasDegeneresEtErreurs:
             PrometheeII(criteres, poids={"g1": 1.0})
 
     def test_egalite_parfaite_departage_par_id(self):
-        """Alternatives identiques : φ = 0 partout, classement par id croissant."""
+        """Alternatives identiques : phi = 0 partout, classement par id croissant."""
         moteur = PrometheeII([Critere("g1", "max", Usuelle())], {"g1": 1.0})
         res = moteur.classer({"z": {"g1": 0.5}, "a": {"g1": 0.5}, "m": {"g1": 0.5}})
         assert res.classement == ["a", "m", "z"]

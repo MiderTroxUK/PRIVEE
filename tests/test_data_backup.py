@@ -1,4 +1,4 @@
-"""Tests du Lot 7.2 — sauvegarde/restauration manuelles des bases SQLite."""
+"""Tests du Lot 7.2 - sauvegarde/restauration manuelles des bases SQLite."""
 
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ T0 = 1_750_000_000.0
 
 
 def _etats_urgence(svc: SupplyScoreService) -> dict[str, dict[str, float | None]]:
-    """Capture champ à champ les UrgencyState de tous les nœuds du service."""
+    """Capture champ a champ les UrgencyState de tous les noeuds du service."""
     etats: dict[str, dict[str, float | None]] = {}
     for node in svc.repo.nodes():
         u = node.urgency
@@ -38,7 +38,7 @@ def _etats_urgence(svc: SupplyScoreService) -> dict[str, dict[str, float | None]
 
 
 def _store_seede(tmp_path: Path) -> tuple[Path, Path]:
-    """Crée un store seedé puis fermé et sa sauvegarde : (store, zip_path)."""
+    """Cree un store seede puis ferme et sa sauvegarde : (store, zip_path)."""
     store = tmp_path / "store"
     with SupplyScoreService(db_dir=store, clock=FixedClock(T0)) as svc:
         svc.seed_demo(n_ranks=2, seed=1)
@@ -46,19 +46,18 @@ def _store_seede(tmp_path: Path) -> tuple[Path, Path]:
     return store, zip_path
 
 
-# --- backup_all -----------------------------------------------------------------
+# backup_all
 
 
 def test_backup_all_bases_ouvertes(tmp_path):
-    """Cycle complet : backup natif réussi alors que toutes les bases sont OUVERTES."""
+    """Cycle complet : backup natif reussi alors que toutes les bases sont OUVERTES."""
     store = tmp_path / "store"
     svc = SupplyScoreService(db_dir=store, clock=FixedClock(T0))
     try:
         svc.seed_demo(n_ranks=2, seed=1)
         node_ids = [n.id for n in svc.repo.nodes()]
         assert node_ids, "le seed de démo doit produire des nœuds"
-        # Les bases sont encore ouvertes (service non fermé) : le backup natif
-        # doit produire une copie cohérente malgré les fichiers -wal/-shm.
+        # Les bases sont encore ouvertes (service non ferme) : le backup natif doit produire une copie coherente malgre les fichiers -wal/-shm.
         assert list(store.glob("*.sqlite-wal")), "WAL attendu tant que le service est ouvert"
         zip_path = ServiceSauvegarde(store, clock=FixedClock(T0)).backup_all()
     finally:
@@ -75,7 +74,7 @@ def test_backup_all_bases_ouvertes(tmp_path):
 
 
 def test_backup_refuse_base_corrompue(tmp_path):
-    """Registre corrompu (octets nuls en tête) -> IntegriteError, aucun zip créé."""
+    """Registre corrompu (octets nuls en tete) -> IntegriteError, aucun zip cree."""
     store = tmp_path / "store"
     with SupplyScoreService(db_dir=store, clock=FixedClock(T0)) as svc:
         svc.seed_demo(n_ranks=2, seed=1)
@@ -89,25 +88,25 @@ def test_backup_refuse_base_corrompue(tmp_path):
 
 
 def test_list_backups_tri_desc(tmp_path):
-    """list_backups retourne les archives triées par nom décroissant."""
+    """list_backups retourne les archives triees par nom decroissant."""
     store = tmp_path / "store"
     with SupplyScoreService(db_dir=store, clock=FixedClock(T0)) as svc:
         svc.seed_demo(n_ranks=2, seed=1)
     horloge = FixedClock(T0)
     sauvegarde = ServiceSauvegarde(store, clock=horloge)
     premier = sauvegarde.backup_all()
-    horloge.set(T0 + 86_400.0)  # +1 jour : nom strictement supérieur
+    horloge.set(T0 + 86_400.0)  # +1 jour : nom strictement superieur
     second = sauvegarde.backup_all()
 
     assert premier.name < second.name
     assert sauvegarde.list_backups() == [second, premier]
 
 
-# --- restore_backup ---------------------------------------------------------------
+# restore_backup
 
 
 def test_restore_repertoire_neuf_etats_identiques(tmp_path):
-    """Backup -> restore sur répertoire neuf -> mêmes nœuds et UrgencyState champ à champ."""
+    """Backup -> restore sur repertoire neuf -> memes noeuds et UrgencyState champ a champ."""
     store = tmp_path / "store"
     svc = SupplyScoreService(db_dir=store, clock=FixedClock(T0))
     svc.seed_demo(n_ranks=2, seed=1)
@@ -128,7 +127,7 @@ def test_restore_repertoire_neuf_etats_identiques(tmp_path):
 
 
 def test_restore_sans_force_refuse_repertoire_occupe(tmp_path):
-    """db_dir occupé sans force -> FileExistsError mentionnant --force, rien touché."""
+    """db_dir occupe sans force -> FileExistsError mentionnant --force, rien touche."""
     _, zip_path = _store_seede(tmp_path)
     occupe = tmp_path / "occupe"
     occupe.mkdir()
@@ -142,7 +141,7 @@ def test_restore_sans_force_refuse_repertoire_occupe(tmp_path):
 
 
 def test_restore_force_met_les_bases_a_l_abri(tmp_path):
-    """Avec force : anciennes bases déplacées dans avant_restauration_*, nouvelles en place."""
+    """Avec force : anciennes bases deplacees dans avant_restauration_*, nouvelles en place."""
     _, zip_path = _store_seede(tmp_path)
     occupe = tmp_path / "occupe"
     occupe.mkdir()
@@ -160,12 +159,12 @@ def test_restore_force_met_les_bases_a_l_abri(tmp_path):
 
 
 def test_restore_zip_inexistant(tmp_path):
-    """Archive absente -> FileNotFoundError avec message français."""
+    """Archive absente -> FileNotFoundError avec message francais."""
     with pytest.raises(FileNotFoundError, match="introuvable"):
         restore_backup(tmp_path / "absente.zip", tmp_path / "cible")
 
 
-# --- CLI python -m supplyscore.tools.restore ------------------------------------------
+# CLI python -m supplyscore.tools.restore
 
 
 def _run_cli(*args: str) -> subprocess.CompletedProcess[str]:
@@ -182,7 +181,7 @@ def _run_cli(*args: str) -> subprocess.CompletedProcess[str]:
 
 
 def test_cli_restore_ok(tmp_path):
-    """Restauration via le module exécutable : code retour 0 et liste affichée."""
+    """Restauration via le module executable : code retour 0 et liste affichee."""
     _, zip_path = _store_seede(tmp_path)
     cible = tmp_path / "cible_cli"
 
@@ -194,7 +193,7 @@ def test_cli_restore_ok(tmp_path):
 
 
 def test_cli_zip_inexistant(tmp_path):
-    """Archive inexistante : code retour 1 et message d'erreur français."""
+    """Archive inexistante : code retour 1 et message d'erreur francais."""
     resultat = _run_cli(str(tmp_path / "absente.zip"), "--db-dir", str(tmp_path / "cible"))
 
     assert resultat.returncode == 1

@@ -1,14 +1,14 @@
-"""Tests du Lot 12.4a : page « /ponderation » — pondération FBWM des blocs d'Ur, sans serveur.
+"""Tests du Lot 12.4a : page " /ponderation " - ponderation FBWM des blocs d'Ur, sans serveur.
 
-Couvre : le rendu des 2n−3 dropdowns de jugement (convention alignée sur
-``resoudre_fbwm`` : a_BW saisi une seule fois côté Best→Autres), l'aperçu
-live (poids ~uniformes et badge vert pour des jugements tous « également
-important », badge rouge pour des jugements incohérents, avertissement de
-repli si le solveur échoue), l'enregistrement par projet (persistance via
+Couvre : le rendu des 2n-3 dropdowns de jugement (convention alignee sur
+``resoudre_fbwm`` : a_BW saisi une seule fois cote Best->Autres), l'apercu
+live (poids ~uniformes et badge vert pour des jugements tous " egalement
+important ", badge rouge pour des jugements incoherents, avertissement de
+repli si le solveur echoue), l'enregistrement par projet (persistance via
 ``set_poids_criteres``, message avec la semaine ISO, refus sans projet ou
-si CR >= 0.10) et le retour aux poids uniformes. Callbacks appelés
-directement (fonctions module), service seedé partagé via ``set_service``
-et libéré en teardown, FixedClock.
+si CR >= 0.10) et le retour aux poids uniformes. Callbacks appeles
+directement (fonctions module), service seede partage via ``set_service``
+et libere en teardown, FixedClock.
 """
 
 from __future__ import annotations
@@ -30,7 +30,7 @@ from supplyscore.web_ui.components.explain_figures import BLOCK_LABELS_FR
 from supplyscore.web_ui.components.layout import COLORS
 from supplyscore.web_ui.pages import ponderation
 
-#: Mercredi 2026-06-10 12:00 locale — semaine ISO « 2026-S24 ».
+#: Mercredi 2026-06-10 12:00 locale - semaine ISO " 2026-S24 ".
 _NOW = datetime(2026, 6, 10, 12, 0).timestamp()
 _WEEK = "2026-S24"
 
@@ -44,7 +44,7 @@ def fixed_clock() -> FixedClock:
 
 @pytest.fixture
 def seeded(tmp_path: Path, fixed_clock: FixedClock):
-    """Couple (service seedé à horloge figée, projet de démo), partagé par les callbacks."""
+    """Couple (service seede a horloge figee, projet de demo), partage par les callbacks."""
     svc = SupplyScoreService(db_dir=tmp_path / "store", clock=fixed_clock)
     project = svc.seed_demo(n_ranks=2, seed=1)
     set_service(svc)
@@ -54,15 +54,15 @@ def seeded(tmp_path: Path, fixed_clock: FixedClock):
 
 
 def _project_data(project) -> dict:
-    """Contenu du ``dcc.Store`` « store-project » tel que posé par la page Projets."""
+    """Contenu du ``dcc.Store`` " store-project " tel que pose par la page Projets."""
     return {"project_id": project.id, "name": project.name}
 
 
-# --- Helpers d'inspection d'arbres de composants Dash -------------------------------
+# Helpers d'inspection d'arbres de composants Dash
 
 
 def _walk(component):
-    """Itère récursivement sur un arbre de composants Dash (children imbriqués)."""
+    """Itere recursivement sur un arbre de composants Dash (children imbriques)."""
     yield component
     children = getattr(component, "children", None)
     if children is None:
@@ -75,7 +75,7 @@ def _walk(component):
 
 
 def _pattern_ids(component, type_name: str) -> list[str]:
-    """Index des composants à id composite ``{"type": type_name, "index": ...}``."""
+    """Index des composants a id composite ``{"type": type_name, "index": ...}``."""
     return [
         c.id["index"]
         for c in _walk(component)
@@ -84,7 +84,7 @@ def _pattern_ids(component, type_name: str) -> list[str]:
 
 
 def _texts(component) -> str:
-    """Concatène tous les textes feuilles de l'arbre de composants."""
+    """Concatene tous les textes feuilles de l'arbre de composants."""
     parts: list[str] = []
     for c in _walk(component):
         if isinstance(c, str):
@@ -95,7 +95,7 @@ def _texts(component) -> str:
 def _saisie(best: str, worst: str, jugement: str = "egalement_important", surcharges=None):
     """Valeurs/ids des dropdowns bo/ow : ``jugement`` partout, sauf surcharges.
 
-    Les surcharges sont indexées par ``("bo", bloc)`` ou ``("ow", bloc)``.
+    Les surcharges sont indexees par ``("bo", bloc)`` ou ``("ow", bloc)``.
     """
     surcharges = surcharges or {}
     bo_ids = [{"type": "pond-bo", "index": b} for b in BLOCKS if b != best]
@@ -106,12 +106,12 @@ def _saisie(best: str, worst: str, jugement: str = "egalement_important", surcha
 
 
 def _saisie_incoherente(best: str, worst: str):
-    """Jugements volontairement incohérents : a_BW = 1 mais a_Bj = a_jW = 4."""
+    """Jugements volontairement incoherents : a_BW = 1 mais a_Bj = a_jW = 4."""
     surcharges = {("bo", worst): "egalement_important"}
     return _saisie(best, worst, jugement="absolument_plus_important", surcharges=surcharges)
 
 
-# --- Rendu des 2n−3 jugements --------------------------------------------------------
+# Rendu des 2n-3 jugements
 
 
 class TestRenderJugements:
@@ -121,8 +121,8 @@ class TestRenderJugements:
         ow = _pattern_ids(rendu, "pond-ow")
         assert sorted(bo) == sorted(set(BLOCKS) - {_BEST})
         assert sorted(ow) == sorted(set(BLOCKS) - {_BEST, _WORST})
-        assert len(bo) == 5 and len(ow) == 4  # 2n−3 = 9 jugements pour n = 6
-        # Le jugement a_BW (time contre co2) est bien présent côté Best→Autres.
+        assert len(bo) == 5 and len(ow) == 4  # 2n-3 = 9 jugements pour n = 6
+        # Le jugement a_BW (time contre co2) est bien present cote Best->Autres.
         assert _WORST in bo
 
     def test_libelles_francais_des_blocs_et_jugements(self):
@@ -152,7 +152,7 @@ class TestRenderJugements:
         assert "Choisissez" in _texts(rendu)
 
 
-# --- Aperçu live -----------------------------------------------------------------------
+# Apercu live
 
 
 class TestApercu:
@@ -184,7 +184,7 @@ class TestApercu:
 
     def test_selection_incomplete_figure_vide(self):
         fig, badges = ponderation.preview_callback(None, None, [], [], [], [])
-        assert fig.data == ()  # figure vide à message, aucune barre
+        assert fig.data == ()  # figure vide a message, aucune barre
         assert _texts(badges) == ""
 
     def test_jugement_manquant_figure_vide(self):
@@ -208,7 +208,7 @@ class TestApercu:
         assert "poids uniformes de repli" in texte
 
 
-# --- Enregistrement --------------------------------------------------------------------
+# Enregistrement
 
 
 class TestSave:
@@ -227,7 +227,7 @@ class TestSave:
         assert _WEEK in texte and "enregistrés" in texte
         assert msg.style["color"] == COLORS["ok"]
         assert "Poids actuels du projet" in _texts(courant)
-        # La provenance FBWM (méthode + ξ*) est consignée dans le registre.
+        # La provenance FBWM (methode + xi*) est consignee dans le registre.
         brut = service.registry.get_setting(project.id, "omega_ur")
         assert brut["methode"] == "fbwm"
         assert brut["iso_week"] == _WEEK
@@ -270,7 +270,7 @@ class TestSave:
             ponderation.save_callback(None, _BEST, _WORST, [], [], [], [], None)
 
 
-# --- Retour aux poids uniformes ---------------------------------------------------------
+# Retour aux poids uniformes
 
 
 class TestReset:
@@ -300,7 +300,7 @@ class TestReset:
             ponderation.reset_callback(None, _project_data(seeded[1]))
 
 
-# --- Bandeau des poids actuels et figure ------------------------------------------------
+# Bandeau des poids actuels et figure
 
 
 class TestPoidsActuels:
@@ -331,7 +331,7 @@ class TestFigure:
         assert list(fig.data[0].x) == pytest.approx([poids[b] for b in BLOCKS])
 
 
-# --- Layout et enregistrement des callbacks ---------------------------------------------
+# Layout et enregistrement des callbacks
 
 
 class TestLayoutEtCallbacks:

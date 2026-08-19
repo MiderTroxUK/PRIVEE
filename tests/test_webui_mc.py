@@ -1,13 +1,13 @@
-"""Tests du Lot 13.4 : réglages du mode Monte Carlo dans l'UI — aucun serveur lancé.
+"""Tests du Lot 13.4 : reglages du mode Monte Carlo dans l'UI - aucun serveur lance.
 
-Couvre : la carte « Paramètres du calcul d'urgence » de la page Projets
-(contrôles reflétant ``lead_time_mode(pid)``, application du mode MC avec
-réévaluation et message vert, N hors bornes refusé en français SANS écriture,
-ligne d'état IC95 en mode MC / formule analytique sinon), les trois champs
-triangulaires du volet 2 de la revue hebdo (affichés ET saisissables via le
-mécanisme existant ``hebdo-kpi`` → ``update_kpis``), et le round-trip JSON de
-``TimeKPIs`` avec les champs triangulaires. Callbacks appelés directement
-(fonctions module), service partagé via ``set_service``, FixedClock.
+Couvre : la carte " Parametres du calcul d'urgence " de la page Projets
+(controles refletant ``lead_time_mode(pid)``, application du mode MC avec
+reevaluation et message vert, N hors bornes refuse en francais SANS ecriture,
+ligne d'etat IC95 en mode MC / formule analytique sinon), les trois champs
+triangulaires du volet 2 de la revue hebdo (affiches ET saisissables via le
+mecanisme existant ``hebdo-kpi`` -> ``update_kpis``), et le round-trip JSON de
+``TimeKPIs`` avec les champs triangulaires. Callbacks appeles directement
+(fonctions module), service partage via ``set_service``, FixedClock.
 """
 
 from __future__ import annotations
@@ -27,10 +27,10 @@ from supplyscore.services import SupplyScoreService
 from supplyscore.web_ui import set_service
 from supplyscore.web_ui.pages import projects, weekly
 
-#: Mercredi 2026-06-10 12:00 locale — semaine ISO « 2026-S24 ».
+#: Mercredi 2026-06-10 12:00 locale - semaine ISO " 2026-S24 ".
 _NOW = datetime(2026, 6, 10, 12, 0).timestamp()
 
-#: N minimal accepté par le simulateur : suffisant et rapide pour les tests.
+#: N minimal accepte par le simulateur : suffisant et rapide pour les tests.
 _N = 2_000
 
 _OPERATOR = {"name": "testeuse"}
@@ -46,7 +46,7 @@ def fixed_clock() -> FixedClock:
 
 @pytest.fixture
 def service(tmp_path: Path, fixed_clock: FixedClock):
-    """Service à horloge figée (2026-S24), partagé par les callbacks des pages."""
+    """Service a horloge figee (2026-S24), partage par les callbacks des pages."""
     svc = SupplyScoreService(db_dir=tmp_path / "store", clock=fixed_clock)
     set_service(svc)
     yield svc
@@ -56,18 +56,18 @@ def service(tmp_path: Path, fixed_clock: FixedClock):
 
 @pytest.fixture
 def demo(service: SupplyScoreService) -> Project:
-    """Projet de démonstration reproductible (KPIs, jalons et questionnaires)."""
+    """Projet de demonstration reproductible (KPIs, jalons et questionnaires)."""
     return service.seed_demo(n_ranks=2, seed=1)
 
 
 @pytest.fixture
 def store(demo: Project) -> dict:
-    """Contenu de ``store-project`` après sélection du projet de démo."""
+    """Contenu de ``store-project`` apres selection du projet de demo."""
     return {"project_id": demo.id, "name": demo.name}
 
 
 def _find_component(component, component_id):
-    """Descente récursive dans l'arbre Dash jusqu'au composant d'id donné."""
+    """Descente recursive dans l'arbre Dash jusqu'au composant d'id donne."""
     if getattr(component, "id", None) == component_id:
         return component
     children = getattr(component, "children", None)
@@ -83,7 +83,7 @@ def _find_component(component, component_id):
 
 
 def _collect_kpi_input_ids(component, acc: list[dict]) -> list[dict]:
-    """Ids pattern-matchés ``{"type": "hebdo-kpi"}`` présents dans l'arbre Dash."""
+    """Ids pattern-matches ``{"type": "hebdo-kpi"}`` presents dans l'arbre Dash."""
     id_ = getattr(component, "id", None)
     if isinstance(id_, dict) and id_.get("type") == "hebdo-kpi":
         acc.append(id_)
@@ -96,7 +96,7 @@ def _collect_kpi_input_ids(component, acc: list[dict]) -> list[dict]:
     return acc
 
 
-# --- Page Projets : carte « Paramètres du calcul d'urgence » ----------------------------
+# Page Projets : carte " Parametres du calcul d'urgence "
 
 
 class TestCarteParametresCalcul:
@@ -121,14 +121,14 @@ class TestCarteParametresCalcul:
             assert _find_component(layout, component_id) is not None
 
     def test_init_reflete_le_mode_stocke(self, service, demo, store) -> None:
-        # Défaut : analytique, N par défaut, pas de graine, statut analytique.
+        # Defaut : analytique, N par defaut, pas de graine, statut analytique.
         mode, n, graine, statut = projects.mc_init_callback(store, 0)
         assert mode == "analytique"
         assert n == 10_000
         assert graine is None
         assert "u_time : formule analytique (loi normale)." in str(statut)
 
-        # Mode MC stocké : les contrôles le REFLÈTENT à la sélection du projet.
+        # Mode MC stocke : les controles le REFLETENT a la selection du projet.
         service.set_lead_time_mode(demo.id, "monte_carlo", n_tirages=_N, graine=123)
         mode, n, graine, statut = projects.mc_init_callback(store, 0)
         assert mode == "monte_carlo"
@@ -152,7 +152,7 @@ class TestCarteParametresCalcul:
         assert config["graine"] == 42
         assert "Mode de calcul appliqué : Monte Carlo (propagation sur le DAG)" in str(msg)
         assert refresh == 1
-        # evaluate_all(persist=True) a tourné : le résultat MC est mémorisé.
+        # evaluate_all(persist=True) a tourne : le resultat MC est memorise.
         resultat = service.last_mc_result(demo.id)
         assert resultat is not None
         assert resultat.n_tirages == _N
@@ -164,7 +164,7 @@ class TestCarteParametresCalcul:
         assert "n_tirages doit être dans" in str(msg)
         assert statut is no_update
         assert refresh is no_update
-        # RIEN n'est écrit : le projet reste en mode analytique, sans résultat MC.
+        # RIEN n'est ecrit : le projet reste en mode analytique, sans resultat MC.
         assert service.lead_time_mode(demo.id) == {"mode": "analytique"}
         assert service.last_mc_result(demo.id) is None
 
@@ -173,7 +173,7 @@ class TestCarteParametresCalcul:
 
         texte = str(statut)
         assert re.search(r"u_time : Monte Carlo, N=2 000 — IC95 moyen ±0\.\d{3}\.", texte), texte
-        # La moyenne affichée est bien celle des ic95 du dernier résultat MC.
+        # La moyenne affichee est bien celle des ic95 du dernier resultat MC.
         resultat = service.last_mc_result(demo.id)
         assert resultat is not None
         node_ids = {n.id for n in service.repo.nodes_by_project(demo.id)}
@@ -188,7 +188,7 @@ class TestCarteParametresCalcul:
         assert "Analytique (loi normale)" in str(msg)
         assert "u_time : formule analytique (loi normale)." in str(statut)
         assert refresh == 2
-        assert service.last_mc_result(demo.id) is None  # purge du résultat périmé
+        assert service.last_mc_result(demo.id) is None  # purge du resultat perime
 
     def test_appliquer_sans_projet_ou_sans_mode(self, service, demo, store) -> None:
         msg, statut, refresh = projects.mc_apply_callback(1, None, "monte_carlo", _N, None, 0)
@@ -200,7 +200,7 @@ class TestCarteParametresCalcul:
         assert statut is no_update and refresh is no_update
 
 
-# --- Volet 2 hebdo : champs triangulaires --------------------------------------------
+# Volet 2 hebdo : champs triangulaires
 
 
 class TestVolet2ChampsTriangulaires:
@@ -220,9 +220,9 @@ class TestVolet2ChampsTriangulaires:
 
         for path in _TRIANGULAIRES:
             assert path in paths
-        # Ajoutés EN AVAL des champs du questionnaire (extension locale documentée).
+        # Ajoutes EN AVAL des champs du questionnaire (extension locale documentee).
         assert paths[-3:] == list(_TRIANGULAIRES)
-        # Les libellés français du volet mentionnent la loi triangulaire.
+        # Les libelles francais du volet mentionnent la loi triangulaire.
         texte = str(body)
         assert "Lead time min — triangulaire MC (h)" in texte
         assert "Lead time mode — triangulaire MC (h)" in texte
@@ -230,8 +230,7 @@ class TestVolet2ChampsTriangulaires:
 
     def test_saisie_lead_time_min_via_le_volet_ecrit_le_kpi(self, service, demo) -> None:
         node_id = self._premier_noeud_actif(service)
-        # Les ids viennent du RENDU réel du volet : le test passe par le
-        # mécanisme existant (inputs pattern-matchés + kpi_save_callback).
+        # Les ids viennent du RENDU reel du volet : le test passe par le mecanisme existant (inputs pattern-matches + kpi_save_callback).
         ids = _collect_kpi_input_ids(weekly._kpi_body(service, node_id), [])
         values = [30.0 if id_["index"] == "time.lead_time_min_h" else None for id_ in ids]
 
@@ -258,10 +257,10 @@ class TestVolet2ChampsTriangulaires:
         assert badge is no_update and check is no_update
         node = service.registry.get_node(node_id)
         assert node is not None
-        assert node.kpis.time.lead_time_max_h is None  # rien n'est écrit
+        assert node.kpis.time.lead_time_max_h is None  # rien n'est ecrit
 
 
-# --- TimeKPIs : round-trip JSON avec les champs triangulaires -------------------------
+# TimeKPIs : round-trip JSON avec les champs triangulaires
 
 
 def test_time_kpis_round_trip_json_champs_triangulaires() -> None:
@@ -278,7 +277,7 @@ def test_time_kpis_round_trip_json_champs_triangulaires() -> None:
     assert rebuilt.time.lead_time_min_h == 30.0
     assert rebuilt.time.lead_time_mode_h == 40.0
     assert rebuilt.time.lead_time_max_h == 60.0
-    # Champs OPTIONNELS : absents du JSON d'une version antérieure -> None.
+    # Champs OPTIONNELS : absents du JSON d'une version anterieure -> None.
     ancien = kpis_from_json('{"time": {"lead_time_h": 40.0}}')
     assert ancien.time.lead_time_min_h is None
     assert ancien.time.lead_time_mode_h is None

@@ -1,28 +1,28 @@
-"""Vue « données brutes » type administrateur (phase E10, Lot 10.5).
+"""Vue " donnees brutes " type administrateur (phase E10, Lot 10.5).
 
 :class:`RawTableService` expose les tables SQLite du registre et des bases
-client en lecture paginée et en édition cellule par cellule, sous garde-fous
+client en lecture paginee et en edition cellule par cellule, sous garde-fous
 stricts :
 
-- **Liste blanche d'édition** (:attr:`RawTableService.EDITABLE_TABLES`) :
-  seules les tables métier qui y figurent acceptent une écriture ;
-- **Tables d'historique inéditables par construction**
+- **Liste blanche d'edition** (:attr:`RawTableService.EDITABLE_TABLES`) :
+  seules les tables metier qui y figurent acceptent une ecriture ;
+- **Tables d'historique ineditables par construction**
   (:attr:`RawTableService.FORBIDDEN`) : ``audit_log``, ``urgency_history``,
-  ``kpi_snapshots``, ``weekly_reviews`` et ``decisions`` sont append-only —
-  la promesse « jamais de perte » s'effondre si elles deviennent éditables ;
-- **Validation typée AVANT écriture** : les colonnes à contrainte connue
-  (``gamma``/``beta`` ∈ [0, 1], ``delta`` ∈ [0, 2], ``progress`` ∈ [0, 1],
-  ``ud``/``consistency_ratio`` bornés, fenêtre ``start_ts < deadline_ts`` des
-  jalons, colonnes ``*_json``) sont validées — refus SANS écriture sinon ;
-- **Audit systématique** : chaque cellule modifiée laisse une ligne dans le
-  journal d'audit de la base concernée (``entity_type="raw:<table>"``,
-  ``source="edit"``), dans la MÊME transaction que l'UPDATE.
+  ``kpi_snapshots``, ``weekly_reviews`` et ``decisions`` sont append-only -
+  la promesse " jamais de perte " s'effondre si elles deviennent editables ;
+- **Validation typee AVANT ecriture** : les colonnes a contrainte connue
+  (``gamma``/``beta``  dans  [0, 1], ``delta``  dans  [0, 2], ``progress``  dans  [0, 1],
+  ``ud``/``consistency_ratio`` bornes, fenetre ``start_ts < deadline_ts`` des
+  jalons, colonnes ``*_json``) sont validees - refus SANS ecriture sinon ;
+- **Audit systematique** : chaque cellule modifiee laisse une ligne dans le
+  journal d'audit de la base concernee (``entity_type="raw:<table>"``,
+  ``source="edit"``), dans la MEME transaction que l'UPDATE.
 
-Les noms de table et de colonne ne peuvent pas être passés en paramètre « ? »
-de SQLite : ils sont donc validés par appartenance STRICTE aux métadonnées de
-la base (``sqlite_master``, ``PRAGMA table_info``) avant d'être interpolés
-entre guillemets doubles — aucune injection possible. Les VALEURS, elles,
-restent toujours paramétrées par « ? ».
+Les noms de table et de colonne ne peuvent pas etre passes en parametre " ? "
+de SQLite : ils sont donc valides par appartenance STRICTE aux metadonnees de
+la base (``sqlite_master``, ``PRAGMA table_info``) avant d'etre interpoles
+entre guillemets doubles - aucune injection possible. Les VALEURS, elles,
+restent toujours parametrees par " ? ".
 """
 
 from __future__ import annotations
@@ -37,9 +37,7 @@ from supplyscore.data.audit import AuditTrail
 from supplyscore.data.db import ClientDatabase, RegistryDatabase
 from supplyscore.services.orchestrator import SupplyScoreService
 
-#: Bornes [min, max] par NOM de colonne (les noms sont uniques aux tables
-#: éditables qui les portent : gamma/beta/delta -> arcs, progress -> milestones,
-#: ud/consistency_ratio -> assessments).
+#: Bornes [min, max] par NOM de colonne (les noms sont uniques aux tables editables qui les portent : gamma/beta/delta -> arcs, progress -> milestones, ud/consistency_ratio -> assessments).
 _RANGE_RULES: dict[str, tuple[float, float]] = {
     "gamma": (0.0, 1.0),
     "beta": (0.0, 1.0),
@@ -51,16 +49,16 @@ _RANGE_RULES: dict[str, tuple[float, float]] = {
 
 
 class ForbiddenTableError(Exception):
-    """Table interdite d'édition (historique append-only ou hors liste blanche)."""
+    """Table interdite d'edition (historique append-only ou hors liste blanche)."""
 
 
 @dataclass(frozen=True)
 class TableInfo:
-    """Métadonnées d'une table : nom, éditabilité et nombre de lignes."""
+    """Metadonnees d'une table : nom, editabilite et nombre de lignes."""
 
     #: Nom SQL de la table (tel que dans ``sqlite_master``).
     name: str
-    #: True si la table est dans la liste blanche d'édition (jamais pour FORBIDDEN).
+    #: True si la table est dans la liste blanche d'edition (jamais pour FORBIDDEN).
     editable: bool
     #: Nombre de lignes au moment de la lecture.
     row_count: int
@@ -68,23 +66,23 @@ class TableInfo:
 
 @dataclass(frozen=True)
 class CellResult:
-    """Résultat d'une édition de cellule : verdict et message français."""
+    """Resultat d'une edition de cellule : verdict et message francais."""
 
-    #: True si la cellule a été écrite (et auditée), False si refusée.
+    #: True si la cellule a ete ecrite (et auditee), False si refusee.
     ok: bool
-    #: Message français : « ancienne → nouvelle » si ok, cause du refus sinon.
+    #: Message francais : " ancienne -> nouvelle " si ok, cause du refus sinon.
     message_fr: str
 
 
 class RawTableService:
-    """Lecture et édition brutes des tables SQLite, sous liste blanche et audit.
+    """Lecture et edition brutes des tables SQLite, sous liste blanche et audit.
 
-    Chaque lecture se fait sous le verrou de la base concernée ; chaque
-    écriture passe par :meth:`update_cell` (validation typée, UPDATE
-    paramétré et ligne d'audit dans la même transaction).
+    Chaque lecture se fait sous le verrou de la base concernee ; chaque
+    ecriture passe par :meth:`update_cell` (validation typee, UPDATE
+    parametre et ligne d'audit dans la meme transaction).
     """
 
-    #: Tables éditables par famille de base (« registry » ou « client »).
+    #: Tables editables par famille de base (" registry " ou " client ").
     EDITABLE_TABLES: ClassVar[dict[str, frozenset[str]]] = {
         "registry": frozenset(
             {"nodes", "arcs", "milestones", "tags", "tag_categories", "projects"}
@@ -92,48 +90,47 @@ class RawTableService:
         "client": frozenset({"assessments", "spec_sheet", "events"}),
     }
 
-    #: Tables d'historique append-only : la promesse « jamais de perte »
-    #: s'effondre si elles deviennent éditables — toujours en lecture seule.
+    #: Tables d'historique append-only : la promesse " jamais de perte " s'effondre si elles deviennent editables - toujours en lecture seule.
     FORBIDDEN: ClassVar[frozenset[str]] = frozenset(
         {"audit_log", "urgency_history", "kpi_snapshots", "weekly_reviews", "decisions"}
     )
 
     def __init__(self, service: SupplyScoreService) -> None:
-        """Initialise la vue brute sur la façade applicative.
+        """Initialise la vue brute sur la facade applicative.
 
         Args:
-            service: façade :class:`SupplyScoreService` (registre, bases
+            service: facade :class:`SupplyScoreService` (registre, bases
                 client et horloge pour l'horodatage des audits).
         """
         self._service = service
 
-    # --- Lecture ----------------------------------------------------------------------
+    # Lecture
 
     def list_databases(self) -> list[str]:
-        """Liste les bases accessibles : ``"registry"`` puis les ids de nœuds.
+        """Liste les bases accessibles : ``"registry"`` puis les ids de noeuds.
 
         Returns:
-            ``["registry"]`` suivi des ids des nœuds du registre (chaque nœud
-            possède sa base client) ; le NOM du nœud sert de libellé côté page.
+            ``["registry"]`` suivi des ids des noeuds du registre (chaque noeud
+            possede sa base client) ; le NOM du noeud sert de libelle cote page.
         """
         return ["registry"] + [node.id for node in self._service.registry.list_nodes()]
 
     def list_tables(self, db: str) -> list[TableInfo]:
-        """Liste les tables de la base avec leur éditabilité et leur volumétrie.
+        """Liste les tables de la base avec leur editabilite et leur volumetrie.
 
-        L'éditabilité vient de la liste blanche de la famille de base
+        L'editabilite vient de la liste blanche de la famille de base
         (:attr:`EDITABLE_TABLES`) ; les tables :attr:`FORBIDDEN` sont
         TOUJOURS ``editable=False``, quelle que soit la liste blanche.
 
         Args:
-            db: ``"registry"`` ou l'id d'un nœud (base client).
+            db: ``"registry"`` ou l'id d'un noeud (base client).
 
         Returns:
-            Les :class:`TableInfo` triées par nom (tables internes
+            Les :class:`TableInfo` triees par nom (tables internes
             ``sqlite_*`` exclues).
 
         Raises:
-            ValueError: si ``db`` n'est ni « registry » ni un id de nœud connu.
+            ValueError: si ``db`` n'est ni " registry " ni un id de noeud connu.
         """
         database = self._database(db)
         whitelist = self.EDITABLE_TABLES["registry" if db == "registry" else "client"]
@@ -153,21 +150,21 @@ class RawTableService:
     def fetch(
         self, db: str, table: str, limit: int = 50, offset: int = 0
     ) -> tuple[list[dict], list[str]]:
-        """Lit une page de la table, ``rowid`` inclus (clé de ligne universelle).
+        """Lit une page de la table, ``rowid`` inclus (cle de ligne universelle).
 
         La lecture se fait sous le verrou de la base. Le ``rowid`` SQLite est
-        retourné en première colonne : il sert d'identifiant de ligne pour
-        :meth:`update_cell` quand la table n'a pas de clé primaire simple.
+        retourne en premiere colonne : il sert d'identifiant de ligne pour
+        :meth:`update_cell` quand la table n'a pas de cle primaire simple.
 
         Args:
-            db: ``"registry"`` ou l'id d'un nœud (base client).
-            table: nom de la table à lire.
-            limit: nombre maximal de lignes retournées.
-            offset: décalage de pagination (lignes sautées).
+            db: ``"registry"`` ou l'id d'un noeud (base client).
+            table: nom de la table a lire.
+            limit: nombre maximal de lignes retournees.
+            offset: decalage de pagination (lignes sautees).
 
         Returns:
-            Le couple ``(lignes, noms de colonnes)`` — chaque ligne est un
-            dict ``{colonne: valeur}`` avec la clé ``"rowid"`` en tête.
+            Le couple ``(lignes, noms de colonnes)`` - chaque ligne est un
+            dict ``{colonne: valeur}`` avec la cle ``"rowid"`` en tete.
 
         Raises:
             ValueError: si la base ou la table est inconnue.
@@ -184,7 +181,7 @@ class RawTableService:
             rows = [dict(zip(columns, row, strict=True)) for row in cursor.fetchall()]
         return rows, columns
 
-    # --- Écriture ---------------------------------------------------------------------
+    # Ecriture
 
     def update_cell(
         self,
@@ -195,34 +192,34 @@ class RawTableService:
         new_value: object,
         operator_id: str = "",
     ) -> CellResult:
-        """Modifie UNE cellule : validation typée, UPDATE paramétré et audit.
+        """Modifie UNE cellule : validation typee, UPDATE parametre et audit.
 
-        Une valeur qui viole une contrainte connue (bornes numériques,
-        fenêtre de jalon, JSON invalide) est refusée par un
-        :class:`CellResult` ``ok=False`` SANS la moindre écriture. En cas de
-        succès, la ligne d'audit (``entity_type="raw:<table>"``,
+        Une valeur qui viole une contrainte connue (bornes numeriques,
+        fenetre de jalon, JSON invalide) est refusee par un
+        :class:`CellResult` ``ok=False`` SANS la moindre ecriture. En cas de
+        succes, la ligne d'audit (``entity_type="raw:<table>"``,
         ``entity_id=str(pk)``, ``field=column``, ``source="edit"``) est
-        écrite dans la MÊME transaction que l'UPDATE.
+        ecrite dans la MEME transaction que l'UPDATE.
 
         Args:
-            db: ``"registry"`` ou l'id d'un nœud (base client).
-            table: table cible (doit être dans la liste blanche).
-            pk: clé de ligne ``{colonne: valeur}`` — ``{"rowid": n}`` accepté
-                pour toute table (clé universelle fournie par :meth:`fetch`).
-            column: colonne à modifier (jamais une colonne de clé primaire).
-            new_value: nouvelle valeur (coercée en float pour les colonnes à
-                bornes numériques).
-            operator_id: opérateur à l'origine de l'édition (audit).
+            db: ``"registry"`` ou l'id d'un noeud (base client).
+            table: table cible (doit etre dans la liste blanche).
+            pk: cle de ligne ``{colonne: valeur}`` - ``{"rowid": n}`` accepte
+                pour toute table (cle universelle fournie par :meth:`fetch`).
+            column: colonne a modifier (jamais une colonne de cle primaire).
+            new_value: nouvelle valeur (coercee en float pour les colonnes a
+                bornes numeriques).
+            operator_id: operateur a l'origine de l'edition (audit).
 
         Returns:
-            :class:`CellResult` — ``ok=True`` avec « ancienne → nouvelle »,
-            ou ``ok=False`` avec la cause du refus (rien n'est alors écrit).
+            :class:`CellResult` - ``ok=True`` avec " ancienne -> nouvelle ",
+            ou ``ok=False`` avec la cause du refus (rien n'est alors ecrit).
 
         Raises:
             ForbiddenTableError: table d'historique (:attr:`FORBIDDEN`) ou
-                hors liste blanche d'édition.
-            ValueError: base inconnue, colonne inconnue ou de clé primaire,
-                clé ``pk`` invalide ou ligne introuvable.
+                hors liste blanche d'edition.
+            ValueError: base inconnue, colonne inconnue ou de cle primaire,
+                cle ``pk`` invalide ou ligne introuvable.
         """
         database = self._database(db)
         if table in self.FORBIDDEN:
@@ -287,7 +284,7 @@ class RawTableService:
             ),
         )
 
-    # --- Validation typée ---------------------------------------------------------------
+    # Validation typee
 
     @staticmethod
     def _validate(column: str, new_value: object, row: sqlite3.Row) -> tuple[object, str | None]:
@@ -295,13 +292,13 @@ class RawTableService:
 
         Args:
             column: colonne cible.
-            new_value: valeur proposée (souvent une chaîne venue de l'UI).
-            row: ligne courante, pour les contraintes croisées (fenêtre de
+            new_value: valeur proposee (souvent une chaine venue de l'UI).
+            row: ligne courante, pour les contraintes croisees (fenetre de
                 jalon ``start_ts``/``deadline_ts``).
 
         Returns:
-            ``(valeur coercée, None)`` si acceptée, ``(None, message
-            français)`` si refusée — l'appelant n'écrit alors RIEN.
+            ``(valeur coercee, None)`` si acceptee, ``(None, message
+            francais)`` si refusee - l'appelant n'ecrit alors RIEN.
         """
         row_columns = set(row.keys())
         if column.endswith("_json"):
@@ -353,15 +350,15 @@ class RawTableService:
 
     @staticmethod
     def _as_number(column: str, value: object) -> tuple[float | None, str | None]:
-        """Coerce ``value`` en flottant fini (message français sinon).
+        """Coerce ``value`` en flottant fini (message francais sinon).
 
         Args:
             column: colonne cible (pour le message d'erreur).
-            value: valeur proposée (chaîne, nombre...).
+            value: valeur proposee (chaine, nombre...).
 
         Returns:
             ``(nombre, None)`` si la valeur est un flottant fini,
-            ``(None, message français)`` sinon.
+            ``(None, message francais)`` sinon.
         """
         try:
             number = float(value)  # type: ignore[arg-type]
@@ -373,22 +370,22 @@ class RawTableService:
             )
         return number, None
 
-    # --- Aides internes -------------------------------------------------------------------
+    # Aides internes
 
     def _database(self, db: str) -> RegistryDatabase | ClientDatabase:
-        """Retourne la base demandée (registre ou base client d'un nœud connu).
+        """Retourne la base demandee (registre ou base client d'un noeud connu).
 
-        Le nœud doit exister dans le registre : on ne crée JAMAIS de fichier
-        sqlite pour un id inconnu (une faute de frappe ne crée pas de base).
+        Le noeud doit exister dans le registre : on ne cree JAMAIS de fichier
+        sqlite pour un id inconnu (une faute de frappe ne cree pas de base).
 
         Args:
-            db: ``"registry"`` ou l'id d'un nœud.
+            db: ``"registry"`` ou l'id d'un noeud.
 
         Returns:
-            La :class:`RegistryDatabase` ou la :class:`ClientDatabase` du nœud.
+            La :class:`RegistryDatabase` ou la :class:`ClientDatabase` du noeud.
 
         Raises:
-            ValueError: si ``db`` n'est ni « registry » ni un id de nœud connu.
+            ValueError: si ``db`` n'est ni " registry " ni un id de noeud connu.
         """
         if db == "registry":
             return self._service.registry
@@ -398,14 +395,14 @@ class RawTableService:
 
     @staticmethod
     def _table_names(database: RegistryDatabase | ClientDatabase) -> list[str]:
-        """Noms des tables de la base, triés (tables internes ``sqlite_*`` exclues).
+        """Noms des tables de la base, tries (tables internes ``sqlite_*`` exclues).
 
         Args:
-            database: base hôte (l'appelant tient déjà son verrou ou non —
-                la requête est une simple lecture de ``sqlite_master``).
+            database: base hote (l'appelant tient deja son verrou ou non -
+                la requete est une simple lecture de ``sqlite_master``).
 
         Returns:
-            Les noms de tables, ordonnés alphabétiquement.
+            Les noms de tables, ordonnes alphabetiquement.
         """
         rows = database.conn.execute(
             "SELECT name FROM sqlite_master"
@@ -415,29 +412,29 @@ class RawTableService:
 
     @staticmethod
     def _columns(database: RegistryDatabase | ClientDatabase, table: str) -> list[str]:
-        """Colonnes déclarées de la table (via ``PRAGMA table_info``).
+        """Colonnes declarees de la table (via ``PRAGMA table_info``).
 
         Args:
-            database: base hôte.
-            table: nom de table DÉJÀ validé par appartenance à la liste
-                blanche (jamais interpolé sans cette garantie).
+            database: base hote.
+            table: nom de table DEJA valide par appartenance a la liste
+                blanche (jamais interpole sans cette garantie).
 
         Returns:
-            Les noms de colonnes, dans l'ordre du schéma.
+            Les noms de colonnes, dans l'ordre du schema.
         """
         rows = database.conn.execute(f'PRAGMA table_info("{table}")').fetchall()
         return [row["name"] for row in rows]
 
     @staticmethod
     def _pk_columns(database: RegistryDatabase | ClientDatabase, table: str) -> set[str]:
-        """Colonnes de clé primaire de la table (via ``PRAGMA table_info``).
+        """Colonnes de cle primaire de la table (via ``PRAGMA table_info``).
 
         Args:
-            database: base hôte.
-            table: nom de table DÉJÀ validé (cf. :meth:`_columns`).
+            database: base hote.
+            table: nom de table DEJA valide (cf. :meth:`_columns`).
 
         Returns:
-            L'ensemble des colonnes participant à la clé primaire.
+            L'ensemble des colonnes participant a la cle primaire.
         """
         rows = database.conn.execute(f'PRAGMA table_info("{table}")').fetchall()
         return {row["name"] for row in rows if int(row["pk"]) > 0}

@@ -1,9 +1,9 @@
 """Tests du Lot 3.2 : migrations d'audit (registre v4, client v3) et lectures temporelles.
 
 Couvre : migration d'une base client v2 existante vers v3 (table ``audit_log``
-et ses index, index ``idx_kpi_snap_node_ts``, colonne ``replaces_id``, données
-préservées, idempotence), migration du registre v3 vers v4, lecture temporelle
-``kpis_at``, exclusion des évaluations remplacées (``replaces_id``) et
+et ses index, index ``idx_kpi_snap_node_ts``, colonne ``replaces_id``, donnees
+preservees, idempotence), migration du registre v3 vers v4, lecture temporelle
+``kpis_at``, exclusion des evaluations remplacees (``replaces_id``) et
 exposition publique ``conn``/``lock`` pour un AuditTrail externe.
 """
 
@@ -27,7 +27,7 @@ from supplyscore.data.migrations import (
 )
 from supplyscore.domain.models import AHPAssessment, KPIBundle
 
-# --- Helpers --------------------------------------------------------------------
+# Helpers
 
 _AUDIT_COLUMNS = {
     "id",
@@ -60,7 +60,7 @@ def _column_names(conn: sqlite3.Connection, table: str) -> set[str]:
 
 
 def _build_v2_client(path: Path) -> None:
-    """Construit une base client v2 réelle (telle que créée par le code actuel)."""
+    """Construit une base client v2 reelle (telle que creee par le code actuel)."""
     conn = sqlite3.connect(str(path))
     _client_v1(conn)
     _client_v2(conn)
@@ -82,7 +82,7 @@ def _build_v2_client(path: Path) -> None:
 
 
 def _build_v3_registry(path: Path) -> None:
-    """Construit une base registre v3 réelle (telle que créée par le code actuel)."""
+    """Construit une base registre v3 reelle (telle que creee par le code actuel)."""
     conn = sqlite3.connect(str(path))
     _registry_v1(conn)
     _registry_v2(conn)
@@ -119,14 +119,14 @@ def _assessment(node_id: str = "n1", ts: float = 1000.0, ud: float = 0.4) -> AHP
 
 
 def _bundle(lead_time_h: float, demand: float) -> KPIBundle:
-    """KPIBundle discriminable champ à champ (time.lead_time_h, network.demand)."""
+    """KPIBundle discriminable champ a champ (time.lead_time_h, network.demand)."""
     kpis = KPIBundle()
     kpis.time.lead_time_h = lead_time_h
     kpis.network.demand = demand
     return kpis
 
 
-# --- Migration client v2 -> v3 ------------------------------------------------------
+# Migration client v2 -> v3
 
 
 class TestClientV3Migration:
@@ -138,16 +138,16 @@ class TestClientV3Migration:
         assert conn.execute("PRAGMA user_version").fetchone()[0] == 2
         assert apply_migrations(conn, "client") == 7
 
-        # Table d'audit et index présents.
+        # Table d'audit et index presents.
         assert "audit_log" in _table_names(conn)
         assert _column_names(conn, "audit_log") == _AUDIT_COLUMNS
         assert {"idx_audit_entity", "idx_audit_week", "idx_kpi_snap_node_ts"} <= _index_names(conn)
 
-        # Colonne replaces_id ajoutée, NULL pour les lignes existantes.
+        # Colonne replaces_id ajoutee, NULL pour les lignes existantes.
         assert "replaces_id" in _column_names(conn, "assessments")
         assert conn.execute("SELECT replaces_id FROM assessments").fetchone()[0] is None
 
-        # Données préservées.
+        # Donnees preservees.
         row = conn.execute("SELECT node_id, operator_id, ud, timestamp FROM assessments").fetchone()
         assert row == ("n1", "op-7", 0.4, 100.0)
         assert conn.execute("SELECT COUNT(*) FROM kpi_snapshots").fetchone()[0] == 1
@@ -160,7 +160,7 @@ class TestClientV3Migration:
         conn = sqlite3.connect(str(db_file))
 
         assert apply_migrations(conn, "client") == 7
-        # Re-application : no-op, données intactes.
+        # Re-application : no-op, donnees intactes.
         assert apply_migrations(conn, "client") == 7
         assert conn.execute("PRAGMA user_version").fetchone()[0] == 7
         assert conn.execute("SELECT COUNT(*) FROM assessments").fetchone()[0] == 1
@@ -175,7 +175,7 @@ class TestClientV3Migration:
         conn.close()
 
 
-# --- Migration registre v3 -> v4 ------------------------------------------------------
+# Migration registre v3 -> v4
 
 
 class TestRegistryV4Migration:
@@ -187,12 +187,12 @@ class TestRegistryV4Migration:
         assert conn.execute("PRAGMA user_version").fetchone()[0] == 3
         assert apply_migrations(conn, "registry") == 5
 
-        # Table d'audit et index présents.
+        # Table d'audit et index presents.
         assert "audit_log" in _table_names(conn)
         assert _column_names(conn, "audit_log") == _AUDIT_COLUMNS
         assert {"idx_audit_entity", "idx_audit_week"} <= _index_names(conn)
 
-        # Données préservées.
+        # Donnees preservees.
         row = conn.execute("SELECT name, created_at, t0_ts FROM projects").fetchone()
         assert row == ("Projet", 1000.0, 900.0)
         assert conn.execute("SELECT COUNT(*) FROM nodes").fetchone()[0] == 1
@@ -205,7 +205,7 @@ class TestRegistryV4Migration:
         conn = sqlite3.connect(str(db_file))
 
         assert apply_migrations(conn, "registry") == 5
-        # Re-application : no-op, données intactes.
+        # Re-application : no-op, donnees intactes.
         assert apply_migrations(conn, "registry") == 5
         assert conn.execute("PRAGMA user_version").fetchone()[0] == 5
         assert conn.execute("SELECT COUNT(*) FROM projects").fetchone()[0] == 1
@@ -219,7 +219,7 @@ class TestRegistryV4Migration:
         conn.close()
 
 
-# --- Lecture temporelle : kpis_at -------------------------------------------------------
+# Lecture temporelle : kpis_at
 
 
 class TestKpisAt:
@@ -232,7 +232,7 @@ class TestKpisAt:
 
             got = db.kpis_at("n1", 250.0)
             assert got is not None
-            # Comparaison champ à champ : le snapshot t=200 exactement.
+            # Comparaison champ a champ : le snapshot t=200 exactement.
             assert dataclasses.asdict(got) == dataclasses.asdict(expected)
             assert got.time.lead_time_h == pytest.approx(20.0)
             assert got.network.demand == pytest.approx(200.0)
@@ -255,7 +255,7 @@ class TestKpisAt:
             assert db.kpis_at("autre", 250.0) is None
 
 
-# --- Corrections d'évaluations : replaces_id ----------------------------------------------
+# Corrections d'evaluations : replaces_id
 
 
 class TestReplacesId:
@@ -264,7 +264,7 @@ class TestReplacesId:
             id_a = db.save_assessment(_assessment(ts=100.0, ud=0.1))
             id_b = db.save_assessment(_assessment(ts=150.0, ud=0.2), replaces_id=id_a)
 
-            # replaces_id persisté en base.
+            # replaces_id persiste en base.
             row = db.conn.execute(
                 "SELECT replaces_id FROM assessments WHERE id = ?", (id_b,)
             ).fetchone()
@@ -274,10 +274,10 @@ class TestReplacesId:
             latest = db.latest_assessment("n1")
             assert latest is not None and latest.ud == pytest.approx(0.2)
 
-            # Historique complet (défaut) : A ET B ; effectif : B seulement.
+            # Historique complet (defaut) : A ET B ; effectif : B seulement.
             full = db.list_assessments("n1", include_replaced=True)
             assert [a.ud for a in full] == [pytest.approx(0.1), pytest.approx(0.2)]
-            assert db.list_assessments("n1") == full  # défaut = historique complet
+            assert db.list_assessments("n1") == full  # defaut = historique complet
             effective = db.list_assessments("n1", include_replaced=False)
             assert [a.ud for a in effective] == [pytest.approx(0.2)]
 
@@ -286,7 +286,7 @@ class TestReplacesId:
             id_a = db.save_assessment(_assessment(ts=200.0, ud=0.1))
             db.save_assessment(_assessment(ts=150.0, ud=0.2), replaces_id=id_a)
 
-            # A est plus récente mais remplacée : la correction B l'emporte.
+            # A est plus recente mais remplacee : la correction B l'emporte.
             latest = db.latest_assessment("n1")
             assert latest is not None and latest.ud == pytest.approx(0.2)
 
@@ -301,7 +301,7 @@ class TestReplacesId:
             assert latest is not None and latest.ud == pytest.approx(0.3)
 
 
-# --- Accès partagés conn / lock --------------------------------------------------------
+# Acces partages conn / lock
 
 
 class TestSharedConnAndLock:
@@ -316,12 +316,12 @@ class TestSharedConnAndLock:
             assert registry.lock is registry._lock
 
     def test_lock_is_reentrant_and_usable(self, tmp_path):
-        # db.lock pris DEUX fois : RLock réentrant, double acquisition OK.
+        # db.lock pris DEUX fois : RLock reentrant, double acquisition OK.
         with ClientDatabase(tmp_path, "client-1") as db, db.lock, db.lock:
             assert db.conn.execute("SELECT 1").fetchone()[0] == 1
 
     def test_external_audit_writer_shares_connection(self, tmp_path):
-        """Un AuditTrail externe peut écrire dans audit_log via conn + lock."""
+        """Un AuditTrail externe peut ecrire dans audit_log via conn + lock."""
         with ClientDatabase(tmp_path, "client-1") as db:
             with db.lock, db.conn:
                 db.conn.execute(

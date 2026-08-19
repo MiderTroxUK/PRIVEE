@@ -1,15 +1,15 @@
-"""Propriétés Hypothesis des jalons et de u_time v2 (E9 — Lot 9.5).
+"""Proprietes Hypothesis des jalons et de u_time v2 (E9 - Lot 9.5).
 
 Couvre :mod:`supplyscore.domain.milestones` et le bloc temporel de
 :class:`supplyscore.core.ur_model.UrModel` :
 
-- :func:`derive_node_status` : table de vérité PESSIMISTE (ACTIVE domine,
+- :func:`derive_node_status` : table de verite PESSIMISTE (ACTIVE domine,
   sinon ABANDONED domine DONE, vide -> None) ;
 - :func:`next_active_milestone` : minimum des jalons ACTIVE par deadline ;
 - :func:`theoretical_progress` : bornes [0, 1], croissance en ``now_ts``,
   convention deadline <= start -> 1.0 ;
-- u_time v2 : continuité au passage r = 0, décroissance en ``progress`` à t
-  fixé, 1.0 exact après la deadline du jalon actif.
+- u_time v2 : continuite au passage r = 0, decroissance en ``progress`` a t
+  fixe, 1.0 exact apres la deadline du jalon actif.
 """
 
 from __future__ import annotations
@@ -30,7 +30,7 @@ from supplyscore.domain.models import KPIBundle, TaskStatus, TimeKPIs
 T0 = 1_700_000_000.0  # origine epoch arbitraire du projet
 H = 3600.0  # secondes par heure
 
-MODEL = UrModel()  # κ_retard=0.5, κ_avance=0.2 par défaut
+MODEL = UrModel()  # kappa_retard=0.5, kappa_avance=0.2 par defaut
 KAPPA_SOMME = MODEL.kappa_retard + MODEL.kappa_avance
 
 STATUTS = list(MilestoneStatus)
@@ -43,7 +43,7 @@ def make_milestone(
     progress: float = 0.0,
     mid: str = "m1",
 ) -> Milestone:
-    """Jalon de test ancré sur T0, échéances exprimées en heures."""
+    """Jalon de test ancre sur T0, echeances exprimees en heures."""
     return Milestone(
         id=mid,
         node_id="n1",
@@ -56,12 +56,12 @@ def make_milestone(
 
 
 def make_kpis() -> KPIBundle:
-    """KPIs sans deadline_h : l'échéance vient du jalon (L ~ N(50, 10))."""
+    """KPIs sans deadline_h : l'echeance vient du jalon (L ~ N(50, 10))."""
     return KPIBundle(time=TimeKPIs(lead_time_h=50.0, lead_time_std_h=10.0))
 
 
 class TestDeriveNodeStatus:
-    """Table de vérité pessimiste sur des ensembles aléatoires de statuts."""
+    """Table de verite pessimiste sur des ensembles aleatoires de statuts."""
 
     @given(statuses=st.lists(st.sampled_from(STATUTS), max_size=8))
     def test_table_de_verite_pessimiste(self, statuses: list[MilestoneStatus]) -> None:
@@ -71,9 +71,9 @@ class TestDeriveNodeStatus:
         ]
         result = derive_node_status(milestones)
         if not statuses:
-            assert result is None  # vide -> statut manuel conservé
+            assert result is None  # vide -> statut manuel conserve
         elif MilestoneStatus.ACTIVE in statuses:
-            assert result is TaskStatus.ACTIVE  # la présence d'ACTIVE domine
+            assert result is TaskStatus.ACTIVE  # la presence d'ACTIVE domine
         elif MilestoneStatus.ABANDONED in statuses:
             assert result is TaskStatus.ABANDONED  # sinon ABANDONED domine DONE
         else:
@@ -110,7 +110,7 @@ class TestNextActiveMilestone:
 
 
 class TestTheoreticalProgress:
-    """Interpolation linéaire : bornes, croissance et fenêtre dégénérée."""
+    """Interpolation lineaire : bornes, croissance et fenetre degeneree."""
 
     @given(
         start_h=st.floats(min_value=-1e5, max_value=1e5),
@@ -137,13 +137,13 @@ class TestTheoreticalProgress:
     def test_deadline_avant_start_vaut_1(
         self, start_h: float, recul_h: float, now_h: float
     ) -> None:
-        # Fenêtre dégénérée ou inversée : le jalon aurait déjà dû être terminé.
+        # Fenetre degeneree ou inversee : le jalon aurait deja du etre termine.
         m = make_milestone(start_h=start_h, deadline_h=start_h - recul_h)
         assert theoretical_progress(m, T0 + now_h * H) == 1.0
 
 
 class TestUTimeV2:
-    """Modulation planning : continuité, décroissance et retard avéré."""
+    """Modulation planning : continuite, decroissance et retard avere."""
 
     @given(
         d=st.floats(min_value=1.0, max_value=1000.0),
@@ -151,16 +151,7 @@ class TestUTimeV2:
         eps=st.floats(min_value=1e-6, max_value=0.5),
     )
     def test_continuite_au_passage_r_zero(self, d: float, t_frac: float, eps: float) -> None:
-        # progress == p_th ± ε : la MODULATION PLANNING contribue au plus
-        # (κr + κa)·ε au saut de u_time.
-        #
-        # Le socle dépend lui aussi de progress depuis qu'il porte sur le
-        # travail restant (u_base_jalon), et sa pente n'est PAS bornée
-        # uniformément : elle diverge quand progress -> 1 (l'écart-type du
-        # travail restant tend vers 0). On borne donc le saut total par
-        # « saut du socle + (κr + κa)·ε » — exact, puisque
-        # u_time = clip01(u_base + ajustement) et que clip01 est 1-lipschitzienne.
-        # La contrainte GLOBALE sur progress est la décroissance, testée ci-dessous.
+        # progress == p_th +/- epsilon : la MODULATION PLANNING contribue au plus (kappar + kappaa)-epsilon au saut de u_time. Le socle depend lui aussi de progress depuis qu'il porte sur le travail restant (u_base_jalon), et sa pente n'est PAS bornee uniformement : elle diverge quand progress -> 1 (l'ecart-type du travail restant tend vers 0). On borne donc le saut total par " saut du socle + (kappar + kappaa)-epsilon " - exact, puisque u_time = clip01(u_base + ajustement) et que clip01 est 1-lipschitzienne. La contrainte GLOBALE sur progress est la decroissance, testee ci-dessous.
         t = t_frac * (d - 1e-3)
         p_th = theoretical_progress(make_milestone(deadline_h=d), T0 + t * H)
         p_moins = max(p_th - eps, 0.0)
@@ -189,7 +180,7 @@ class TestUTimeV2:
     def test_decroissante_en_progress_a_t_fixe(
         self, d: float, t_frac: float, prog_a: float, prog_b: float
     ) -> None:
-        # Plus le jalon est avancé, moins le nœud est urgent (à t fixé).
+        # Plus le jalon est avance, moins le noeud est urgent (a t fixe).
         t = t_frac * (d - 1e-3)
         p_lo, p_hi = sorted((prog_a, prog_b))
         u_lo = MODEL.u_time(
@@ -208,6 +199,6 @@ class TestUTimeV2:
         progress=st.floats(min_value=0.0, max_value=1.0),
     )
     def test_retard_avere_vaut_1_exactement(self, d: float, delta: float, progress: float) -> None:
-        # t > deadline du jalon actif : retard avéré, u_time == 1.0 EXACTEMENT.
+        # t > deadline du jalon actif : retard avere, u_time == 1.0 EXACTEMENT.
         m = make_milestone(deadline_h=d, progress=progress)
         assert MODEL.u_time(d + delta, make_kpis(), milestones=[m], t0_ts=T0) == 1.0

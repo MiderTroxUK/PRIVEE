@@ -1,4 +1,4 @@
-"""Constructeurs de figures Plotly — fonctions pures, testables sans serveur."""
+"""Constructeurs de figures Plotly - fonctions pures, testables sans serveur."""
 
 from __future__ import annotations
 
@@ -14,35 +14,31 @@ from supplyscore.web_ui.components.layout import STATUS_FR
 
 _TEMPLATE = "plotly_white"
 
-#: Rouge des nœuds prioritaires (φ > 0) — aligné sur COLORS["alert"] du layout.
+#: Rouge des noeuds prioritaires (phi > 0) - aligne sur COLORS["alert"] du layout.
 _PHI_POSITIF_COLOR = "#b3261e"
-#: Gris des nœuds non prioritaires (φ <= 0) — aligné sur les voisins d'explication.
+#: Gris des noeuds non prioritaires (phi <= 0) - aligne sur les voisins d'explication.
 _PHI_NEGATIF_COLOR = "#9aa7b0"
 
-#: Au-delà de ce nombre de nœuds, le DAG bascule en rendu WebGL allégé (E14.3) :
-#: ``go.Scattergl`` pour les nœuds ET les arêtes, étiquettes texte désactivées
-#: (hover seulement — Scattergl rend mal le texte), marqueurs de direction ronds
-#: (Scattergl ne supporte pas ``marker.angleref``).
+#: Au-dela de ce nombre de noeuds, le DAG bascule en rendu WebGL allege (E14.3) : ``go.Scattergl`` pour les noeuds ET les aretes, etiquettes texte desactivees (hover seulement - Scattergl rend mal le texte), marqueurs de direction ronds (Scattergl ne supporte pas ``marker.angleref``).
 SEUIL_WEBGL = 200
 
-#: Position du marqueur de direction le long de l'arête : au ⅔ du chemin
-#: fournisseur → client (proche de la cible, le sens se lit d'un coup d'œil).
+#: Position du marqueur de direction le long de l'arete : au 2/3 du chemin fournisseur -> client (proche de la cible, le sens se lit d'un coup d'oeil).
 _FRACTION_FLECHE = 2.0 / 3.0
 
-#: Couleur des marqueurs de direction — gris des anciennes flèches d'annotation.
+#: Couleur des marqueurs de direction - gris des anciennes fleches d'annotation.
 _FLECHE_COLOR = "#9aa7b0"
 
-#: Nom de la trace dédiée aux marqueurs de direction (repérable dans les tests).
+#: Nom de la trace dediee aux marqueurs de direction (reperable dans les tests).
 _NOM_TRACE_SENS = "sens-arcs"
 
 
 def _fmt(value: float | None, digits: int = 2) -> str:
-    """Formate une valeur optionnelle (« — » si None)."""
+    """Formate une valeur optionnelle (" - " si None)."""
     return "—" if value is None else f"{value:.{digits}f}"
 
 
 def empty_figure(message: str) -> go.Figure:
-    """Figure vide avec un message central (état initial d'un graphique)."""
+    """Figure vide avec un message central (etat initial d'un graphique)."""
     fig = go.Figure()
     fig.update_layout(
         template=_TEMPLATE,
@@ -66,7 +62,7 @@ def empty_figure(message: str) -> go.Figure:
 
 
 def ahp_weights_figure(weights: list[float]) -> go.Figure:
-    """Bar chart horizontal des poids AHP des 4 critères."""
+    """Bar chart horizontal des poids AHP des 4 criteres."""
     fig = go.Figure(
         go.Bar(
             x=list(weights),
@@ -90,7 +86,7 @@ def ahp_weights_figure(weights: list[float]) -> go.Figure:
 
 @functools.lru_cache(maxsize=64)
 def _positions_par_cle(cle: tuple[tuple[str, int], ...]) -> dict[str, tuple[float, float]]:
-    """Positions pour une clé ``((id, rang), ...)`` triée par (rang, id) — mémoïsées."""
+    """Positions pour une cle ``((id, rang), ...)`` triee par (rang, id) - memoisees."""
     par_rang: dict[int, list[str]] = {}
     for node_id, rank in cle:
         par_rang.setdefault(rank, []).append(node_id)
@@ -103,21 +99,21 @@ def _positions_par_cle(cle: tuple[tuple[str, int], ...]) -> dict[str, tuple[floa
 
 
 def node_positions(nodes: list[SupplyNode]) -> dict[str, tuple[float, float]]:
-    """Positions du DAG : x = -rang, y réparti et centré au sein de chaque rang.
+    """Positions du DAG : x = -rang, y reparti et centre au sein de chaque rang.
 
-    Le calcul est mémoïsé (E14.3) via :func:`_positions_par_cle` sur une clé
-    hashable — le tuple des ``(id, rang)`` trié par (rang, id). L'invalidation
-    est NATURELLE : tout ajout/retrait de nœud ou changement de rang produit
-    une clé différente, donc une nouvelle entrée de cache (LRU, 64 graphes).
-    NE PAS muter le dictionnaire retourné : c'est le MÊME objet qui est rendu
-    à chaque hit de cache.
+    Le calcul est memoise (E14.3) via :func:`_positions_par_cle` sur une cle
+    hashable - le tuple des ``(id, rang)`` trie par (rang, id). L'invalidation
+    est NATURELLE : tout ajout/retrait de noeud ou changement de rang produit
+    une cle differente, donc une nouvelle entree de cache (LRU, 64 graphes).
+    NE PAS muter le dictionnaire retourne : c'est le MEME objet qui est rendu
+    a chaque hit de cache.
     """
     cle = tuple(sorted(((n.id, n.rank) for n in nodes), key=lambda t: (t[1], t[0])))
     return _positions_par_cle(cle)
 
 
 def _node_hover(node: SupplyNode) -> str:
-    """Texte de survol par défaut : nom, rang, Ud/Ur/A/F/H, statut."""
+    """Texte de survol par defaut : nom, rang, Ud/Ur/A/F/H, statut."""
     u = node.urgency
     return (
         f"<b>{node.name}</b><br>"
@@ -143,20 +139,20 @@ def dag_figure(
     title: str = "Chaîne logistique",
     caption: str = "",
 ) -> go.Figure:
-    """Visualisation générique du DAG logistique.
+    """Visualisation generique du DAG logistique.
 
-    Les nœuds sont positionnés par rang (x = -rang, clients finaux à droite)
-    et colorés selon ``color_values``. La direction fournisseur → client de
-    chaque arc nominal est indiquée par un MARQUEUR au ⅔ de l'arête (trace
-    dédiée ``sens-arcs``) — plus AUCUNE annotation Plotly par arc : O(E)
-    annotations rendait le graphe inutilisable à 500+ nœuds (faiblesse #13).
-    Les arcs de secours (kind_arc = backup) sont tracés à part, en pointillés
+    Les noeuds sont positionnes par rang (x = -rang, clients finaux a droite)
+    et colores selon ``color_values``. La direction fournisseur -> client de
+    chaque arc nominal est indiquee par un MARQUEUR au 2/3 de l'arete (trace
+    dediee ``sens-arcs``) - plus AUCUNE annotation Plotly par arc : O(E)
+    annotations rendait le graphe inutilisable a 500+ noeuds (faiblesse #13).
+    Les arcs de secours (kind_arc = backup) sont traces a part, en pointilles
     gris clair, SANS marqueur de direction : purement visuels, ils sont
     inertes dans tous les calculs.
 
-    Au-delà de :data:`SEUIL_WEBGL` nœuds, rendu allégé : ``go.Scattergl``
-    pour toutes les traces, étiquettes texte désactivées (hover seulement)
-    et mention « affichage allégé » dans la légende.
+    Au-dela de :data:`SEUIL_WEBGL` noeuds, rendu allege : ``go.Scattergl``
+    pour toutes les traces, etiquettes texte desactivees (hover seulement)
+    et mention " affichage allege " dans la legende.
     """
     if not nodes:
         return empty_figure("Aucun nœud : créez un projet ou générez la démo.")
@@ -180,10 +176,7 @@ def dag_figure(
             ur = n.urgency.ur if n.urgency.ur is not None else 0.0
             sizes.append(14.0 + 22.0 * min(max(ur, 0.0), 1.5) / 1.5)
 
-    # Arcs nominaux : UNE trace de segments + les points des marqueurs de
-    # direction. Chaque arc fournit une paire (point d'orientation invisible
-    # à la source, marqueur visible au ⅔ de l'arête) : le point de taille 0
-    # sert de « previous » à marker.angleref pour orienter la flèche.
+    # Arcs nominaux : UNE trace de segments + les points des marqueurs de direction. Chaque arc fournit une paire (point d'orientation invisible a la source, marqueur visible au 2/3 de l'arete) : le point de taille 0 sert de " previous " a marker.angleref pour orienter la fleche.
     taille_fleche = 5.0 if use_webgl else 9.0
     edge_x: list[float | None] = []
     edge_y: list[float | None] = []
@@ -201,7 +194,7 @@ def dag_figure(
         fleche_y += [y0, y0 + _FRACTION_FLECHE * (y1 - y0)]
         fleche_tailles += [0.0, taille_fleche]
 
-    # Arcs de secours : pointillés gris clair, sans flèche (inertes).
+    # Arcs de secours : pointilles gris clair, sans fleche (inertes).
     backup_x: list[float | None] = []
     backup_y: list[float | None] = []
     for arc in backup_arcs:
@@ -254,7 +247,7 @@ def dag_figure(
         },
         "showlegend": False,
     }
-    if not use_webgl:  # étiquettes texte uniquement en SVG (Scattergl les rend mal)
+    if not use_webgl:  # etiquettes texte uniquement en SVG (Scattergl les rend mal)
         node_kwargs.update(
             text=[n.name for n in ordered],
             textposition="bottom center",
@@ -263,9 +256,7 @@ def dag_figure(
     fig.add_trace(trace_cls(**node_kwargs))
     if fleche_x:
         if use_webgl:
-            # CHOIX DOCUMENTÉ : Scattergl ne supporte pas marker.angleref —
-            # repli sur un marqueur ROND sans rotation, le sens est donné par
-            # le survol (« Sens : fournisseur → client »).
+            # CHOIX DOCUMENTE : Scattergl ne supporte pas marker.angleref - repli sur un marqueur ROND sans rotation, le sens est donne par le survol (" Sens : fournisseur -> client ").
             fig.add_trace(
                 go.Scattergl(
                     x=fleche_x,
@@ -279,11 +270,7 @@ def dag_figure(
                 )
             )
         else:
-            # marker.angleref="previous" (Plotly >= 5.11, vérifié sur 6.7) :
-            # la flèche est orientée selon le segment depuis le point précédent
-            # de la trace (le point invisible posé à la source de l'arc).
-            # hoverinfo="skip" : sinon les points d'orientation invisibles
-            # captureraient le survol au beau milieu des nœuds.
+            # marker.angleref="previous" (Plotly >= 5.11, verifie sur 6.7) : la fleche est orientee selon le segment depuis le point precedent de la trace (le point invisible pose a la source de l'arc). hoverinfo="skip" : sinon les points d'orientation invisibles captureraient le survol au beau milieu des noeuds.
             fig.add_trace(
                 go.Scatter(
                     x=fleche_x,
@@ -337,8 +324,7 @@ def dag_figure(
     return fig
 
 
-#: Légendes du DAG du dashboard, cohérentes avec la palette choisie (Lot 16.2) :
-#: la description des couleurs extrêmes suit la colorscale réellement rendue.
+#: Legendes du DAG du dashboard, coherentes avec la palette choisie (Lot 16.2) : la description des couleurs extremes suit la colorscale reellement rendue.
 _DAG_CAPTIONS: dict[str, str] = {
     "RdYlGn": "Couleur : adéquation A (0 = rouge, 100 = vert) · Taille : urgence réelle Ur",
     "RdYlBu": "Couleur : adéquation A (0 = rouge, 100 = bleu) · Taille : urgence réelle Ur",
@@ -349,14 +335,14 @@ _DAG_CAPTIONS: dict[str, str] = {
 def dashboard_dag_figure(
     nodes: list[SupplyNode], arcs: list[SupplyArc], colorscale: str = "RdYlGn"
 ) -> go.Figure:
-    """DAG du dashboard : couleur = adéquation A, taille = Ur.
+    """DAG du dashboard : couleur = adequation A, taille = Ur.
 
     Args:
-        nodes: nœuds à tracer.
+        nodes: noeuds a tracer.
         arcs: arcs du graphe (nominaux et secours).
-        colorscale: palette Plotly de l'adéquation — « RdYlGn » (défaut),
-            « RdYlBu » (lisible pour les daltoniens) ou « Viridis » ; la
-            légende suit la palette (:data:`_DAG_CAPTIONS`, repli neutre
+        colorscale: palette Plotly de l'adequation - " RdYlGn " (defaut),
+            " RdYlBu " (lisible pour les daltoniens) ou " Viridis " ; la
+            legende suit la palette (:data:`_DAG_CAPTIONS`, repli neutre
             pour une palette inconnue).
     """
     caption = _DAG_CAPTIONS.get(
@@ -378,7 +364,7 @@ def dashboard_dag_figure(
 def shock_dag_figure(
     nodes: list[SupplyNode], arcs: list[SupplyArc], deltas: dict[str, float]
 ) -> go.Figure:
-    """DAG de simulation : couleur = ΔUr propagé (blanc -> rouge)."""
+    """DAG de simulation : couleur = DeltaUr propage (blanc -> rouge)."""
     ordered = sorted(nodes, key=lambda n: (n.rank, n.id))
     values = [deltas.get(n.id, 0.0) for n in ordered]
     bound = max((abs(v) for v in values), default=0.0) or 0.01
@@ -401,7 +387,7 @@ def shock_dag_figure(
 
 
 def urgency_history_figure(series: list[UrgencyState], node_name: str) -> go.Figure:
-    """Évolution temporelle Ud / Ur (axe gauche) et A (axe droit, 0..100)."""
+    """Evolution temporelle Ud / Ur (axe gauche) et A (axe droit, 0..100)."""
     if not series:
         return empty_figure(f"Aucun historique d'urgence pour « {node_name} ».")
     x = [datetime.fromtimestamp(s.timestamp) for s in series]
@@ -450,22 +436,22 @@ def urgency_history_figure(series: list[UrgencyState], node_name: str) -> go.Fig
 def promethee_bars_figure(
     resultat: ResultatPromethee, names: dict[str, str], top: int = 10
 ) -> go.Figure:
-    """Barres horizontales des flux nets φ PROMETHEE II, triées par φ décroissant.
+    """Barres horizontales des flux nets phi PROMETHEE II, triees par phi decroissant.
 
-    Seuls les ``top`` premiers nœuds du classement sont tracés (le classement
-    de :class:`ResultatPromethee` est déjà trié par φ décroissant), le plus
-    prioritaire en HAUT (axe y inversé). Couleur : rouge si φ > 0 (le nœud
-    domine en moyenne, à traiter en premier), gris sinon. Le survol détaille
-    les flux sortant et entrant (« φ+ = … ; φ− = … »).
+    Seuls les ``top`` premiers noeuds du classement sont traces (le classement
+    de :class:`ResultatPromethee` est deja trie par phi decroissant), le plus
+    prioritaire en HAUT (axe y inverse). Couleur : rouge si phi > 0 (le noeud
+    domine en moyenne, a traiter en premier), gris sinon. Le survol detaille
+    les flux sortant et entrant (" phi+ = ... ; phi- = ... ").
 
     Args:
-        resultat: classement PROMETHEE II complet (φ, φ⁺, φ⁻, classement).
-        names: noms d'affichage par identifiant de nœud (repli : l'id).
-        top: nombre maximal de barres tracées.
+        resultat: classement PROMETHEE II complet (phi, phi^+, phi^-, classement).
+        names: noms d'affichage par identifiant de noeud (repli : l'id).
+        top: nombre maximal de barres tracees.
 
     Returns:
-        Figure à barres horizontales, ou figure vide avec message si le
-        classement compte moins de 2 nœuds.
+        Figure a barres horizontales, ou figure vide avec message si le
+        classement compte moins de 2 noeuds.
     """
     if len(resultat.classement) < 2:
         return empty_figure(
@@ -506,18 +492,18 @@ def promethee_bars_figure(
 
 
 def correlation_heatmap_figure(matrix: list[list[float]], labels: list[str]) -> go.Figure:
-    """Heatmap de corrélation de Pearson des blocs d'urgence (diagnostic PROMETHEE).
+    """Heatmap de correlation de Pearson des blocs d'urgence (diagnostic PROMETHEE).
 
-    Échelle divergente RdBu bornée sur [−1, 1], valeurs ρ annotées dans les
-    cases. La diagonale vaut 1 par construction ; une forte corrélation hors
-    diagonale signale une information double-comptée par PROMETHEE.
+    Echelle divergente RdBu bornee sur [-1, 1], valeurs rho annotees dans les
+    cases. La diagonale vaut 1 par construction ; une forte correlation hors
+    diagonale signale une information double-comptee par PROMETHEE.
 
     Args:
-        matrix: matrice carrée symétrique des corrélations ρ ∈ [−1, 1].
-        labels: libellés des blocs, dans l'ordre des lignes/colonnes.
+        matrix: matrice carree symetrique des correlations rho  dans  [-1, 1].
+        labels: libelles des blocs, dans l'ordre des lignes/colonnes.
 
     Returns:
-        Figure heatmap annotée, ou figure vide avec message si la matrice
+        Figure heatmap annotee, ou figure vide avec message si la matrice
         est vide.
     """
     if not matrix:
@@ -547,24 +533,24 @@ def correlation_heatmap_figure(matrix: list[list[float]], labels: list[str]) -> 
 
 
 def criticite_tornado_figure(points: list, top: int = 15) -> go.Figure:
-    """Tornado de criticité : barres horizontales de ΔUr_final décroissant (Lot 15.4).
+    """Tornado de criticite : barres horizontales de DeltaUr_final decroissant (Lot 15.4).
 
     Duck-typing volontaire : tout objet exposant ``node_name``,
     ``delta_ur_final``, ``delta_ur_max`` et ``nb_impactes`` convient (la
     dataclass :class:`~supplyscore.services.criticite.PointCriticite` comme un
     substitut de test) ; un attribut manquant ou None vaut 0 (nom vide).
-    Les barres sont triées par ``delta_ur_final`` décroissant (tri stable :
-    l'ordre d'entrée départage les égalités), le nœud le plus critique en
-    HAUT ; le survol détaille la portée du choc (« impacte n nœud(s) ;
-    ΔUr max = … ») ; rouge dégradé — plus le ΔUr du client final est grand,
+    Les barres sont triees par ``delta_ur_final`` decroissant (tri stable :
+    l'ordre d'entree departage les egalites), le noeud le plus critique en
+    HAUT ; le survol detaille la portee du choc (" impacte n noeud(s) ;
+    DeltaUr max = ... ") ; rouge degrade - plus le DeltaUr du client final est grand,
     plus la barre est sombre.
 
     Args:
-        points: points de criticité (``ServiceCriticite.top`` ou équivalent).
-        top: nombre maximal de barres tracées.
+        points: points de criticite (``ServiceCriticite.top`` ou equivalent).
+        top: nombre maximal de barres tracees.
 
     Returns:
-        Figure à barres horizontales, ou figure vide avec message si la
+        Figure a barres horizontales, ou figure vide avec message si la
         liste est vide.
     """
     if not points:
@@ -610,7 +596,7 @@ def criticite_tornado_figure(points: list, top: int = 15) -> go.Figure:
 
 
 def shock_bar_figure(deltas: dict[str, float], names: dict[str, str]) -> go.Figure:
-    """Bar chart des ΔUr par nœud, ordonné par delta décroissant."""
+    """Bar chart des DeltaUr par noeud, ordonne par delta decroissant."""
     if not deltas:
         return empty_figure("Aucun impact propagé.")
     items = sorted(deltas.items(), key=lambda kv: kv[1], reverse=True)

@@ -1,30 +1,30 @@
-"""Injection du tour N (U6) : KPIs, jalons, événements, puis avance d'une semaine.
+"""Injection du tour N (U6) : KPIs, jalons, evenements, puis avance d'une semaine.
 
 Usage :
     python inject_tour.py --tour N --db-dir D [--dry-run-ahp]
 
-Garde-fou d'idempotence : le tour N n'est accepté que si le dernier tour joué
+Garde-fou d'idempotence : le tour N n'est accepte que si le dernier tour joue
 est N-1 (campaign_state.json). Pas de rejeu silencieux.
 
-Séquence d'un tour :
+Sequence d'un tour :
     1. KPIs depuis ``data/prepared/tour_NN.csv`` (source="weekly") ;
-    2. progrès/statuts des jalons depuis ``milestones_NN.json`` ;
-    3. événements calibrés depuis ``events_NN.json`` (EventEngine.apply, qui
-       journalise, mute les KPIs et réévalue) ;
-    4. si ``--dry-run-ahp`` : 8 évaluations AHP synthétiques (profils
-       paniqueur / sous-déclarant / neutre — dry run et baseline U10) ;
-    5. ``advance_week(n=1)`` — le réseau passe à la semaine suivante ;
+    2. progres/statuts des jalons depuis ``milestones_NN.json`` ;
+    3. evenements calibres depuis ``events_NN.json`` (EventEngine.apply, qui
+       journalise, mute les KPIs et reevalue) ;
+    4. si ``--dry-run-ahp`` : 8 evaluations AHP synthetiques (profils
+       paniqueur / sous-declarant / neutre - dry run et baseline U10) ;
+    5. ``advance_week(n=1)`` - le reseau passe a la semaine suivante ;
     6. snapshot automatique (export_state).
 
-En campagne réelle, l'étape 4 est remplacée par la fenêtre de réponse humaine :
+En campagne reelle, l'etape 4 est remplacee par la fenetre de reponse humaine :
 lancer SANS ``--dry-run-ahp``, attendre la couverture 8/8, puis relancer avec
 ``--advance-only`` pour clore le tour.
 
-``_load_tour_files`` et ``_submit_synthetic_ahp`` sont réutilisées telles
+``_load_tour_files`` et ``_submit_synthetic_ahp`` sont reutilisees telles
 quelles par le runner headless (``run_campaign.py``, U5) : la seconde y gagne
 un callback ``respond`` optionnel (contrat 2 du plan v7) qui remplace les
-profils synthétiques par une déclaration pilotée nœud par nœud, sans changer
-le comportement CLI par défaut de ce script.
+profils synthetiques par une declaration pilotee noeud par noeud, sans changer
+le comportement CLI par defaut de ce script.
 """
 
 from __future__ import annotations
@@ -42,8 +42,7 @@ from _common import FACILITATOR, PREPARED, PROJECT_ID, scenario
 
 from supplyscore.core.ahp import bipolar_to_saaty, run_ahp, score_6_to_9
 
-#: Paires de critères comparées par le questionnaire AHP (ordre fixe UI) —
-#: contrat 2 du plan v7 : ``bipolar[k]`` juge la paire ``_AHP_PAIRS[k]``.
+#: Paires de criteres comparees par le questionnaire AHP (ordre fixe UI) - contrat 2 du plan v7 : ``bipolar[k]`` juge la paire ``_AHP_PAIRS[k]``.
 _AHP_PAIRS: list[tuple[int, int]] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
 
 
@@ -113,12 +112,12 @@ def _inject_events(service, events: list[dict]) -> int:
 
 
 def _kpi_series(prepared_dir: Path, node_id: str, upto_tour: int) -> dict[str, dict[int, float]]:
-    """Série ``{kpi_path: {tour: valeur}}`` du nœud, tours 0..upto_tour, reportée en avant.
+    """Serie ``{kpi_path: {tour: valeur}}`` du noeud, tours 0..upto_tour, reportee en avant.
 
     Combine la baseline T0 (``scenario.BASELINE_KPIS``) et les deltas
-    injectés (``tour_NN.csv``) : un chemin non modifié à un tour garde sa
-    dernière valeur connue — un KPI ne revient jamais à zéro entre deux
-    tours faute de changement explicite (comportement réel du modèle).
+    injectes (``tour_NN.csv``) : un chemin non modifie a un tour garde sa
+    derniere valeur connue - un KPI ne revient jamais a zero entre deux
+    tours faute de changement explicite (comportement reel du modele).
     """
     prepared_dir = Path(prepared_dir)
     current: dict[str, float] = dict(scenario.BASELINE_KPIS.get(node_id, {}))
@@ -143,10 +142,10 @@ def _node_features(
     """Construit ``features`` pour le rappel ``respond`` (contrat 2, plan v7).
 
     9 chemins KPI de ``make_briefings.FIELD_LABELS`` -> ``{val, d1, d2}`` :
-    ``val`` vaut 0.0 si le nœud n'a jamais eu ce KPI (absence de signal, pas
+    ``val`` vaut 0.0 si le noeud n'a jamais eu ce KPI (absence de signal, pas
     une vraie mesure) ; ``d1``/``d2`` restent None tant que l'historique est
-    insuffisant (moins de 2, resp. 3, points). ``event_flag`` : un événement
-    touche CE nœud ce tour. ``press_flag`` : la revue de presse du tour n'est
+    insuffisant (moins de 2, resp. 3, points). ``event_flag`` : un evenement
+    touche CE noeud ce tour. ``press_flag`` : la revue de presse du tour n'est
     pas vide.
     """
     import make_briefings
@@ -168,7 +167,7 @@ def _node_features(
 
 
 def _most_inconsistent_pair(comparisons: dict[tuple[int, int], float], weights) -> tuple[int, int]:
-    """Paire ``(i, j)`` dont le jugement de Saaty s'écarte le plus de wi/wj.
+    """Paire ``(i, j)`` dont le jugement de Saaty s'ecarte le plus de wi/wj.
 
     Diagnostic AHP standard : ``|log(A[i,j]) - log(wi/wj)|`` maximal.
     """
@@ -179,7 +178,7 @@ def _most_inconsistent_pair(comparisons: dict[tuple[int, int], float], weights) 
 
 
 def _nudge_bipolar(v: int, target_saaty: float) -> int:
-    """Décale ``v`` d'un cran (±1, borné à [-8, 8]) vers le jugement Saaty cible."""
+    """Decale ``v`` d'un cran (+/-1, borne a [-8, 8]) vers le jugement Saaty cible."""
     candidates = [c for c in (v - 1, v + 1) if -8 <= c <= 8]
     if not candidates:
         return v
@@ -192,14 +191,14 @@ def _nudge_bipolar(v: int, target_saaty: float) -> int:
 def _resolve_consistency(
     bipolar: list[int], scores_ui: list[int]
 ) -> tuple[dict[tuple[int, int], float], list[float], bool]:
-    """Convertit une réponse brute (bipolaire + notes UI) en jugements Saaty.
+    """Convertit une reponse brute (bipolaire + notes UI) en jugements Saaty.
 
-    Règle CR (contrat 2, plan v7) : si l'AHP est incohérent (CR >= seuil de
-    Saaty), une correction est tentée UNE fois — la paire la plus divergente
-    est identifiée puis sa valeur bipolaire rapprochée d'un cran de la
-    cohérence. Retourne ``(comparisons, criteria_scores, is_consistent)`` ;
-    ``is_consistent`` à False signale à l'appelant de retomber sur la
-    déclaration du tour précédent (règle de repli).
+    Regle CR (contrat 2, plan v7) : si l'AHP est incoherent (CR >= seuil de
+    Saaty), une correction est tentee UNE fois - la paire la plus divergente
+    est identifiee puis sa valeur bipolaire rapprochee d'un cran de la
+    coherence. Retourne ``(comparisons, criteria_scores, is_consistent)`` ;
+    ``is_consistent`` a False signale a l'appelant de retomber sur la
+    declaration du tour precedent (regle de repli).
     """
     criteria_scores = [score_6_to_9(float(s)) for s in scores_ui]
     comparisons = {pair: bipolar_to_saaty(v) for pair, v in zip(_AHP_PAIRS, bipolar, strict=True)}
@@ -224,22 +223,22 @@ def _submit_synthetic_ahp(
     prepared_dir: Path = PREPARED,
     seed: int | None = None,
 ) -> None:
-    """Soumet une évaluation AHP par nœud (8 au total).
+    """Soumet une evaluation AHP par noeud (8 au total).
 
-    Sans ``respond`` (défaut, comportement CLI inchangé) : profils
-    synthétiques biaisés, cohérence garantie par construction (matrice
+    Sans ``respond`` (defaut, comportement CLI inchange) : profils
+    synthetiques biaises, coherence garantie par construction (matrice
     unitaire, CR = 0) ; le biais du profil passe par les scores locaux des 4
-    critères, ancrés sur l'urgence réelle LOCALE du nœud (score nominal =
-    1 + 8·Ur_local — pas l'urgence propagée, qui rendrait le Ud synthétique
-    circulairement saturé), déterministe par (nœud, tour) pour la
-    reproductibilité.
+    criteres, ancres sur l'urgence reelle LOCALE du noeud (score nominal =
+    1 + 8-Ur_local - pas l'urgence propagee, qui rendrait le Ud synthetique
+    circulairement sature), deterministe par (noeud, tour) pour la
+    reproductibilite.
 
-    Avec ``respond`` (contrat 2, plan v7 — utilisé par ``run_campaign.py``,
-    U5) : pour chaque nœud, ``respond(node_id, tour, features, rng)`` fournit
+    Avec ``respond`` (contrat 2, plan v7 - utilise par ``run_campaign.py``,
+    U5) : pour chaque noeud, ``respond(node_id, tour, features, rng)`` fournit
     ``{"bipolar": [6 valeurs -8..8], "scores_ui": [4 valeurs 1..6]}`` ; en cas
-    d'incohérence persistante après la correction d'un cran
-    (:func:`_resolve_consistency`), la déclaration du tour précédent du nœud
-    est reconduite (``latest_assessment``), ou une déclaration neutre si
+    d'incoherence persistante apres la correction d'un cran
+    (:func:`_resolve_consistency`), la declaration du tour precedent du noeud
+    est reconduite (``latest_assessment``), ou une declaration neutre si
     aucun historique n'existe (T0).
     """
     from supplyscore.services.orchestrator import SupplyScoreService
@@ -364,8 +363,7 @@ def main(argv: list[str] | None = None) -> int:
 
         kpi_rows, events, milestones = _load_tour_files(args.tour)
         print(f"Tour {args.tour} — injection :")
-        # Érosion hebdomadaire d'abord (« semaine écoulée sans nouvel incident ») :
-        # les effets des événements PASSÉS refluent avant d'injecter ceux du tour.
+        # Erosion hebdomadaire d'abord (" semaine ecoulee sans nouvel incident ") : les effets des evenements PASSES refluent avant d'injecter ceux du tour.
         if args.tour > 0:
             from supplyscore.services.events import EventEngine
 

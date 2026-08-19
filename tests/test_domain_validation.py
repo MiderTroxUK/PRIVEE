@@ -1,11 +1,11 @@
 """Tests de la validation exhaustive du domaine (phase E10, Lot 10.1).
 
 Trois familles :
-- cas chiffrés sur :func:`validate_kpis` (erreurs de bornes, NaN, avertissements
-  croisés jamais bloquants) ;
-- validation des entités (nœud, arc, jalon, cahier des charges) ;
-- propriétés Hypothesis : un champ hors borne implique >= 1 erreur ; un bundle
-  borné champ à champ implique 0 erreur ET ``UrModel().ur_local`` ne lève jamais.
+- cas chiffres sur :func:`validate_kpis` (erreurs de bornes, NaN, avertissements
+  croises jamais bloquants) ;
+- validation des entites (noeud, arc, jalon, cahier des charges) ;
+- proprietes Hypothesis : un champ hors borne implique >= 1 erreur ; un bundle
+  borne champ a champ implique 0 erreur ET ``UrModel().ur_local`` ne leve jamais.
 """
 
 from __future__ import annotations
@@ -46,7 +46,7 @@ from supplyscore.domain.validation import (
     validate_node,
 )
 
-# --- Helpers ----------------------------------------------------------------------
+# Helpers
 
 
 def _set_kpi(bundle: KPIBundle, path: str, value: float | None) -> None:
@@ -69,11 +69,11 @@ def _milestone_valide(**overrides: object) -> Milestone:
     return Milestone(**base)  # type: ignore[arg-type]
 
 
-# --- Stratégies Hypothesis --------------------------------------------------------
+# Strategies Hypothesis
 
 
 def _valeur_valide(lo: float | None, hi: float | None) -> st.SearchStrategy[float]:
-    """Float fini dans les bornes du KPI (bornes ouvertes plafonnées à 1e6)."""
+    """Float fini dans les bornes du KPI (bornes ouvertes plafonnees a 1e6)."""
     return st.floats(
         min_value=lo if lo is not None else 0.0,
         max_value=hi if hi is not None else 1e6,
@@ -94,7 +94,7 @@ def _bundles_valides(draw: st.DrawFn) -> KPIBundle:
 
 @st.composite
 def _bundles_un_champ_invalide(draw: st.DrawFn) -> tuple[KPIBundle, str]:
-    """Bundle valide partout SAUF un champ poussé hors borne (ou NaN/±inf)."""
+    """Bundle valide partout SAUF un champ pousse hors borne (ou NaN/+/-inf)."""
     bundle = draw(_bundles_valides())
     path = draw(st.sampled_from(sorted(KPI_CONSTRAINTS)))
     lo, hi, _unit = KPI_CONSTRAINTS[path]
@@ -107,7 +107,7 @@ def _bundles_un_champ_invalide(draw: st.DrawFn) -> tuple[KPIBundle, str]:
     return bundle, path
 
 
-# --- validate_kpis : erreurs de bornes --------------------------------------------
+# validate_kpis : erreurs de bornes
 
 
 class TestValidateKpisErreurs:
@@ -139,7 +139,7 @@ class TestValidateKpisErreurs:
         assert [i.champ for i in erreurs(issues)] == ["network.distance_km"]
 
 
-# --- validate_kpis : avertissements croisés (jamais bloquants) --------------------
+# validate_kpis : avertissements croises (jamais bloquants)
 
 
 class TestValidateKpisAvertissements:
@@ -212,7 +212,7 @@ class TestValidateKpisAvertissements:
         assert len(avertissements(issues)) == 1
 
 
-# --- validate_node ----------------------------------------------------------------
+# validate_node
 
 
 class TestValidateNode:
@@ -260,7 +260,7 @@ class TestValidateNode:
         assert [w.champ for w in avertissements(issues)] == ["time.deadline_h"]
 
 
-# --- validate_arc -----------------------------------------------------------------
+# validate_arc
 
 
 class TestValidateArc:
@@ -303,7 +303,7 @@ class TestValidateArc:
         }
 
 
-# --- validate_milestone -----------------------------------------------------------
+# validate_milestone
 
 
 class TestValidateMilestone:
@@ -337,7 +337,7 @@ class TestValidateMilestone:
         assert [i.champ for i in erreurs(issues)] == ["deadline_ts"]
 
 
-# --- validate_cdc -----------------------------------------------------------------
+# validate_cdc
 
 
 def _cdc_nominal() -> CahierDesCharges:
@@ -412,7 +412,7 @@ class TestValidateCdc:
         assert [i.champ for i in erreurs(validate_cdc(cdc))] == ["penalties[0].cap_amount"]
 
 
-# --- Filtres erreurs / avertissements ----------------------------------------------
+# Filtres erreurs / avertissements
 
 
 class TestFiltres:
@@ -429,7 +429,7 @@ class TestFiltres:
         assert avertissements([]) == []
 
 
-# --- Propriétés Hypothesis ----------------------------------------------------------
+# Proprietes Hypothesis
 
 
 class TestProprietes:
@@ -443,7 +443,7 @@ class TestProprietes:
     @given(bundle=_bundles_valides())
     def test_bundle_borne_zero_erreur_et_ur_local_ne_leve_jamais(self, bundle: KPIBundle):
         issues = validate_kpis(bundle)
-        assert erreurs(issues) == []  # avertissements tolérés
+        assert erreurs(issues) == []  # avertissements toleres
         ur = UrModel().ur_local(0.0, bundle)
         assert math.isfinite(ur)
         assert 0.0 <= ur <= 1.0

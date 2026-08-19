@@ -1,10 +1,10 @@
-"""Interface abstraite du dépôt de graphe supply chain.
+"""Interface abstraite du depot de graphe supply chain.
 
 Convention d'orientation (cf. supplyscore.domain.models.SupplyArc) :
-- une arête source -> target relie un FOURNISSEUR (rang r+1) à son CLIENT (rang r) ;
+- une arete source -> target relie un FOURNISSEUR (rang r+1) a son CLIENT (rang r) ;
 - rank 0 = client final (puits du graphe).
 
-Nature des arcs (cf. supplyscore.domain.models.ArcKind) : par défaut, seuls
+Nature des arcs (cf. supplyscore.domain.models.ArcKind) : par defaut, seuls
 les arcs NOMINAUX comptent comme liens de flux (propagation, voisinage, tri
 topologique, rangs). Les arcs de secours (BACKUP) sont purement documentaires
 et inertes dans tous les calculs.
@@ -18,36 +18,36 @@ from supplyscore.domain.models import SupplyArc, SupplyNode
 
 
 class GraphRepository(abc.ABC):
-    """Contrat commun aux implémentations mémoire (networkx) et Neo4j."""
+    """Contrat commun aux implementations memoire (networkx) et Neo4j."""
 
-    # --- Nœuds ----------------------------------------------------------
+    # Noeuds
 
     @abc.abstractmethod
     def add_node(self, node: SupplyNode) -> None:
-        """Ajoute un nœud. Lève ValueError si l'id existe déjà."""
+        """Ajoute un noeud. Leve ValueError si l'id existe deja."""
 
     @abc.abstractmethod
     def get_node(self, node_id: str) -> SupplyNode | None:
-        """Retourne le nœud ou None s'il est inconnu."""
+        """Retourne le noeud ou None s'il est inconnu."""
 
     @abc.abstractmethod
     def update_node(self, node: SupplyNode) -> None:
-        """Remplace le nœud existant. Lève KeyError si l'id est inconnu."""
+        """Remplace le noeud existant. Leve KeyError si l'id est inconnu."""
 
     @abc.abstractmethod
     def remove_node(self, node_id: str) -> None:
-        """Supprime le nœud et ses arcs incidents. Lève KeyError si inconnu."""
+        """Supprime le noeud et ses arcs incidents. Leve KeyError si inconnu."""
 
-    # --- Arcs -----------------------------------------------------------
+    # Arcs
 
     @abc.abstractmethod
     def add_arc(self, arc: SupplyArc) -> None:
         """Ajoute un arc fournisseur -> client.
 
-        Lève ValueError si un des deux nœuds est inconnu, si l'arc existe
-        déjà, ou si l'ajout créerait un cycle. Le refus de cycle ne concerne
+        Leve ValueError si un des deux noeuds est inconnu, si l'arc existe
+        deja, ou si l'ajout creerait un cycle. Le refus de cycle ne concerne
         que les arcs NOMINAUX : un arc de secours (backup), inerte, peut
-        fermer un cycle apparent, mais reste interdit en boucle sur lui-même.
+        fermer un cycle apparent, mais reste interdit en boucle sur lui-meme.
         """
 
     @abc.abstractmethod
@@ -56,17 +56,17 @@ class GraphRepository(abc.ABC):
 
     @abc.abstractmethod
     def remove_arc(self, source_id: str, target_id: str) -> None:
-        """Supprime l'arc. Lève KeyError s'il est inconnu."""
+        """Supprime l'arc. Leve KeyError s'il est inconnu."""
 
-    # --- Parcours ---------------------------------------------------------
+    # Parcours
 
     @abc.abstractmethod
     def nodes(self) -> list[SupplyNode]:
-        """Tous les nœuds du graphe."""
+        """Tous les noeuds du graphe."""
 
     @abc.abstractmethod
     def arcs(self, kinds: tuple[str, ...] | None = None) -> list[SupplyArc]:
-        """Arcs du graphe, filtrés par nature.
+        """Arcs du graphe, filtres par nature.
 
         Args:
             kinds: natures d'arcs retenues (valeurs d'ArcKind, ex. "nominal",
@@ -79,8 +79,8 @@ class GraphRepository(abc.ABC):
     ) -> list[SupplyNode]:
         """Fournisseurs directs : sources des arcs entrants sur node_id.
 
-        Par défaut, seuls les arcs nominaux comptent comme liens de flux ;
-        les arcs de secours (backup) sont documentaires et ignorés. Passer
+        Par defaut, seuls les arcs nominaux comptent comme liens de flux ;
+        les arcs de secours (backup) sont documentaires et ignores. Passer
         ``kinds=("nominal", "backup")`` pour les inclure.
         """
 
@@ -90,23 +90,23 @@ class GraphRepository(abc.ABC):
     ) -> list[SupplyNode]:
         """Clients directs : cibles des arcs sortants de node_id.
 
-        Par défaut, seuls les arcs nominaux comptent comme liens de flux ;
-        les arcs de secours (backup) sont documentaires et ignorés. Passer
+        Par defaut, seuls les arcs nominaux comptent comme liens de flux ;
+        les arcs de secours (backup) sont documentaires et ignores. Passer
         ``kinds=("nominal", "backup")`` pour les inclure.
         """
 
     @abc.abstractmethod
     def nodes_by_project(self, project_id: str) -> list[SupplyNode]:
-        """Nœuds rattachés au projet donné."""
+        """Noeuds rattaches au projet donne."""
 
     @abc.abstractmethod
     def topological_order(self) -> list[str]:
-        """Ids triés des fournisseurs profonds (rang N) vers le rang 0.
+        """Ids tries des fournisseurs profonds (rang N) vers le rang 0.
 
-        Seuls les arcs nominaux créent une dépendance d'ordre : les arcs de
-        secours (backup) sont ignorés.
+        Seuls les arcs nominaux creent une dependance d'ordre : les arcs de
+        secours (backup) sont ignores.
         """
 
     @abc.abstractmethod
     def clear(self) -> None:
-        """Vide entièrement le graphe."""
+        """Vide entierement le graphe."""

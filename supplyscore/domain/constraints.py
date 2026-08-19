@@ -1,11 +1,11 @@
-"""Contraintes de bornes des KPIs — table de métadonnées unique.
+"""Contraintes de bornes des KPIs - table de metadonnees unique.
 
-Source de vérité consommée à la fois par la validation (légère ici, exhaustive
-en phase E10) et par l'UI (bornes min/max des champs, unités affichées) afin
+Source de verite consommee a la fois par la validation (legere ici, exhaustive
+en phase E10) et par l'UI (bornes min/max des champs, unites affichees) afin
 de ne jamais diverger.
 
-Les chemins de KPI sont qualifiés « bloc.champ » (ex : ``risk.failure_probability``),
-alignés sur :class:`supplyscore.domain.models.KPIBundle`.
+Les chemins de KPI sont qualifies " bloc.champ " (ex : ``risk.failure_probability``),
+alignes sur :class:`supplyscore.domain.models.KPIBundle`.
 """
 
 from __future__ import annotations
@@ -13,9 +13,9 @@ from __future__ import annotations
 import math
 from typing import Any
 
-#: (min, max, unité) par chemin de KPI — None = pas de borne de ce côté.
+#: (min, max, unite) par chemin de KPI - None = pas de borne de ce cote.
 KPI_CONSTRAINTS: dict[str, tuple[float | None, float | None, str]] = {
-    # Réseau
+    # Reseau
     "network.distance_km": (0.0, None, "km"),
     "network.demand": (0.0, None, "unité/temps"),
     # Inventaire
@@ -36,7 +36,7 @@ KPI_CONSTRAINTS: dict[str, tuple[float | None, float | None, str]] = {
     "time.lead_time_max_h": (0.0, None, "h"),  # distribution triangulaire (Monte Carlo E13)
     "time.delay_h": (0.0, None, "h"),
     "time.deadline_h": (0.0, None, "h"),
-    # Coût
+    # Cout
     "cost.product_cost": (0.0, None, "€"),
     "cost.tariff": (1e-9, None, "multiplicateur (1 = neutre)"),
     "cost.nominal_op_cost": (0.0, None, "€"),
@@ -69,8 +69,8 @@ KPI_CONSTRAINTS: dict[str, tuple[float | None, float | None, str]] = {
 def validate_kpi_value(kpi_path: str, value: Any) -> str | None:
     """Valide une valeur de KPI contre ses bornes.
 
-    Retourne un message d'erreur en français, ou None si la valeur est
-    acceptable. ``None`` (KPI non renseigné) est toujours accepté.
+    Retourne un message d'erreur en francais, ou None si la valeur est
+    acceptable. ``None`` (KPI non renseigne) est toujours accepte.
     """
     if value is None:
         return None
@@ -91,7 +91,7 @@ def validate_kpi_value(kpi_path: str, value: Any) -> str | None:
 
 
 def clamp_kpi_value(kpi_path: str, value: float) -> float:
-    """Ramène une valeur dans les bornes de son KPI (pour les impacts calibrés)."""
+    """Ramene une valeur dans les bornes de son KPI (pour les impacts calibres)."""
     lo, hi, _unit = KPI_CONSTRAINTS.get(kpi_path, (None, None, ""))
     if lo is not None:
         value = max(value, lo)
@@ -101,6 +101,6 @@ def clamp_kpi_value(kpi_path: str, value: float) -> float:
 
 
 def kpi_unit(kpi_path: str) -> str:
-    """Unité d'affichage d'un KPI (chaîne vide si inconnu)."""
+    """Unite d'affichage d'un KPI (chaine vide si inconnu)."""
     entry = KPI_CONSTRAINTS.get(kpi_path)
     return entry[2] if entry is not None else ""

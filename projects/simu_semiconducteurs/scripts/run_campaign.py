@@ -1,31 +1,31 @@
-"""Runner de campagne HÉLIOS headless, en-process (U5).
+"""Runner de campagne HELIOS headless, en-process (U5).
 
 Usage :
     python run_campaign.py --out DIR [--prepared DIR] [--seed S] [--tours N]
                             [--behavior module:fonction] [--rollout]
 
-Joue une campagne HÉLIOS complète (T0..N) sans serveur ni saisie humaine, en
-un seul process Python. À chaque tour : décroissance hebdomadaire (t > 0),
-injection KPIs/jalons/événements, puis une déclaration AHP par nœud — soit
-les profils synthétiques historiques (défaut, identique à
-``inject_tour.py --dry-run-ahp``), soit un callback « déclarant » fourni via
+Joue une campagne HELIOS complete (T0..N) sans serveur ni saisie humaine, en
+un seul process Python. A chaque tour : decroissance hebdomadaire (t > 0),
+injection KPIs/jalons/evenements, puis une declaration AHP par noeud - soit
+les profils synthetiques historiques (defaut, identique a
+``inject_tour.py --dry-run-ahp``), soit un callback " declarant " fourni via
 ``--behavior module:fonction`` (contrat 2 du plan v7 : voir
 ``inject_tour._submit_synthetic_ahp``). Un snapshot ``tour_NN.json`` est
-écrit par tour dans ``OUT/run_<seed>/`` (réutilise ``export_state.snapshot``).
+ecrit par tour dans ``OUT/run_<seed>/`` (reutilise ``export_state.snapshot``).
 
-Base de données : créée dans un dossier temporaire propre à ce run et purgée
-à la fin — la campagne ne touche jamais ``data/prepared`` (lecture seule, cf.
-``--prepared``) ni un db-dir partagé avec d'autres campagnes.
+Base de donnees : creee dans un dossier temporaire propre a ce run et purgee
+a la fin - la campagne ne touche jamais ``data/prepared`` (lecture seule, cf.
+``--prepared``) ni un db-dir partage avec d'autres campagnes.
 
 Variantes : si ``--prepared`` contient un ``variant_manifest.json``
 (``{"beta_scale": ..., "gamma_scale": ...}``), les coefficients de TOUS les
-arcs du scénario sont mis à l'échelle en conséquence avant le tour 0 ; le
-manifeste est recopié tel quel dans le dossier de sortie du run (provenance).
+arcs du scenario sont mis a l'echelle en consequence avant le tour 0 ; le
+manifeste est recopie tel quel dans le dossier de sortie du run (provenance).
 
-``--rollout`` : active le rattachement des prévisions (U9,
-``supplyscore.services.forecast.ForecastService``, optionnel) à chaque
-snapshot. Si l'unité U9 n'est pas fusionnée dans cette worktree, la commande
-échoue proprement (message en français) avant toute écriture.
+``--rollout`` : active le rattachement des previsions (U9,
+``supplyscore.services.forecast.ForecastService``, optionnel) a chaque
+snapshot. Si l'unite U9 n'est pas fusionnee dans cette worktree, la commande
+echoue proprement (message en francais) avant toute ecriture.
 """
 
 from __future__ import annotations
@@ -34,6 +34,7 @@ import argparse
 import dataclasses
 import importlib
 import json
+import os
 import shutil
 import sys
 import tempfile
@@ -47,11 +48,11 @@ from _common import FACILITATOR, PROJECT_ID, scenario
 
 
 def _import_behavior(spec: str):
-    """Résout ``--behavior module:fonction`` en callable ``respond`` (contrat 2).
+    """Resout ``--behavior module:fonction`` en callable ``respond`` (contrat 2).
 
     Raises:
-        ValueError: spécification malformée, module ou fonction introuvable
-            (message en français ; ``main`` la traduit en REFUS + code 2 —
+        ValueError: specification malformee, module ou fonction introuvable
+            (message en francais ; ``main`` la traduit en REFUS + code 2 -
             convention de ce script, cf. ``setup_scenario``/``inject_tour``).
     """
     module_name, sep, func_name = spec.partition(":")
@@ -70,10 +71,10 @@ def _import_behavior(spec: str):
 
 
 def _apply_variant(service, prepared_dir: Path) -> dict | None:
-    """Met à l'échelle beta/gamma de tous les arcs depuis ``variant_manifest.json``.
+    """Met a l'echelle beta/gamma de tous les arcs depuis ``variant_manifest.json``.
 
-    No-op silencieux si le fichier est absent (scénario nominal, cas de loin
-    le plus fréquent). Écrit via ``upsert_arc`` (audit + validation des
+    No-op silencieux si le fichier est absent (scenario nominal, cas de loin
+    le plus frequent). Ecrit via ``upsert_arc`` (audit + validation des
     bornes [0, 1] incluses).
     """
     manifest_path = Path(prepared_dir) / "variant_manifest.json"
@@ -93,37 +94,116 @@ def _apply_variant(service, prepared_dir: Path) -> dict | None:
     return manifest
 
 
-def _augment_forecast(service, forecast_cls, data: dict, run_dir: Path, tour: int) -> None:
-    """Ajoute ``forecast`` par nœud au snapshot déjà écrit (contrat 7, U9, best effort).
+def _horizon_env(defaut: int) -> int:
+    """Horizon de prevision, surchargeable par ``SUPPLYSCORE_HORIZON_PREVISION``.
 
-    L'API de ``ForecastService`` n'est pas stabilisée au moment où U5 est
-    écrite (U9 non fusionnée dans cette worktree) : cet appel est protégé —
-    un échec (signature différente une fois U9 réellement disponible) laisse
-    le tour exporté SANS le champ ``forecast`` plutôt que de faire échouer
-    toute la campagne, et journalise la cause.
+    Canal de calibration : les balayages lancent le harnais en sous-processus,
+    une variable d'environnement est donc le seul moyen de faire varier
+    l'horizon sans editer le code entre deux mesures - ce qui les rendrait
+    incomparables. Une valeur illisible ou hors [1, 26] retombe sur le defaut
+    en le disant, plutot que d'introduire un horizon fantaisiste en silence.
+
+    Args:
+        defaut: horizon retenu en l'absence de surcharge valide.
+
+    Returns:
+        L'horizon en semaines.
     """
+    brut = os.environ.get("SUPPLYSCORE_HORIZON_PREVISION")
+    if brut is None:
+        return defaut
     try:
-        forecast_service = forecast_cls(service)
-        for node_id in data["nodes"]:
-            result = forecast_service.forecast_node(PROJECT_ID, node_id)
-            data["nodes"][node_id]["forecast"] = {
-                str(horizon): dict(values) for horizon, values in result.items()
-            }
-        path = run_dir / f"tour_{tour:02d}.json"
-        path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
-        print(f"  [forecast] ajouté à {path}")
-    except Exception as exc:  # best effort : API U9 non figée, ne bloque jamais la campagne
-        print(f"  [forecast ÉCHEC] {type(exc).__name__}: {exc}")
+        valeur = int(brut)
+    except ValueError:
+        print(f"  [horizon] valeur illisible {brut!r}, défaut {defaut} conservé")
+        return defaut
+    if not 1 <= valeur <= 26:
+        print(f"  [horizon] {valeur} hors [1, 26], défaut {defaut} conservé")
+        return defaut
+    return valeur
+
+
+#: Horizon des previsions rattachees aux snapshots, en semaines. Aligne sur ``experiment/run_experiment.py`` pour que les campagnes synthetiques et les bras LLM soient scorables avec le meme outil. Balayable via ``SUPPLYSCORE_HORIZON_PREVISION``.
+HORIZON_PREVISION: int = _horizon_env(4)
+
+#: Budget de trajectoires du rollout (arrondi a K-floor(n/K) par le service).
+N_DRAWS_PREVISION: int = 500
+
+
+def _augment_forecast(service, forecast_cls, data: dict, run_dir: Path, tour: int) -> None:
+    """Ajoute ``forecast`` par noeud au snapshot, et une ligne au journal.
+
+    Ecrit exactement les memes champs que ``experiment/run_experiment.py``
+    (``p_issue`` par horizon, ``p_jalon_rate``, ``p_impact_client``, ``spread``,
+    ``ur_local``, ``d1_ur_local``), pour que les snapshots d'une campagne
+    synthetique se scorent avec le meme outil que ceux des bras LLM.
+
+    Deux natures d'echec, traitees differemment :
+
+    - ``ValueError`` - historique hebdomadaire trop court. C'est le cas
+      NORMAL des premiers tours : journalise, la campagne continue.
+    - toute autre exception - l'API du service ne correspond plus a cet
+      appel. C'est un defaut de programmation, pas une condition de terrain :
+      il interrompt, parce que ``--rollout`` a ete demande explicitement et
+      qu'une campagne sans previsions ne repond alors pas a la demande.
+
+    La version precedente attrapait les deux, et un renommage d'API a produit
+    dix-neuf tours sans une seule prevision sans que rien n'echoue.
+    """
+    forecast_service = forecast_cls(service)
+    try:
+        resultat = forecast_service.rollout(
+            PROJECT_ID,
+            horizon_weeks=HORIZON_PREVISION,
+            n_draws=N_DRAWS_PREVISION,
+            seed=0,
+        )
+    except ValueError as exc:  # historique insuffisant : normal aux premiers tours
+        print(f"  [forecast indisponible] {exc}")
+        return
+
+    journal = run_dir / "predictions_log.jsonl"
+    lignes: list[str] = []
+    for node_id, par_horizon in resultat.previsions.items():
+        if node_id not in data["nodes"]:
+            continue
+        reference = par_horizon[HORIZON_PREVISION]
+        _, valeurs = forecast_service._serie_hebdo(node_id)
+        delta = float(valeurs[-1] - valeurs[-2]) if valeurs.size >= 2 else None
+        champs = {
+            "p_issue": {str(k): p.p_issue for k, p in par_horizon.items()},
+            "ic80_h4": [reference.ic80.bas, reference.ic80.haut],
+            "se_mc": reference.se_mc,
+            "spread": reference.spread,
+            "p_jalon_rate": reference.p_jalon_rate,
+            "p_impact_client": reference.p_impact_client,
+            "ur_local": float(valeurs[-1]) if valeurs.size else None,
+            "d1_ur_local": delta,
+        }
+        data["nodes"][node_id]["forecast"] = champs
+        entree = {"arm": "synthetique", "tour": tour, "node_id": node_id,
+                  "spread": champs["spread"], "p_jalon_rate": champs["p_jalon_rate"],
+                  "p_impact_client": champs["p_impact_client"],
+                  "ur_local": champs["ur_local"], "d1_ur_local": champs["d1_ur_local"]}
+        for k, proba in champs["p_issue"].items():
+            entree[f"p_issue_h{k}"] = proba
+        lignes.append(json.dumps(entree, ensure_ascii=False))
+
+    path = run_dir / f"tour_{tour:02d}.json"
+    path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    with journal.open("a", encoding="utf-8") as flux:
+        flux.write("\n".join(lignes) + "\n")
+    print(f"  [forecast] {len(lignes)} nœuds rattachés à {path}")
 
 
 def _check_rollout(rollout: bool):
-    """``--rollout`` : importe ``ForecastService`` (U9) ou échoue proprement.
+    """``--rollout`` : importe ``ForecastService`` (U9) ou echoue proprement.
 
     Returns:
         La classe ``ForecastService`` si ``--rollout`` et disponible ; None
-        si ``--rollout`` n'est pas demandé ; ``"MISSING"`` si demandé mais
-        l'unité U9 n'est pas fusionnée (l'appelant doit alors sortir en
-        erreur SANS rien écrire).
+        si ``--rollout`` n'est pas demande ; ``"MISSING"`` si demande mais
+        l'unite U9 n'est pas fusionnee (l'appelant doit alors sortir en
+        erreur SANS rien ecrire).
     """
     if not rollout:
         return None
@@ -140,7 +220,7 @@ def _check_rollout(rollout: bool):
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Point d'entrée CLI : joue la campagne T0..``--tours`` et retourne un code de sortie."""
+    """Point d'entree CLI : joue la campagne T0..``--tours`` et retourne un code de sortie."""
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
@@ -173,6 +253,15 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Rattache les prévisions (U9) à chaque snapshot",
     )
+    parser.add_argument(
+        "--db-dir",
+        type=Path,
+        default=None,
+        help="Conserve la base de campagne ici au lieu d'un dossier temporaire purgé. "
+             "Sans elle, la campagne ne laisse que des fichiers : le projet n'est pas "
+             "réouvrable dans l'application, donc ni l'explication par nœud, ni la "
+             "criticité, ni l'export ne sont accessibles après coup.",
+    )
     args = parser.parse_args(argv)
 
     if not (0 <= args.tours <= scenario.N_TOURS):
@@ -193,9 +282,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"REFUS : dossier --prepared introuvable : {args.prepared}")
         return 2
 
-    # ``run_<seed>/`` est un dossier ENTIÈREMENT possédé par ce script : purgé
-    # avant chaque run pour qu'un ``--tours`` plus petit qu'un run précédent
-    # ne laisse pas de tour_NN.json périmés (faux air de campagne plus longue).
+    # ``run_<seed>/`` est un dossier ENTIEREMENT possede par ce script : purge avant chaque run pour qu'un ``--tours`` plus petit qu'un run precedent ne laisse pas de tour_NN.json perimes (faux air de campagne plus longue).
     run_dir = Path(args.out) / f"run_{args.seed}"
     if run_dir.exists():
         shutil.rmtree(run_dir)
@@ -205,7 +292,15 @@ def main(argv: list[str] | None = None) -> int:
     if manifest_path.exists():
         shutil.copy2(manifest_path, run_dir / "variant_manifest.json")
 
-    db_dir = tempfile.mkdtemp(prefix="helios_campaign_")
+    # Base persistante si --db-dir : le projet reste ouvrable dans l'application
+    # (explication par noeud, criticite, export). Sinon dossier temporaire purge,
+    # comportement historique.
+    persistante = args.db_dir is not None
+    if persistante:
+        args.db_dir.mkdir(parents=True, exist_ok=True)
+        db_dir = str(args.db_dir)
+    else:
+        db_dir = tempfile.mkdtemp(prefix="campaign_")
     try:
         rc = setup_scenario.main(["--db-dir", db_dir])
         if rc != 0:
@@ -247,7 +342,10 @@ def main(argv: list[str] | None = None) -> int:
         finally:
             service.close()
     finally:
-        shutil.rmtree(db_dir, ignore_errors=True)
+        if persistante:
+            print(f"Base de campagne conservée : {db_dir}")
+        else:
+            shutil.rmtree(db_dir, ignore_errors=True)
 
     print(f"Campagne terminée : {run_dir}")
     return 0

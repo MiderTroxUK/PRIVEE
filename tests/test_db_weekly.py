@@ -1,10 +1,10 @@
-"""Tests de la revue hebdomadaire et du journal des décisions (migration client v5).
+"""Tests de la revue hebdomadaire et du journal des decisions (migration client v5).
 
-Couvre : migration v4 -> v5 sur base réelle peuplée (tables créées, données
-préservées, idempotence), sémantique d'``upsert_weekly_review`` (fusion des
-volets, ``started_at`` posé une seule fois, ``completed_at`` écrasable),
+Couvre : migration v4 -> v5 sur base reelle peuplee (tables creees, donnees
+preservees, idempotence), semantique d'``upsert_weekly_review`` (fusion des
+volets, ``started_at`` pose une seule fois, ``completed_at`` ecrasable),
 round-trip ``save_decision``/``list_decisions`` (tri DESC, filtre semaine,
-isolation par nœud) et persistance après réouverture du fichier.
+isolation par noeud) et persistance apres reouverture du fichier.
 """
 
 from __future__ import annotations
@@ -36,7 +36,7 @@ def _index_names(conn: sqlite3.Connection) -> set[str]:
 
 
 def _build_v4_client_with_data(db_file: Path) -> None:
-    """Construit une vraie base client v4 peuplée (évaluation + événement)."""
+    """Construit une vraie base client v4 peuplee (evaluation + evenement)."""
     conn = sqlite3.connect(str(db_file))
     _client_v1(conn)
     _client_v2(conn)
@@ -63,7 +63,7 @@ def _build_v4_client_with_data(db_file: Path) -> None:
     conn.close()
 
 
-# --- Migration client v4 -> v5 ------------------------------------------------------
+# Migration client v4 -> v5
 
 
 class TestClientV5Migration:
@@ -76,11 +76,11 @@ class TestClientV5Migration:
         assert apply_migrations(conn, "client") == 7
         assert conn.execute("PRAGMA user_version").fetchone()[0] == 7
 
-        # Nouvelles tables et index présents.
+        # Nouvelles tables et index presents.
         assert {"weekly_reviews", "decisions"} <= _table_names(conn)
         assert "idx_decisions_node_week" in _index_names(conn)
 
-        # Données préservées.
+        # Donnees preservees.
         row = conn.execute("SELECT node_id, operator_id, ud, iso_week FROM assessments").fetchone()
         assert row == ("n1", "op-7", 0.4, "2026-S24")
         assert conn.execute("SELECT id, event_type FROM events").fetchone() == ("e1", "panne")
@@ -92,7 +92,7 @@ class TestClientV5Migration:
         conn = sqlite3.connect(str(db_file))
 
         assert apply_migrations(conn, "client") == 7
-        # Re-application : no-op, données intactes.
+        # Re-application : no-op, donnees intactes.
         assert apply_migrations(conn, "client") == 7
         assert conn.execute("PRAGMA user_version").fetchone()[0] == 7
         assert conn.execute("SELECT COUNT(*) FROM assessments").fetchone()[0] == 1
@@ -107,7 +107,7 @@ class TestClientV5Migration:
         conn.close()
 
 
-# --- Revue hebdomadaire (weekly_reviews) ---------------------------------------------
+# Revue hebdomadaire (weekly_reviews)
 
 
 class TestWeeklyReview:
@@ -129,7 +129,7 @@ class TestWeeklyReview:
             assert review is not None
             assert review["volets"] == {"ahp": 1, "kpis": 1}
 
-            # Un volet déjà présent est écrasé par sa nouvelle valeur.
+            # Un volet deja present est ecrase par sa nouvelle valeur.
             db.upsert_weekly_review("n1", "2026-S24", volets={"ahp": 0})
             review = db.get_weekly_review("n1", "2026-S24")
             assert review is not None
@@ -138,7 +138,7 @@ class TestWeeklyReview:
     def test_started_at_pose_une_seule_fois(self, tmp_path: Path) -> None:
         with ClientDatabase(tmp_path, "client-1") as db:
             db.upsert_weekly_review("n1", "2026-S24", started_at=1000.0)
-            db.upsert_weekly_review("n1", "2026-S24", started_at=2000.0)  # ignoré
+            db.upsert_weekly_review("n1", "2026-S24", started_at=2000.0)  # ignore
             review = db.get_weekly_review("n1", "2026-S24")
             assert review is not None
             assert review["started_at"] == 1000.0
@@ -154,7 +154,7 @@ class TestWeeklyReview:
     def test_champs_non_fournis_intacts(self, tmp_path: Path) -> None:
         with ClientDatabase(tmp_path, "client-1") as db:
             db.upsert_weekly_review("n1", "2026-S24", volets={"ahp": 1}, started_at=1000.0)
-            # Mise à jour partielle : ni volets ni started_at ne bougent.
+            # Mise a jour partielle : ni volets ni started_at ne bougent.
             db.upsert_weekly_review("n1", "2026-S24", completed_at=2000.0)
             review = db.get_weekly_review("n1", "2026-S24")
             assert review == {
@@ -177,7 +177,7 @@ class TestWeeklyReview:
             assert autre is not None and autre["volets"] == {"jalons": 1}
 
 
-# --- Journal des décisions (decisions) -----------------------------------------------
+# Journal des decisions (decisions)
 
 
 class TestDecisions:
@@ -203,7 +203,7 @@ class TestDecisions:
             )
 
             decisions = db.list_decisions("n1")
-            # Tri created_at DESC : la plus récente d'abord.
+            # Tri created_at DESC : la plus recente d'abord.
             assert [d["id"] for d in decisions] == ["d2", "d1"]
 
             premiere = decisions[1]
@@ -211,7 +211,7 @@ class TestDecisions:
             assert premiere["iso_week"] == "2026-S24"
             assert premiere["operator_id"] == "op-7"
             assert premiere["description"] == "Relancer le fournisseur"
-            assert premiere["scores"] == _SCORES  # snapshot désérialisé
+            assert premiere["scores"] == _SCORES  # snapshot deserialise
             assert premiere["created_at"] == 1000.0
 
     def test_filtre_iso_week(self, tmp_path: Path) -> None:
@@ -234,7 +234,7 @@ class TestDecisions:
             assert db.list_decisions("n3") == []
 
 
-# --- Persistance après réouverture ----------------------------------------------------
+# Persistance apres reouverture
 
 
 def test_donnees_persistent_apres_reouverture(tmp_path: Path) -> None:

@@ -1,7 +1,7 @@
-"""Tests des badges hebdo et de complétude — composants purs, aucun serveur.
+"""Tests des badges hebdo et de completude - composants purs, aucun serveur.
 
-Les statuts sont passés en chaînes (duck-typing) : le StrEnum des services
-n'est volontairement pas importé (lot parallèle sur ``services/weekly.py``).
+Les statuts sont passes en chaines (duck-typing) : le StrEnum des services
+n'est volontairement pas importe (lot parallele sur ``services/weekly.py``).
 """
 
 from enum import StrEnum
@@ -28,7 +28,7 @@ class _StatutLocal(StrEnum):
     EN_RETARD = "en_retard"
 
 
-# --- texte_hebdo : libellés exacts -----------------------------------------------------
+# texte_hebdo : libelles exacts
 
 
 @pytest.mark.parametrize(
@@ -52,7 +52,7 @@ def test_texte_hebdo_accepte_strenum():
     assert texte_hebdo(_StatutLocal.EN_RETARD, 3) == "En retard (3 sem.)"
 
 
-# --- badge_hebdo ------------------------------------------------------------------------
+# badge_hebdo
 
 
 def test_badge_hebdo_est_un_span_avec_libelle_exact():
@@ -91,11 +91,11 @@ def test_badge_hebdo_style_pilule(statut):
     assert style["borderRadius"] == "10px"
     assert style["fontSize"] == "12px"
     assert style["fontWeight"] == "600"
-    # Fond pâle distinct du texte foncé (pilule lisible).
+    # Fond pale distinct du texte fonce (pilule lisible).
     assert style["backgroundColor"] != style["color"]
 
 
-# --- completeness_badge et draft_badge --------------------------------------------------
+# completeness_badge et draft_badge
 
 
 def test_completeness_badge_complet_vert():
@@ -122,7 +122,7 @@ def test_draft_badge_gris_incomplet():
     assert badge.style["borderRadius"] == "10px"
 
 
-# --- style_hebdo_conditionnel -----------------------------------------------------------
+# style_hebdo_conditionnel
 
 
 def test_style_hebdo_conditionnel_trois_regles_filter_query():
@@ -147,5 +147,5 @@ def test_style_hebdo_conditionnel_couleurs_alignees_sur_les_badges():
     for query, badge in attendu.items():
         assert regles[query]["color"] == badge.style["color"]
         assert regles[query]["backgroundColor"] == badge.style["backgroundColor"]
-    # 3 couleurs distinctes entre les règles.
+    # 3 couleurs distinctes entre les regles.
     assert len({r["color"] for r in regles.values()}) == 3

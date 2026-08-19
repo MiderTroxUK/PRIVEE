@@ -1,47 +1,47 @@
-r"""Modèle de comportement (palier 1, U7) — ajuste et sérialise le modèle par dimension.
+r"""Modele de comportement (palier 1, U7) - ajuste et serialise le modele par dimension.
 
 Pour chaque dimension de sortie d :
 
-    y_d(p, t) = alpha_{p,d} + x(p, t)·w_d + phi_d · y_d(p, t-1) + eps
+    y_d(p, t) = alpha_{p,d} + x(p, t)-w_d + phi_d - y_d(p, t-1) + eps
 
-- ``alpha_{p,d}`` : intercept de persona, partiellement poolé (pénalité
-  ``lambda_alpha``, retenu vers 0 — pas vers une moyenne de groupe séparée,
-  ce qui revient au même dans ce montage : pas de colonne d'intercept
+- ``alpha_{p,d}`` : intercept de persona, partiellement poole (penalite
+  ``lambda_alpha``, retenu vers 0 - pas vers une moyenne de groupe separee,
+  ce qui revient au meme dans ce montage : pas de colonne d'intercept
   global) ;
 - ``w_d`` : pente sur les 29 features x(p, t) (9 KPI x [val, d1, d2] +
   event_flag + press_flag, cf. ``declarants.vectorize_features``) ;
-- ``phi_d`` : autorégression sur LA MÊME dimension au tour précédent.
+- ``phi_d`` : autoregression sur LA MEME dimension au tour precedent.
 
-``w_d`` et ``phi_d`` sont pénalisés ensemble par ``lambda_w`` (les deux sont
-des « pentes » au sens du plan U7 — seul ``alpha`` a sa propre pénalité).
-Résolution par MOINDRES CARRÉS AUGMENTÉS : les pénalités sont ajoutées comme
-des lignes supplémentaires ``sqrt(lambda)·I`` avec cible 0
-(``scipy.linalg.lstsq``), jamais une formule fermée réinventée.
+``w_d`` et ``phi_d`` sont penalises ensemble par ``lambda_w`` (les deux sont
+des " pentes " au sens du plan U7 - seul ``alpha`` a sa propre penalite).
+Resolution par MOINDRES CARRES AUGMENTES : les penalites sont ajoutees comme
+des lignes supplementaires ``sqrt(lambda)-I`` avec cible 0
+(``scipy.linalg.lstsq``), jamais une formule fermee reinventee.
 
-Sélection de (lambda_alpha, lambda_w) sur une grille 3x3 par validation
-TEMPORELLE : fit sur les tours 1..12, validation sur 13..18 — JAMAIS de
-découpage aléatoire (fuite temporelle : un jour de campagne « voit » les
-suivants via une AR mal découpée sinon). Le couple retenu sert ensuite à
-ré-ajuster le modèle FINAL (sérialisé) sur l'intégralité 1..18 — plus de
-données pour le modèle déployé, tandis que le verdict de rétention reste
-calculé sur le fit HONNÊTE (1..12 seul, jamais 13..18).
+Selection de (lambda_alpha, lambda_w) sur une grille 3x3 par validation
+TEMPORELLE : fit sur les tours 1..12, validation sur 13..18 - JAMAIS de
+decoupage aleatoire (fuite temporelle : un jour de campagne " voit " les
+suivants via une AR mal decoupee sinon). Le couple retenu sert ensuite a
+re-ajuster le modele FINAL (serialise) sur l'integralite 1..18 - plus de
+donnees pour le modele deploye, tandis que le verdict de retention reste
+calcule sur le fit HONNETE (1..12 seul, jamais 13..18).
 
-RETENTION : le modèle n'est retenu que s'il bat, sur les tours de
-validation, la baseline « biais de profil seul » — reconstruction de
-``inject_tour._submit_synthetic_ahp`` (comparaisons neutres, notes ancrées
-sur ``1 + 8·ur_local``) — sur une MAJORITÉ des 10 dimensions (4 notes + 6
-comparaisons). ``ur_local`` réel n'étant pas dans ``data/prepared/`` (calculé
-par le moteur, pas stocké), la baseline utilise un PROXY documenté
-(:func:`_ur_local_proxy`) — limitation assumée, jamais utilisée par le
-modèle palier 1 lui-même (qui consomme x(p,t) brut, pas le proxy).
+RETENTION : le modele n'est retenu que s'il bat, sur les tours de
+validation, la baseline " biais de profil seul " - reconstruction de
+``inject_tour._submit_synthetic_ahp`` (comparaisons neutres, notes ancrees
+sur ``1 + 8-ur_local``) - sur une MAJORITE des 10 dimensions (4 notes + 6
+comparaisons). ``ur_local`` reel n'etant pas dans ``data/prepared/`` (calcule
+par le moteur, pas stocke), la baseline utilise un PROXY documente
+(:func:`_ur_local_proxy`) - limitation assumee, jamais utilisee par le
+modele palier 1 lui-meme (qui consomme x(p,t) brut, pas le proxy).
 
-Entrées :
-    - les 8 ``.../llm_pilot_run/sandbox_<node>/results.jsonl`` du DÉPÔT
-      PRINCIPAL (non versionnés, absents de ce worktree — lecture SEULE à un
-      chemin absolu fixe, jamais dérivé de ``__file__``) ;
-    - ``data/prepared/`` de CE worktree (lecture seule, jamais modifié).
+Entrees :
+    - les 8 ``.../llm_pilot_run/sandbox_<node>/results.jsonl`` du DEPOT
+      PRINCIPAL (non versionnes, absents de ce worktree - lecture SEULE a un
+      chemin absolu fixe, jamais derive de ``__file__``) ;
+    - ``data/prepared/`` de CE worktree (lecture seule, jamais modifie).
 
-Sortie : ``analysis/behavior_params.json`` (consommé par
+Sortie : ``analysis/behavior_params.json`` (consomme par
 ``factory.declarants.RidgeDeclarant``).
 
 Usage :
@@ -67,9 +67,7 @@ _FACTORY_DIR = _REPO_ROOT / "projects" / "factory"
 _PREPARED = _PROJECT_DIR / "data" / "prepared"
 _PARAMS_PATH = _ANALYSIS_DIR / "behavior_params.json"
 
-#: Dépôt PRINCIPAL (JAMAIS ce worktree) : artefacts pilotes non versionnés.
-#: Chemin ABSOLU fixe (pas dérivé de __file__, qui pointerait ce worktree) —
-#: consigne explicite de la campagne U7 : lecture seule, jamais d'écriture.
+#: Depot PRINCIPAL (JAMAIS ce worktree) : artefacts pilotes non versionnes. Chemin ABSOLU fixe (pas derive de __file__, qui pointerait ce worktree) - consigne explicite de la campagne U7 : lecture seule, jamais d'ecriture.
 _MAIN_REPO = Path(r"C:\PRIVEE\AZURE")
 _PILOT_ROOT = _MAIN_REPO / "projects" / "simu_semiconducteurs" / "analysis" / "llm_pilot_run"
 
@@ -111,11 +109,11 @@ _COL_PHI = N_PERSONAS + N_FEATURES
 N_COLS = N_PERSONAS + N_FEATURES + 1
 
 
-# --- Chargement des traces pilotes (dépôt principal, lecture seule) ----------------
+# Chargement des traces pilotes (depot principal, lecture seule)
 
 
 def _load_pilot_traces() -> dict[str, dict[int, dict]]:
-    """Charge les 8 ``results.jsonl`` par (nœud, tour) ; ignore la ligne « debrief »."""
+    """Charge les 8 ``results.jsonl`` par (noeud, tour) ; ignore la ligne " debrief "."""
     traces: dict[str, dict[int, dict]] = {}
     for node_id in NODE_IDS:
         path = _PILOT_ROOT / f"sandbox_{node_id}" / "results.jsonl"
@@ -146,7 +144,7 @@ def _y_vector(rec: dict) -> list[float]:
 def _build_rows(
     traces: dict[str, dict[int, dict]], features_by_nt: dict[tuple[str, int], dict]
 ) -> list[dict]:
-    """Une ligne exploitable par (nœud, tour) pour t=1..N_TOURS (t-1 requis pour l'AR)."""
+    """Une ligne exploitable par (noeud, tour) pour t=1..N_TOURS (t-1 requis pour l'AR)."""
     rows: list[dict] = []
     for node_id in NODE_IDS:
         by_tour = traces[node_id]
@@ -168,7 +166,7 @@ def _build_rows(
     return rows
 
 
-# --- Moindres carrés augmentés (ridge par groupes de colonnes) ---------------------
+# Moindres carres augmentes (ridge par groupes de colonnes)
 
 
 def _design_matrix(rows: list[dict], dim_index: int) -> tuple[np.ndarray, np.ndarray]:
@@ -188,13 +186,13 @@ def _design_matrix(rows: list[dict], dim_index: int) -> tuple[np.ndarray, np.nda
 def _fit_penalized(
     x: np.ndarray, y: np.ndarray, lambda_alpha: float, lambda_w: float
 ) -> np.ndarray:
-    """Moindres carrés augmentés : lignes de pénalité ``sqrt(lambda)·I`` par groupe.
+    """Moindres carres augmentes : lignes de penalite ``sqrt(lambda)-I`` par groupe.
 
-    Groupe « persona » (colonnes one-hot) pénalisé par ``lambda_alpha``,
-    groupe « pentes » (features + phi AR) pénalisé par ``lambda_w`` — cf.
-    docstring module. Toutes les colonnes sont pénalisées (pas d'intercept
-    global séparé) : la matrice augmentée est donc de rang plein par
-    construction (diag(pénalité) > 0 partout), jamais de système singulier.
+    Groupe " persona " (colonnes one-hot) penalise par ``lambda_alpha``,
+    groupe " pentes " (features + phi AR) penalise par ``lambda_w`` - cf.
+    docstring module. Toutes les colonnes sont penalisees (pas d'intercept
+    global separe) : la matrice augmentee est donc de rang plein par
+    construction (diag(penalite) > 0 partout), jamais de systeme singulier.
     """
     penalty = np.zeros(N_COLS)
     penalty[_COL_PERSONA] = np.sqrt(lambda_alpha)
@@ -211,7 +209,7 @@ def _mae(x: np.ndarray, y: np.ndarray, beta: np.ndarray) -> float:
 
 
 def _fit_all_dims(rows: list[dict], lambda_alpha: float, lambda_w: float) -> dict[str, np.ndarray]:
-    """Ajuste beta_d pour les 10 dimensions sur ``rows`` au couple donné."""
+    """Ajuste beta_d pour les 10 dimensions sur ``rows`` au couple donne."""
     betas: dict[str, np.ndarray] = {}
     for d, dim in enumerate(DIMENSIONS):
         x, y = _design_matrix(rows, d)
@@ -220,11 +218,11 @@ def _fit_all_dims(rows: list[dict], lambda_alpha: float, lambda_w: float) -> dic
 
 
 def _select_lambdas(rows: list[dict]) -> tuple[float, float]:
-    """Grille 3x3 ; critère = MAE de validation normalisée moyenne (10 dimensions).
+    """Grille 3x3 ; critere = MAE de validation normalisee moyenne (10 dimensions).
 
-    Normalisation par l'étendue de chaque dimension (5 pour les notes UI
-    [1,6], 16 pour les comparaisons [-8,8]) pour qu'une seule dimension à
-    forte amplitude ne domine pas la sélection.
+    Normalisation par l'etendue de chaque dimension (5 pour les notes UI
+    [1,6], 16 pour les comparaisons [-8,8]) pour qu'une seule dimension a
+    forte amplitude ne domine pas la selection.
     """
     train_rows = [r for r in rows if r["tour"] in TRAIN_TOURS]
     val_rows = [r for r in rows if r["tour"] in VAL_TOURS]
@@ -253,17 +251,16 @@ def _select_lambdas(rows: list[dict]) -> tuple[float, float]:
     return best[0], best[1]
 
 
-# --- Baseline « biais de profil seul » (inject_tour._submit_synthetic_ahp) ---------
+# Baseline " biais de profil seul " (inject_tour._submit_synthetic_ahp)
 
-#: KPI déjà sur une échelle bornée : écart absolu à un plafond documenté.
+#: KPI deja sur une echelle bornee : ecart absolu a un plafond documente.
 _PROXY_ABS_REF: dict[str, tuple[float, float]] = {
     "risk.failure_probability": (0.0, 0.05),
     "risk.cost_volatility": (0.0, 0.05),
     "oee.performance": (1.0, 1.0),
     "oee.availability": (1.0, 1.0),
 }
-#: KPI à échelle propre au nœud : écart RELATIF à la première valeur
-#: observée (+1 : une hausse est une tension ; -1 : une baisse l'est).
+#: KPI a echelle propre au noeud : ecart RELATIF a la premiere valeur observee (+1 : une hausse est une tension ; -1 : une baisse l'est).
 _PROXY_REL_DIRECTION: dict[str, int] = {
     "network.demand": 1,
     "time.lead_time_h": 1,
@@ -274,15 +271,15 @@ _PROXY_REL_DIRECTION: dict[str, int] = {
 
 
 def _ur_local_proxy(hist: dict, node_id: str, t: int) -> float:
-    """PROXY documenté d'urgence locale.
+    """PROXY documente d'urgence locale.
 
-    Le ``ur_local`` réel du moteur n'est pas dans ``data/prepared/`` : il
-    est calculé en rejouant la simulation, hors périmètre de ce script en
-    lecture seule. Moyenne de signaux de tension normalisés [0, 1], calculée UNIQUEMENT à
-    partir des KPI EFFECTIVEMENT observés pour ce nœud (un chemin jamais
-    observé est ignoré, jamais compté comme « 0 = aucune tension »). Sert
-    SEULEMENT à instancier la baseline ci-dessous ; jamais consommé par le
-    modèle palier 1 (qui utilise x(p,t) brut, cf. :func:`vectorize_features`).
+    Le ``ur_local`` reel du moteur n'est pas dans ``data/prepared/`` : il
+    est calcule en rejouant la simulation, hors perimetre de ce script en
+    lecture seule. Moyenne de signaux de tension normalises [0, 1], calculee UNIQUEMENT a
+    partir des KPI EFFECTIVEMENT observes pour ce noeud (un chemin jamais
+    observe est ignore, jamais compte comme " 0 = aucune tension "). Sert
+    SEULEMENT a instancier la baseline ci-dessous ; jamais consomme par le
+    modele palier 1 (qui utilise x(p,t) brut, cf. :func:`vectorize_features`).
     """
     signals: list[float] = []
     for path, (nominal, span) in _PROXY_ABS_REF.items():
@@ -311,10 +308,10 @@ def _baseline_prediction(
 ) -> list[float]:
     """Reconstruction de ``inject_tour._submit_synthetic_ahp``.
 
-    4 notes UI [1,6] ancrées sur ``1 + 8·ur_local`` (ici : le proxy) + biais
-    de profil + bruit déterministe (même graine ``f"{node}-{tour}"``),
-    mappées de [1,9] vers [1,6] par l'inverse de ``score_6_to_9`` ; 6
-    comparaisons TOUJOURS neutres (0) — la baseline synthétique ne fait
+    4 notes UI [1,6] ancrees sur ``1 + 8-ur_local`` (ici : le proxy) + biais
+    de profil + bruit deterministe (meme graine ``f"{node}-{tour}"``),
+    mappees de [1,9] vers [1,6] par l'inverse de ``score_6_to_9`` ; 6
+    comparaisons TOUJOURS neutres (0) - la baseline synthetique ne fait
     jamais varier les comparaisons par paire, seulement les notes.
     """
     ur = _ur_local_proxy(hist, node_id, t)
@@ -326,7 +323,7 @@ def _baseline_prediction(
     return scores_ui + [0.0] * 6
 
 
-# --- Validation temporelle honnête + verdict de rétention --------------------------
+# Validation temporelle honnete + verdict de retention
 
 
 def _validation_report(
@@ -335,7 +332,7 @@ def _validation_report(
     hist: dict,
     bias_by_node: dict[str, float],
 ) -> dict:
-    """MAE modèle (fit 1..12 SEUL) vs baseline sur les tours 13..18, par dimension."""
+    """MAE modele (fit 1..12 SEUL) vs baseline sur les tours 13..18, par dimension."""
     report: dict[str, dict] = {}
     n_wins = 0
     print("\n=== Validation temporelle (fit tours 1..12, validation 13..18) ===")
@@ -361,11 +358,11 @@ def _validation_report(
     return report
 
 
-# --- Sérialisation -------------------------------------------------------------------
+# Serialisation
 
 
 def _split_beta(betas: dict[str, np.ndarray]) -> tuple[dict, dict, dict]:
-    """Éclate chaque beta_d en (alpha par persona + générique, poids, phi)."""
+    """Eclate chaque beta_d en (alpha par persona + generique, poids, phi)."""
     alpha: dict[str, dict[str, float]] = {nid: {} for nid in NODE_IDS}
     alpha["__generic__"] = {}
     weights: dict[str, list[float]] = {}
@@ -380,7 +377,7 @@ def _split_beta(betas: dict[str, np.ndarray]) -> tuple[dict, dict, dict]:
 
 
 def _residual_pools(rows: list[dict], betas: dict[str, np.ndarray]) -> dict[str, list[float]]:
-    """Résidus empiriques (y - prédiction) du modèle final, par dimension.
+    """Residus empiriques (y - prediction) du modele final, par dimension.
 
     Pour le tirage bootstrap de :class:`declarants.RidgeDeclarant`.
     """
@@ -393,7 +390,7 @@ def _residual_pools(rows: list[dict], betas: dict[str, np.ndarray]) -> dict[str,
 
 
 def main() -> int:
-    """Point d'entrée : ajuste, valide, sérialise. Retourne 0 (jamais d'échec silencieux)."""
+    """Point d'entree : ajuste, valide, serialise. Retourne 0 (jamais d'echec silencieux)."""
     print("[behavior_model] chargement des traces pilotes (dépôt principal, lecture seule)...")
     traces = _load_pilot_traces()
     print(f"[behavior_model] {sum(len(v) for v in traces.values())} déclarations pilotes chargées "
@@ -406,8 +403,7 @@ def main() -> int:
 
     lambda_alpha, lambda_w = _select_lambdas(rows)
 
-    # Vérité de validation HONNÊTE : entraîné UNIQUEMENT sur les tours 1..12
-    # (jamais 13..18) — c'est CE fit qui détermine le verdict de rétention.
+    # Verite de validation HONNETE : entraine UNIQUEMENT sur les tours 1..12 (jamais 13..18) - c'est CE fit qui determine le verdict de retention.
     train_rows = [r for r in rows if r["tour"] in TRAIN_TOURS]
     val_rows = [r for r in rows if r["tour"] in VAL_TOURS]
     betas_holdout = _fit_all_dims(train_rows, lambda_alpha, lambda_w)
@@ -415,8 +411,7 @@ def main() -> int:
     bias_by_node = _profile_bias_by_node()
     validation = _validation_report(val_rows, betas_holdout, hist, bias_by_node)
 
-    # Modèle DÉPLOYÉ : ré-ajusté sur l'intégralité 1..18 au MÊME couple de
-    # pénalités (plus de données pour le modèle qui sert vraiment en production).
+    # Modele DEPLOYE : re-ajuste sur l'integralite 1..18 au MEME couple de penalites (plus de donnees pour le modele qui sert vraiment en production).
     betas_final = _fit_all_dims(rows, lambda_alpha, lambda_w)
     residuals = _residual_pools(rows, betas_final)
     alpha, weights, phi = _split_beta(betas_final)

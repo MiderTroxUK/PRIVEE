@@ -1,4 +1,4 @@
-"""Tests du générateur de données de TEST (supplyscore.data.generator)."""
+"""Tests du generateur de donnees de TEST (supplyscore.data.generator)."""
 
 from __future__ import annotations
 
@@ -53,11 +53,11 @@ class TestGenerateTopology:
 
         assert set(by_rank) == {0, 1, 2, 3, 4}
         assert by_rank[0] == 1
-        # Chaque nœud du rang r-1 reçoit entre 2 et 3 fournisseurs dédiés.
+        # Chaque noeud du rang r-1 recoit entre 2 et 3 fournisseurs dedies.
         for r in range(1, 5):
             assert 2 * by_rank[r - 1] <= by_rank[r] <= 3 * by_rank[r - 1]
         assert len(nodes) == sum(by_rank.values())
-        # Au moins un arc dédié par fournisseur, arcs croisés en plus possibles.
+        # Au moins un arc dedie par fournisseur, arcs croises en plus possibles.
         assert len(arcs) >= len(nodes) - 1
 
     def test_every_consumer_has_a_supplier(self, chain):
@@ -76,8 +76,8 @@ class TestGenerateTopology:
 
 class TestGenerateStress:
     def test_stress_topology_ranks_reproducibility_and_speed(self):
-        """generate_stress(120, 20) : 120 nœuds, DAG acyclique, rangs cohérents,
-        reproductible à seed égal, rapide (< 3 s) ; enrich et validations couverts."""
+        """generate_stress(120, 20) : 120 noeuds, DAG acyclique, rangs coherents,
+        reproductible a seed egal, rapide (< 3 s) ; enrich et validations couverts."""
         import time
 
         start = time.perf_counter()
@@ -87,14 +87,14 @@ class TestGenerateStress:
         elapsed = time.perf_counter() - start
         assert elapsed < 3.0
 
-        # 120 nœuds, 1 seul client au rang 0, porteur du projet.
+        # 120 noeuds, 1 seul client au rang 0, porteur du projet.
         assert len(nodes) == 120
         rank0 = [n for n in nodes if n.rank == 0]
         assert len(rank0) == 1
         assert project.owner_node_id == rank0[0].id
         assert all(n.project_id == project.id for n in nodes)
 
-        # DAG acyclique (networkx) et arcs orientés rang r -> rang r-1.
+        # DAG acyclique (networkx) et arcs orientes rang r -> rang r-1.
         g = nx.DiGraph()
         g.add_nodes_from(n.id for n in nodes)
         g.add_edges_from((a.source_id, a.target_id) for a in arcs)
@@ -103,9 +103,7 @@ class TestGenerateStress:
         for arc in arcs:
             assert rank_of[arc.source_id] == rank_of[arc.target_id] + 1
 
-        # Rangs cohérents : rangs successifs de ~20 nœuds (1 + 20×5 + 19 = 120),
-        # chaque nœud de rang >= 1 alimente au moins 1 nœud du rang inférieur,
-        # KPIs complets, pas d'arc en double.
+        # Rangs coherents : rangs successifs de ~20 noeuds (1 + 20x5 + 19 = 120), chaque noeud de rang >= 1 alimente au moins 1 noeud du rang inferieur, KPIs complets, pas d'arc en double.
         by_rank: dict[int, int] = {}
         for n in nodes:
             by_rank[n.rank] = by_rank.get(n.rank, 0) + 1
@@ -117,20 +115,20 @@ class TestGenerateStress:
         pairs = [(a.source_id, a.target_id) for a in arcs]
         assert len(pairs) == len(set(pairs))
 
-        # Reproductible à seed égal.
+        # Reproductible a seed egal.
         p2, n2, a2 = RandomSupplyChainGenerator(seed=99).generate_stress(
             n_nodes=120, largeur_rang=20
         )
         assert (project, nodes, arcs) == (p2, n2, a2)
 
-        # enrich=True : tags posés sur les nœuds + arcs de secours ajoutés.
+        # enrich=True : tags poses sur les noeuds + arcs de secours ajoutes.
         _, n3, a3 = RandomSupplyChainGenerator(seed=99).generate_stress(
             n_nodes=120, largeur_rang=20, enrich=True
         )
         assert any(n.tags for n in n3)
         assert any(a.kind_arc == ArcKind.BACKUP for a in a3)
 
-        # Validations (messages français, ValueError).
+        # Validations (messages francais, ValueError).
         gen = RandomSupplyChainGenerator(seed=99)
         with pytest.raises(ValueError):
             gen.generate_stress(n_nodes=1)
@@ -153,7 +151,7 @@ class TestGenerateKPIs:
             assert 0.1 <= k.risk.severity <= 0.9
             assert 0.0 <= k.risk.env_exposure <= 0.3
             assert 0.0 <= k.risk.political_risk <= 0.3
-            # Coûts cohérents : op_cost = nominal * (1 + volatilité).
+            # Couts coherents : op_cost = nominal * (1 + volatilite).
             expected = k.cost.nominal_op_cost * (1.0 + k.risk.cost_volatility)
             assert k.cost.op_cost == pytest.approx(expected)
             # CO2 : target < total < max.
@@ -161,7 +159,7 @@ class TestGenerateKPIs:
             # Inventaire : current <= max.
             assert k.inventory.current_volume_m3 <= k.inventory.max_volume_m3
             assert k.inventory.current_weight_kg <= k.inventory.max_weight_kg
-            # Flow rate proche de la demande (±15 %).
+            # Flow rate proche de la demande (+/-15 %).
             assert k.inventory.flow_rate == pytest.approx(k.network.demand, rel=0.15)
 
     def test_arc_kpis_and_coefficients(self, chain):
@@ -193,7 +191,7 @@ class TestReproducibility:
     def test_same_seed_same_assessment(self):
         a1 = RandomSupplyChainGenerator(seed=9).generate_assessment("n", "p")
         a2 = RandomSupplyChainGenerator(seed=9).generate_assessment("n", "p")
-        # timestamp = heure d'exécution, on compare le reste.
+        # timestamp = heure d'execution, on compare le reste.
         assert a1.comparisons == a2.comparisons
         assert a1.weights == a2.weights
         assert a1.criteria_scores == a2.criteria_scores
@@ -224,7 +222,7 @@ class TestGenerateAssessment:
         assert sum(low) / len(low) < sum(high) / len(high)
 
     def test_default_is_four_criteria_aligned_with_ui(self):
-        """Le défaut (4 critères) est aligné sur CRITERIA de l'UI questionnaire."""
+        """Le defaut (4 criteres) est aligne sur CRITERIA de l'UI questionnaire."""
         a = RandomSupplyChainGenerator(seed=11).generate_assessment("n1", "p1")
         assert len(a.criteria_scores) == 4
         assert len(a.weights) == 4
@@ -245,11 +243,11 @@ class TestGenerateAssessment:
         assert a.node_id == "n1"
         assert a.project_id == "p1"
         assert a.operator_id == "op-x"
-        # Comparaisons sur l'échelle de Saaty, triangle supérieur uniquement.
+        # Comparaisons sur l'echelle de Saaty, triangle superieur uniquement.
         for (i, j), value in a.comparisons.items():
             assert i < j
             assert any(abs(value - s) < 1e-9 for s in self.SAATY)
-        # Poids normalisés, scores dans [1, 9].
+        # Poids normalises, scores dans [1, 9].
         assert sum(a.weights) == pytest.approx(1.0)
         assert all(w > 0 for w in a.weights)
         assert all(1.0 <= s <= 9.0 for s in a.criteria_scores)

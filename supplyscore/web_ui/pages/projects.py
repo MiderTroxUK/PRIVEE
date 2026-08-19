@@ -1,7 +1,7 @@
-"""Page « Projets » : sélection/création de projets, démo, nœuds et statuts.
+"""Page " Projets " : selection/creation de projets, demo, noeuds et statuts.
 
-Tous les callbacks sont des fonctions nommées au niveau module, enregistrées
-dans :func:`register_callbacks` — elles restent donc testables sans serveur.
+Tous les callbacks sont des fonctions nommees au niveau module, enregistrees
+dans :func:`register_callbacks` - elles restent donc testables sans serveur.
 """
 
 from __future__ import annotations
@@ -33,7 +33,7 @@ from supplyscore.web_ui.components.layout import (
     node_options,
 )
 
-#: Labels métier proposés pour un nouveau nœud.
+#: Labels metier proposes pour un nouveau noeud.
 NODE_LABELS: list[str] = [
     "Client",
     "Factory",
@@ -43,9 +43,7 @@ NODE_LABELS: list[str] = [
     "Transport",
 ]
 
-#: Libellés français AFFICHÉS pour les labels métier — les VALEURS stockées
-#: restent techniques (« Factory », « Supplier »…), seuls les libellés des
-#: listes déroulantes sont traduits (DoD E16 : aucun texte anglais visible).
+#: Libelles francais AFFICHES pour les labels metier - les VALEURS stockees restent techniques (" Factory ", " Supplier "...), seuls les libelles des listes deroulantes sont traduits (DoD E16 : aucun texte anglais visible).
 LABELS_METIER_FR: dict[str, str] = {
     "Client": "Client",
     "Factory": "Usine",
@@ -57,7 +55,7 @@ LABELS_METIER_FR: dict[str, str] = {
 
 
 def label_metier_options() -> list[dict[str, str]]:
-    """Options de dropdown des labels métier : libellé français, valeur technique."""
+    """Options de dropdown des labels metier : libelle francais, valeur technique."""
     options = []
     for lbl in NODE_LABELS:
         fr = LABELS_METIER_FR.get(lbl, lbl)
@@ -92,32 +90,32 @@ _TABLE_STYLE_HEADER = {
 }
 
 
-#: Nombre de tirages N proposé par défaut dans la carte « Paramètres du calcul ».
+#: Nombre de tirages N propose par defaut dans la carte " Parametres du calcul ".
 MC_N_DEFAUT: int = 10_000
 
-#: Style de la ligne d'état du mode de calcul (mc-status).
+#: Style de la ligne d'etat du mode de calcul (mc-status).
 _MC_STATUS_STYLE = {"fontSize": "13px", "color": COLORS["muted"], "marginTop": "8px"}
 
 
 def _r3(value: float | None) -> float | None:
-    """Arrondit à 3 décimales en tolérant None."""
+    """Arrondit a 3 decimales en tolerant None."""
     return None if value is None else round(value, 3)
 
 
 def _fmt_n(n: int) -> str:
-    """Formate N à la française avec une espace pour séparateur de milliers."""
+    """Formate N a la francaise avec une espace pour separateur de milliers."""
     return f"{n:,}".replace(",", " ")
 
 
 def _mc_status_line(service, project_id: str) -> html.Span:
-    """Ligne d'état du calcul de u_time du projet (carte « Paramètres du calcul »).
+    """Ligne d'etat du calcul de u_time du projet (carte " Parametres du calcul ").
 
-    En mode Monte Carlo APRÈS une évaluation : « u_time : Monte Carlo,
-    N=10 000 — IC95 moyen ±0.010 » (moyenne des demi-largeurs d'IC95 du
+    En mode Monte Carlo APRES une evaluation : " u_time : Monte Carlo,
+    N=10 000 - IC95 moyen +/-0.010 " (moyenne des demi-largeurs d'IC95 du
     dernier :class:`~supplyscore.mc.lead_time.ResultatMC`, restreinte aux
-    nœuds du projet — le simulateur travaille sur le dépôt entier). En mode
-    Monte Carlo sans résultat mémorisé, l'IC95 est annoncé pour la prochaine
-    évaluation ; en analytique : « u_time : formule analytique (loi normale) ».
+    noeuds du projet - le simulateur travaille sur le depot entier). En mode
+    Monte Carlo sans resultat memorise, l'IC95 est annonce pour la prochaine
+    evaluation ; en analytique : " u_time : formule analytique (loi normale) ".
     """
     config = service.lead_time_mode(project_id)
     if config.get("mode") != "monte_carlo":
@@ -131,7 +129,7 @@ def _mc_status_line(service, project_id: str) -> html.Span:
         )
     node_ids = {node.id for node in service.repo.nodes_by_project(project_id)}
     ics = [ic for nid, ic in resultat.ic95.items() if nid in node_ids]
-    if not ics:  # garde-fou : projet sans nœud simulé
+    if not ics:  # garde-fou : projet sans noeud simule
         ics = list(resultat.ic95.values()) or [0.0]
     moyen = sum(ics) / len(ics)
     return html.Span(
@@ -141,12 +139,12 @@ def _mc_status_line(service, project_id: str) -> html.Span:
 
 
 def _hebdo_texte(etat: EtatHebdo | None) -> str:
-    """Texte de la cellule « Hebdo » d'un nœud (« — » si état inconnu)."""
+    """Texte de la cellule " Hebdo " d'un noeud (" - " si etat inconnu)."""
     return "—" if etat is None else texte_hebdo(etat.statut, etat.semaines_de_retard)
 
 
 def layout() -> html.Div:
-    """Construit la page Projets (relit l'état du service à chaque navigation)."""
+    """Construit la page Projets (relit l'etat du service a chaque navigation)."""
     service = get_service()
     project_opts = [{"label": p.name, "value": p.id} for p in service.registry.list_projects()]
     return html.Div(
@@ -418,14 +416,7 @@ def layout() -> html.Div:
             card(
                 "Nœuds du projet actif",
                 [
-                    # E16.4 — dcc.Loading autour du tableau (zone lente sur les
-                    # grands projets) : l'id reste sur la DataTable interne.
-                    # E14.3 — pagination native SEULE (page_size=25), SANS
-                    # virtualization (redondante avec la pagination ; elle
-                    # exige des hauteurs de lignes fixes et casse le rendu des
-                    # colonnes presentation="markdown" — « Fiche » — dans
-                    # plusieurs versions de dash-table). La page garde le tri
-                    # natif, sans filtre (contrairement au dashboard).
+                    # E16.4 - dcc.Loading autour du tableau (zone lente sur les grands projets) : l'id reste sur la DataTable interne. E14.3 - pagination native SEULE (page_size=25), SANS virtualization (redondante avec la pagination ; elle exige des hauteurs de lignes fixes et casse le rendu des colonnes presentation="markdown" - " Fiche " - dans plusieurs versions de dash-table). La page garde le tri natif, sans filtre (contrairement au dashboard).
                     dcc.Loading(
                         type="circle",
                         children=dash_table.DataTable(  # type: ignore[attr-defined]
@@ -453,11 +444,11 @@ def layout() -> html.Div:
     )
 
 
-# --- Callbacks (fonctions nommées, testables sans serveur) --------------------
+# Callbacks (fonctions nommees, testables sans serveur)
 
 
 def select_project_callback(n_clicks, project_id):
-    """Sélectionne un projet existant et l'écrit dans le store de session."""
+    """Selectionne un projet existant et l'ecrit dans le store de session."""
     if not n_clicks:
         raise PreventUpdate
     service = get_service()
@@ -473,7 +464,7 @@ def select_project_callback(n_clicks, project_id):
 
 
 def create_project_callback(n_clicks, name, description, client_name, location, refresh):
-    """Crée un projet et son nœud client final (rang 0), puis le sélectionne."""
+    """Cree un projet et son noeud client final (rang 0), puis le selectionne."""
     if not n_clicks:
         raise PreventUpdate
     service = get_service()
@@ -511,7 +502,7 @@ def create_project_callback(n_clicks, name, description, client_name, location, 
 
 
 def seed_demo_callback(n_clicks, n_ranks, seed, refresh):
-    """Génère un projet de démonstration aléatoire (données de TEST) et le sélectionne."""
+    """Genere un projet de demonstration aleatoire (donnees de TEST) et le selectionne."""
     if not n_clicks:
         raise PreventUpdate
     service = get_service()
@@ -528,7 +519,7 @@ def seed_demo_callback(n_clicks, n_ranks, seed, refresh):
 
 
 def add_node_callback(n_clicks, name, label, targets, gamma, beta, project_data, refresh):
-    """Ajoute un client/fournisseur relié à ses clients aval puis réévalue tout."""
+    """Ajoute un client/fournisseur relie a ses clients aval puis reevalue tout."""
     if not n_clicks:
         raise PreventUpdate
     service = get_service()
@@ -568,7 +559,7 @@ def add_node_callback(n_clicks, name, label, targets, gamma, beta, project_data,
 
 
 def set_status_callback(n_clicks, node_id, status_value, refresh):
-    """Applique un statut (active/terminée/abandonnée) et repropage le choc."""
+    """Applique un statut (active/terminee/abandonnee) et repropage le choc."""
     if not n_clicks:
         raise PreventUpdate
     service = get_service()
@@ -587,7 +578,7 @@ def set_status_callback(n_clicks, node_id, status_value, refresh):
 
 
 def set_clock_mode_callback(n_clicks, project_data, mode, refresh):
-    """Bascule l'horloge du projet actif entre temps réel et temps de jeu."""
+    """Bascule l'horloge du projet actif entre temps reel et temps de jeu."""
     if not n_clicks:
         raise PreventUpdate
     service = get_service()
@@ -604,7 +595,7 @@ def set_clock_mode_callback(n_clicks, project_data, mode, refresh):
 
 
 def advance_week_callback(n_clicks, project_data, refresh):
-    """Avance le temps de jeu d'une semaine puis réévalue tout le réseau."""
+    """Avance le temps de jeu d'une semaine puis reevalue tout le reseau."""
     if not n_clicks:
         raise PreventUpdate
     service = get_service()
@@ -625,12 +616,12 @@ def advance_week_callback(n_clicks, project_data, refresh):
 
 
 def mc_init_callback(project_data, refresh):
-    """Reflète la configuration lead time du projet actif dans la carte MC.
+    """Reflete la configuration lead time du projet actif dans la carte MC.
 
-    À la sélection d'un projet (ou après un rafraîchissement), les contrôles
-    de la carte « Paramètres du calcul d'urgence » reprennent
-    ``lead_time_mode(pid)`` : mode, N et graine stockés ; la ligne d'état
-    (mc-status) est recalculée (IC95 moyen en mode Monte Carlo).
+    A la selection d'un projet (ou apres un rafraichissement), les controles
+    de la carte " Parametres du calcul d'urgence " reprennent
+    ``lead_time_mode(pid)`` : mode, N et graine stockes ; la ligne d'etat
+    (mc-status) est recalculee (IC95 moyen en mode Monte Carlo).
     """
     service = get_service()
     pid = (project_data or {}).get("project_id")
@@ -652,12 +643,12 @@ def mc_init_callback(project_data, refresh):
 
 
 def mc_apply_callback(n_clicks, project_data, mode, n_tirages, graine, refresh):
-    """« Appliquer » : pose le mode de calcul de u_time puis réévalue tout.
+    """" Appliquer " : pose le mode de calcul de u_time puis reevalue tout.
 
-    Passe par ``set_lead_time_mode`` (validation à l'ÉCRITURE : un N hors
-    bornes est refusé en français et RIEN n'est persisté), puis
-    ``evaluate_all(persist=True)`` — en mode Monte Carlo, le dernier
-    :class:`~supplyscore.mc.lead_time.ResultatMC` alimente la ligne d'état
+    Passe par ``set_lead_time_mode`` (validation a l'ECRITURE : un N hors
+    bornes est refuse en francais et RIEN n'est persiste), puis
+    ``evaluate_all(persist=True)`` - en mode Monte Carlo, le dernier
+    :class:`~supplyscore.mc.lead_time.ResultatMC` alimente la ligne d'etat
     (IC95 moyen).
     """
     if not n_clicks:
@@ -680,7 +671,7 @@ def mc_apply_callback(n_clicks, project_data, mode, n_tirages, graine, refresh):
     seed = int(graine) if graine is not None and str(graine).strip() != "" else None
     try:
         service.set_lead_time_mode(pid, mode, n_tirages=n, graine=seed)
-    except ValueError as exc:  # message français de l'orchestrateur, rien n'est écrit
+    except ValueError as exc:  # message francais de l'orchestrateur, rien n'est ecrit
         return html.Span(str(exc), style=MSG_ALERT_STYLE), no_update, no_update
     service.evaluate_all(persist=True)
     libelle = (
@@ -696,7 +687,7 @@ def mc_apply_callback(n_clicks, project_data, mode, n_tirages, graine, refresh):
 
 
 def export_project_callback(n_clicks, project_data):
-    """Exporte le projet actif en classeur xlsx et déclenche le téléchargement."""
+    """Exporte le projet actif en classeur xlsx et declenche le telechargement."""
     if not n_clicks:
         raise PreventUpdate
     service = get_service()
@@ -711,10 +702,10 @@ def export_project_callback(n_clicks, project_data):
 
 
 def backup_now_callback(n_clicks, refresh):
-    """Sauvegarde toutes les bases SQLite dans un zip horodaté puis applique la rétention.
+    """Sauvegarde toutes les bases SQLite dans un zip horodate puis applique la retention.
 
-    Le rafraîchissement (store-refresh) est incrémenté pour que la liste
-    « Dernières sauvegardes » (:func:`backup_list_callback`) reflète la
+    Le rafraichissement (store-refresh) est incremente pour que la liste
+    " Dernieres sauvegardes " (:func:`backup_list_callback`) reflete la
     nouvelle archive.
     """
     if not n_clicks:
@@ -735,14 +726,14 @@ def backup_now_callback(n_clicks, refresh):
 
 
 def _taille_lisible(octets: int) -> str:
-    """Formate une taille de fichier en Ko ou Mo (virgule décimale française)."""
+    """Formate une taille de fichier en Ko ou Mo (virgule decimale francaise)."""
     if octets >= 1024 * 1024:
         return f"{octets / (1024 * 1024):.1f} Mo".replace(".", ",")
     return f"{max(1, round(octets / 1024))} Ko"
 
 
 def backup_list_callback(refresh):
-    """Affiche les 3 sauvegardes les plus récentes (nom + taille) de la carte export."""
+    """Affiche les 3 sauvegardes les plus recentes (nom + taille) de la carte export."""
     service = get_service()
     from supplyscore.data.backup import ServiceSauvegarde
 
@@ -768,7 +759,7 @@ def backup_list_callback(refresh):
 
 
 def update_view_callback(project_data, refresh):
-    """Rafraîchit dropdowns, tableau (statuts hebdo inclus) et bandeau du projet actif."""
+    """Rafraichit dropdowns, tableau (statuts hebdo inclus) et bandeau du projet actif."""
     service = get_service()
     project_opts = [{"label": p.name, "value": p.id} for p in service.registry.list_projects()]
     pid = (project_data or {}).get("project_id")

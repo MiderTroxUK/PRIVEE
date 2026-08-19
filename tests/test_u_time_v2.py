@@ -1,4 +1,4 @@
-"""Tests de u_time v2 — échéance multi-jalons et modulation par l'avancement."""
+"""Tests de u_time v2 - echeance multi-jalons et modulation par l'avancement."""
 
 import pytest
 from hypothesis import given
@@ -11,9 +11,9 @@ from supplyscore.domain.models import KPIBundle, TimeKPIs
 T0 = 1_700_000_000.0  # origine epoch arbitraire du projet
 H = 3600.0  # secondes par heure
 
-#: 1 − Φ(1) et Φ(1) : ancres des cas chiffrés (cf. TestCasChiffres).
-U_BASE_REF = 0.158655
-PHI1 = 0.841345
+#: Socles de reference des cas chiffres (cf. TestCasChiffres). L'ecart-type du travail restant decroit en RACINE de (1 - progress), donc les z ne sont plus entiers : on garde les valeurs exactes plutot que des ancres rondes fausses.
+U_BASE_P25 = 0.806762  # p=0.25 : z = (60 - 75) / (20-sqrt0.75) = -0.8660
+U_BASE_P50 = 0.239750  # p=0.50 : z = (60 - 50) / (20-sqrt0.50) = +0.7071
 
 
 def make_milestone(
@@ -23,7 +23,7 @@ def make_milestone(
     progress: float = 0.0,
     mid: str = "m1",
 ) -> Milestone:
-    """Jalon de test ancré sur T0, échéances exprimées en heures."""
+    """Jalon de test ancre sur T0, echeances exprimees en heures."""
     return Milestone(
         id=mid,
         node_id="n1",
@@ -37,48 +37,43 @@ def make_milestone(
 
 @pytest.fixture
 def model() -> UrModel:
-    return UrModel()  # kappa_retard=0.5, kappa_avance=0.2 par défaut
+    return UrModel()  # kappa_retard=0.5, kappa_avance=0.2 par defaut
 
 
 @pytest.fixture
 def kpis() -> KPIBundle:
-    """KPIs sans deadline_h : l'échéance vient du jalon."""
+    """KPIs sans deadline_h : l'echeance vient du jalon."""
     return KPIBundle(time=TimeKPIs(lead_time_h=100.0, lead_time_std_h=20.0))
 
 
 class TestCasChiffres:
-    """Cas chiffrés exacts : d*=100 h, s*=0, L ~ N(100, 20), t=40.
+    """Cas chiffres exacts : d*=100 h, s*=0, L ~ N(100, 20), t=40.
 
-    Marge = 60 h, p_th = 0.4. Le socle porte sur le travail RESTANT :
-    L_restant ~ N(100·(1−p), 20·(1−p)), donc z = (60 − 100·(1−p)) / (20·(1−p)).
+    Marge = 60 h, p_th = 0.4. Le socle porte sur le travail RESTANT, dont la
+    moyenne decroit lineairement et l'ecart-type en RACINE :
+    L_restant ~ N(100-(1-p), 20-sqrt(1-p)), donc z = (60 - 100-(1-p)) / (20-sqrt(1-p)).
     """
 
     def test_progress_egal_p_th_socle_pur(self, model, kpis):
-        # progress = 0.4 == p_th -> r = 0 -> u_time = u_base.
-        # reste = 0.6 -> mu' = 60 = marge -> z = 0 -> u_base = 0.5 EXACTEMENT
-        # (indépendant de sigma) : « il reste juste le temps qu'il faut ».
+        # progress = 0.4 == p_th -> r = 0 -> u_time = u_base. reste = 0.6 -> mu' = 60 = marge -> z = 0 -> u_base = 0.5 EXACTEMENT (independant de sigma, donc INVARIANT au changement d'echelle de sigma) : " il reste juste le temps qu'il faut ".
         m = make_milestone(100.0, progress=0.4)
         u = model.u_time(40.0, kpis, milestones=[m], t0_ts=T0)
         assert u == pytest.approx(0.5, abs=1e-9)
 
     def test_progress_en_retard_penalite(self, model, kpis):
-        # progress = 0.25 -> reste = 0.75 -> mu' = 75, sigma' = 15 -> z = -1
-        # -> u_base = Phi(1) = 0.841345 ; r = 0.15 -> u = 0.841345 + 0.075.
+        # progress = 0.25 -> reste = 0.75 -> mu' = 75, sigma' = 20-sqrt0.75 = 17.32 z = -0.866 -> u_base = 0.806762 ; r = 0.15 -> u = u_base + 0.075.
         m = make_milestone(100.0, progress=0.25)
         u = model.u_time(40.0, kpis, milestones=[m], t0_ts=T0)
-        assert u == pytest.approx(PHI1 + 0.075, abs=1e-4)
+        assert u == pytest.approx(U_BASE_P25 + 0.075, abs=1e-4)
 
     def test_progress_en_avance_bonus(self, model, kpis):
-        # progress = 0.5 -> reste = 0.5 -> mu' = 50, sigma' = 10 -> z = +1
-        # -> u_base = 1 - Phi(1) = 0.158655 ; r = -0.1 -> u = 0.158655 - 0.02.
+        # progress = 0.5 -> reste = 0.5 -> mu' = 50, sigma' = 20-sqrt0.5 = 14.14 z = +0.707 -> u_base = 0.239750 ; r = -0.1 -> u = u_base - 0.02.
         m = make_milestone(100.0, progress=0.5)
         u = model.u_time(40.0, kpis, milestones=[m], t0_ts=T0)
-        assert u == pytest.approx(U_BASE_REF - 0.02, abs=1e-4)
+        assert u == pytest.approx(U_BASE_P50 - 0.02, abs=1e-4)
 
     def test_avance_nette_urgence_nulle(self, model, kpis):
-        # progress = 0.9 : il reste 10 % du cycle pour 60 % du temps -> le
-        # socle est nul et le bonus d'avance clippe a 0. Consequence VOULUE
-        # du socle sur travail restant : un jalon tres avance n'est pas urgent.
+        # progress = 0.9 : il reste 10 % du cycle pour 60 % du temps -> le socle est nul et le bonus d'avance clippe a 0. Consequence VOULUE du socle sur travail restant : un jalon tres avance n'est pas urgent.
         m = make_milestone(100.0, progress=0.9)
         assert model.u_time(40.0, kpis, milestones=[m], t0_ts=T0) == 0.0
 
@@ -88,15 +83,14 @@ class TestCasChiffres:
         assert model.u_time(120.0, kpis, milestones=[m], t0_ts=T0) == 1.0
 
     def test_kappas_personnalises(self, kpis):
-        # r = 0.15 avec kappa_retard = 1.0 -> Phi(1) + 0.15.
+        # r = 0.15 avec kappa_retard = 1.0 -> u_base(p=0.25) + 0.15.
         model = UrModel(kappa_retard=1.0, kappa_avance=0.0)
         m = make_milestone(100.0, progress=0.25)
         u = model.u_time(40.0, kpis, milestones=[m], t0_ts=T0)
-        assert u == pytest.approx(PHI1 + 0.15, abs=1e-4)
+        assert u == pytest.approx(U_BASE_P25 + 0.15, abs=1e-4)
 
     def test_sans_lead_time_modulation_seule(self, model):
-        # Choix documenté : lead_time None + jalon actif -> u_base = 0.0,
-        # la modulation planning s'applique quand même.
+        # Choix documente : lead_time None + jalon actif -> u_base = 0.0, la modulation planning s'applique quand meme.
         k = KPIBundle(time=TimeKPIs())
         m = make_milestone(100.0, progress=0.0)
         u = model.u_time(40.0, k, milestones=[m], t0_ts=T0)
@@ -114,10 +108,8 @@ class TestSelectionJalon:
         u_avec_done = model.u_time(40.0, kpis, milestones=[done, actif], t0_ts=T0)
         u_actif_seul = model.u_time(40.0, kpis, milestones=[actif], t0_ts=T0)
         assert u_avec_done == pytest.approx(u_actif_seul, abs=1e-12)
-        # Calculé sur d* = 200 (p_th = 0.2 = progress -> socle pur) : il reste
-        # 80 % de 100 h de cycle pour 160 h de marge -> z = 5, u_base ~ 0.
-        # Sur d* = 50 on aurait u ~ 1.
-        assert u_avec_done == pytest.approx(0.0, abs=1e-6)
+        # Calcule sur d* = 200 (p_th = 0.2 = progress -> socle pur) : il reste 80 % de 100 h de cycle pour 160 h de marge -> z = 4.47, u_base ~ 4e-6. Sur d* = 50 on aurait u ~ 1.
+        assert u_avec_done == pytest.approx(0.0, abs=1e-5)
 
     def test_deux_actifs_deadline_minimale(self, model, kpis):
         proche = make_milestone(100.0, progress=0.4, mid="proche")
@@ -127,7 +119,7 @@ class TestSelectionJalon:
 
 
 class TestRetroCompatibiliteV1:
-    """Sans jalon actif, u_time v2 == u_time v1 (numériquement)."""
+    """Sans jalon actif, u_time v2 == u_time v1 (numeriquement)."""
 
     @pytest.fixture
     def kpis_v1(self) -> KPIBundle:
@@ -138,7 +130,7 @@ class TestRetroCompatibiliteV1:
             u_v1 = model.u_time(t, kpis_v1)
             assert model.u_time(t, kpis_v1, milestones=None) == u_v1
             assert model.u_time(t, kpis_v1, milestones=[]) == u_v1
-        assert model.u_time(40.0, kpis_v1) == pytest.approx(U_BASE_REF, abs=1e-3)
+        assert model.u_time(40.0, kpis_v1) == pytest.approx(0.158655, abs=1e-3)
 
     def test_jalons_tous_inactifs_v1(self, model, kpis_v1):
         # DONE + ABANDONED uniquement -> aucun M* -> bascule v1.
@@ -150,7 +142,7 @@ class TestRetroCompatibiliteV1:
         assert u == model.u_time(40.0, kpis_v1)
 
     def test_kpis_incomplets_none_conserve(self, model):
-        # v1 : sans deadline_h ou sans lead_time_h -> None, inchangé.
+        # v1 : sans deadline_h ou sans lead_time_h -> None, inchange.
         assert model.u_time(0.0, KPIBundle(), milestones=None) is None
         k = KPIBundle(time=TimeKPIs(lead_time_h=5.0))
         assert model.u_time(0.0, k, milestones=[]) is None
@@ -166,7 +158,7 @@ class TestRetroCompatibiliteV1:
 
 
 class TestProprietes:
-    """Propriétés Hypothesis : bornes et monotonie en progress."""
+    """Proprietes Hypothesis : bornes et monotonie en progress."""
 
     @given(
         progress=st.floats(0.0, 1.0),
@@ -189,7 +181,7 @@ class TestProprietes:
         lead=st.floats(0.1, 500.0),
     )
     def test_decroissante_en_progress(self, p1, p2, t, lead):
-        # progress2 > progress1 => u_time2 <= u_time1 (à t fixé).
+        # progress2 > progress1 => u_time2 <= u_time1 (a t fixe).
         if p2 < p1:
             p1, p2 = p2, p1
         model = UrModel()
@@ -203,14 +195,13 @@ class TestProprietes:
 class TestSocleTravailRestant:
     """Le socle porte sur le travail RESTANT, pas sur un cycle complet.
 
-    Régression du défaut mesuré sur la campagne HÉLIOS : un nœud dont le lead
-    time nominal dépassait la marge voyait P(jalon raté) saturer à ~100 %
-    quel que soit son avancement — 99,6 % annoncé sur un jalon livré à l'heure.
+    Regression du defaut mesure sur la campagne HELIOS : un noeud dont le lead
+    time nominal depassait la marge voyait P(jalon rate) saturer a ~100 %
+    quel que soit son avancement - 99,6 % annonce sur un jalon livre a l'heure.
     """
 
     def test_progress_zero_identique_au_socle_complet(self, model):
-        # A progress = 0, le travail restant EST le cycle complet : la
-        # formule est un sur-ensemble de l'ancienne, pas un remplacement.
+        # A progress = 0, le travail restant EST le cycle complet : la formule est un sur-ensemble de l'ancienne, pas un remplacement.
         tk = TimeKPIs(lead_time_h=50.0, lead_time_std_h=10.0)
         for slack in (0.0, 30.0, 60.0, 500.0):
             assert model.u_base_jalon(slack, tk, 0.0) == pytest.approx(
@@ -226,8 +217,7 @@ class TestSocleTravailRestant:
             )
 
     def test_desaturation_lead_time_long(self, model):
-        # Cas CompoDis : cycle nominal 18,9 semaines, marge 1 semaine.
-        # Avant : socle constant a ~1 quel que soit progress. Apres : il decroit.
+        # Cas CompoDis : cycle nominal 18,9 semaines, marge 1 semaine. Avant : socle constant a ~1 quel que soit progress. Apres : il decroit.
         tk = TimeKPIs(lead_time_h=3175.0)  # 18,9 semaines
         socles = [model.u_base_jalon(168.0, tk, p) for p in (0.0, 0.5, 0.9, 0.99)]
         assert socles == sorted(socles, reverse=True)
@@ -235,8 +225,7 @@ class TestSocleTravailRestant:
         assert socles[-1] < 0.5  # quasi fini : le socle a lache la saturation
 
     def test_jalon_termine_socle_nul(self, model):
-        # progress = 1 : plus rien a faire -> aucune probabilite de retard,
-        # meme avec un lead time nominal enorme et une marge nulle.
+        # progress = 1 : plus rien a faire -> aucune probabilite de retard, meme avec un lead time nominal enorme et une marge nulle.
         for tk in (TimeKPIs(lead_time_h=1e6, lead_time_std_h=1e5), TimeKPIs(lead_time_h=1e6)):
             assert model.u_base_jalon(0.0, tk, 1.0) == 0.0
 
@@ -255,6 +244,123 @@ class TestSocleTravailRestant:
         model = UrModel()
         tk = TimeKPIs(lead_time_h=lead, lead_time_std_h=lead * 0.25)
         assert model.u_base_jalon(slack, tk, p2) <= model.u_base_jalon(slack, tk, p1) + 1e-12
+
+
+class TestRetardChocAdditif:
+    """Le temps perdu s'AJOUTE, il n'est jamais mis a l'echelle de l'avancement.
+
+    Regression de la SUR-CORRECTION mesuree au premier essai : en routant les
+    arrets dans ``time.lead_time_h``, le choc se faisait multiplier par
+    ``1 - progress`` et s'evaporait precisement sur les jalons proches de leur
+    echeance. NovaFab retombait de 84,6 % a 0,0 % sur un jalon reellement rate,
+    apres quatre semaines d'arret.
+    """
+
+    def test_retard_nul_identique_au_socle_sans_choc(self, model):
+        tk = TimeKPIs(lead_time_h=100.0, lead_time_std_h=20.0)
+        for progress in (0.0, 0.5, 0.9):
+            assert model.u_base_jalon(60.0, tk, progress, 0.0) == pytest.approx(
+                model.u_base_jalon(60.0, tk, progress), abs=1e-12
+            )
+
+    def test_retard_consomme_la_marge(self, model):
+        # marge 60 h, 20 h perdues -> le socle est celui d'une marge de 40 h.
+        tk = TimeKPIs(lead_time_h=100.0, lead_time_std_h=20.0)
+        assert model.u_base_jalon(60.0, tk, 0.4, 20.0) == pytest.approx(
+            model.u_base_jalon(40.0, tk, 0.4), abs=1e-12
+        )
+
+    def test_choc_survit_a_un_avancement_eleve(self, model):
+        # LE test qui aurait attrape la sur-correction : jalon a 95 %, marge d'une semaine, deux semaines de production perdues -> retard certain.
+        tk = TimeKPIs(lead_time_h=500.0, lead_time_std_h=125.0)
+        sans_choc = model.u_base_jalon(168.0, tk, 0.95, 0.0)
+        avec_choc = model.u_base_jalon(168.0, tk, 0.95, 336.0)
+        assert sans_choc < 0.05  # sans choc : 5 % de 500 h a faire en 168 h
+        assert avec_choc > 0.95  # avec 336 h perdues : la marge est deja mangee
+
+    def test_croissant_en_retard(self, model):
+        tk = TimeKPIs(lead_time_h=100.0, lead_time_std_h=20.0)
+        socles = [model.u_base_jalon(200.0, tk, 0.5, r) for r in (0.0, 50.0, 100.0, 200.0)]
+        assert socles == sorted(socles)
+
+    def test_sans_lead_time_le_choc_seul_peut_mettre_en_retard(self, model):
+        # Pas de cycle connu : seul le temps perdu peut creer un retard.
+        tk = TimeKPIs()
+        assert model.u_base_jalon(60.0, tk, 0.5, 20.0) == 0.0
+        assert model.u_base_jalon(60.0, tk, 0.5, 100.0) == 1.0
+
+    def test_u_time_lit_delay_h(self, model):
+        # Chainage complet : le KPI ecrit par les evenements atteint u_time.
+        m = make_milestone(100.0, progress=0.4)
+        calme = KPIBundle(time=TimeKPIs(lead_time_h=100.0, lead_time_std_h=20.0))
+        choque = KPIBundle(time=TimeKPIs(lead_time_h=100.0, lead_time_std_h=20.0))
+        choque.time.delay_h = 40.0
+        u_calme = model.u_time(40.0, calme, milestones=[m], t0_ts=T0)
+        u_choque = model.u_time(40.0, choque, milestones=[m], t0_ts=T0)
+        assert u_calme == pytest.approx(0.5, abs=1e-9)
+        assert u_choque > u_calme
+
+
+class TestRetardEnV1:
+    """Le temps perdu atteint AUSSI le chemin v1 (noeud sans jalon actif).
+
+    Regression : le socle v2 lisait ``time.delay_h``, pas le socle v1. Un noeud
+    sans jalon ACTIF restait donc totalement aveugle aux chocs de capacite -
+    1 000 h de production perdue laissaient u_time a 0.0000 - alors que le
+    simulateur MC et la prevision, qui replient tous deux sur ``deadline_h``,
+    appliquaient bien le retard. Trois estimateurs censes partager le meme
+    modele d'achevement en donnaient deux reponses opposees.
+    """
+
+    @staticmethod
+    def _kpis(delay: float | None) -> KPIBundle:
+        k = KPIBundle(time=TimeKPIs(lead_time_h=100.0, lead_time_std_h=20.0, deadline_h=200.0))
+        k.time.delay_h = delay
+        return k
+
+    def test_sans_jalon_le_retard_consomme_la_marge(self, model):
+        # Marge 200 h, cycle N(100, 20) : au repos P(L > 200) = Phi(-5), quasi nul. 100 h perdues ramenent la marge au cycle moyen -> exactement 0.5.
+        assert model.u_time(0.0, self._kpis(None), milestones=None) < 1e-5
+        assert model.u_time(0.0, self._kpis(100.0), milestones=None) == pytest.approx(0.5, abs=1e-9)
+        assert model.u_time(0.0, self._kpis(1000.0), milestones=None) > 0.99
+
+    def test_sans_jalon_croissant_en_retard(self, model):
+        valeurs = [
+            model.u_time(0.0, self._kpis(d), milestones=None) for d in (0.0, 50.0, 100.0, 200.0)
+        ]
+        assert valeurs == sorted(valeurs)
+
+    def test_none_et_zero_identiques(self, model):
+        assert model.u_time(0.0, self._kpis(None), milestones=None) == model.u_time(
+            0.0, self._kpis(0.0), milestones=None
+        )
+
+
+class TestJalonAcheveJamaisEnRetard:
+    """Travail acheve => le temps perdu ne peut plus rien repousser.
+
+    Regression du faux positif CERTAIN : a progress = 1, ``reste`` vaut 0 donc
+    mu = 0, ``_p_late`` basculait dans sa branche degeneree et renvoyait
+    " 1.0 si 0 > marge ", c'est-a-dire retard certain des que le temps perdu
+    depassait la marge - sur un jalon dont tout le travail est fait. Le temps
+    perdu est deja DANS l'avancement observe : le compter encore le compte deux
+    fois.
+    """
+
+    def test_progress_1_socle_nul_quel_que_soit_le_retard(self, model):
+        tk = TimeKPIs(lead_time_h=100.0, lead_time_std_h=20.0)
+        for retard in (0.0, 20.0, 60.0, 200.0, 10_000.0):
+            assert model.u_base_jalon(50.0, tk, 1.0, retard) == 0.0
+
+    def test_progress_1_sans_lead_time_non_plus(self, model):
+        # Le repli " pas de cycle connu " ne doit pas rouvrir la porte.
+        assert model.u_base_jalon(50.0, TimeKPIs(), 1.0, 200.0) == 0.0
+
+    def test_avancement_partiel_reste_sensible(self, model):
+        # Le garde-fou ne doit PAS desamorcer le choc avant l'achevement.
+        tk = TimeKPIs(lead_time_h=100.0, lead_time_std_h=20.0)
+        for progress in (0.0, 0.5, 0.9, 0.99):
+            assert model.u_base_jalon(50.0, tk, progress, 60.0) > 0.9
 
 
 class TestValidationKappas:

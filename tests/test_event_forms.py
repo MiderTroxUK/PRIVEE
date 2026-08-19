@@ -1,9 +1,9 @@
-"""Tests des formulaires d'événements générés depuis la calibration (Lot 6.4).
+"""Tests des formulaires d'evenements generes depuis la calibration (Lot 6.4).
 
-Aucun serveur Dash : les composants sont construits en mémoire et inspectés
-en parcourant l'arbre ; les parseurs sont testés comme fonctions pures. Les
-impacts et événements sont des SimpleNamespace (duck-typing volontaire du
-composant — le service est développé en parallèle).
+Aucun serveur Dash : les composants sont construits en memoire et inspectes
+en parcourant l'arbre ; les parseurs sont testes comme fonctions pures. Les
+impacts et evenements sont des SimpleNamespace (duck-typing volontaire du
+composant - le service est developpe en parallele).
 """
 
 from __future__ import annotations
@@ -21,11 +21,11 @@ from supplyscore.web_ui.components.event_forms import (
     parse_event_params,
 )
 
-# --- Helpers d'inspection de l'arbre de composants -----------------------------------
+# Helpers d'inspection de l'arbre de composants
 
 
 def _walk(component):
-    """Itère sur tous les composants Dash de l'arbre (racine incluse)."""
+    """Itere sur tous les composants Dash de l'arbre (racine incluse)."""
     yield component
     children = getattr(component, "children", None)
     if children is None:
@@ -54,7 +54,7 @@ def _find_by_type(component, pattern_type):
     ]
 
 
-# --- event_type_options ----------------------------------------------------------------
+# event_type_options
 
 
 def test_event_type_options_cover_all_14_types_sorted_by_french_label():
@@ -66,18 +66,18 @@ def test_event_type_options_cover_all_14_types_sorted_by_french_label():
     assert {"label": "Panne machine", "value": "panne_machine"} in options
 
 
-# --- event_param_fields ----------------------------------------------------------------
+# event_param_fields
 
 
 def test_event_param_fields_panne_machine_generates_number_and_choice():
     form = event_param_fields("panne_machine")
     duree = _find(form, {"type": "ev-param", "index": "duree_arret_h"})
     assert duree.type == "number"
-    assert duree.min > 0  # durée strictement positive : le zéro est exclu
+    assert duree.min > 0  # duree strictement positive : le zero est exclu
     gravite = _find(form, {"type": "ev-param", "index": "gravite"})
     assert [opt["value"] for opt in gravite.options] == ["mineure", "majeure", "critique"]
     tree = str(form)
-    assert "Durée d'arrêt (h)" in tree  # unité reprise dans le libellé
+    assert "Durée d'arrêt (h)" in tree  # unite reprise dans le libelle
     assert "Arrêt non planifié" in tree  # description_fr en sous-titre
 
 
@@ -87,7 +87,7 @@ def test_event_param_fields_ratio_bounds_and_custom_ctx():
     assert (part.type, part.min, part.max) == ("number", 0.0, 1.0)
     duree = _find(form, {"type": "hb-param", "index": "duree_prevue_h"})
     assert duree.min > 0  # champ strictement positif lui aussi
-    # Aucun id résiduel du contexte par défaut.
+    # Aucun id residuel du contexte par defaut.
     assert _find_by_type(form, "ev-param") == []
 
 
@@ -103,7 +103,7 @@ def test_event_param_fields_unknown_type_raises_value_error():
         event_param_fields("meteorite")
 
 
-# --- parse_event_params ----------------------------------------------------------------
+# parse_event_params
 
 
 def test_parse_event_params_converts_floats_skips_empty_sorts_by_index():
@@ -114,7 +114,7 @@ def test_parse_event_params_converts_floats_skips_empty_sorts_by_index():
         {"type": "ev-param", "index": "criticite"},
     ]
     values = ["majeure", 24, None, ""]
-    # Listes volontairement mélangées : l'ordre DOM n'est pas garanti.
+    # Listes volontairement melangees : l'ordre DOM n'est pas garanti.
     shuffled = list(zip(ids, values, strict=True))[::-1]
     result = parse_event_params([v for _, v in shuffled], [i for i, _ in shuffled])
     assert result == {"duree_arret_h": 24.0, "gravite": "majeure"}
@@ -128,7 +128,7 @@ def test_parse_event_params_keeps_zero_and_handles_empty_lists():
     assert parse_event_params([], []) == {}
 
 
-# --- impacts_preview_table -------------------------------------------------------------
+# impacts_preview_table
 
 
 def test_impacts_preview_table_renders_four_columns_and_values():
@@ -151,9 +151,9 @@ def test_impacts_preview_table_renders_four_columns_and_values():
         assert header in tree
     assert "risk.failure_probability" in tree
     assert "0.02" in tree
-    assert "0.05631" in tree  # 4 décimales utiles (:.4g)
+    assert "0.05631" in tree  # 4 decimales utiles (:.4g)
     assert "non renseigné" in tree  # old None
-    assert "BAYES" in tree  # règle appliquée affichée telle quelle
+    assert "BAYES" in tree  # regle appliquee affichee telle quelle
 
 
 def test_impacts_preview_table_empty_shows_grey_message():
@@ -162,11 +162,11 @@ def test_impacts_preview_table_empty_shows_grey_message():
     assert "Rien à prévisualiser." in str(custom)
 
 
-# --- events_list -----------------------------------------------------------------------
+# events_list
 
 
 def _evt(**overrides):
-    """Événement factice duck-typé (SimpleNamespace), champs surchargés à la demande."""
+    """Evenement factice duck-type (SimpleNamespace), champs surcharges a la demande."""
     base = {
         "id": "e1",
         "event_type": "panne_machine",
@@ -191,20 +191,20 @@ def test_events_list_revert_button_only_for_active_events():
     ]
     listing = events_list(events)
     buttons = _find_by_type(listing, "ev-revert")
-    assert len(buttons) == 1  # l'événement reverté n'a pas de bouton
+    assert len(buttons) == 1  # l'evenement reverte n'a pas de bouton
     assert buttons[0].id["index"] == "e1"
     tree = str(listing)
-    assert "Panne machine" in tree  # libellé français du type
+    assert "Panne machine" in tree  # libelle francais du type
     assert "Grève" in tree
     assert "2026-W23" in tree
-    assert "Annulé" in tree  # badge sur l'événement reverté
-    assert "Durée d'arrêt : 24 h" in tree  # params résumés (libellé + unité)
+    assert "Annulé" in tree  # badge sur l'evenement reverte
+    assert "Durée d'arrêt : 24 h" in tree  # params resumes (libelle + unite)
     assert "majeure" in tree
-    assert "ligne 3" in tree  # notes affichées
+    assert "ligne 3" in tree  # notes affichees
 
 
 def test_events_list_custom_ctx_unknown_type_and_empty_message():
     listing = events_list([_evt(event_type="type_disparu")], ctx="hb")
     assert len(_find_by_type(listing, "hb-revert")) == 1
-    assert "type_disparu" in str(listing)  # type inconnu affiché brut, sans planter
+    assert "type_disparu" in str(listing)  # type inconnu affiche brut, sans planter
     assert "Aucun événement" in str(events_list([]))

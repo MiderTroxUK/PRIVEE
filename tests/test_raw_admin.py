@@ -1,9 +1,9 @@
-"""Tests du service « données brutes » (RawTableService) — Lot 10.5.
+"""Tests du service " donnees brutes " (RawTableService) - Lot 10.5.
 
-Couvre : liste des bases et des tables (FORBIDDEN jamais éditables), lecture
-paginée avec ``rowid``, édition auditée d'une cellule, refus typés (table
-interdite, borne violée, JSON invalide, fenêtre de jalon) SANS écriture, et
-les ValueError de clé/colonne.
+Couvre : liste des bases et des tables (FORBIDDEN jamais editables), lecture
+paginee avec ``rowid``, edition auditee d'une cellule, refus types (table
+interdite, borne violee, JSON invalide, fenetre de jalon) SANS ecriture, et
+les ValueError de cle/colonne.
 """
 
 from __future__ import annotations
@@ -22,13 +22,13 @@ from supplyscore.services.raw_admin import (
     TableInfo,
 )
 
-#: Mercredi 2026-06-10 12:00 locale — semaine ISO « 2026-S24 ».
+#: Mercredi 2026-06-10 12:00 locale - semaine ISO " 2026-S24 ".
 _NOW = datetime(2026, 6, 10, 12, 0).timestamp()
 
 
 @pytest.fixture
 def service(tmp_path):
-    """Service seedé avec une petite démo reproductible (horloge figée)."""
+    """Service seede avec une petite demo reproductible (horloge figee)."""
     svc = SupplyScoreService(db_dir=tmp_path / "store", clock=FixedClock(_NOW))
     svc.seed_demo(n_ranks=2, seed=1)
     yield svc
@@ -37,16 +37,16 @@ def service(tmp_path):
 
 @pytest.fixture
 def raw(service):
-    """Vue brute sur le service seedé."""
+    """Vue brute sur le service seede."""
     return RawTableService(service)
 
 
 def _first_node_id(service) -> str:
-    """Id du premier nœud du registre (sa base client existe : démo seedée)."""
+    """Id du premier noeud du registre (sa base client existe : demo seedee)."""
     return service.registry.list_nodes()[0].id
 
 
-# --- list_databases ---------------------------------------------------------------------
+# list_databases
 
 
 def test_list_databases_registry_first_then_node_ids(service, raw):
@@ -57,7 +57,7 @@ def test_list_databases_registry_first_then_node_ids(service, raw):
     assert len(databases) > 1
 
 
-# --- list_tables ------------------------------------------------------------------------
+# list_tables
 
 
 def test_list_tables_registry_editable_whitelist_only(raw):
@@ -65,7 +65,7 @@ def test_list_tables_registry_editable_whitelist_only(raw):
 
     for name in ("nodes", "arcs", "milestones", "tags", "tag_categories", "projects"):
         assert infos[name].editable, name
-    # Hors liste blanche : jamais éditables.
+    # Hors liste blanche : jamais editables.
     for name in ("node_urgency", "project_settings", "node_tags", "onboarding_progress"):
         assert not infos[name].editable, name
     # FORBIDDEN : toujours editable=False.
@@ -81,7 +81,7 @@ def test_list_tables_client_forbidden_never_editable(service, raw):
         assert infos[name].editable, name
     for name in ("audit_log", "urgency_history", "kpi_snapshots", "weekly_reviews", "decisions"):
         assert not infos[name].editable, name
-    # La démo seedée a au moins une évaluation et un historique d'urgence.
+    # La demo seedee a au moins une evaluation et un historique d'urgence.
     assert infos["assessments"].row_count >= 1
     assert infos["urgency_history"].row_count >= 1
 
@@ -97,7 +97,7 @@ def test_list_tables_unknown_db_raises(raw):
         raw.list_tables("base-fantome")
 
 
-# --- fetch ------------------------------------------------------------------------------
+# fetch
 
 
 def test_fetch_includes_rowid_and_paginates(raw):
@@ -108,7 +108,7 @@ def test_fetch_includes_rowid_and_paginates(raw):
     assert len(rows) == 2
     assert all("rowid" in row for row in rows)
 
-    # offset=1 retombe sur la deuxième ligne de la première page.
+    # offset=1 retombe sur la deuxieme ligne de la premiere page.
     page2, _ = raw.fetch("registry", "nodes", limit=1, offset=1)
     assert page2[0]["rowid"] == rows[1]["rowid"]
 
@@ -123,7 +123,7 @@ def test_fetch_unknown_db_raises(raw):
         raw.fetch("base-fantome", "nodes")
 
 
-# --- update_cell : succès audité ----------------------------------------------------------
+# update_cell : succes audite
 
 
 def test_update_cell_nodes_label_writes_and_audits(service, raw):
@@ -191,11 +191,11 @@ def test_update_cell_milestone_deadline_window(service, raw):
     accepted = raw.update_cell("registry", "milestones", pk, "deadline_ts", row["start_ts"] + 3600)
     assert accepted.ok
 
-    # start_ts doit rester strictement antérieure à deadline_ts.
+    # start_ts doit rester strictement anterieure a deadline_ts.
     refused2 = raw.update_cell("registry", "milestones", pk, "start_ts", row["start_ts"] + 7200)
     assert not refused2.ok
 
-    # ... et une avancée valide de start_ts est acceptée.
+    # ... et une avancee valide de start_ts est acceptee.
     accepted2 = raw.update_cell("registry", "milestones", pk, "start_ts", row["start_ts"] - 3600)
     assert accepted2.ok
 
@@ -208,7 +208,7 @@ def test_update_cell_milestone_window_non_numeric_refused(raw):
     assert not raw.update_cell("registry", "milestones", pk, "start_ts", "abc").ok
 
 
-# --- update_cell : refus sans écriture -----------------------------------------------------
+# update_cell : refus sans ecriture
 
 
 def test_update_cell_forbidden_table_raises(service, raw):
@@ -223,7 +223,7 @@ def test_update_cell_forbidden_table_raises(service, raw):
 def test_update_cell_table_outside_whitelist_raises(service, raw):
     with pytest.raises(ForbiddenTableError, match="liste blanche"):
         raw.update_cell("registry", "node_urgency", {"rowid": 1}, "ud", 0.5)
-    # Une table whitelistée côté client n'est pas éditable côté registre.
+    # Une table whitelistee cote client n'est pas editable cote registre.
     with pytest.raises(ForbiddenTableError):
         raw.update_cell("registry", "assessments", {"rowid": 1}, "notes", "x")
 
@@ -239,7 +239,7 @@ def test_update_cell_gamma_out_of_bounds_refused_without_write(service, raw):
     assert "hors [0, 1]" in result.message_fr
     after, _ = raw.fetch("registry", "arcs", limit=1)
     assert after[0]["gamma"] == row["gamma"]
-    # Aucune ligne d'audit n'a été écrite.
+    # Aucune ligne d'audit n'a ete ecrite.
     trail = AuditTrail(service.registry.conn, service.clock, lock=service.registry.lock)
     assert trail.history("raw:arcs", str(pk)) == []
 
@@ -292,7 +292,7 @@ def test_update_cell_valid_json_accepted(raw):
     assert after[0]["kpis_json"] == "{}"
 
 
-# --- update_cell : ValueError de clé/colonne ------------------------------------------------
+# update_cell : ValueError de cle/colonne
 
 
 def test_update_cell_unknown_pk_column_raises(raw):

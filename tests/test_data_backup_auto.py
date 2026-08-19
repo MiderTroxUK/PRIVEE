@@ -1,11 +1,11 @@
-"""Tests du Lot 17.2 — sauvegarde automatique avec rétention (FixedClock pilotée).
+"""Tests du Lot 17.2 - sauvegarde automatique avec retention (FixedClock pilotee).
 
-Couvre :meth:`ServiceSauvegarde.backup_si_obsolete` (création si absente ou
-trop vieille, fraîcheur lue dans le NOM du zip, noms inattendus ignorés),
+Couvre :meth:`ServiceSauvegarde.backup_si_obsolete` (creation si absente ou
+trop vieille, fraicheur lue dans le NOM du zip, noms inattendus ignores),
 :meth:`ServiceSauvegarde.appliquer_retention` (suppression des plus anciennes
-au-delà du quota, ``garder >= 1``), :meth:`ServiceSauvegarde.backup_auto`
-(enchaînement des deux, IntegriteError remonte) et la carte « Exporter &
-sauvegarder » de la page Projets (liste des dernières sauvegardes).
+au-dela du quota, ``garder >= 1``), :meth:`ServiceSauvegarde.backup_auto`
+(enchainement des deux, IntegriteError remonte) et la carte " Exporter &
+sauvegarder " de la page Projets (liste des dernieres sauvegardes).
 """
 
 from __future__ import annotations
@@ -26,15 +26,14 @@ from supplyscore.services import SupplyScoreService
 from supplyscore.web_ui import set_service
 from supplyscore.web_ui.pages import projects
 
-#: Mercredi 2026-06-10 12:00 locale — epoch ENTIER : le nom du zip (résolution
-#: à la seconde) se re-parse exactement sur cet instant.
+#: Mercredi 2026-06-10 12:00 locale - epoch ENTIER : le nom du zip (resolution a la seconde) se re-parse exactement sur cet instant.
 _DEBUT = datetime(2026, 6, 10, 12, 0)
 T0 = float(int(_DEBUT.timestamp()))
 HEURE = 3600.0
 
 
 def _store_minimal(tmp_path: Path) -> Path:
-    """Crée un répertoire de données contenant une petite base SQLite valide."""
+    """Cree un repertoire de donnees contenant une petite base SQLite valide."""
     store = tmp_path / "store"
     store.mkdir()
     conn = sqlite3.connect(str(store / "registry.sqlite"))
@@ -47,7 +46,7 @@ def _store_minimal(tmp_path: Path) -> Path:
 
 
 def _zips_factices(dest: Path, n: int, debut: datetime = _DEBUT) -> list[Path]:
-    """Crée ``n`` zips factices horodatés d'heure en heure, du plus ancien au plus récent."""
+    """Cree ``n`` zips factices horodates d'heure en heure, du plus ancien au plus recent."""
     dest.mkdir(parents=True, exist_ok=True)
     chemins: list[Path] = []
     for i in range(n):
@@ -58,11 +57,11 @@ def _zips_factices(dest: Path, n: int, debut: datetime = _DEBUT) -> list[Path]:
     return chemins
 
 
-# --- backup_si_obsolete -----------------------------------------------------------------
+# backup_si_obsolete
 
 
 def test_si_obsolete_sans_sauvegarde_cree(tmp_path):
-    """Aucune archive existante -> une sauvegarde est créée immédiatement."""
+    """Aucune archive existante -> une sauvegarde est creee immediatement."""
     store = _store_minimal(tmp_path)
     sauvegarde = ServiceSauvegarde(store, clock=FixedClock(T0))
 
@@ -73,7 +72,7 @@ def test_si_obsolete_sans_sauvegarde_cree(tmp_path):
 
 
 def test_si_obsolete_sauvegarde_fraiche_ne_cree_rien(tmp_path):
-    """Archive du même instant (horloge figée) -> None, rien de nouveau."""
+    """Archive du meme instant (horloge figee) -> None, rien de nouveau."""
     store = _store_minimal(tmp_path)
     sauvegarde = ServiceSauvegarde(store, clock=FixedClock(T0))
     premier = sauvegarde.backup_all()
@@ -83,7 +82,7 @@ def test_si_obsolete_sauvegarde_fraiche_ne_cree_rien(tmp_path):
 
 
 def test_si_obsolete_apres_25h_cree(tmp_path):
-    """Horloge avancée de 25 h (> 24 h) -> une nouvelle archive est créée."""
+    """Horloge avancee de 25 h (> 24 h) -> une nouvelle archive est creee."""
     store = _store_minimal(tmp_path)
     horloge = FixedClock(T0)
     sauvegarde = ServiceSauvegarde(store, clock=horloge)
@@ -97,7 +96,7 @@ def test_si_obsolete_apres_25h_cree(tmp_path):
 
 
 def test_si_obsolete_age_limite_ne_cree_rien(tmp_path):
-    """Âge EXACTEMENT égal à max_age_h -> pas obsolète (strictement plus vieux exigé)."""
+    """Age EXACTEMENT egal a max_age_h -> pas obsolete (strictement plus vieux exige)."""
     store = _store_minimal(tmp_path)
     horloge = FixedClock(T0)
     sauvegarde = ServiceSauvegarde(store, clock=horloge)
@@ -108,11 +107,11 @@ def test_si_obsolete_age_limite_ne_cree_rien(tmp_path):
 
 
 def test_si_obsolete_ignore_noms_inattendus(tmp_path):
-    """Fichiers au nom non conforme -> ignorés pour l'âge : la sauvegarde est créée."""
+    """Fichiers au nom non conforme -> ignores pour l'age : la sauvegarde est creee."""
     store = _store_minimal(tmp_path)
     backups = store / "backups"
     backups.mkdir()
-    # Nom hors motif ET nom au motif correct mais à la date calendaire invalide.
+    # Nom hors motif ET nom au motif correct mais a la date calendaire invalide.
     (backups / "SupplyScore_notes.zip").write_bytes(b"hors motif")
     (backups / "SupplyScore_20269999_999999.zip").write_bytes(b"date invalide")
     sauvegarde = ServiceSauvegarde(store, clock=FixedClock(T0))
@@ -122,18 +121,18 @@ def test_si_obsolete_ignore_noms_inattendus(tmp_path):
     assert cree is not None and cree.is_file()
 
 
-# --- appliquer_retention ----------------------------------------------------------------
+# appliquer_retention
 
 
 def test_retention_garde_les_20_plus_recentes(tmp_path):
-    """25 zips factices -> les 5 plus anciens supprimés et retournés, 20 conservés."""
+    """25 zips factices -> les 5 plus anciens supprimes et retournes, 20 conserves."""
     store = _store_minimal(tmp_path)
     chemins = _zips_factices(store / "backups", 25)
     sauvegarde = ServiceSauvegarde(store, clock=FixedClock(T0))
 
     supprimees = sauvegarde.appliquer_retention(garder=RETENTION_DEFAUT)
 
-    # Retournées du plus récent au plus ancien parmi les 5 supprimées.
+    # Retournees du plus recent au plus ancien parmi les 5 supprimees.
     assert supprimees == list(reversed(chemins[:5]))
     assert not any(p.exists() for p in supprimees)
     assert sauvegarde.list_backups() == list(reversed(chemins[5:]))
@@ -150,7 +149,7 @@ def test_retention_sous_le_quota_ne_supprime_rien(tmp_path):
 
 
 def test_retention_ignore_noms_inattendus(tmp_path):
-    """Les fichiers au nom non conforme ne sont NI comptés NI supprimés."""
+    """Les fichiers au nom non conforme ne sont NI comptes NI supprimes."""
     store = _store_minimal(tmp_path)
     chemins = _zips_factices(store / "backups", 3)
     intrus = store / "backups" / "SupplyScore_notes.zip"
@@ -165,7 +164,7 @@ def test_retention_ignore_noms_inattendus(tmp_path):
 
 
 def test_retention_garder_invalide(tmp_path):
-    """garder = 0 -> ValueError, aucune archive touchée."""
+    """garder = 0 -> ValueError, aucune archive touchee."""
     store = _store_minimal(tmp_path)
     chemins = _zips_factices(store / "backups", 2)
     sauvegarde = ServiceSauvegarde(store, clock=FixedClock(T0))
@@ -175,14 +174,14 @@ def test_retention_garder_invalide(tmp_path):
     assert all(p.exists() for p in chemins)
 
 
-# --- backup_auto ------------------------------------------------------------------------
+# backup_auto
 
 
 def test_backup_auto_enchaine_creation_et_retention(tmp_path):
-    """backup_auto crée l'archive manquante PUIS ramène le stock au quota."""
+    """backup_auto cree l'archive manquante PUIS ramene le stock au quota."""
     store = _store_minimal(tmp_path)
     chemins = _zips_factices(store / "backups", RETENTION_DEFAUT)  # 20 anciennes
-    horloge = FixedClock(T0 + 48 * HEURE)  # la plus récente a 29 h -> obsolète
+    horloge = FixedClock(T0 + 48 * HEURE)  # la plus recente a 29 h -> obsolete
     sauvegarde = ServiceSauvegarde(store, clock=horloge)
 
     cree = sauvegarde.backup_auto(max_age_h=24.0, garder=RETENTION_DEFAUT)
@@ -192,13 +191,13 @@ def test_backup_auto_enchaine_creation_et_retention(tmp_path):
     assert len(restantes) == RETENTION_DEFAUT
     assert restantes[0] == cree
     assert not chemins[0].exists(), "la plus ancienne doit avoir été supprimée"
-    # Second appel immédiat : archive fraîche -> None, stock inchangé.
+    # Second appel immediat : archive fraiche -> None, stock inchange.
     assert sauvegarde.backup_auto(max_age_h=24.0, garder=RETENTION_DEFAUT) is None
     assert sauvegarde.list_backups() == restantes
 
 
 def test_backup_auto_garder_invalide_ne_cree_rien(tmp_path):
-    """garder = 0 -> ValueError AVANT toute création d'archive."""
+    """garder = 0 -> ValueError AVANT toute creation d'archive."""
     store = _store_minimal(tmp_path)
     sauvegarde = ServiceSauvegarde(store, clock=FixedClock(T0))
 
@@ -208,7 +207,7 @@ def test_backup_auto_garder_invalide_ne_cree_rien(tmp_path):
 
 
 def test_backup_auto_integrite_remonte(tmp_path):
-    """Base corrompue -> IntegriteError REMONTE, aucune archive créée."""
+    """Base corrompue -> IntegriteError REMONTE, aucune archive creee."""
     store = _store_minimal(tmp_path)
     with (store / "registry.sqlite").open("r+b") as f:
         f.write(b"\x00" * 256)
@@ -219,12 +218,12 @@ def test_backup_auto_integrite_remonte(tmp_path):
     assert sauvegarde.list_backups() == []
 
 
-# --- carte « Exporter & sauvegarder » de la page Projets ---------------------------------
+# carte " Exporter & sauvegarder " de la page Projets
 
 
 @pytest.fixture
 def service_web(tmp_path):
-    """Service web partagé par les callbacks de la page Projets (horloge figée)."""
+    """Service web partage par les callbacks de la page Projets (horloge figee)."""
     svc = SupplyScoreService(db_dir=tmp_path / "store", clock=FixedClock(T0))
     set_service(svc)
     yield svc
@@ -233,14 +232,14 @@ def service_web(tmp_path):
 
 
 def test_carte_projets_liste_vide_avant_sauvegarde(service_web):
-    """Sans archive, la carte affiche une invitation française claire."""
+    """Sans archive, la carte affiche une invitation francaise claire."""
     rendu = str(projects.backup_list_callback(0))
     assert "Dernières sauvegardes" in rendu
     assert "aucune pour l'instant" in rendu
 
 
 def test_carte_projets_liste_les_sauvegardes(service_web):
-    """Après le bouton « Sauvegarder », la liste contient le nom du zip et sa taille."""
+    """Apres le bouton " Sauvegarder ", la liste contient le nom du zip et sa taille."""
     msg, refresh = projects.backup_now_callback(1, 0)
     texte_msg = str(msg)
     assert "Sauvegarde créée" in texte_msg
@@ -256,7 +255,7 @@ def test_carte_projets_liste_les_sauvegardes(service_web):
 
 
 def test_carte_projets_liste_limitee_a_trois(service_web):
-    """Seules les 3 archives les plus récentes apparaissent dans la carte."""
+    """Seules les 3 archives les plus recentes apparaissent dans la carte."""
     horloge = FixedClock(T0)
     sauvegarde = ServiceSauvegarde(service_web.db_dir, clock=horloge)
     zips = []
@@ -270,14 +269,14 @@ def test_carte_projets_liste_limitee_a_trois(service_web):
 
 
 def test_layout_contient_la_liste_et_la_retention(service_web):
-    """Le layout expose le Div backup-list et mentionne la rétention dans la carte."""
+    """Le layout expose le Div backup-list et mentionne la retention dans la carte."""
     texte = str(projects.layout())
     assert "backup-list" in texte
     assert f"rétention : {RETENTION_DEFAUT} archives" in texte
 
 
 def test_taille_lisible_ko_et_mo():
-    """Formatage français des tailles : Ko entiers, Mo à une décimale (virgule)."""
+    """Formatage francais des tailles : Ko entiers, Mo a une decimale (virgule)."""
     assert projects._taille_lisible(512) == "1 Ko"
     assert projects._taille_lisible(10 * 1024) == "10 Ko"
     assert projects._taille_lisible(int(2.5 * 1024 * 1024)) == "2,5 Mo"

@@ -1,23 +1,23 @@
-"""Tests d'InsightService et de son CLI (U12) — LE contrat de fin HÉLIOS v7.
+"""Tests d'InsightService et de son CLI (U12) - LE contrat de fin HELIOS v7.
 
-Couvre : les trois branches de sévérité (:data:`SEUILS_V1`), le bloc
-prescriptif complet (contrat de fin : p0/p1, effet estimé + source nommée
-explicitement selon ``delta_u.source``, P(Δ>0), P(résolution opérationnelle |
-exécution), P(exécution), P(éviter la rupture) — produit affiché —, valeur
-nette OU heuristique — jamais confondues —, délai d'effet, niveau de preuve
-— formulation exacte imposée pour ``prior_sim`` —, robustesse aux trois a
-priori, incertitude de modèle) et la complétude de ``sources``, le catalogue
-dégradé (5 règles, ordre figé, petit graphe avec/sans arc de secours), le
-tri (sévérité puis P(≤4) décroissant), l'annotation d'amélioration à 1 et 2
-semaines, la discipline duck-typing (objet unique ou séquence, mapping ou
-dataclass, aucun import des modules frères U11/U18), et le CLI (mode
-dégradé sans artefact, JSON, prévision réussie/en échec, erreurs).
+Couvre : les trois branches de severite (:data:`SEUILS_V1`), le bloc
+prescriptif complet (contrat de fin : p0/p1, effet estime + source nommee
+explicitement selon ``delta_u.source``, P(Delta>0), P(resolution operationnelle |
+execution), P(execution), P(eviter la rupture) - produit affiche -, valeur
+nette OU heuristique - jamais confondues -, delai d'effet, niveau de preuve
+- formulation exacte imposee pour ``prior_sim`` -, robustesse aux trois a
+priori, incertitude de modele) et la completude de ``sources``, le catalogue
+degrade (5 regles, ordre fige, petit graphe avec/sans arc de secours), le
+tri (severite puis P(<=4) decroissant), l'annotation d'amelioration a 1 et 2
+semaines, la discipline duck-typing (objet unique ou sequence, mapping ou
+dataclass, aucun import des modules freres U11/U18), et le CLI (mode
+degrade sans artefact, JSON, prevision reussie/en echec, erreurs).
 
-Points de prévision (contrat 6) et recommandations (contrat 11) sont
-reproduits ICI par de simples classes locales — jamais importés depuis
+Points de prevision (contrat 6) et recommandations (contrat 11) sont
+reproduits ICI par de simples classes locales - jamais importes depuis
 ``supplyscore.services.prediction``/``supplyscore.services.action_engine``,
 volontairement absents de ce worktree : la preuve que le duck-typing
-fonctionne réellement sans ces modules.
+fonctionne reellement sans ces modules.
 """
 
 from __future__ import annotations
@@ -39,13 +39,13 @@ from supplyscore.services import SupplyScoreService
 from supplyscore.services.insights import HORIZON_REFERENCE, InsightService
 from supplyscore.tools import insights as cli_insights
 
-#: Mercredi 2026-06-10 12:00 locale — instant figé des tests.
+#: Mercredi 2026-06-10 12:00 locale - instant fige des tests.
 _NOW = datetime(2026, 6, 10, 12, 0).timestamp()
 
 PROJECT_ID = "proj-insights"
 
 
-# --- Fixtures : petit graphe C -> B -> A + fournisseur de secours C2 -----------------------
+# Fixtures : petit graphe C -> B -> A + fournisseur de secours C2
 
 
 @pytest.fixture
@@ -58,8 +58,8 @@ def service(tmp_path: Path) -> Iterator[SupplyScoreService]:
 def _construire_chaine(svc: SupplyScoreService, project_id: str = PROJECT_ID) -> None:
     """Construit C -> B -> A (client final) + C2, fournisseur de secours de B (backup C2->B).
 
-    A et C n'ont PAS d'arc de secours (utile pour les règles dégradées 2/4/5).
-    H/F par défaut = 0.1 (sous tous les seuils dégradés à 0.3).
+    A et C n'ont PAS d'arc de secours (utile pour les regles degradees 2/4/5).
+    H/F par defaut = 0.1 (sous tous les seuils degrades a 0.3).
     """
     ranks = {"A": 0, "B": 1, "C": 2, "C2": 2}
     nodes = [
@@ -95,12 +95,12 @@ def _set_urgency(svc: SupplyScoreService, node_id: str, **kwargs: float | None) 
     svc.repo.update_node(node)
 
 
-# --- Points et recommandations duck-typés (contrats 6 & 11, JAMAIS importés) ----------------
+# Points et recommandations duck-types (contrats 6 & 11, JAMAIS importes)
 
 
 @dataclass
 class FakePoint:
-    """Point minimal — expose UNIQUEMENT les champs qu'InsightService lit réellement."""
+    """Point minimal - expose UNIQUEMENT les champs qu'InsightService lit reellement."""
 
     node_id: str
     node_name: str
@@ -152,11 +152,11 @@ class FakeRecommandation:
 REC_COMPLETE = FakeRecommandation()
 
 
-# --- Discipline duck-typing : aucun import des modules frères ------------------------------
+# Discipline duck-typing : aucun import des modules freres
 
 
 def test_ne_importe_pas_les_modules_freres() -> None:
-    """Aucun ``import``/``from ... import`` réel ne cible U11/U18 (mentions en docstring OK)."""
+    """Aucun ``import``/``from ... import`` reel ne cible U11/U18 (mentions en docstring OK)."""
     import ast
 
     import supplyscore.services.insights as module_insights
@@ -174,7 +174,7 @@ def test_ne_importe_pas_les_modules_freres() -> None:
     assert not (modules_importes & interdits)
 
 
-# --- Sévérité (SEUILS_V1) -------------------------------------------------------------------
+# Severite (SEUILS_V1)
 
 
 def test_severite_alerte(chaine: SupplyScoreService) -> None:
@@ -194,7 +194,7 @@ def test_severite_alerte(chaine: SupplyScoreService) -> None:
 
 
 def test_severite_alerte_necessite_les_deux_conditions(chaine: SupplyScoreService) -> None:
-    # P(≤4) élevé mais impact_frac sous le seuil -> attention, pas alerte.
+    # P(<=4) eleve mais impact_frac sous le seuil -> attention, pas alerte.
     point = FakePoint(
         node_id="A",
         node_name="Nœud A",
@@ -247,7 +247,7 @@ def test_severite_info_p_le4_indisponible(chaine: SupplyScoreService) -> None:
     assert insight.sources["p_le4"] is None
 
 
-# --- Bloc prescriptif complet (contrat de fin) ----------------------------------------------
+# Bloc prescriptif complet (contrat de fin)
 
 
 def test_bloc_prescriptif_complet_tous_les_nombres(chaine: SupplyScoreService) -> None:
@@ -330,7 +330,7 @@ def test_sources_completude_bloc_prescriptif(chaine: SupplyScoreService) -> None
         assert insight.sources[cle] is not None, f"{cle} ne devrait pas être None"
 
 
-# --- « nette » vs « heuristique » : jamais confondues ---------------------------------------
+# " nette " vs " heuristique " : jamais confondues
 
 
 def test_valeur_nette_quand_montants_disponibles(chaine: SupplyScoreService) -> None:
@@ -353,7 +353,7 @@ def test_valeur_heuristique_jamais_appelee_valeur_nette(chaine: SupplyScoreServi
     assert "reco_valeur_nette_lo" not in insight.sources
 
 
-# --- Source nommée explicitement selon delta_u.source ---------------------------------------
+# Source nommee explicitement selon delta_u.source
 
 
 def test_effet_source_sim(chaine: SupplyScoreService) -> None:
@@ -392,7 +392,7 @@ def test_effet_absent(chaine: SupplyScoreService) -> None:
     assert insight.sources["reco_delta_u_est"] is None
 
 
-# --- Robustesse aux trois a priori -----------------------------------------------------------
+# Robustesse aux trois a priori
 
 
 def test_robustesse_vraie(chaine: SupplyScoreService) -> None:
@@ -450,7 +450,7 @@ def test_p_eviter_absent_quand_resolution_inconnue(chaine: SupplyScoreService) -
     assert insight.sources["reco_p_eviter"] is None
 
 
-# --- Recommandation : objet unique, séquence, mapping ----------------------------------------
+# Recommandation : objet unique, sequence, mapping
 
 
 def test_recommandation_liste_prend_le_premier(chaine: SupplyScoreService) -> None:
@@ -494,7 +494,7 @@ def test_duck_typing_champs_optionnels_totalement_absents(chaine: SupplyScoreSer
 
     Couvre les replis internes (:func:`_champ` sur un sous-objet absent,
     :func:`_pp`/:func:`_p_le4` sur une valeur/un mapping manquant) qu'aucun
-    autre test — construit sur des dataclasses complètes — n'atteint.
+    autre test - construit sur des dataclasses completes - n'atteint.
     """
 
     class RecommandationNue:
@@ -502,21 +502,21 @@ def test_duck_typing_champs_optionnels_totalement_absents(chaine: SupplyScoreSer
         libelle = "Action nue"
         p0 = None
         p1 = None  # sous-mapping absent -> _champ(None, "est")
-        delta_u: ClassVar[dict[str, Any]] = {"est": None, "source": "sim"}  # -> _pp(None)=="n/d"
+        delta_u: ClassVar[dict[str, Any]] = {"est": None, "source": "sim"}  # _pp(None)=="n/d"
         p_delta_positif = None
         p_resolution_op = None
         p_execution = 0.5
         p_eviter = None
         valeur: ClassVar[dict[str, Any]] = {"heuristique": 0.0}
         delai_effet_weeks = (0.0, 0.0, 0.0)
-        niveau_de_preuve = None  # -> _texte_niveau_preuve(None)
+        niveau_de_preuve = None  # _texte_niveau_preuve(None)
         robuste_aux_priors = False
         incertitude_modele = "non quantifiée (simulateur)"
 
     class PointNu:
         node_id = "A"
         node_name = "Nœud A"
-        # proba_by_horizon absent (pas même un dict vide) -> _p_le4 replie sur None.
+        # proba_by_horizon absent (pas meme un dict vide) -> _p_le4 replie sur None.
         recommandation = RecommandationNue()
 
     insight = InsightService(chaine).insights(PROJECT_ID, [PointNu()])[0]
@@ -525,7 +525,7 @@ def test_duck_typing_champs_optionnels_totalement_absents(chaine: SupplyScoreSer
     assert "niveau de preuve : 0 observations réelles (a priori indisponible)" in insight.message
 
 
-# --- Catalogue dégradé (recommandation absente) — ordre figé, petit graphe -----------------
+# Catalogue degrade (recommandation absente) - ordre fige, petit graphe
 
 
 def test_action_degradee_arc_de_secours(chaine: SupplyScoreService) -> None:
@@ -604,7 +604,7 @@ def test_action_degradee_aucune_regle(chaine: SupplyScoreService) -> None:
     assert insight.action is None
 
 
-# --- Tri : sévérité puis P(≤4) décroissant ---------------------------------------------------
+# Tri : severite puis P(<=4) decroissant
 
 
 def test_tri_severite_puis_p_le4(chaine: SupplyScoreService) -> None:
@@ -628,7 +628,7 @@ def test_tri_severite_puis_p_le4(chaine: SupplyScoreService) -> None:
     assert [i.node_id for i in insights] == ["B", "C", "C2", "A"]
 
 
-# --- Annotation « en voie de résolution » -----------------------------------------------------
+# Annotation " en voie de resolution "
 
 
 def test_amelioration_une_semaine(chaine: SupplyScoreService) -> None:
@@ -669,14 +669,14 @@ def test_amelioration_precedent_sans_correspondance(chaine: SupplyScoreService) 
 
 
 def test_amelioration_precedent_ne_confirme_pas(chaine: SupplyScoreService) -> None:
-    # La semaine précédente n'était PAS en recul (delta positif) : signal 1 semaine seulement.
+    # La semaine precedente n'etait PAS en recul (delta positif) : signal 1 semaine seulement.
     point = FakePoint(node_id="A", node_name="Nœud A", delta_vs_last_week=-0.06)
     precedent = FakePoint(node_id="A", node_name="Nœud A", delta_vs_last_week=0.03)
     insight = InsightService(chaine).insights(PROJECT_ID, [point], previous=[precedent])[0]
     assert "deux semaines consécutives" not in insight.message
 
 
-# --- Erreurs et cas limites --------------------------------------------------------------------
+# Erreurs et cas limites
 
 
 def test_projet_inconnu_leve_valueerror(chaine: SupplyScoreService) -> None:
@@ -695,12 +695,12 @@ def test_insight_est_gele(chaine: SupplyScoreService) -> None:
         insight.severite = "alerte"  # type: ignore[misc]
 
 
-# --- CLI (supplyscore.tools.insights) ---------------------------------------------------------
+# CLI (supplyscore.tools.insights)
 
 
 @pytest.fixture
 def db_dir_chaine(tmp_path: Path) -> Path:
-    """Persiste la fixture de chaîne sur disque pour un run du CLI (processus séparé)."""
+    """Persiste la fixture de chaine sur disque pour un run du CLI (processus separe)."""
     db_dir = tmp_path / "store_cli"
     svc = SupplyScoreService(db_dir=db_dir, clock=FixedClock(_NOW))
     try:
@@ -727,9 +727,7 @@ def test_cli_mode_degrade_sans_artefact(
     sortie = capsys.readouterr().out
     assert "Nœud" in sortie
     assert "Avertissement" in sortie
-    # Mode dégradé sans artefact : selon que U11 (PredictionService) soit présent
-    # ou non, le CLI passe par la branche « consulter l'unité U11 » ou « artefact
-    # introuvable » — les deux portent le même marqueur « Mode dégradé ».
+    # Mode degrade sans artefact : selon que U11 (PredictionService) soit present ou non, le CLI passe par la branche " consulter l'unite U11 " ou " artefact introuvable " - les deux portent le meme marqueur " Mode degrade ".
     assert "Mode dégradé" in sortie
 
 
@@ -757,9 +755,7 @@ def test_cli_module_present_mais_artefact_introuvable(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    # Le module de prévision EST importable (contrairement au reste de ce worktree),
-    # mais le fichier d'artefact pointé par --model n'existe pas : bascule dégradée
-    # AVANT toute tentative de construction de PredictionService.
+    # Le module de prevision EST importable (contrairement au reste de ce worktree), mais le fichier d'artefact pointe par --model n'existe pas : bascule degradee AVANT toute tentative de construction de PredictionService.
     faux_module = types.ModuleType("supplyscore.services.prediction")
     monkeypatch.setitem(sys.modules, "supplyscore.services.prediction", faux_module)
 

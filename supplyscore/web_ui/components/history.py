@@ -1,9 +1,9 @@
 """Composants UI d'historique : journal d'audit et trajectoire de KPI.
 
-Le tableau d'historique accepte ses entrées en duck-typing : les attributs
-sont lus via ``getattr`` avec valeur par défaut. La dataclass ``AuditEntry``
-(``supplyscore.data.audit``) est développée en parallèle et n'est
-volontairement PAS importée ici — tout objet exposant ``timestamp``,
+Le tableau d'historique accepte ses entrees en duck-typing : les attributs
+sont lus via ``getattr`` avec valeur par defaut. La dataclass ``AuditEntry``
+(``supplyscore.data.audit``) est developpee en parallele et n'est
+volontairement PAS importee ici - tout objet exposant ``timestamp``,
 ``iso_week``, ``field``, ``old_value``, ``new_value``, ``source`` et
 ``operator_id`` convient, et un attribut manquant ne fait pas planter le rendu.
 """
@@ -22,7 +22,7 @@ from supplyscore.web_ui.components.layout import COLORS, FONT_FAMILY
 
 _TEMPLATE = "plotly_white"
 
-#: Colonnes françaises du journal d'audit (l'« id » sert de clé des lignes).
+#: Colonnes francaises du journal d'audit (l'" id " sert de cle des lignes).
 _HISTORY_COLUMNS = [
     {"name": "Date", "id": "Date"},
     {"name": "Semaine", "id": "Semaine"},
@@ -33,7 +33,7 @@ _HISTORY_COLUMNS = [
     {"name": "Opérateur", "id": "Opérateur"},
 ]
 
-# Styles alignés sur les DataTable existantes (pages projets / dashboard).
+# Styles alignes sur les DataTable existantes (pages projets / dashboard).
 _TABLE_STYLE_CELL = {
     "fontFamily": FONT_FAMILY,
     "fontSize": "13px",
@@ -49,14 +49,14 @@ _TABLE_STYLE_HEADER = {
 
 
 def _fmt_date(timestamp: Any) -> str:
-    """Formate un timestamp epoch en date locale « JJ/MM/AAAA HH:MM » (« — » si absent)."""
+    """Formate un timestamp epoch en date locale " JJ/MM/AAAA HH:MM " (" - " si absent)."""
     if timestamp is None:
         return "—"
     return datetime.fromtimestamp(float(timestamp)).strftime("%d/%m/%Y %H:%M")
 
 
 def _fmt_value(value: Any) -> str:
-    """Formate une valeur d'audit : « — » si None, flottants sans zéros inutiles."""
+    """Formate une valeur d'audit : " - " si None, flottants sans zeros inutiles."""
     if value is None:
         return "—"
     if isinstance(value, float):
@@ -64,20 +64,19 @@ def _fmt_value(value: Any) -> str:
     return str(value)
 
 
-# Lacune de typage Dash : dash_table est un module non typé, son attribut
-# DataTable n'existe pas pour mypy (ignore ciblé, comme dans les pages).
+# Lacune de typage Dash : dash_table est un module non type, son attribut DataTable n'existe pas pour mypy (ignore cible, comme dans les pages).
 def history_table(entries: Iterable[Any]) -> dash_table.DataTable:  # type: ignore[name-defined]
-    """Tableau LECTURE SEULE du journal d'audit, colonnes françaises.
+    """Tableau LECTURE SEULE du journal d'audit, colonnes francaises.
 
-    Le tri natif est désactivé : l'ordre d'affichage est exactement celui
+    Le tri natif est desactive : l'ordre d'affichage est exactement celui
     fourni par l'appelant. Pagination par pages de 15 lignes.
 
     Args:
-        entries: objets exposant ``timestamp`` (epoch, affiché en heure
+        entries: objets exposant ``timestamp`` (epoch, affiche en heure
             locale JJ/MM/AAAA HH:MM), ``iso_week``, ``field``, ``old_value``,
             ``new_value``, ``source`` et ``operator_id``. Lecture par
-            ``getattr`` avec défaut (duck-typing volontaire, cf. docstring de
-            module) : un attribut manquant s'affiche vide (ou « — » pour les
+            ``getattr`` avec defaut (duck-typing volontaire, cf. docstring de
+            module) : un attribut manquant s'affiche vide (ou " - " pour les
             dates et valeurs).
     """
     rows = [
@@ -110,15 +109,15 @@ def kpi_trajectory_figure(
 ) -> go.Figure:
     """Courbe en escalier de la trajectoire d'UN KPI au fil des snapshots.
 
-    Tracé en escalier (``line_shape="hv"``) : un KPI garde sa valeur entre
-    deux saisies. Le titre est « Trajectoire — {kpi_path} ({unit}) » (l'unité
+    Trace en escalier (``line_shape="hv"``) : un KPI garde sa valeur entre
+    deux saisies. Le titre est " Trajectoire - {kpi_path} ({unit}) " (l'unite
     est omise si vide).
 
     Args:
-        snapshots: couples ``(timestamp epoch, valeur)`` déjà extraits par
-            l'appelant pour UN KPI, ordonnés par timestamp croissant.
+        snapshots: couples ``(timestamp epoch, valeur)`` deja extraits par
+            l'appelant pour UN KPI, ordonnes par timestamp croissant.
         kpi_path: chemin du KPI (ex. ``time.lead_time_h``), repris au titre.
-        unit: unité d'affichage (axe y et titre), optionnelle.
+        unit: unite d'affichage (axe y et titre), optionnelle.
     """
     label = f"{kpi_path} ({unit})" if unit else kpi_path
     if not snapshots:

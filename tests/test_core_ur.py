@@ -1,4 +1,4 @@
-"""Tests du modèle d'urgence réelle Ur."""
+"""Tests du modele d'urgence reelle Ur."""
 
 import math
 from itertools import pairwise
@@ -35,7 +35,7 @@ def empty() -> KPIBundle:
 
 
 class TestBlocsManquants:
-    """Chaque bloc renvoie None quand les KPIs nécessaires manquent."""
+    """Chaque bloc renvoie None quand les KPIs necessaires manquent."""
 
     def test_u_time_none(self, model, empty):
         assert model.u_time(0.0, empty) is None
@@ -54,7 +54,7 @@ class TestBlocsManquants:
 
     def test_u_risk_none(self, model, empty):
         assert model.u_risk(empty) is None
-        # env_exposure seul ne suffit pas (noyau entièrement manquant)
+        # env_exposure seul ne suffit pas (noyau entierement manquant)
         k = KPIBundle(risk=RiskKPIs(env_exposure=0.5))
         assert model.u_risk(k) is None
 
@@ -69,7 +69,7 @@ class TestBlocsManquants:
 
 
 class TestBornes:
-    """Tous les blocs vivent dans [0, 1] même avec des KPIs extrêmes."""
+    """Tous les blocs vivent dans [0, 1] meme avec des KPIs extremes."""
 
     def test_u_time_bornes(self, model):
         k = KPIBundle(time=TimeKPIs(deadline_h=100.0, lead_time_h=1.0))
@@ -78,12 +78,12 @@ class TestBornes:
         assert 0.0 <= model.u_time(0.0, k) <= 1.0
 
     def test_u_time_apres_deadline(self, model):
-        """t après la deadline -> urgence temporelle 1.0."""
+        """t apres la deadline -> urgence temporelle 1.0."""
         k = KPIBundle(time=TimeKPIs(deadline_h=10.0, lead_time_h=2.0))
         assert model.u_time(11.0, k) == 1.0
 
     def test_u_cap_bornes(self, model):
-        # Stock saturé + déficit de flux massif
+        # Stock sature + deficit de flux massif
         k = KPIBundle(
             inventory=InventoryKPIs(
                 max_volume_m3=100.0,
@@ -95,7 +95,7 @@ class TestBornes:
             network=NetworkKPIs(demand=1000.0),
         )
         assert 0.0 <= model.u_cap(k) <= 1.0
-        # Stock vide, flux excédentaire -> proche de 0
+        # Stock vide, flux excedentaire -> proche de 0
         k = KPIBundle(
             inventory=InventoryKPIs(max_volume_m3=100.0, current_volume_m3=0.0, flow_rate=500.0),
             network=NetworkKPIs(demand=10.0),
@@ -119,7 +119,7 @@ class TestBornes:
             cost=CostKPIs(op_cost=10_000.0, nominal_op_cost=10.0, tariff=5.0, storage_cost=99_999.0)
         )
         assert 0.0 <= model.u_cost(k) <= 1.0
-        # Coût sous le nominal -> clip à 0
+        # Cout sous le nominal -> clip a 0
         k = KPIBundle(cost=CostKPIs(op_cost=5.0, nominal_op_cost=100.0))
         assert model.u_cost(k) == 0.0
 
@@ -137,13 +137,13 @@ class TestAgregation:
         assert model.ur_local(0.0, empty) == 0.0
 
     def test_un_bloc_sature_ur_proche_de_1(self, model):
-        """OR probabiliste : un seul bloc à 1.0 -> ur_local ~ 1."""
+        """OR probabiliste : un seul bloc a 1.0 -> ur_local ~ 1."""
         k = KPIBundle(oee=OEEKPIs(availability=0.0, performance=1.0, quality=1.0))
         assert model.u_perf(k) == 1.0
         assert model.ur_local(0.0, k) == pytest.approx(1.0)
 
     def test_or_probabiliste_combinaison(self, model):
-        """Deux blocs à 0.5 -> 1 - 0.5*0.5 = 0.75."""
+        """Deux blocs a 0.5 -> 1 - 0.5*0.5 = 0.75."""
         k = KPIBundle(
             oee=OEEKPIs(availability=0.5, performance=1.0, quality=1.0),
             co2=CO2KPIs(op_emission_g_h=150.0, co2_target_g_h=100.0, co2_max_g_h=200.0),
@@ -183,9 +183,9 @@ class TestUTimeOverride:
         return KPIBundle(time=TimeKPIs(deadline_h=100.0, lead_time_h=10.0, lead_time_std_h=2.0))
 
     def test_override_prime_sur_kpis_temps_complets(self, model, kpis_temps_complets):
-        """L'override remplace le calcul local même quand celui-ci est possible."""
+        """L'override remplace le calcul local meme quand celui-ci est possible."""
         local = model.blocks(0.0, kpis_temps_complets)["time"]
-        assert local is not None and local != 0.42  # le calcul local existe et diffère
+        assert local is not None and local != 0.42  # le calcul local existe et differe
         blocks = model.blocks(0.0, kpis_temps_complets, u_time_override=0.42)
         assert blocks["time"] == 0.42
 
@@ -214,7 +214,7 @@ class TestUTimeOverride:
         assert blocks["time"] == 0.6
 
     def test_ur_local_override_monte_l_agregat_selon_ou(self, model):
-        """L'override s'agrège par OU probabiliste : 1 − (1 − 0.5)(1 − 0.5) = 0.75."""
+        """L'override s'agrege par OU probabiliste : 1 - (1 - 0.5)(1 - 0.5) = 0.75."""
         k = KPIBundle(oee=OEEKPIs(availability=0.5, performance=1.0, quality=1.0))
         sans = model.ur_local(0.0, k)
         avec = model.ur_local(0.0, k, u_time_override=0.5)
@@ -223,7 +223,7 @@ class TestUTimeOverride:
         assert avec > sans
 
     def test_ur_local_statut_done_prime_sur_override(self, model, kpis_temps_complets):
-        """Les règles de statut restent prioritaires : DONE → 0.0 malgré l'override."""
+        """Les regles de statut restent prioritaires : DONE -> 0.0 malgre l'override."""
         assert (
             model.ur_local(0.0, kpis_temps_complets, status=TaskStatus.DONE, u_time_override=0.9)
             == 0.0
@@ -283,7 +283,7 @@ class TestFonctionsAuxiliaires:
             filtered_error(0.5, 0.5, eps_tol=-0.01)
 
     def test_ud_hyperbolic(self):
-        # Loin de tc : urgence perçue faible ; à tc : 1
+        # Loin de tc : urgence percue faible ; a tc : 1
         assert ud_hyperbolic(0.0, tc=100.0, k=0.05) == pytest.approx(1 / 6)
         assert ud_hyperbolic(100.0, tc=100.0) == pytest.approx(1.0)
         assert ud_hyperbolic(150.0, tc=100.0) == pytest.approx(1.0)

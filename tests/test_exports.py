@@ -1,11 +1,11 @@
-"""Tests du Lot 7.1 : ExportService — export complet des données d'un projet.
+"""Tests du Lot 7.1 : ExportService - export complet des donnees d'un projet.
 
 Couvre : l'export xlsx (classeur rouvert par openpyxl, TOUTES les feuilles
-attendues présentes et non vides, sondes nombre de nœuds et valeur
-d'évaluation contre la base), l'export csv (un ZIP avec un .csv par feuille,
-utf-8-sig avec BOM, séparateur « ; »), la slugification du nom de projet
-(accents translittérés, « / » retiré), le projet inconnu (ValueError) et la
-création du répertoire de destination.
+attendues presentes et non vides, sondes nombre de noeuds et valeur
+d'evaluation contre la base), l'export csv (un ZIP avec un .csv par feuille,
+utf-8-sig avec BOM, separateur " ; "), la slugification du nom de projet
+(accents translitteres, " / " retire), le projet inconnu (ValueError) et la
+creation du repertoire de destination.
 """
 
 from __future__ import annotations
@@ -25,7 +25,7 @@ from supplyscore.services.decisions import DecisionService
 from supplyscore.services.events import EventEngine
 from supplyscore.services.exports import ExportService
 
-#: Mercredi 2026-06-10 12:00 locale — horodatage de fichier « 20260610_120000 ».
+#: Mercredi 2026-06-10 12:00 locale - horodatage de fichier " 20260610_120000 ".
 _NOW = datetime(2026, 6, 10, 12, 0).timestamp()
 _STAMP = "20260610_120000"
 
@@ -55,13 +55,13 @@ def service(tmp_path: Path):
 
 @pytest.fixture
 def projet(service: SupplyScoreService) -> Project:
-    """Projet de démonstration reproductible (seed_demo)."""
+    """Projet de demonstration reproductible (seed_demo)."""
     return service.seed_demo(n_ranks=2, seed=1)
 
 
 @pytest.fixture
 def node_id(service: SupplyScoreService, projet: Project) -> str:
-    """Premier nœud actif (ordre déterministe) du projet de démo."""
+    """Premier noeud actif (ordre deterministe) du projet de demo."""
     nodes = sorted(service.repo.nodes(), key=lambda n: n.id)
     actifs = [
         n for n in nodes if n.status is TaskStatus.ACTIVE and n.onboarding_state == "complete"
@@ -72,10 +72,10 @@ def node_id(service: SupplyScoreService, projet: Project) -> str:
 
 @pytest.fixture
 def service_riche(service: SupplyScoreService, projet: Project, node_id: str) -> SupplyScoreService:
-    """Service enrichi : événement, décision, revue hebdo et mutation registre.
+    """Service enrichi : evenement, decision, revue hebdo et mutation registre.
 
-    Garantit que les feuilles « evenements », « decisions », « revues_hebdo »,
-    « snapshots_kpi », « audit » (bases client) et « audit_registre » ont au
+    Garantit que les feuilles " evenements ", " decisions ", " revues_hebdo ",
+    " snapshots_kpi ", " audit " (bases client) et " audit_registre " ont au
     moins une ligne chacune.
     """
     EventEngine(service).apply(
@@ -98,14 +98,14 @@ def exports(service_riche: SupplyScoreService) -> ExportService:
 
 
 def _colonne(ws, header: str) -> int:
-    """Index (1-based) de la colonne dont l'en-tête (ligne 1) vaut ``header``."""
+    """Index (1-based) de la colonne dont l'en-tete (ligne 1) vaut ``header``."""
     for cell in ws[1]:
         if cell.value == header:
             return cell.column
     raise AssertionError(f"en-tête introuvable dans {ws.title!r} : {header!r}")
 
 
-# --- Export xlsx ----------------------------------------------------------------------
+# Export xlsx
 
 
 class TestExportXlsx:
@@ -194,7 +194,7 @@ class TestExportXlsx:
         assert "Relancer le fournisseur" in descriptions
 
 
-# --- Export csv (zip) -------------------------------------------------------------------
+# Export csv (zip)
 
 
 class TestExportCsv:
@@ -229,7 +229,7 @@ class TestExportCsv:
         assert len([ligne for ligne in lignes[1:] if ligne]) == attendu
 
 
-# --- Slugification du nom de fichier ------------------------------------------------------
+# Slugification du nom de fichier
 
 
 class TestSlug:
@@ -244,12 +244,12 @@ class TestSlug:
 
         assert path.name == f"SupplyScore_Ete-a-Sao-Paulo-test_{_STAMP}.xlsx"
         assert path.exists()
-        # Le classeur d'un projet sans nœud reste valide (feuilles avec en-têtes).
+        # Le classeur d'un projet sans noeud reste valide (feuilles avec en-tetes).
         wb = load_workbook(path)
         assert wb.sheetnames == _FEUILLES
 
 
-# --- Erreurs et destination ---------------------------------------------------------------
+# Erreurs et destination
 
 
 class TestErreursEtDestination:

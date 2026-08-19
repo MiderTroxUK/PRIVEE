@@ -1,8 +1,8 @@
-"""Méthodes d'aide à la décision multicritère (MCDA) — phase E12.
+"""Methodes d'aide a la decision multicritere (MCDA) - phase E12.
 
-Ré-exporte l'API publique du sous-paquet : PROMETHEE II (Lot 12.1) pour le
-classement multicritère des nœuds « à traiter en priorité » et FBWM
-(Lot 12.2) pour la pondération floue des blocs KPI d'Ur.
+Re-exporte l'API publique du sous-paquet : PROMETHEE II (Lot 12.1) pour le
+classement multicritere des noeuds " a traiter en priorite " et FBWM
+(Lot 12.2) pour la ponderation floue des blocs KPI d'Ur.
 """
 
 from supplyscore.mcda.fbwm import (

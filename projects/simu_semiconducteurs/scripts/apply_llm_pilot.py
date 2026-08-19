@@ -1,9 +1,9 @@
-"""Injecte les résultats du pilote LLM (8 personas, 19 tours) dans une vraie
-base de campagne HÉLIOS, via le même service que l'UI (orchestrator).
+"""Injecte les resultats du pilote LLM (8 personas, 19 tours) dans une vraie
+base de campagne HELIOS, via le meme service que l'UI (orchestrator).
 
-Rejoue exactement la séquence des scripts facilitateur (inject_tour puis
-advance-only, tour par tour) mais remplace l'étape "8 évaluations AHP
-synthétiques" (--dry-run-ahp) par les vraies réponses des 8 personas LLM
+Rejoue exactement la sequence des scripts facilitateur (inject_tour puis
+advance-only, tour par tour) mais remplace l'etape "8 evaluations AHP
+synthetiques" (--dry-run-ahp) par les vraies reponses des 8 personas LLM
 (analysis/llm_pilot_run/sandbox_<node>/results.jsonl).
 
 Usage :

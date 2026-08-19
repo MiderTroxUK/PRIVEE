@@ -1,4 +1,4 @@
-"""Tests du dépôt de graphe : CRUD, voisinage, cycles, tri topo, rangs, Neo4j."""
+"""Tests du depot de graphe : CRUD, voisinage, cycles, tri topo, rangs, Neo4j."""
 
 from __future__ import annotations
 
@@ -22,7 +22,7 @@ def repo() -> InMemoryGraphRepository:
 
 @pytest.fixture
 def chain_repo() -> InMemoryGraphRepository:
-    """Chaîne A <- B <- C : C (fournisseur profond) -> B -> A (client final)."""
+    """Chaine A <- B <- C : C (fournisseur profond) -> B -> A (client final)."""
     repo = InMemoryGraphRepository()
     for node_id in ("A", "B", "C"):
         repo.add_node(make_node(node_id))
@@ -31,7 +31,7 @@ def chain_repo() -> InMemoryGraphRepository:
     return repo
 
 
-# --- CRUD nœuds ----------------------------------------------------------------
+# CRUD noeuds
 
 
 def test_add_and_get_node(repo: InMemoryGraphRepository) -> None:
@@ -74,7 +74,7 @@ def test_remove_unknown_node_raises(repo: InMemoryGraphRepository) -> None:
         repo.remove_node("fantome")
 
 
-# --- CRUD arcs -----------------------------------------------------------------
+# CRUD arcs
 
 
 def test_add_and_get_arc(repo: InMemoryGraphRepository) -> None:
@@ -83,7 +83,7 @@ def test_add_and_get_arc(repo: InMemoryGraphRepository) -> None:
     arc = SupplyArc(source_id="S", target_id="T", gamma=0.3, beta=0.7)
     repo.add_arc(arc)
     assert repo.get_arc("S", "T") is arc
-    assert repo.get_arc("T", "S") is None  # orienté
+    assert repo.get_arc("T", "S") is None  # oriente
 
 
 def test_add_arc_unknown_node_raises(repo: InMemoryGraphRepository) -> None:
@@ -109,7 +109,7 @@ def test_nodes_and_arcs_listing(chain_repo: InMemoryGraphRepository) -> None:
     assert {a.id for a in chain_repo.arcs()} == {"C->B", "B->A"}
 
 
-# --- Voisinage ------------------------------------------------------------------
+# Voisinage
 
 
 def test_predecessors_are_suppliers(chain_repo: InMemoryGraphRepository) -> None:
@@ -132,13 +132,13 @@ def test_nodes_by_project(repo: InMemoryGraphRepository) -> None:
     assert repo.nodes_by_project("p3") == []
 
 
-# --- Cycles ----------------------------------------------------------------------
+# Cycles
 
 
 def test_add_arc_refuses_cycle(chain_repo: InMemoryGraphRepository) -> None:
     with pytest.raises(ValueError):
         chain_repo.add_arc(SupplyArc(source_id="A", target_id="C"))
-    # rollback : l'arc fautif n'a pas été conservé
+    # rollback : l'arc fautif n'a pas ete conserve
     assert chain_repo.get_arc("A", "C") is None
     assert len(chain_repo.arcs()) == 2
 
@@ -149,7 +149,7 @@ def test_add_arc_refuses_self_loop(repo: InMemoryGraphRepository) -> None:
         repo.add_arc(SupplyArc(source_id="A", target_id="A"))
 
 
-# --- Tri topologique ---------------------------------------------------------------
+# Tri topologique
 
 
 def test_topological_order_chain(chain_repo: InMemoryGraphRepository) -> None:
@@ -171,7 +171,7 @@ def test_topological_order_is_valid_on_diamond(repo: InMemoryGraphRepository) ->
         assert position[source_id] < position[target_id]
 
 
-# --- Rangs -----------------------------------------------------------------------
+# Rangs
 
 
 def test_assign_ranks_chain(chain_repo: InMemoryGraphRepository) -> None:
@@ -183,7 +183,7 @@ def test_assign_ranks_chain(chain_repo: InMemoryGraphRepository) -> None:
 
 
 def test_assign_ranks_diamond(repo: InMemoryGraphRepository) -> None:
-    # Diamant asymétrique : D -> B -> A, D -> A (chemin le plus long : rang 2).
+    # Diamant asymetrique : D -> B -> A, D -> A (chemin le plus long : rang 2).
     for node_id in ("A", "B", "C", "D"):
         repo.add_node(make_node(node_id))
     repo.add_arc(SupplyArc(source_id="D", target_id="B"))
@@ -203,7 +203,7 @@ def test_clear(chain_repo: InMemoryGraphRepository) -> None:
     assert chain_repo.topological_order() == []
 
 
-# --- Neo4j (sans serveur ni driver) ------------------------------------------------
+# Neo4j (sans serveur ni driver)
 
 _NEO4J_INSTALLED = importlib.util.find_spec("neo4j") is not None
 

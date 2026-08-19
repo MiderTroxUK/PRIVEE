@@ -1,40 +1,40 @@
-"""Prévision par rollouts Monte Carlo et contrefactuels appariés (HÉLIOS v7 — unité U9).
+"""Prevision par rollouts Monte Carlo et contrefactuels apparies (HELIOS v7 - unite U9).
 
-:class:`ForecastService` projette chaque nœud ACTIF d'un projet sur un horizon de
-1 à 4 semaines à partir de son PROPRE historique hebdomadaire (états d'urgence
-persistés), puis chiffre l'effet d'une action corrective par tirages communs
-appariés (CRN — contrat 12 figé du plan).
+:class:`ForecastService` projette chaque noeud ACTIF d'un projet sur un horizon de
+1 a 4 semaines a partir de son PROPRE historique hebdomadaire (etats d'urgence
+persistes), puis chiffre l'effet d'une action corrective par tirages communs
+apparies (CRN - contrat 12 fige du plan).
 
-Sortie estimée — ÉQUIVALENCE FIGÉE avec la calibration (Lot 11.1) : la
-probabilité ``p_issue`` estime exactement l'« issue défavorable » de
-:class:`~supplyscore.services.calibration.CalibrationService` — jalon RATÉ
-(critère a) OU événement non annulé de gravité « critique »/« defaut »
-(critère c, mêmes gravités — :data:`_GRAVITES_DEFAVORABLES` importée de la
-calibration). Le critère (b) — nœud au statut abandonné — n'est pas simulé :
-seuls les nœuds ACTIFS sont projetés, l'abandon étant une issue à anticiper,
-pas un état d'entrée. ``p_issue`` est ainsi l'estimateur PROSPECTIF du taux
-que la calibration mesure RÉTROSPECTIVEMENT.
+Sortie estimee - EQUIVALENCE FIGEE avec la calibration (Lot 11.1) : la
+probabilite ``p_issue`` estime exactement l'" issue defavorable " de
+:class:`~supplyscore.services.calibration.CalibrationService` - jalon RATE
+(critere a) OU evenement non annule de gravite " critique "/" defaut "
+(critere c, memes gravites - :data:`_GRAVITES_DEFAVORABLES` importee de la
+calibration). Le critere (b) - noeud au statut abandonne - n'est pas simule :
+seuls les noeuds ACTIFS sont projetes, l'abandon etant une issue a anticiper,
+pas un etat d'entree. ``p_issue`` est ainsi l'estimateur PROSPECTIF du taux
+que la calibration mesure RETROSPECTIVEMENT.
 
-Incertitude décomposée (décision D31 du plan) : Monte Carlo IMBRIQUÉ —
-K = 20 tirages EXTERNES des paramètres (φ et σ de l'AR(1) via leurs
-erreurs-types de moindres carrés, taux d'événement via son posterior Beta,
-moments du lead time par bootstrap paramétrique) × ``n_draws/K`` trajectoires
-INTERNES par tirage externe. La variance de ``p_issue`` est décomposée en
+Incertitude decomposee (decision D31 du plan) : Monte Carlo IMBRIQUE -
+K = 20 tirages EXTERNES des parametres (phi et sigma de l'AR(1) via leurs
+erreurs-types de moindres carres, taux d'evenement via son posterior Beta,
+moments du lead time par bootstrap parametrique) x ``n_draws/K`` trajectoires
+INTERNES par tirage externe. La variance de ``p_issue`` est decomposee en
 composante ``mc`` (intra-externe) et ``parametrique`` (inter-externes,
-variance des moyennes externes) ; l'IC80 total, étiqueté par sa couverture
+variance des moyennes externes) ; l'IC80 total, etiquete par sa couverture
 ``("mc", "param")``, combine l'erreur-type MC de l'estimateur et la dispersion
-paramétrique PLEINE de ``p_issue`` (l'incertitude porte sur p lui-même).
+parametrique PLEINE de ``p_issue`` (l'incertitude porte sur p lui-meme).
 
-VOCABULAIRE (décision D18’ du plan) : les champs et docstrings de ce module
-parlent d'« effet SELON LE MODÈLE » (``delta_u_sim``) — JAMAIS d'« effet
-réel ». Les contrefactuels comparent deux branches SIMULÉES sur les mêmes
-aléas ; rien ici n'est une mesure d'effet causal observé.
+VOCABULAIRE (decision D18' du plan) : les champs et docstrings de ce module
+parlent d'" effet SELON LE MODELE " (``delta_u_sim``) - JAMAIS d'" effet
+reel ". Les contrefactuels comparent deux branches SIMULEES sur les memes
+aleas ; rien ici n'est une mesure d'effet causal observe.
 
-Service en LECTURE SEULE : aucune écriture en base, jamais.
+Service en LECTURE SEULE : aucune ecriture en base, jamais.
 
-Performance mesurée (``test_performance_chaine_20_noeuds``) : rollout S = 2000,
-h = 4 puis rollout apparié complet (deux branches) sur une chaîne de 20 nœuds
-en ~0,3 s au total sur le poste de référence — très largement sous la borne
+Performance mesuree (``test_performance_chaine_20_noeuds``) : rollout S = 2000,
+h = 4 puis rollout apparie complet (deux branches) sur une chaine de 20 noeuds
+en ~0,3 s au total sur le poste de reference - tres largement sous la borne
 de 60 s du plan.
 """
 
@@ -42,6 +42,7 @@ from __future__ import annotations
 
 import json
 import math
+import os
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, ClassVar, Protocol
 
@@ -53,18 +54,33 @@ from supplyscore.core.status_rules import effective_ur_local
 from supplyscore.domain.events import (
     _GRAVITE_ACCIDENT_SEVERITE,
     _GRAVITE_FINANCE_SEVERITE,
+    LAMBDA_ARRET,
     N0_PSEUDO_OBSERVATIONS,
+    RATTRAPAGE_HEBDO,
     WEEK_HOURS,
 )
 from supplyscore.domain.milestones import next_active_milestone
 from supplyscore.domain.models import TaskStatus
 from supplyscore.mc.lead_time import LoiLeadTime, SimulateurLeadTime, resoudre_loi, tirer_lead_times
 
-# ``_GRAVITES_DEFAVORABLES`` est la définition CANONIQUE des gravités comptées
-# comme issue défavorable (Lot 11.1) : réutilisée plutôt que dupliquée — même
-# précédent que ``_lundi`` importé par calibration.py depuis weekly.py.
+# ``_GRAVITES_DEFAVORABLES`` est la definition CANONIQUE des gravites comptees comme issue defavorable (Lot 11.1) : reutilisee plutot que dupliquee - meme precedent que ``_lundi`` importe par calibration.py depuis weekly.py.
 from supplyscore.services.calibration import _GRAVITES_DEFAVORABLES
 from supplyscore.services.weekly import _lundi
+
+
+def _env_float_forecast(nom: str, defaut: float, mini: float, maxi: float) -> float:
+    """Lit un parametre de calibration depuis l'environnement, borne.
+
+    Meme canal que ``supplyscore.domain.events`` : le harnais d'experience lance
+    des SOUS-PROCESSUS, qu'un monkeypatch ne franchirait pas.
+    """
+    brut = os.environ.get(nom)
+    if brut is None:
+        return defaut
+    try:
+        return min(max(float(brut), mini), maxi)
+    except ValueError:
+        return defaut
 
 if TYPE_CHECKING:
     from supplyscore.services.orchestrator import SupplyScoreService
@@ -72,95 +88,86 @@ if TYPE_CHECKING:
 _FloatArray = NDArray[np.float64]
 _BoolArray = NDArray[np.bool_]
 
-#: Nombre minimal de semaines d'historique hebdomadaire exigé par nœud actif.
+#: Nombre minimal de semaines d'historique hebdomadaire exige par noeud actif.
 MIN_HISTORY_WEEKS: int = 4
 
-#: Tirages externes du Monte Carlo imbriqué (décision D31 du plan v7).
+#: Tirages externes du Monte Carlo imbrique (decision D31 du plan v7).
 K_EXTERNES: int = 20
 
-#: Borne haute du coefficient AR(1) (stationnarité stricte).
+#: Borne haute du coefficient AR(1) (stationnarite stricte).
 PHI_MAX: float = 0.98
 
-#: Plancher de l'écart-type résiduel de l'AR(1).
+#: Plancher de l'ecart-type residuel de l'AR(1).
 SIGMA_MIN: float = 0.01
 
-#: Moyenne du prior Beta du taux hebdomadaire d'événement défavorable (documenté :
-#: de l'ordre d'un événement critique toutes les ~33 semaines a priori).
+#: Moyenne du prior Beta du taux hebdomadaire d'evenement defavorable (documente : de l'ordre d'un evenement critique toutes les ~33 semaines a priori).
 TAUX_PRIOR: float = 0.03
 
-#: Seuil de ΔUr au rang 0 au-delà duquel un tirage compte comme « impact client ».
+#: Seuil de DeltaUr au rang 0 au-dela duquel un tirage compte comme " impact client ".
 SEUIL_IMPACT_CLIENT: float = 0.2
 
-#: Décroissance géométrique hebdomadaire du surcroît d'urgence d'un événement
-#: (demi-vie d'une semaine — choix documenté : un incident critique domine
-#: l'urgence locale la semaine où il survient puis s'estompe de moitié chaque
-#: semaine, l'effet durable passant par la révision des KPIs, pas par ce bump).
+#: Decroissance geometrique hebdomadaire du surcroit d'urgence d'un evenement (demi-vie d'une semaine - choix documente : un incident critique domine l'urgence locale la semaine ou il survient puis s'estompe de moitie chaque semaine, l'effet durable passant par la revision des KPIs, pas par ce bump).
 _DECROISSANCE_HEBDO: float = 0.5
 
-#: Sévérités simulées d'un événement défavorable, DÉRIVÉES d'EVENT_CALIBRATION :
-#: les deux gravités comptées comme issue défavorable portent, dans la
-#: calibration des événements, des sévérités forfaitaires de 0.9 (alerte
-#: financière « defaut ») et 1.0 (accident « critique ») — la simulation tire
-#: uniformément entre ces deux niveaux.
+#: Severites simulees d'un evenement defavorable, DERIVEES d'EVENT_CALIBRATION : les deux gravites comptees comme issue defavorable portent, dans la calibration des evenements, des severites forfaitaires de 0.9 (alerte financiere " defaut ") et 1.0 (accident " critique ") - la simulation tire uniformement entre ces deux niveaux.
 _SEVERITES_ADVERSES: tuple[float, float] = (
     _GRAVITE_FINANCE_SEVERITE["defaut"],
     _GRAVITE_ACCIDENT_SEVERITE["critique"],
 )
 
-#: Taille du bootstrap paramétrique des moments de lead time (convention N0 du
-#: dépôt : l'incertitude des moments décroît en 1/√26 pseudo-observations).
+#: Taille du bootstrap parametrique des moments de lead time (convention N0 du depot : l'incertitude des moments decroit en 1/sqrt26 pseudo-observations).
 _N_BOOT_MOMENTS: int = int(N0_PSEUDO_OBSERVATIONS)
 
-#: Répliques du bootstrap par blocs internes de l'IC80 MC des deltas appariés.
+#: Repliques du bootstrap par blocs internes de l'IC80 MC des deltas apparies.
 _N_BOOTSTRAP: int = 200
 
-#: Quantile 0.9 de la N(0, 1) — IC bilatéral à 80 %.
+#: Quantile 0.9 de la N(0, 1) - IC bilateral a 80 %.
 _Z80: float = 1.2815515655446004
 
-#: Variance de pente considérée nulle (série hebdomadaire constante).
+#: Variance de pente consideree nulle (serie hebdomadaire constante).
 _EPS_SXX: float = 1e-12
 
 
 class ActionRollout(Protocol):
-    """Contrat DUCK-TYPÉ d'une action prescriptible (contrat 8 du plan v7).
+    """Contrat DUCK-TYPE d'une action prescriptible (contrat 8 du plan v7).
 
-    Le catalogue réel des actions est construit par l'unité U15 — ce module
+    Le catalogue reel des actions est construit par l'unite U15 - ce module
     n'en importe rien : toute valeur exposant les deux membres ci-dessous est
-    acceptée par :meth:`ForecastService.rollout_with_action`.
+    acceptee par :meth:`ForecastService.rollout_with_action`.
 
     Attributes:
         delai_effet_weeks: triplet ``(min, mode, max)`` en semaines de la loi
-            triangulaire du délai d'effet, avec ``0 <= min <= mode <= max``.
+            triangulaire du delai d'effet, avec ``0 <= min <= mode <= max``.
     """
 
     delai_effet_weeks: tuple[float, float, float]
 
     def apply_to_rollout(self, state: dict[str, Any]) -> dict[str, Any]:
-        """Transforme l'état de simulation (fonction PURE, sans effet de bord).
+        """Transforme l'etat de simulation (fonction PURE, sans effet de bord).
 
-        L'état reçu — et le dict à retourner — porte EXACTEMENT les clés
-        documentées dans :meth:`ForecastService.rollout_with_action`.
+        L'etat recu - et le dict a retourner - porte EXACTEMENT les cles
+        documentees dans :meth:`ForecastService.rollout_with_action`.
 
         Args:
-            state: état de simulation courant (lecture seule).
+            state: etat de simulation courant (lecture seule).
 
         Returns:
-            Un nouvel état portant les mêmes clés, valeurs transformées.
+            Un nouvel etat portant les memes cles, valeurs transformees.
         """
         ...
 
 
-# --- Résultats publics (dataclasses figées) -----------------------------------------
+# Resultats publics (dataclasses figees)
 
 
 @dataclass(frozen=True)
 class IntervalleConfiance:
-    """Intervalle de confiance étiqueté par les sources d'incertitude couvertes.
+    """Intervalle de confiance etiquete par les sources d'incertitude couvertes.
 
     Attributes:
         bas: borne basse de l'intervalle.
         haut: borne haute de l'intervalle.
-        couverture: sources couvertes — ``("mc", "param")`` pour l'IC80 total
+        couverture: sources couvertes - ``("mc", "param")`` pour l'IC80 total
             d'un rollout, ``("mc",)`` ou ``("param",)`` pour les IC des deltas.
     """
 
@@ -171,26 +178,26 @@ class IntervalleConfiance:
 
 @dataclass(frozen=True)
 class DiagnosticAjustement:
-    """Diagnostics d'ajustement d'un nœud (série hebdo → AR(1) + Beta + lead time).
+    """Diagnostics d'ajustement d'un noeud (serie hebdo -> AR(1) + Beta + lead time).
 
     Attributes:
-        node_id: identifiant du nœud ajusté.
-        n_semaines: nombre de semaines d'historique hebdomadaire utilisées.
-        phi: coefficient AR(1) ajusté, clipé dans [0, 0.98].
-        se_phi: erreur-type de φ (moindres carrés ; 0.0 si série constante).
-        sigma: écart-type résiduel ajusté, plancher 0.01.
-        se_sigma: erreur-type de σ (approximation normale σ/√(2·ddl)).
-        mu: moyenne de long terme de la récurrence (moyenne de la série —
-            choix simple documenté, l'intercept exact divergerait pour φ → 1).
-        ur_local_initial: dernier ur_local hebdomadaire observé (état initial).
-        n_evenements: semaines d'historique ayant connu au moins un événement
-            défavorable (non annulé, gravité « critique »/« defaut »).
-        taux_evenement: moyenne a posteriori du taux hebdomadaire d'événement.
-        alpha_post: paramètre α du posterior Beta du taux.
-        beta_post: paramètre β du posterior Beta du taux.
-        loi_lead_time: loi de lead time résolue (:func:`resoudre_loi`).
-        deadline_h: échéance du prochain jalon ACTIF en heures-projet (sinon
-            ``kpis.time.deadline_h``), None si le nœud n'a aucune échéance.
+        node_id: identifiant du noeud ajuste.
+        n_semaines: nombre de semaines d'historique hebdomadaire utilisees.
+        phi: coefficient AR(1) ajuste, clipe dans [0, 0.98].
+        se_phi: erreur-type de phi (moindres carres ; 0.0 si serie constante).
+        sigma: ecart-type residuel ajuste, plancher 0.01.
+        se_sigma: erreur-type de sigma (approximation normale sigma/sqrt(2-ddl)).
+        mu: moyenne de long terme de la recurrence (moyenne de la serie -
+            choix simple documente, l'intercept exact divergerait pour phi -> 1).
+        ur_local_initial: dernier ur_local hebdomadaire observe (etat initial).
+        n_evenements: semaines d'historique ayant connu au moins un evenement
+            defavorable (non annule, gravite " critique "/" defaut ").
+        taux_evenement: moyenne a posteriori du taux hebdomadaire d'evenement.
+        alpha_post: parametre alpha du posterior Beta du taux.
+        beta_post: parametre beta du posterior Beta du taux.
+        loi_lead_time: loi de lead time resolue (:func:`resoudre_loi`).
+        deadline_h: echeance du prochain jalon ACTIF en heures-projet (sinon
+            ``kpis.time.deadline_h``), None si le noeud n'a aucune echeance.
     """
 
     node_id: str
@@ -211,23 +218,23 @@ class DiagnosticAjustement:
 
 @dataclass(frozen=True)
 class PrevisionNoeud:
-    """Prévision d'un nœud à un horizon donné (semaine k du rollout).
+    """Prevision d'un noeud a un horizon donne (semaine k du rollout).
 
     Attributes:
-        p_issue: probabilité estimée d'issue défavorable d'ici la semaine k
-            (même composite que CalibrationService : jalon raté OU événement
-            critique/défaut).
-        se_mc: erreur-type Monte Carlo pure de l'estimateur, √(var_mc/n).
+        p_issue: probabilite estimee d'issue defavorable d'ici la semaine k
+            (meme composite que CalibrationService : jalon rate OU evenement
+            critique/defaut).
+        se_mc: erreur-type Monte Carlo pure de l'estimateur, sqrt(var_mc/n).
         var_mc: variance INTRA-externe moyenne de l'indicatrice (composante MC).
         var_param: variance INTER-externes des moyennes par tirage externe
-            (composante paramétrique, ddof=1).
-        ic80: IC80 total étiqueté ``("mc", "param")`` — p ± z₈₀·√(var_param +
-            var_mc/n), borné dans [0, 1].
-        spread: largeur de l'IC80 (``haut − bas``).
-        p_jalon_rate: probabilité que le jalon (échéance) soit raté d'ici k.
-        p_impact_client: P(ΔUr au rang 0 > 0.2) — propagation factuelle contre
-            propagation où CE nœud est remplacé par son chemin sans événement
-            (contrefactuel apparié par nœud, mêmes aléas).
+            (composante parametrique, ddof=1).
+        ic80: IC80 total etiquete ``("mc", "param")`` - p +/- z?_0-sqrt(var_param +
+            var_mc/n), borne dans [0, 1].
+        spread: largeur de l'IC80 (``haut - bas``).
+        p_jalon_rate: probabilite que le jalon (echeance) soit rate d'ici k.
+        p_impact_client: P(DeltaUr au rang 0 > 0.2) - propagation factuelle contre
+            propagation ou CE noeud est remplace par son chemin sans evenement
+            (contrefactuel apparie par noeud, memes aleas).
     """
 
     p_issue: float
@@ -242,17 +249,17 @@ class PrevisionNoeud:
 
 @dataclass(frozen=True)
 class ForecastResult:
-    """Résultat figé d'un rollout Monte Carlo (partie A — prévision seule).
+    """Resultat fige d'un rollout Monte Carlo (partie A - prevision seule).
 
     Attributes:
-        project_id: projet simulé.
-        horizon_weeks: horizon simulé, en semaines.
-        n_draws: nombre EFFECTIF de trajectoires simulées (K·⌊n_draws/K⌋).
-        n_outer: nombre de tirages externes K du Monte Carlo imbriqué.
-        seed: graine du rollout (déterministe : même graine, mêmes résultats).
-        previsions: par nœud simulé puis par horizon k ∈ 1..h, la
+        project_id: projet simule.
+        horizon_weeks: horizon simule, en semaines.
+        n_draws: nombre EFFECTIF de trajectoires simulees (K-floor(n_draws/K)).
+        n_outer: nombre de tirages externes K du Monte Carlo imbrique.
+        seed: graine du rollout (deterministe : meme graine, memes resultats).
+        previsions: par noeud simule puis par horizon k  dans  1..h, la
             :class:`PrevisionNoeud`.
-        diagnostics: par nœud simulé, le :class:`DiagnosticAjustement`.
+        diagnostics: par noeud simule, le :class:`DiagnosticAjustement`.
     """
 
     project_id: str
@@ -266,24 +273,24 @@ class ForecastResult:
 
 @dataclass(frozen=True)
 class PrevisionAppariee:
-    """Comparaison appariée SANS/AVEC action d'un nœud à un horizon donné.
+    """Comparaison appariee SANS/AVEC action d'un noeud a un horizon donne.
 
-    Tous les effets sont des effets SELON LE MODÈLE (décision D18’) : deux
-    branches simulées sur des aléas identiques, jamais un effet réel mesuré.
+    Tous les effets sont des effets SELON LE MODELE (decision D18') : deux
+    branches simulees sur des aleas identiques, jamais un effet reel mesure.
 
     Attributes:
-        p0: probabilité d'issue défavorable SANS action.
-        p1: probabilité d'issue défavorable AVEC action.
-        delta_u_sim: effet SELON LE MODÈLE — moyenne sur les tirages appariés
-            de (issue sans action − issue avec action).
+        p0: probabilite d'issue defavorable SANS action.
+        p1: probabilite d'issue defavorable AVEC action.
+        delta_u_sim: effet SELON LE MODELE - moyenne sur les tirages apparies
+            de (issue sans action - issue avec action).
         ic80_delta_mc: IC80 de ``delta_u_sim`` par bootstrap par blocs internes
-            (répliques intra-externes), couverture ``("mc",)``.
-        ic80_delta_param: IC80 paramétrique — quantiles 10/90 des moyennes
-            appariées par tirage externe, couverture ``("param",)``.
-        p_delta_positif: fraction des tirages externes dont la moyenne appariée
+            (repliques intra-externes), couverture ``("mc",)``.
+        ic80_delta_param: IC80 parametrique - quantiles 10/90 des moyennes
+            appariees par tirage externe, couverture ``("param",)``.
+        p_delta_positif: fraction des tirages externes dont la moyenne appariee
             est strictement positive.
-        p_impact_client_0: P(ΔUr au rang 0 > 0.2) dans la branche SANS action.
-        p_impact_client_1: P(ΔUr au rang 0 > 0.2) dans la branche AVEC action.
+        p_impact_client_0: P(DeltaUr au rang 0 > 0.2) dans la branche SANS action.
+        p_impact_client_1: P(DeltaUr au rang 0 > 0.2) dans la branche AVEC action.
     """
 
     p0: float
@@ -298,16 +305,16 @@ class PrevisionAppariee:
 
 @dataclass(frozen=True)
 class PairedForecast:
-    """Résultat figé d'un rollout contrefactuel apparié (partie B — contrat 12).
+    """Resultat fige d'un rollout contrefactuel apparie (partie B - contrat 12).
 
     Attributes:
-        project_id: projet simulé.
-        horizon_weeks: horizon simulé, en semaines.
-        n_draws: nombre EFFECTIF de trajectoires par branche (K·⌊n_draws/K⌋).
-        n_outer: nombre de tirages externes K du Monte Carlo imbriqué.
-        seed: graine du rollout (déterministe : même graine, mêmes résultats).
-        delai_effet_weeks: triplet (min, mode, max) validé du délai d'effet.
-        previsions: par nœud simulé puis par horizon k ∈ 1..h, la
+        project_id: projet simule.
+        horizon_weeks: horizon simule, en semaines.
+        n_draws: nombre EFFECTIF de trajectoires par branche (K-floor(n_draws/K)).
+        n_outer: nombre de tirages externes K du Monte Carlo imbrique.
+        seed: graine du rollout (deterministe : meme graine, memes resultats).
+        delai_effet_weeks: triplet (min, mode, max) valide du delai d'effet.
+        previsions: par noeud simule puis par horizon k  dans  1..h, la
             :class:`PrevisionAppariee`.
     """
 
@@ -321,15 +328,15 @@ class PairedForecast:
 
 
 def to_snapshot_block(result: ForecastResult) -> dict[str, dict[str, dict[str, dict[str, float]]]]:
-    """Bloc « forecast » du snapshot hebdomadaire (contrat 7 FIGÉ du plan v7).
+    """Bloc " forecast " du snapshot hebdomadaire (contrat 7 FIGE du plan v7).
 
     Args:
-        result: résultat d'un :meth:`ForecastService.rollout`.
+        result: resultat d'un :meth:`ForecastService.rollout`.
 
     Returns:
-        ``{node_id: {"forecast": {"1"…"4": {"p_issue", "se_mc", "spread",
-        "p_jalon_rate", "p_impact_client"}}}}`` — les clés d'horizon sont les
-        semaines simulées converties en chaînes.
+        ``{node_id: {"forecast": {"1"..."4": {"p_issue", "se_mc", "spread",
+        "p_jalon_rate", "p_impact_client"}}}}`` - les cles d'horizon sont les
+        semaines simulees converties en chaines.
     """
     bloc: dict[str, dict[str, dict[str, dict[str, float]]]] = {}
     for node_id, par_horizon in result.previsions.items():
@@ -348,12 +355,29 @@ def to_snapshot_block(result: ForecastResult) -> dict[str, dict[str, dict[str, d
     return bloc
 
 
-# --- Structures internes ------------------------------------------------------------
+# Structures internes
+
+
+#: Ecart-type sur l'avancement declare d'un jalon, en points, elargi par noeud a proportion de son hidden_risk. A 0, P(jalon rate) sort binaire dans 85 % des cas sur le journal gele (102/120) ; a 0.10 la binarite tombe a 71.7 % et la zone exploitable passe de 14 a 17 previsions. Le gain se concentre sur les horizons COURTS : a 8 semaines les valeurs 0 / 0.10 / 0.20 sont indiscernables (+0.180 / +0.174 / +0.174), donc ce parametre compensait un horizon trop court et ne fait PAS le resultat. Garde pour l'argument physique : un avancement declare n'est pas une certitude. Env SUPPLYSCORE_SIGMA_AVANCEMENT.
+SIGMA_AVANCEMENT: float = _env_float_forecast("SUPPLYSCORE_SIGMA_AVANCEMENT", 0.10, 0.0, 0.5)
+
+#: Part d'une semaine qu'un evenement simule immobilise, avant severite et LAMBDA_ARRET ; sans ce terme les chocs tires n'atteignaient jamais P(jalon rate). Non calibre. A 1.0 : AUC en hausse sur 3 horizons/4, pire decile 5.9x -> 3.0x, binarite accrue. 0.0 restaure l'ancien comportement. Env SUPPLYSCORE_COUT_CHOC_SEMAINE.
+COUT_CHOC_SEMAINE: float = _env_float_forecast("SUPPLYSCORE_COUT_CHOC_SEMAINE", 1.0, 0.0, 4.0)
+
+#: Amortissement de l'extrapolation de TENDANCE du lead time, dans [0, 1]. A 0.0 la tendance est DESACTIVEE : le lead time reste fige sur sa valeur du jour, comportement historique. Dans (0, 1] la pente observee est extrapolee en s'amortissant d'un facteur g par semaine — g = 1 prolonge la rampe telle quelle, g = 0.8 l'aplatit. POURQUOI : resoudre_loi lit un instantane et completion_base est fige avant la boucle hebdomadaire, donc un fournisseur dont le cycle s'allonge regulierement etait projete comme stable. Le modele voyait le niveau du KPI et jamais sa derivee, alors qu'une degradation progressive est precisement le seul type de degradation qu'on puisse voir venir. Env SUPPLYSCORE_TENDANCE_LEAD_TIME.
+TENDANCE_LEAD_TIME: float = _env_float_forecast("SUPPLYSCORE_TENDANCE_LEAD_TIME", 0.0, 0.0, 1.0)
+
+#: Points d'historique KPI utilises pour estimer la pente. Trop court, la pente est du bruit ; trop long, elle rate un changement de regime. Six semaines couvrent l'espacement typique de deux jalons.
+N_POINTS_TENDANCE: int = 6
+
+#: L'extrapolation ne peut pas depasser ce multiple du lead time courant. Garde-fou contre une pente aberrante estimee sur peu de points : sans lui, une valeur isolee suffirait a projeter un cycle de plusieurs annees.
+PLAFOND_TENDANCE: float = 2.0
 
 
 @dataclass
+
 class _Contexte:
-    """Contexte figé d'un rollout : ajustements, graphe et temps du projet."""
+    """Contexte fige d'un rollout : ajustements, graphe et temps du projet."""
 
     project_id: str
     horizon: int
@@ -377,16 +401,24 @@ class _Contexte:
     beta_post: _FloatArray
     lois: list[LoiLeadTime]
     d0: _FloatArray
-    #: Part de travail RESTANTE du jalon actif de chaque nœud, dans [0, 1]
-    #: (1.0 sans jalon actif). Le lead time tiré vaut un cycle COMPLET : c'est
-    #: cette part qu'il reste réellement à parcourir. Cf. ``_simuler_branche``.
+    #: Part de travail RESTANTE du jalon actif de chaque noeud, dans [0, 1] (1.0 sans jalon actif). Le lead time tire vaut un cycle COMPLET : c'est cette part qu'il reste reellement a parcourir. Cf. ``_simuler_branche``.
     reste: _FloatArray
+    #: Optimisme de declaration de chaque noeud, dans [0, 1] : le ``hidden_risk`` courant, c'est-a-dire [Ur - Ud]+. Il elargit l'incertitude d'avancement d'un declarant dont les chiffres se sont reveles optimistes (cf. :data:`SIGMA_AVANCEMENT`).
+    optimisme: _FloatArray
+
+    #: Pente hebdomadaire du lead time par noeud, en heures par semaine,
+    #: estimee par moindres carres sur l'historique KPI. Positive = le
+    #: fournisseur s'enlise. Nulle si la tendance est desactivee, ou si
+    #: l'historique est trop court pour distinguer une pente d'un alea.
+    pente_lead: _FloatArray
+    #: Temps de production perdu et non rattrape (``time.delay_h``, en heures) de chaque noeud. ADDITIF a l'achevement, jamais mis a l'echelle de l'avancement : un arret coute sa duree quel que soit l'avancement.
+    retard: _FloatArray
     diagnostics: dict[str, DiagnosticAjustement]
 
 
 @dataclass
 class _ParametresExternes:
-    """Paramètres d'UN tirage externe (incertitude paramétrique, D31)."""
+    """Parametres d'UN tirage externe (incertitude parametrique, D31)."""
 
     phi: _FloatArray
     sigma: _FloatArray
@@ -396,18 +428,20 @@ class _ParametresExternes:
 
 @dataclass
 class _Tirages:
-    """Aléas pré-tirés d'un tirage externe — consommés à l'identique par les deux branches (CRN)."""
+    """Aleas pre-tires d'un tirage externe - consommes a l'identique par les deux branches (CRN)."""
 
     z: _FloatArray
     u_evt: _FloatArray
     u_sev: _FloatArray
     lead_times: _FloatArray
+    #: Part de travail restante TIREE par replicat (S, N) : l'avancement declare est bruite par :data:`SIGMA_AVANCEMENT` avant d'etre converti en reste.
+    reste: _FloatArray | None = None
     delais: _FloatArray | None = None
 
 
 @dataclass
 class _EtatBranche:
-    """État mutable d'une branche de simulation (matrices par tirage interne)."""
+    """Etat mutable d'une branche de simulation (matrices par tirage interne)."""
 
     x_ar: _FloatArray
     bump: _FloatArray
@@ -420,7 +454,7 @@ class _EtatBranche:
 
 @dataclass
 class _SortieBranche:
-    """Indicatrices (S, N, h) d'une branche : issue, jalon raté, impact client."""
+    """Indicatrices (S, N, h) d'une branche : issue, jalon rate, impact client."""
 
     issue: _BoolArray
     jalon: _BoolArray
@@ -429,27 +463,27 @@ class _SortieBranche:
 
 @dataclass
 class _Empile:
-    """Sorties empilées (K, S, N, h) des K tirages externes d'une branche."""
+    """Sorties empilees (K, S, N, h) des K tirages externes d'une branche."""
 
     issue: _BoolArray
     jalon: _BoolArray
     impact: _BoolArray
 
 
-# --- Aides pures --------------------------------------------------------------------
+# Aides pures
 
 
 def _ajuster_ar1(valeurs: _FloatArray) -> tuple[float, float, float, float, float]:
-    """Ajuste un AR(1) par moindres carrés sur une série hebdomadaire.
+    """Ajuste un AR(1) par moindres carres sur une serie hebdomadaire.
 
-    Modèle simulé ensuite : ``x_{k} = mu + phi·(x_{k-1} − mu) + sigma·ε``. La
-    pente OLS de ``x_{t+1}`` sur ``x_t`` fournit φ (clipé dans [0, 0.98]) et
-    l'écart-type résiduel σ (plancher 0.01, appliqué AVANT les erreurs-types —
-    choix conservateur). ``mu`` est la moyenne de la série. Série (quasi)
-    constante : φ = 0 avec se(φ) = 0, résidus autour de la moyenne.
+    Modele simule ensuite : ``x_{k} = mu + phi-(x_{k-1} - mu) + sigma-epsilon``. La
+    pente OLS de ``x_{t+1}`` sur ``x_t`` fournit phi (clipe dans [0, 0.98]) et
+    l'ecart-type residuel sigma (plancher 0.01, applique AVANT les erreurs-types -
+    choix conservateur). ``mu`` est la moyenne de la serie. Serie (quasi)
+    constante : phi = 0 avec se(phi) = 0, residus autour de la moyenne.
 
     Args:
-        valeurs: série hebdomadaire des ur_local (taille >= MIN_HISTORY_WEEKS).
+        valeurs: serie hebdomadaire des ur_local (taille >= MIN_HISTORY_WEEKS).
 
     Returns:
         Le quintuplet ``(phi, se_phi, sigma, se_sigma, mu)``.
@@ -477,22 +511,58 @@ def _ajuster_ar1(valeurs: _FloatArray) -> tuple[float, float, float, float, floa
     return phi, se_phi, sigma, se_sigma, mu
 
 
-def _loi_externe(loi: LoiLeadTime, rng: np.random.Generator) -> LoiLeadTime:
-    """Tirage externe de la loi de lead time : bootstrap paramétrique des moments.
-
-    Familles lognormale/normale : :data:`_N_BOOT_MOMENTS` (26) tirages de la
-    loi de base fournissent des moments empiriques (m*, s*) — l'incertitude
-    des moments décroît en 1/√26, cohérente avec la convention de
-    pseudo-observations du dépôt. Familles triangulaire/déterministe :
-    conservées telles quelles (bornes de cahier des charges, aucune
-    incertitude paramétrique estimable).
+def _pente_hebdo(valeurs: _FloatArray) -> float:
+    """Pente d'une serie hebdomadaire par moindres carres, en unite par semaine.
 
     Args:
-        loi: loi de base résolue par :func:`resoudre_loi`.
-        rng: générateur commun de la simulation.
+        valeurs: serie chronologique, du plus ancien au plus recent.
 
     Returns:
-        La loi perturbée du tirage externe.
+        La pente estimee ; 0.0 en dessous de trois points, car deux points
+        definissent une droite mais ne distinguent pas une tendance d'un alea.
+    """
+    n = int(valeurs.size)
+    if n < 3:
+        return 0.0
+    t = np.arange(n, dtype=np.float64)
+    t_bar = float(t.mean())
+    stt = float(np.sum((t - t_bar) ** 2))
+    if stt <= _EPS_SXX:
+        return 0.0
+    return float(np.sum((t - t_bar) * (valeurs - float(valeurs.mean()))) / stt)
+
+
+def _facteur_tendance(k: int, amortissement: float) -> float:
+    """Somme geometrique ``1 + g + ... + g^(k-1)`` : cumul de la pente sur k semaines.
+
+    Args:
+        k: nombre de semaines projetees, >= 1.
+        amortissement: ``g`` dans [0, 1].
+
+    Returns:
+        Le facteur multiplicatif a appliquer a la pente hebdomadaire.
+    """
+    if amortissement >= 1.0:
+        return float(k)
+    return float((1.0 - amortissement**k) / (1.0 - amortissement))
+
+
+def _loi_externe(loi: LoiLeadTime, rng: np.random.Generator) -> LoiLeadTime:
+    """Tirage externe de la loi de lead time : bootstrap parametrique des moments.
+
+    Familles lognormale/normale : :data:`_N_BOOT_MOMENTS` (26) tirages de la
+    loi de base fournissent des moments empiriques (m*, s*) - l'incertitude
+    des moments decroit en 1/sqrt26, coherente avec la convention de
+    pseudo-observations du depot. Familles triangulaire/deterministe :
+    conservees telles quelles (bornes de cahier des charges, aucune
+    incertitude parametrique estimable).
+
+    Args:
+        loi: loi de base resolue par :func:`resoudre_loi`.
+        rng: generateur commun de la simulation.
+
+    Returns:
+        La loi perturbee du tirage externe.
     """
     if loi.famille not in ("lognormale", "normale"):
         return loi
@@ -507,15 +577,15 @@ def _loi_externe(loi: LoiLeadTime, rng: np.random.Generator) -> LoiLeadTime:
 def _tirer_delais(
     bornes: tuple[float, float, float], rng: np.random.Generator, n: int
 ) -> _FloatArray:
-    """Tire les délais d'effet (semaines) — triangulaire, un délai par tirage.
+    """Tire les delais d'effet (semaines) - triangulaire, un delai par tirage.
 
     Args:
-        bornes: triplet validé (min, mode, max), support éventuellement dégénéré.
-        rng: générateur dédié aux aléas d'action.
+        bornes: triplet valide (min, mode, max), support eventuellement degenere.
+        rng: generateur dedie aux aleas d'action.
         n: nombre de tirages internes.
 
     Returns:
-        Tableau ``(n,)`` de délais en semaines.
+        Tableau ``(n,)`` de delais en semaines.
     """
     minimum, mode, maximum = bornes
     if maximum == minimum:
@@ -530,25 +600,25 @@ def _propager_ur_batch(
     betas: dict[tuple[str, str], float | _FloatArray],
     n_lignes: int,
 ) -> dict[str, _FloatArray]:
-    """Propagation montante Ur par lots — même récurrence que ``PropagationEngine._compute_ur``.
+    """Propagation montante Ur par lots - meme recurrence que ``PropagationEngine._compute_ur``.
 
-    OU-bruité en ordre topologique (fournisseurs profonds d'abord) sur des
-    vecteurs ``(n_lignes,)`` : ``Ur_i = clip01(1 − (1 − Ur_loc_i) ·
-    Π_j (1 − β_ji · Ur_j))``. Les β acceptent un scalaire ou un vecteur par
+    OU-bruite en ordre topologique (fournisseurs profonds d'abord) sur des
+    vecteurs ``(n_lignes,)`` : ``Ur_i = clip01(1 - (1 - Ur_loc_i) -
+    Pi_j (1 - beta_ji - Ur_j))``. Les beta acceptent un scalaire ou un vecteur par
     ligne (actions actives sur une partie des tirages seulement).
 
-    TODO : remplacer par ``PropagationEngine.compute_ur_batch`` (U3) après fusion.
+    TODO : remplacer par ``PropagationEngine.compute_ur_batch`` (U3) apres fusion.
 
     Args:
-        ordre: ordre topologique complet du dépôt.
-        ur_local: urgence locale par nœud — scalaire (nœud statique) ou
-            vecteur ``(n_lignes,)`` (nœud simulé, variantes empilées).
-        predecesseurs: fournisseurs directs par nœud (arcs nominaux + promus).
-        betas: coefficient β par arc, scalaire ou vecteur ``(n_lignes,)``.
-        n_lignes: nombre de lignes simulées (tirages × variantes).
+        ordre: ordre topologique complet du depot.
+        ur_local: urgence locale par noeud - scalaire (noeud statique) ou
+            vecteur ``(n_lignes,)`` (noeud simule, variantes empilees).
+        predecesseurs: fournisseurs directs par noeud (arcs nominaux + promus).
+        betas: coefficient beta par arc, scalaire ou vecteur ``(n_lignes,)``.
+        n_lignes: nombre de lignes simulees (tirages x variantes).
 
     Returns:
-        Ur propagé par nœud, vecteurs ``(n_lignes,)``.
+        Ur propage par noeud, vecteurs ``(n_lignes,)``.
     """
     ur: dict[str, _FloatArray] = {}
     for node_id in ordre:
@@ -560,63 +630,63 @@ def _propager_ur_batch(
     return ur
 
 
-# --- Service ------------------------------------------------------------------------
+# Service
 
 
 class ForecastService:
-    """Rollouts Monte Carlo prospectifs et contrefactuels appariés d'un projet.
+    """Rollouts Monte Carlo prospectifs et contrefactuels apparies d'un projet.
 
-    S'appuie sur la façade :class:`SupplyScoreService` : le registre fournit
-    projets et jalons, ``clock_for`` l'horloge effective du projet, le dépôt
+    S'appuie sur la facade :class:`SupplyScoreService` : le registre fournit
+    projets et jalons, ``clock_for`` l'horloge effective du projet, le depot
     de graphe la topologie et les bases CLIENT l'historique d'urgence
-    (``urgency_series``) et le journal d'événements (``list_events``).
-    Service en LECTURE SEULE : rien n'est jamais écrit.
+    (``urgency_series``) et le journal d'evenements (``list_events``).
+    Service en LECTURE SEULE : rien n'est jamais ecrit.
 
     Attributes:
         MIN_HISTORY_WEEKS: nombre minimal de semaines d'historique hebdomadaire
-            exigé par nœud actif (alias de classe de la constante du module).
+            exige par noeud actif (alias de classe de la constante du module).
     """
 
     MIN_HISTORY_WEEKS: ClassVar[int] = MIN_HISTORY_WEEKS
 
     def __init__(self, service: SupplyScoreService) -> None:
-        """Initialise le service de prévision au-dessus de la façade.
+        """Initialise le service de prevision au-dessus de la facade.
 
         Args:
-            service: façade applicative (registre, bases client, horloges).
+            service: facade applicative (registre, bases client, horloges).
         """
         self._service = service
 
-    # -- API publique -----------------------------------------------------------
+    # API publique
 
     def rollout(
         self, project_id: str, horizon_weeks: int = 4, n_draws: int = 2000, seed: int = 0
     ) -> ForecastResult:
         """Rollout Monte Carlo du projet sur 1..``horizon_weeks`` semaines.
 
-        Ajuste chaque nœud ACTIF sur son propre historique hebdomadaire
-        (AR(1) sur ur_local, posterior Beta du taux d'événement défavorable,
+        Ajuste chaque noeud ACTIF sur son propre historique hebdomadaire
+        (AR(1) sur ur_local, posterior Beta du taux d'evenement defavorable,
         loi de lead time :func:`resoudre_loi`), puis simule K = 20 tirages
-        externes de paramètres × ``n_draws/K`` trajectoires internes
-        (décision D31). L'issue estimée est l'« issue défavorable » de
-        CalibrationService : jalon raté d'ici k OU événement critique/défaut
-        d'ici k — cf. la docstring du module pour l'équivalence figée.
+        externes de parametres x ``n_draws/K`` trajectoires internes
+        (decision D31). L'issue estimee est l'" issue defavorable " de
+        CalibrationService : jalon rate d'ici k OU evenement critique/defaut
+        d'ici k - cf. la docstring du module pour l'equivalence figee.
 
         Args:
-            project_id: projet à projeter.
-            horizon_weeks: horizon en semaines (défaut 4).
-            n_draws: budget total de trajectoires (arrondi à K·⌊n/K⌋).
-            seed: graine du rollout — même graine, résultats identiques.
+            project_id: projet a projeter.
+            horizon_weeks: horizon en semaines (defaut 4).
+            n_draws: budget total de trajectoires (arrondi a K-floor(n/K)).
+            seed: graine du rollout - meme graine, resultats identiques.
 
         Returns:
-            Le :class:`ForecastResult` (prévisions par nœud × horizon,
+            Le :class:`ForecastResult` (previsions par noeud x horizon,
             diagnostics d'ajustement).
 
         Raises:
             ValueError: horizon < 1, ``n_draws`` < K, projet inconnu, aucun
-                nœud actif, ou historique hebdomadaire insuffisant
-                (< :data:`MIN_HISTORY_WEEKS` semaines) sur un nœud actif —
-                messages en français.
+                noeud actif, ou historique hebdomadaire insuffisant
+                (< :data:`MIN_HISTORY_WEEKS` semaines) sur un noeud actif -
+                messages en francais.
         """
         ctx = self._preparer(project_id, horizon_weeks, n_draws)
         brut0, _, _ = self._executer(ctx, n_draws, seed, action=None)
@@ -639,63 +709,63 @@ class ForecastService:
         n_draws: int = 2000,
         seed: int = 0,
     ) -> PairedForecast:
-        """Rollout contrefactuel apparié SANS/AVEC action (contrat 12 figé).
+        """Rollout contrefactuel apparie SANS/AVEC action (contrat 12 fige).
 
         TIRAGES COMMUNS (CRN) : les deux branches consomment EXACTEMENT les
-        mêmes aléas pré-tirés (bruits AR, occurrences et sévérités
-        d'événements, lead times) — la branche AVEC applique l'action à
-        partir de sa semaine d'effet, tirée UNE fois par tirage interne dans
-        la triangulaire ``action.delai_effet_weeks`` (un délai de d semaines
-        laisse ⌊d⌋ semaine(s) pleine(s) sans effet ; l'action agit à partir
-        de la semaine ⌊d⌋+1). Les délais sont tirés sur un flux aléatoire
-        SÉPARÉ : la branche SANS action reproduit bit à bit
-        :meth:`rollout` à graine égale.
+        memes aleas pre-tires (bruits AR, occurrences et severites
+        d'evenements, lead times) - la branche AVEC applique l'action a
+        partir de sa semaine d'effet, tiree UNE fois par tirage interne dans
+        la triangulaire ``action.delai_effet_weeks`` (un delai de d semaines
+        laisse floor(d) semaine(s) pleine(s) sans effet ; l'action agit a partir
+        de la semaine floor(d)+1). Les delais sont tires sur un flux aleatoire
+        SEPARE : la branche SANS action reproduit bit a bit
+        :meth:`rollout` a graine egale.
 
-        ÉTAT DE SIMULATION passé à ``action.apply_to_rollout(state)`` — appelée
+        ETAT DE SIMULATION passe a ``action.apply_to_rollout(state)`` - appelee
         une fois par semaine comptant des tirages nouvellement actifs, sur des
-        valeurs de BASE (jamais encore transformées pour ces tirages) :
+        valeurs de BASE (jamais encore transformees pour ces tirages) :
 
-        - ``"ur_local"`` : tableau ``(S, N)`` — urgence locale observable
-          (événements inclus) par tirage interne × nœud simulé ;
-        - ``"hazard"`` : tableau ``(N,)`` — taux hebdomadaire d'événement
-          défavorable par nœud (le retour peut être ``(N,)`` ou ``(S, N)``) ;
-        - ``"deadlines_h"`` : ``dict[node_id, float]`` — échéance en
-          heures-projet des nœuds qui en ont une ;
-        - ``"arc_beta"`` : ``dict[(source_id, target_id), float]`` — β des
+        - ``"ur_local"`` : tableau ``(S, N)`` - urgence locale observable
+          (evenements inclus) par tirage interne x noeud simule ;
+        - ``"hazard"`` : tableau ``(N,)`` - taux hebdomadaire d'evenement
+          defavorable par noeud (le retour peut etre ``(N,)`` ou ``(S, N)``) ;
+        - ``"deadlines_h"`` : ``dict[node_id, float]`` - echeance en
+          heures-projet des noeuds qui en ont une ;
+        - ``"arc_beta"`` : ``dict[(source_id, target_id), float]`` - beta des
           arcs nominaux de propagation ;
-        - ``"node_ids"`` : tuple des ids des nœuds simulés — ORDRE DES
-          COLONNES des tableaux ci-dessus (clé de lecture, à ne pas modifier).
+        - ``"node_ids"`` : tuple des ids des noeuds simules - ORDRE DES
+          COLONNES des tableaux ci-dessus (cle de lecture, a ne pas modifier).
 
-        Le dict retourné doit porter les quatre premières clés ; leurs effets,
-        pour les tirages nouvellement actifs, du début de leur semaine d'effet
-        jusqu'à la fin de l'horizon :
+        Le dict retourne doit porter les quatre premieres cles ; leurs effets,
+        pour les tirages nouvellement actifs, du debut de leur semaine d'effet
+        jusqu'a la fin de l'horizon :
 
-        - réduire ``ur_local`` : l'écart (retour − état) est appliqué au cœur
-          AR porté — il persiste ensuite via la récurrence ;
-        - réduire ``hazard`` : le taux transformé pilote les occurrences ;
-        - décaler une échéance : la valeur transformée pilote le test de
-          jalon raté (clé ABSENTE du dict retourné = échéance neutralisée) ;
-        - promouvoir un arc : clé AJOUTÉE à ``arc_beta`` (source avant cible
-          dans l'ordre topologique, sinon ignorée) ; clé ABSENTE = arc
-          neutralisé (β = 0) ; β bornés dans [0, 1].
+        - reduire ``ur_local`` : l'ecart (retour - etat) est applique au coeur
+          AR porte - il persiste ensuite via la recurrence ;
+        - reduire ``hazard`` : le taux transforme pilote les occurrences ;
+        - decaler une echeance : la valeur transformee pilote le test de
+          jalon rate (cle ABSENTE du dict retourne = echeance neutralisee) ;
+        - promouvoir un arc : cle AJOUTEE a ``arc_beta`` (source avant cible
+          dans l'ordre topologique, sinon ignoree) ; cle ABSENTE = arc
+          neutralise (beta = 0) ; beta bornes dans [0, 1].
 
-        Tous les champs de sortie sont des effets SELON LE MODÈLE (décision
-        D18’) : jamais un « effet réel ».
+        Tous les champs de sortie sont des effets SELON LE MODELE (decision
+        D18') : jamais un " effet reel ".
 
         Args:
-            project_id: projet à projeter.
-            action: action duck-typée (cf. :class:`ActionRollout`).
-            horizon_weeks: horizon en semaines (défaut 4).
+            project_id: projet a projeter.
+            action: action duck-typee (cf. :class:`ActionRollout`).
+            horizon_weeks: horizon en semaines (defaut 4).
             n_draws: budget total de trajectoires PAR BRANCHE.
-            seed: graine du rollout — même graine, résultats identiques.
+            seed: graine du rollout - meme graine, resultats identiques.
 
         Returns:
-            Le :class:`PairedForecast` (p0, p1, delta_u_sim et IC associés).
+            Le :class:`PairedForecast` (p0, p1, delta_u_sim et IC associes).
 
         Raises:
-            ValueError: mêmes cas que :meth:`rollout`, plus un
-                ``delai_effet_weeks`` invalide ou un état retourné par
-                l'action sans les clés attendues (messages en français).
+            ValueError: memes cas que :meth:`rollout`, plus un
+                ``delai_effet_weeks`` invalide ou un etat retourne par
+                l'action sans les cles attendues (messages en francais).
         """
         bornes = self._valider_delai(action)
         ctx = self._preparer(project_id, horizon_weeks, n_draws)
@@ -712,20 +782,20 @@ class ForecastService:
             previsions=previsions,
         )
 
-    # -- Ajustement sur l'historique du projet ----------------------------------
+    # Ajustement sur l'historique du projet
 
     def _serie_hebdo(self, node_id: str) -> tuple[list[str], _FloatArray]:
-        """Série hebdomadaire des DERNIERS ur_local persistés du nœud.
+        """Serie hebdomadaire des DERNIERS ur_local persistes du noeud.
 
-        Même motif que ``CalibrationService.outcomes`` : le dernier état de
-        chaque semaine ISO écrase les précédents ; les états sans ur_local
-        (None) sont ignorés. Les semaines sont triées chronologiquement.
+        Meme motif que ``CalibrationService.outcomes`` : le dernier etat de
+        chaque semaine ISO ecrase les precedents ; les etats sans ur_local
+        (None) sont ignores. Les semaines sont triees chronologiquement.
 
         Args:
-            node_id: nœud dont on lit l'historique d'urgence.
+            node_id: noeud dont on lit l'historique d'urgence.
 
         Returns:
-            ``(semaines, valeurs)`` — libellés « AAAA-Sxx » et ur_local alignés.
+            ``(semaines, valeurs)`` - libelles " AAAA-Sxx " et ur_local alignes.
         """
         derniers: dict[str, float] = {}
         for state in self._service.client_db(node_id).urgency_series(node_id):
@@ -736,30 +806,60 @@ class ForecastService:
         valeurs = np.asarray([derniers[s] for s in semaines], dtype=np.float64)
         return semaines, valeurs
 
-    def _posterior_evenements(self, node_id: str, semaines: list[str]) -> tuple[float, float, int]:
-        """Posterior Beta-Bernoulli du taux hebdomadaire d'événement défavorable.
+    def _pente_lead_time(self, node_id: str) -> float:
+        """Pente hebdomadaire du lead time du noeud, en heures par semaine.
 
-        Prior de moyenne :data:`TAUX_PRIOR` (0.03) et de force N0 = 26
-        pseudo-observations (convention du dépôt,
-        :data:`~supplyscore.domain.events.N0_PSEUDO_OBSERVATIONS`). Chaque
-        semaine d'historique est un essai de Bernoulli — succès si au moins un
-        événement NON annulé de gravité « critique »/« defaut » y est
-        journalisé (mêmes gravités que CalibrationService).
+        Rend 0.0 des que :data:`TENDANCE_LEAD_TIME` vaut 0, sans lire la base :
+        la tendance desactivee doit etre un vrai no-op, sinon deux mesures
+        " avec " et " sans " ne sont pas comparables.
+
+        Le regroupement hebdomadaire reprend celui de :meth:`_serie_hebdo` — le
+        dernier snapshot de chaque semaine ISO fait foi — pour que la pente soit
+        homogene a l'AR(1) ajuste juste a cote, et non a une cadence d'ecriture
+        qui varie d'un noeud a l'autre.
 
         Args:
-            node_id: nœud observé.
-            semaines: semaines d'historique (libellés « AAAA-Sxx »).
+            node_id: noeud dont on estime la tendance.
 
         Returns:
-            ``(alpha_post, beta_post, k_obs)`` — paramètres du posterior et
-            nombre de semaines avec événement défavorable.
+            La pente, positive si le cycle s'allonge.
+        """
+        if TENDANCE_LEAD_TIME <= 0.0:
+            return 0.0
+        derniers: dict[str, float] = {}
+        for ts, kpis in self._service.client_db(node_id).kpi_series(node_id, limite=64):
+            lead = kpis.time.lead_time_h
+            if lead is not None and lead > 0.0:
+                derniers[iso_week(ts)] = float(lead)
+        if len(derniers) < 3:
+            return 0.0
+        semaines = sorted(derniers, key=_lundi)[-N_POINTS_TENDANCE:]
+        return _pente_hebdo(np.asarray([derniers[s] for s in semaines], dtype=np.float64))
+
+    def _posterior_evenements(self, node_id: str, semaines: list[str]) -> tuple[float, float, int]:
+        """Posterior Beta-Bernoulli du taux hebdomadaire d'evenement defavorable.
+
+        Prior de moyenne :data:`TAUX_PRIOR` (0.03) et de force N0 = 26
+        pseudo-observations (convention du depot,
+        :data:`~supplyscore.domain.events.N0_PSEUDO_OBSERVATIONS`). Chaque
+        semaine d'historique est un essai de Bernoulli - succes si au moins un
+        evenement NON annule de gravite " critique "/" defaut " y est
+        journalise (memes gravites que CalibrationService).
+
+        Args:
+            node_id: noeud observe.
+            semaines: semaines d'historique (libelles " AAAA-Sxx ").
+
+        Returns:
+            ``(alpha_post, beta_post, k_obs)`` - parametres du posterior et
+            nombre de semaines avec evenement defavorable.
         """
         client = self._service.client_db(node_id)
         k_obs = 0
         for semaine in semaines:
             for row in client.list_events(node_id, semaine):
                 if row["reverted_at"] is not None:
-                    continue  # événement annulé : déclaré par erreur
+                    continue  # evenement annule : declare par erreur
                 gravite = json.loads(row["params_json"]).get("gravite")
                 if gravite in _GRAVITES_DEFAVORABLES:
                     k_obs += 1
@@ -770,19 +870,19 @@ class ForecastService:
         return alpha0 + k_obs, beta0 + (n - k_obs), k_obs
 
     def _preparer(self, project_id: str, horizon_weeks: int, n_draws: int) -> _Contexte:
-        """Valide les entrées et ajuste le contexte complet du rollout.
+        """Valide les entrees et ajuste le contexte complet du rollout.
 
         Args:
-            project_id: projet à projeter.
+            project_id: projet a projeter.
             horizon_weeks: horizon en semaines.
             n_draws: budget total de trajectoires.
 
         Returns:
-            Le :class:`_Contexte` prêt à simuler.
+            Le :class:`_Contexte` pret a simuler.
 
         Raises:
-            ValueError: entrées invalides, projet inconnu, aucun nœud actif ou
-                historique insuffisant (messages en français).
+            ValueError: entrees invalides, projet inconnu, aucun noeud actif ou
+                historique insuffisant (messages en francais).
         """
         if horizon_weeks < 1:
             raise ValueError(f"horizon_weeks doit être >= 1, reçu {horizon_weeks}")
@@ -826,6 +926,9 @@ class ForecastService:
         lois: list[LoiLeadTime] = []
         d0: list[float] = []
         reste: list[float] = []
+        retard: list[float] = []
+        optimisme: list[float] = []
+        pente_lead: list[float] = []
         deadlines: dict[str, float] = {}
         diagnostics: dict[str, DiagnosticAjustement] = {}
         for nid in sim_ids:
@@ -834,18 +937,28 @@ class ForecastService:
                 insuffisants.append(f"{nid} ({valeurs.size} semaine(s))")
                 continue
             node = service.repo.get_node(nid)
-            assert node is not None  # id issu de nodes_by_project sur le même dépôt
+            assert node is not None  # id issu de nodes_by_project sur le meme depot
             phi, se_p, sigma, se_s, moyenne = _ajuster_ar1(valeurs)
             a_post, b_post, k_obs = self._posterior_evenements(nid, semaines)
             loi = resoudre_loi(node)
-            # Réutilise le calcul canonique des échéances du simulateur E13
-            # (prochain jalon ACTIF en heures-projet, sinon kpis.time.deadline_h).
+            # Reutilise le calcul canonique des echeances du simulateur E13 (prochain jalon ACTIF en heures-projet, sinon kpis.time.deadline_h).
             jalons = service.registry.list_milestones(nid)
             echeance = SimulateurLeadTime._deadline_h(node, jalons, t0)
             m_star = next_active_milestone(jalons)
-            # Part du cycle qu'il reste à parcourir : le lead time tiré est un
-            # cycle COMPLET, or un jalon déjà avancé n'a plus à le refaire.
+            # Part du cycle qu'il reste a parcourir : le lead time tire est un cycle COMPLET, or un jalon deja avance n'a plus a le refaire.
             reste.append(1.0 if m_star is None else min(max(1.0 - m_star.progress, 0.0), 1.0))
+            retard.append(max(node.kpis.time.delay_h or 0.0, 0.0))
+            # " Ce fournisseur s'enlise-t-il ? " — la pente du lead time repond,
+            # la valeur du jour non. Sans elle, une rampe est projetee comme un
+            # plateau et la degradation n'est vue qu'une fois arrivee.
+            pente_lead.append(self._pente_lead_time(nid))
+            # " Ce noeud a-t-il l'habitude de sous-declarer ? " - la reponse est deja calculee par le moteur d'adequation.
+            urg = node.urgency
+            optimisme.append(
+                min(max(getattr(urg, "hidden_risk", 0.0) or 0.0, 0.0), 1.0)
+                if urg is not None
+                else 0.0
+            )
             x0.append(float(valeurs[-1]))
             mu.append(moyenne)
             phi_hat.append(phi)
@@ -887,14 +1000,14 @@ class ForecastService:
         for nid in ordre_all:
             if nid not in sim_index:
                 node = service.repo.get_node(nid)
-                assert node is not None  # id issu de topological_order() du même dépôt
+                assert node is not None  # id issu de topological_order() du meme depot
                 effectif = effective_ur_local(node.status, node.urgency.ur_local)
                 static_ur[nid] = min(max(effectif, 0.0), 1.0)
             preds = service.repo.predecessors(nid)
             preds_base[nid] = tuple(pred.id for pred in preds)
             for pred in preds:
                 arc = service.repo.get_arc(pred.id, nid)
-                assert arc is not None  # pred est un prédécesseur : l'arc existe
+                assert arc is not None  # pred est un predecesseur : l'arc existe
                 beta_base[(pred.id, nid)] = float(arc.beta)
         rank0_ids = [node.id for node in noeuds_projet if node.rank == 0]
 
@@ -922,22 +1035,25 @@ class ForecastService:
             lois=lois,
             d0=np.asarray(d0, dtype=np.float64),
             reste=np.asarray(reste, dtype=np.float64),
+            retard=np.asarray(retard, dtype=np.float64),
+            optimisme=np.asarray(optimisme, dtype=np.float64),
+            pente_lead=np.asarray(pente_lead, dtype=np.float64),
             diagnostics=diagnostics,
         )
 
-    # -- Boucle Monte Carlo imbriquée -------------------------------------------
+    # Boucle Monte Carlo imbriquee
 
     def _valider_delai(self, action: ActionRollout) -> tuple[float, float, float]:
         """Valide le triplet ``delai_effet_weeks`` de l'action.
 
         Args:
-            action: action duck-typée à valider.
+            action: action duck-typee a valider.
 
         Returns:
             Le triplet ``(min, mode, max)`` converti en floats.
 
         Raises:
-            ValueError: triplet mal formé ou bornes incohérentes (français).
+            ValueError: triplet mal forme ou bornes incoherentes (francais).
         """
         try:
             minimum, mode, maximum = (float(v) for v in action.delai_effet_weeks)
@@ -954,14 +1070,14 @@ class ForecastService:
         return minimum, mode, maximum
 
     def _tirer_parametres(self, ctx: _Contexte, rng: np.random.Generator) -> _ParametresExternes:
-        """Tire UN jeu de paramètres externes (incertitude paramétrique, D31).
+        """Tire UN jeu de parametres externes (incertitude parametrique, D31).
 
-        φ ~ N(φ̂, se(φ)) clipé [0, 0.98] ; σ ~ N(σ̂, se(σ)) plancher 0.01 ;
+        phi ~ N(phi, se(phi)) clipe [0, 0.98] ; sigma ~ N(sigma, se(sigma)) plancher 0.01 ;
         taux ~ Beta(posterior) ; lois de lead time par bootstrap des moments.
 
         Args:
-            ctx: contexte ajusté du rollout.
-            rng: générateur commun de la simulation.
+            ctx: contexte ajuste du rollout.
+            rng: generateur commun de la simulation.
 
         Returns:
             Les :class:`_ParametresExternes` du tirage externe.
@@ -975,42 +1091,54 @@ class ForecastService:
     def _tirer_aleas(
         self, ctx: _Contexte, params: _ParametresExternes, rng: np.random.Generator, s: int
     ) -> _Tirages:
-        """Pré-tire TOUS les aléas d'un tirage externe (base des CRN).
+        """Pre-tire TOUS les aleas d'un tirage externe (base des CRN).
 
-        Les deux branches d'un rollout apparié consomment ces tableaux à
-        l'identique — aucun tirage supplémentaire n'a lieu pendant la
-        simulation elle-même.
+        Les deux branches d'un rollout apparie consomment ces tableaux a
+        l'identique - aucun tirage supplementaire n'a lieu pendant la
+        simulation elle-meme.
 
         Args:
-            ctx: contexte ajusté du rollout.
-            params: paramètres du tirage externe (lois de lead time perturbées).
-            rng: générateur commun de la simulation.
+            ctx: contexte ajuste du rollout.
+            params: parametres du tirage externe (lois de lead time perturbees).
+            rng: generateur commun de la simulation.
             s: nombre de tirages internes.
 
         Returns:
-            Les :class:`_Tirages` pré-tirés (délais d'action non inclus).
+            Les :class:`_Tirages` pre-tires (delais d'action non inclus).
         """
         n = len(ctx.sim_ids)
         z = rng.standard_normal((ctx.horizon, s, n))
         u_evt = rng.random((ctx.horizon, s, n))
         u_sev = rng.random((ctx.horizon, s, n))
         lead = np.column_stack([tirer_lead_times(loi, rng, s) for loi in params.lois])
-        return _Tirages(z=z, u_evt=u_evt, u_sev=u_sev, lead_times=lead)
+        # L'avancement declare est bruite par replicat : c'est une declaration, pas une mesure (cf. SIGMA_AVANCEMENT). Sans cet alea, le seul terme stochastique de P(jalon rate) est le lead time, et l'indicatrice bascule en bloc - d'ou les 0/1 quasi exclusifs. sigma = 0 doit etre un VRAI no-op : ne pas tirer du tout, sinon le generateur est consomme et tous les tirages suivants se decalent. Une option neutralisee qui change quand meme le resultat rend toute comparaison avant/apres trompeuse - constate en balayant ce parametre.
+        if SIGMA_AVANCEMENT <= 0.0:
+            return _Tirages(z=z, u_evt=u_evt, u_sev=u_sev, lead_times=lead)
+        # sigma elargi pour les declarants optimistes : un noeud dont l'urgence reelle depasse l'urgence declaree a montre que ses chiffres sont au-dessous de la realite - son avancement merite plus de doute que celui d'un declarant fiable. L'information existe deja (hidden_risk), elle n'etait simplement pas utilisee par la prevision.
+        sigma_noeud = SIGMA_AVANCEMENT * (1.0 + ctx.optimisme)[None, :]
+        avancement = np.clip(
+            (1.0 - ctx.reste)[None, :] + sigma_noeud * rng.standard_normal((s, n)),
+            0.0,
+            1.0,
+        )
+        return _Tirages(
+            z=z, u_evt=u_evt, u_sev=u_sev, lead_times=lead, reste=1.0 - avancement
+        )
 
     def _executer(
         self, ctx: _Contexte, n_draws: int, seed: int, action: ActionRollout | None
     ) -> tuple[_Empile, _Empile | None, np.random.Generator]:
-        """Boucle externe du MC imbriqué : K tirages de paramètres × S trajectoires.
+        """Boucle externe du MC imbrique : K tirages de parametres x S trajectoires.
 
-        Trois flux aléatoires indépendants dérivés de la graine : simulation,
-        bootstrap (IC des deltas) et délais d'action — la branche SANS action
-        d'un rollout apparié reproduit ainsi bit à bit :meth:`rollout`.
+        Trois flux aleatoires independants derives de la graine : simulation,
+        bootstrap (IC des deltas) et delais d'action - la branche SANS action
+        d'un rollout apparie reproduit ainsi bit a bit :meth:`rollout`.
 
         Args:
-            ctx: contexte ajusté du rollout.
-            n_draws: budget total de trajectoires (arrondi à K·⌊n/K⌋).
+            ctx: contexte ajuste du rollout.
+            n_draws: budget total de trajectoires (arrondi a K-floor(n/K)).
             seed: graine du rollout.
-            action: action à apparier, ou None (rollout simple).
+            action: action a apparier, ou None (rollout simple).
 
         Returns:
             ``(branche_sans, branche_avec | None, rng_bootstrap)``.
@@ -1051,7 +1179,7 @@ class ForecastService:
                 brut1.impact[j] = sortie1.impact
         return brut0, brut1, rng_boot
 
-    # -- Simulation d'une branche ------------------------------------------------
+    # Simulation d'une branche
 
     def _simuler_branche(
         self,
@@ -1060,20 +1188,20 @@ class ForecastService:
         tirages: _Tirages,
         action: ActionRollout | None,
     ) -> _SortieBranche:
-        """Simule une branche (SANS ou AVEC action) sur les aléas pré-tirés.
+        """Simule une branche (SANS ou AVEC action) sur les aleas pre-tires.
 
         Semaine k = 1..h : application de l'action aux tirages nouvellement
-        actifs (branche AVEC), pas AR(1) du cœur sans événement, occurrences
-        d'événements défavorables (Bernoulli du hazard courant) avec bump de
-        sévérité à décroissance géométrique, test de jalon raté (états
+        actifs (branche AVEC), pas AR(1) du coeur sans evenement, occurrences
+        d'evenements defavorables (Bernoulli du hazard courant) avec bump de
+        severite a decroissance geometrique, test de jalon rate (etats
         ABSORBANTS : une issue survenue le reste), puis propagation Ur par
         lots pour l'impact client.
 
         Args:
-            ctx: contexte ajusté du rollout.
-            params: paramètres du tirage externe courant.
-            tirages: aléas pré-tirés (CRN — identiques pour les deux branches).
-            action: action appliquée, ou None (branche SANS).
+            ctx: contexte ajuste du rollout.
+            params: parametres du tirage externe courant.
+            tirages: aleas pre-tires (CRN - identiques pour les deux branches).
+            action: action appliquee, ou None (branche SANS).
 
         Returns:
             La :class:`_SortieBranche` (indicatrices (S, N, h)).
@@ -1092,13 +1220,23 @@ class ForecastService:
         )
         evenement_cum = np.zeros((s, n), dtype=bool)
         jalon_cum = np.zeros((s, n), dtype=bool)
-        # Achèvement = maintenant + le TRAVAIL RESTANT, pas un cycle complet.
-        # ``lead_times`` tire la durée d'un cycle entier ; un jalon avancé à
-        # 90 % n'a plus que 10 % de ce cycle devant lui. Sans ce facteur, tout
-        # nœud dont le lead time nominal dépasse la marge est déclaré perdu
-        # d'avance quel que soit son avancement (mesuré sur HÉLIOS : 99,6 % de
-        # P(jalon raté) sur un jalon livré à l'heure).
-        completion = ctx.t_h + tirages.lead_times * ctx.reste
+        # Achevement = maintenant + travail restant + temps perdu. ``lead_times`` tire un cycle entier, donc on le met a l'echelle du reste a faire (sinon 99,6 % annonce sur un jalon livre a l'heure) ; le temps perdu par un choc s'ajoute sans mise a l'echelle et vit pendant le rollout.
+        reste_tire = ctx.reste if tirages.reste is None else tirages.reste
+        # Part de l'achevement qui ne depend pas du retard NI de la tendance.
+        completion_base = ctx.t_h + tirages.lead_times * reste_tire
+        # TENDANCE : un cycle demarre dans k semaines chez un fournisseur qui
+        # s'enlise dure plus longtemps qu'un cycle demarre aujourd'hui. Sans ce
+        # terme, ``completion_base`` reste fige sur la valeur du jour et la
+        # degradation progressive n'est vue qu'une fois arrivee. L'extrapolation
+        # est plafonnee pour qu'une pente aberrante ne projette pas un cycle
+        # absurde (cf. :data:`PLAFOND_TENDANCE`).
+        tendance_active = TENDANCE_LEAD_TIME > 0.0 and bool(np.any(ctx.pente_lead != 0.0))
+        if tendance_active:
+            plafond_lead = PLAFOND_TENDANCE * tirages.lead_times
+        # Un jalon dont le travail est ACHEVE (reste = 0) ne peut plus etre repousse : meme garde-fou que ``UrModel.u_base_jalon``, sans quoi le temps perdu declarerait en retard un jalon qui n'a plus rien a faire.
+        porte_retard = (reste_tire > 0.0).astype(np.float64)
+        retard = np.broadcast_to(ctx.retard, (s, n)).astype(np.float64).copy()
+        completion = completion_base + retard * porte_retard
         actifs_prec = np.zeros(s, dtype=bool)
         issue = np.zeros((s, n, h), dtype=bool)
         jalon = np.zeros((s, n, h), dtype=bool)
@@ -1122,6 +1260,14 @@ class ForecastService:
             etat.bump = _DECROISSANCE_HEBDO * etat.bump + sev * evt
             evenement_cum |= evt
             x_evt = np.clip(etat.x_ar + etat.bump, 0.0, 1.0)
+            # TEMPS DE PRODUCTION PERDU par l'evenement de la semaine, avec la MEME semantique que ``domain.events._arret_impact`` : un choc de severite ``sev`` immobilise cette fraction de la semaine, dont la part ``LAMBDA_ARRET`` s'inscrit au retard. Aucun parametre nouveau n'est introduit - ``sev`` sort deja d'EVENT_CALIBRATION, et les deux taux sont ceux que le balayage a cales sur la campagne gelee. La decroissance applique ``RATTRAPAGE_HEBDO`` avant l'ajout, comme ``weekly_decay`` le fait pour une semaine ecoulee : la projection suit donc la dynamique qu'elle projette, y compris si ce taux est un jour calibre non nul.
+            retard *= 1.0 - RATTRAPAGE_HEBDO
+            retard += LAMBDA_ARRET * sev * COUT_CHOC_SEMAINE * WEEK_HOURS * evt
+            if tendance_active:
+                derive = ctx.pente_lead[None, :] * _facteur_tendance(k, TENDANCE_LEAD_TIME)
+                lead_k = np.minimum(tirages.lead_times + derive, plafond_lead)
+                completion_base = ctx.t_h + np.maximum(lead_k, 0.0) * reste_tire
+            completion = completion_base + retard * porte_retard
             t_k = ctx.t_h + k * WEEK_HOURS
             jalon_cum |= (etat.deadlines <= t_k) & (
                 (completion > etat.deadlines) | (etat.deadlines <= ctx.t_h)
@@ -1136,19 +1282,19 @@ class ForecastService:
     ) -> None:
         """Applique l'action aux tirages nouvellement actifs (une fois par tirage).
 
-        Construit l'état contractuel (valeurs de BASE — les tirages
-        nouvellement actifs n'ont jamais été transformés), appelle
-        ``apply_to_rollout`` puis répercute les écarts : cœur AR (ur_local),
-        hazard, échéances et β d'arcs — β promus/neutralisés compris.
+        Construit l'etat contractuel (valeurs de BASE - les tirages
+        nouvellement actifs n'ont jamais ete transformes), appelle
+        ``apply_to_rollout`` puis repercute les ecarts : coeur AR (ur_local),
+        hazard, echeances et beta d'arcs - beta promus/neutralises compris.
 
         Args:
-            ctx: contexte ajusté du rollout.
-            action: action duck-typée à appliquer.
-            etat: état mutable de la branche (modifié en place).
+            ctx: contexte ajuste du rollout.
+            action: action duck-typee a appliquer.
+            etat: etat mutable de la branche (modifie en place).
             nouveaux: masque (S,) des tirages entrant en vigueur cette semaine.
 
         Raises:
-            ValueError: état retourné sans les clés contractuelles (français).
+            ValueError: etat retourne sans les cles contractuelles (francais).
         """
         s = int(etat.x_ar.shape[0])
         observable = np.clip(etat.x_ar + etat.bump, 0.0, 1.0)
@@ -1184,14 +1330,14 @@ class ForecastService:
             base = ctx.beta_base.get(arc, 0.0)
             cible = min(max(arcs1.get(arc, 0.0), 0.0), 1.0)
             if cible == base:
-                continue  # identité : conserve le scalaire (appariement CRN exact)
+                continue  # identite : conserve le scalaire (appariement CRN exact)
             src, dst = arc
             if arc not in ctx.beta_base and (
                 src not in ctx.position
                 or dst not in ctx.position
                 or ctx.position[src] >= ctx.position[dst]
             ):
-                continue  # promotion invalide topologiquement : ignorée (documenté)
+                continue  # promotion invalide topologiquement : ignoree (documente)
             courant = etat.betas.get(arc, base)
             vecteur = np.full(s, courant) if isinstance(courant, float) else courant
             vecteur[nouveaux] = cible
@@ -1202,22 +1348,22 @@ class ForecastService:
     def _impact_client(
         self, ctx: _Contexte, x_evt: _FloatArray, x_base: _FloatArray, etat: _EtatBranche
     ) -> _BoolArray:
-        """Impact client par nœud : P(ΔUr au rang 0 > 0.2) — variantes empilées.
+        """Impact client par noeud : P(DeltaUr au rang 0 > 0.2) - variantes empilees.
 
-        Pour chaque nœud simulé, la propagation factuelle (tous événements)
-        est comparée à la propagation où SA colonne est remplacée par son
-        chemin sans événement (mêmes aléas) ; ΔUr est lu sur le(s) nœud(s) de
+        Pour chaque noeud simule, la propagation factuelle (tous evenements)
+        est comparee a la propagation ou SA colonne est remplacee par son
+        chemin sans evenement (memes aleas) ; DeltaUr est lu sur le(s) noeud(s) de
         rang 0 du projet (max s'il y en a plusieurs). Toutes les variantes
-        sont empilées en une seule passe de propagation par lots.
+        sont empilees en une seule passe de propagation par lots.
 
         Args:
-            ctx: contexte ajusté du rollout.
-            x_evt: matrice (S, N) des ur_local factuels (événements inclus).
-            x_base: matrice (S, N) du chemin sans événement (cœur AR).
-            etat: état de la branche (β et prédécesseurs courants).
+            ctx: contexte ajuste du rollout.
+            x_evt: matrice (S, N) des ur_local factuels (evenements inclus).
+            x_base: matrice (S, N) du chemin sans evenement (coeur AR).
+            etat: etat de la branche (beta et predecesseurs courants).
 
         Returns:
-            Indicatrices (S, N) — ΔUr au rang 0 strictement supérieur au seuil.
+            Indicatrices (S, N) - DeltaUr au rang 0 strictement superieur au seuil.
         """
         s, n = x_evt.shape
         if not ctx.rank0_ids:
@@ -1243,17 +1389,17 @@ class ForecastService:
         resultat: _BoolArray = (delta > SEUIL_IMPACT_CLIENT).T
         return resultat
 
-    # -- Agrégations --------------------------------------------------------------
+    # Agregations
 
     def _agreger(self, ctx: _Contexte, brut: _Empile) -> dict[str, dict[int, PrevisionNoeud]]:
-        """Agrège un rollout simple : décomposition de variance et IC80 étiqueté.
+        """Agrege un rollout simple : decomposition de variance et IC80 etiquete.
 
         Args:
-            ctx: contexte ajusté du rollout.
-            brut: sorties empilées (K, S, N, h) de la branche simulée.
+            ctx: contexte ajuste du rollout.
+            brut: sorties empilees (K, S, N, h) de la branche simulee.
 
         Returns:
-            Les :class:`PrevisionNoeud` par nœud puis par horizon.
+            Les :class:`PrevisionNoeud` par noeud puis par horizon.
         """
         k_ext, s, _, h = brut.issue.shape
         n_total = k_ext * s
@@ -1265,9 +1411,7 @@ class ForecastService:
         se_total = np.sqrt(var_param + var_mc / n_total)
         bas = np.clip(p - _Z80 * se_total, 0.0, 1.0)
         haut = np.clip(p + _Z80 * se_total, 0.0, 1.0)
-        # Moyennes de moyennes (interne puis externe) partout : le même ordre de
-        # sommation que ``p`` — la branche SANS action d'un rollout apparié
-        # reproduit ainsi ``rollout()`` bit à bit.
+        # Moyennes de moyennes (interne puis externe) partout : le meme ordre de sommation que ``p`` - la branche SANS action d'un rollout apparie reproduit ainsi ``rollout()`` bit a bit.
         p_jalon = brut.jalon.mean(axis=1).mean(axis=0)
         p_impact = brut.impact.mean(axis=1).mean(axis=0)
         previsions: dict[str, dict[int, PrevisionNoeud]] = {}
@@ -1295,30 +1439,29 @@ class ForecastService:
     def _agreger_apparie(
         self, ctx: _Contexte, brut0: _Empile, brut1: _Empile, rng_boot: np.random.Generator
     ) -> dict[str, dict[int, PrevisionAppariee]]:
-        """Agrège les deux branches appariées : deltas, IC80 mc/param, p_delta.
+        """Agrege les deux branches appariees : deltas, IC80 mc/param, p_delta.
 
-        ``ic80_delta_mc`` : bootstrap PAR BLOCS INTERNES — dans chaque tirage
-        externe, les différences appariées sont rééchantillonnées avec remise
-        (:data:`_N_BOOTSTRAP` répliques partagées entre nœuds et horizons),
-        la structure externe restant figée ; quantiles 10/90 des moyennes.
-        ``ic80_delta_param`` : quantiles 10/90 des moyennes appariées par
-        tirage externe (dispersion paramétrique pleine).
+        ``ic80_delta_mc`` : bootstrap PAR BLOCS INTERNES - dans chaque tirage
+        externe, les differences appariees sont reechantillonnees avec remise
+        (:data:`_N_BOOTSTRAP` repliques partagees entre noeuds et horizons),
+        la structure externe restant figee ; quantiles 10/90 des moyennes.
+        ``ic80_delta_param`` : quantiles 10/90 des moyennes appariees par
+        tirage externe (dispersion parametrique pleine).
 
         Args:
-            ctx: contexte ajusté du rollout.
+            ctx: contexte ajuste du rollout.
             brut0: branche SANS action (K, S, N, h).
             brut1: branche AVEC action (K, S, N, h).
-            rng_boot: générateur dédié au bootstrap (flux séparé, déterministe).
+            rng_boot: generateur dedie au bootstrap (flux separe, deterministe).
 
         Returns:
-            Les :class:`PrevisionAppariee` par nœud puis par horizon.
+            Les :class:`PrevisionAppariee` par noeud puis par horizon.
         """
         k_ext, s, n, h = brut0.issue.shape
         d = brut0.issue.astype(np.int8) - brut1.issue.astype(np.int8)
         moyennes_ext = d.mean(axis=1)  # (K, N, h)
         delta = moyennes_ext.mean(axis=0)
-        # Même ordre de sommation que ``_agreger`` (interne puis externe) :
-        # p0 est bit à bit identique au p_issue de ``rollout()`` à graine égale.
+        # Meme ordre de sommation que ``_agreger`` (interne puis externe) : p0 est bit a bit identique au p_issue de ``rollout()`` a graine egale.
         p0 = brut0.issue.mean(axis=1).mean(axis=0)
         p1 = brut1.issue.mean(axis=1).mean(axis=0)
         p_pos = (moyennes_ext > 0.0).mean(axis=0)

@@ -1,34 +1,34 @@
-"""Analyse de campagne HÉLIOS (U10) — tests pré-enregistrés HA1-HA6.
+"""Analyse de campagne HELIOS (U10) - tests pre-enregistres HA1-HA6.
 
 Consomme les snapshots ``analysis/snapshots/tour_NN.json`` produits par la
-campagne (réelle ou dry run) et produit :
-    - ``analysis/resultats.csv``   : table agrégée (nœud, tour, Ud, Ur, A, F, H) ;
-    - ``analysis/rapport.md``      : verdict de chaque hypothèse pré-enregistrée ;
-    - ``analysis/figures/*.png``   : séries Ud/Ur/A par nœud, heatmap H, criticité.
+campagne (reelle ou dry run) et produit :
+    - ``analysis/resultats.csv``   : table agregee (noeud, tour, Ud, Ur, A, F, H) ;
+    - ``analysis/rapport.md``      : verdict de chaque hypothese pre-enregistree ;
+    - ``analysis/figures/*.png``   : series Ud/Ur/A par noeud, heatmap H, criticite.
 
-Registre pré-enregistré (verrouillé à J5 — voir PROTOCOLE.md §5) :
-    HA1 latence     : corrélation croisée Ud/Ur maximale à lag >= 1 pour >= 5 nœuds/8.
-    HA2 précocité   : H > 0.3 sur novafab à au moins un tour de T6-T12.
-    HA3 criticité   : novafab top-1 par delta_ur_final PARMI LES FOURNISSEURS
+Registre pre-enregistre (verrouille a J5 - voir PROTOCOLE.md section 5) :
+    HA1 latence     : correlation croisee Ud/Ur maximale a lag >= 1 pour >= 5 noeuds/8.
+    HA2 precocite   : H > 0.3 sur novafab a au moins un tour de T6-T12.
+    HA3 criticite   : novafab top-1 par delta_ur_final PARMI LES FOURNISSEURS
                       PROFONDS (rang >= 4 : novafab, meridian, silpure) sur
-                      >= 80 % des tours INFORMATIFS (ceux où le réseau n'est
-                      pas saturé, c.-à-d. max(delta_ur_final) > 0). Reformulé
-                      au dry run v5 AVANT gel : (a) la proximité du rang 0
-                      amplifie mécaniquement delta_ur_final (produit fuyant) —
-                      comparer novafab à compodis mesure la topologie, pas la
-                      criticité intrinsèque ; (b) en réseau saturé l'indice
-                      dégénère (le risque déjà réalisé n'est plus « choquable »,
-                      comportement documenté du service) — constat consigné
-                      pour le BST, tours saturés exclus du test.
-    HA4 calibration : précision ET rappel > 0.5 (seuil H >= 0.5, horizon 4 tours),
-                      incidents de référence = événements du scénario (fenêtre
-                      de vérité tirée de scenario.EVENTS).
-    HA5 contagion   : ΔUd moyen des nœuds NON touchés positif et supérieur aux
-                      tours sans événement, aux tours de presse T6, T7, T13.
-    HA6 hystérésis  : pente de décroissance Ud < 50 % de celle de Ur sur T17-T18.
-Baseline naïve (hypothèse nulle) : détecteur « un KPI dépasse son seuil » rejoué
-sur les mêmes tours — la valeur ajoutée de H se mesure CONTRE cette baseline.
-Toute autre analyse est étiquetée EXPLORATOIRE.
+                      >= 80 % des tours INFORMATIFS (ceux ou le reseau n'est
+                      pas sature, c.-a-d. max(delta_ur_final) > 0). Reformule
+                      au dry run v5 AVANT gel : (a) la proximite du rang 0
+                      amplifie mecaniquement delta_ur_final (produit fuyant) -
+                      comparer novafab a compodis mesure la topologie, pas la
+                      criticite intrinseque ; (b) en reseau sature l'indice
+                      degenere (le risque deja realise n'est plus " choquable ",
+                      comportement documente du service) - constat consigne
+                      pour le BST, tours satures exclus du test.
+    HA4 calibration : precision ET rappel > 0.5 (seuil H >= 0.5, horizon 4 tours),
+                      incidents de reference = evenements du scenario (fenetre
+                      de verite tiree de scenario.EVENTS).
+    HA5 contagion   : DeltaUd moyen des noeuds NON touches positif et superieur aux
+                      tours sans evenement, aux tours de presse T6, T7, T13.
+    HA6 hysteresis  : pente de decroissance Ud < 50 % de celle de Ur sur T17-T18.
+Baseline naive (hypothese nulle) : detecteur " un KPI depasse son seuil " rejoue
+sur les memes tours - la valeur ajoutee de H se mesure CONTRE cette baseline.
+Toute autre analyse est etiquetee EXPLORATOIRE.
 """
 
 from __future__ import annotations
@@ -48,14 +48,14 @@ FIGURES = _HERE / "figures"
 
 NODE_IDS = [n["id"] for n in scenario.NODES]
 
-#: Tours « à événement de presse » pour HA5 et nœuds touchés à ces tours.
+#: Tours " a evenement de presse " pour HA5 et noeuds touches a ces tours.
 PRESS_TOURS: dict[int, set[str]] = {
     6: {"novafab"},
     7: {"novafab", "transglobal"},
-    13: {"compodis", "orbitalys", "aviosys"},  # annonce -40 % + jalons en dérive
+    13: {"compodis", "orbitalys", "aviosys"},  # annonce -40 % + jalons en derive
 }
 
-#: Fenêtre de décrue (HA6).
+#: Fenetre de decrue (HA6).
 DECRUE = (17, 18)
 
 
@@ -80,7 +80,7 @@ def series(data: dict[int, dict], node: str, field: str) -> list[tuple[int, floa
 
 
 def spearman(xs: list[float], ys: list[float]) -> float:
-    """Corrélation de Spearman sans dépendance externe (rangs + Pearson)."""
+    """Correlation de Spearman sans dependance externe (rangs + Pearson)."""
     def ranks(v: list[float]) -> list[float]:
         order = sorted(range(len(v)), key=lambda i: v[i])
         r = [0.0] * len(v)
@@ -106,7 +106,7 @@ def spearman(xs: list[float], ys: list[float]) -> float:
 
 
 def cross_correlation_lag(ud: list[float], ur: list[float], max_lag: int = 3) -> int:
-    """Lag (en tours) qui maximise Spearman(Ud décalé de +lag, Ur)."""
+    """Lag (en tours) qui maximise Spearman(Ud decale de +lag, Ur)."""
     best_lag, best_rho = 0, -2.0
     for lag in range(0, max_lag + 1):
         if lag >= len(ud) - 2:
@@ -147,7 +147,7 @@ def ha3(data: dict[int, dict]) -> tuple[bool, str]:
         if not crit:
             continue
         if max(c.get("delta_ur_final", 0.0) for c in crit) < 1e-9:
-            verdicts[t] = "saturé"  # réseau saturé : indice non informatif, exclu
+            verdicts[t] = "saturé"  # reseau sature : indice non informatif, exclu
             continue
         informative += 1
         deep_sorted = sorted(
@@ -231,9 +231,7 @@ def ha6(data: dict[int, dict]) -> tuple[bool, str]:
             slopes_ud.append(ud[t2] - ud[t1])
             slopes_ur.append(ur[t2] - ur[t1])
     m_ud, m_ur = st.mean(slopes_ud), st.mean(slopes_ur)
-    # Prédiction : le Ud redescend MOINS vite que le Ur (|pente Ud| < 0.5 |pente Ur|
-    # quand les deux décroissent). Si le Ur ne décroît pas (décrue faible,
-    # constaté au dry run §6.8), le test est non applicable — consigné tel quel.
+    # Prediction : le Ud redescend MOINS vite que le Ur (|pente Ud| < 0.5 |pente Ur| quand les deux decroissent). Si le Ur ne decroit pas (decrue faible, constate au dry run section 6.8), le test est non applicable - consigne tel quel.
     if m_ur >= 0:
         return False, (f"pente Ur moyenne {m_ur:+.4f} >= 0 : pas de décrue mesurable "
                        f"du Ur sur T{t1}-T{t2} — HA6 NON APPLICABLE (pente Ud {m_ud:+.4f})")
@@ -242,7 +240,7 @@ def ha6(data: dict[int, dict]) -> tuple[bool, str]:
 
 
 def baseline_naive(data: dict[int, dict]) -> str:
-    """Détecteur nul : « le Ur local dépasse 0.5 » — même grille que HA4."""
+    """Detecteur nul : " le Ur local depasse 0.5 " - meme grille que HA4."""
     horizon, seuil = 4, 0.5
     event_tours_by_node: dict[str, set[int]] = {}
     for t, evs in scenario.EVENTS.items():
@@ -264,7 +262,7 @@ def baseline_naive(data: dict[int, dict]) -> str:
 
 
 def write_outputs(data: dict[int, dict], results: dict[str, tuple[bool, str]]) -> None:
-    # CSV agrégé.
+    # CSV agrege.
     with (_HERE / "resultats.csv").open("w", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
         w.writerow(["tour", "node", "ud", "ur", "ud_local", "ur_local",
@@ -274,7 +272,7 @@ def write_outputs(data: dict[int, dict], results: dict[str, tuple[bool, str]]) -
                 w.writerow([t, node, n["ud"], n["ur"], n["ud_local"], n["ur_local"],
                             n["adequation"], n["false_urgency"], n["hidden_risk"]])
 
-    # Figures (matplotlib si disponible — best effort).
+    # Figures (matplotlib si disponible - best effort).
     try:
         import matplotlib
 

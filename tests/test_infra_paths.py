@@ -1,8 +1,8 @@
-"""Tests des emplacements de données hors cloud (Lot 17.1).
+"""Tests des emplacements de donnees hors cloud (Lot 17.1).
 
-Couvre ``supplyscore.infra.paths`` (emplacements par défaut, détection du
-``data_store`` hérité, assistant de migration) et la résolution du répertoire
-des bases de ``run_app.resolve_db_dir`` (fonction pure, testée sans serveur).
+Couvre ``supplyscore.infra.paths`` (emplacements par defaut, detection du
+``data_store`` herite, assistant de migration) et la resolution du repertoire
+des bases de ``run_app.resolve_db_dir`` (fonction pure, testee sans serveur).
 """
 
 from __future__ import annotations
@@ -24,19 +24,18 @@ from supplyscore.infra.paths import (
     migrate_legacy_data,
 )
 
-# ``run_app.py`` vit à la racine du projet (hors package installé) : on ajoute
-# la racine au sys.path pour importer sa fonction de résolution pure.
+# ``run_app.py`` vit a la racine du projet (hors package installe) : on ajoute la racine au sys.path pour importer sa fonction de resolution pure.
 _RACINE = Path(__file__).resolve().parents[1]
 if str(_RACINE) not in sys.path:
     sys.path.insert(0, str(_RACINE))
 
 from run_app import resolve_db_dir  # noqa: E402
 
-# --- Aides -------------------------------------------------------------------------
+# Aides
 
 
 def _creer_base(path: Path) -> None:
-    """Crée une vraie base SQLite minimale (integrity_check « ok »)."""
+    """Cree une vraie base SQLite minimale (integrity_check " ok ")."""
     conn = sqlite3.connect(str(path))
     try:
         conn.execute("CREATE TABLE t (x INTEGER)")
@@ -47,7 +46,7 @@ def _creer_base(path: Path) -> None:
 
 
 def _creer_legacy(tmp_path: Path, *, residus_wal: bool = False) -> Path:
-    """Crée ``tmp_path/data_store`` avec deux bases (et des résidus WAL au besoin)."""
+    """Cree ``tmp_path/data_store`` avec deux bases (et des residus WAL au besoin)."""
     legacy = tmp_path / "data_store"
     legacy.mkdir()
     _creer_base(legacy / "registry.sqlite")
@@ -59,7 +58,7 @@ def _creer_legacy(tmp_path: Path, *, residus_wal: bool = False) -> Path:
 
 
 def _fabrique(cible: Path) -> Callable[[], Path]:
-    """Fabrique injectable retournant toujours ``cible`` (sans la créer)."""
+    """Fabrique injectable retournant toujours ``cible`` (sans la creer)."""
 
     def interne() -> Path:
         return cible
@@ -67,7 +66,7 @@ def _fabrique(cible: Path) -> Callable[[], Path]:
     return interne
 
 
-# --- Emplacements par défaut --------------------------------------------------------
+# Emplacements par defaut
 
 
 def test_default_data_dir_contient_supplyscore() -> None:
@@ -88,7 +87,7 @@ def test_default_dirs_partagent_le_meme_parent() -> None:
     assert default_data_dir().parent == default_log_dir().parent
 
 
-# --- Détection du data_store hérité -------------------------------------------------
+# Detection du data_store herite
 
 
 def test_legacy_data_dir_sans_dossier(tmp_path: Path) -> None:
@@ -112,28 +111,28 @@ def test_legacy_data_dir_accepte_cwd_en_chaine(tmp_path: Path) -> None:
     assert legacy_data_dir(str(tmp_path)) == legacy
 
 
-# --- Assistant de migration ----------------------------------------------------------
+# Assistant de migration
 
 
 def test_migration_sauvegarde_puis_deplace(tmp_path: Path) -> None:
-    """La migration crée le zip de sécurité PUIS déplace les bases (legacy vidé).
+    """La migration cree le zip de securite PUIS deplace les bases (legacy vide).
 
-    Les résidus ``-wal``/``-shm`` périmés sont absorbés par SQLite lors de la
+    Les residus ``-wal``/``-shm`` perimes sont absorbes par SQLite lors de la
     sauvegarde (ouverture de chaque base) : quoi qu'il arrive, le dossier
-    hérité ne contient plus AUCUN fichier SQLite après migration.
+    herite ne contient plus AUCUN fichier SQLite apres migration.
     """
     legacy = _creer_legacy(tmp_path, residus_wal=True)
     cible = tmp_path / "appdata" / "data"
 
     deplaces = migrate_legacy_data(legacy, cible)
 
-    # Liste retournée : les bases, triées (résidus périmés purgés par SQLite).
+    # Liste retournee : les bases, triees (residus perimes purges par SQLite).
     assert deplaces == ["client.sqlite", "registry.sqlite"]
-    # Cible peuplée, source vidée (plus aucun fichier SQLite ni résidu).
+    # Cible peuplee, source videe (plus aucun fichier SQLite ni residu).
     for nom in deplaces:
         assert (cible / nom).is_file()
     assert list(legacy.glob("*.sqlite*")) == []
-    # Sauvegarde zip de sécurité dans <cible>.parent/backups_migration.
+    # Sauvegarde zip de securite dans <cible>.parent/backups_migration.
     zips = sorted((tmp_path / "appdata" / "backups_migration").glob("SupplyScore_*.zip"))
     assert len(zips) == 1
     with zipfile.ZipFile(zips[0]) as archive:
@@ -143,11 +142,11 @@ def test_migration_sauvegarde_puis_deplace(tmp_path: Path) -> None:
 def test_migration_deplace_les_residus_wal_restants(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Les résidus ``-wal``/``-shm`` encore présents après sauvegarde sont déplacés.
+    """Les residus ``-wal``/``-shm`` encore presents apres sauvegarde sont deplaces.
 
-    La vraie sauvegarde purge les résidus périmés en ouvrant chaque base ; on
-    la remplace ici par un enregistreur d'appel pour simuler des résidus qui
-    survivent (fichiers redéposés par le client de synchronisation cloud...).
+    La vraie sauvegarde purge les residus perimes en ouvrant chaque base ; on
+    la remplace ici par un enregistreur d'appel pour simuler des residus qui
+    survivent (fichiers redeposes par le client de synchronisation cloud...).
     """
     legacy = _creer_legacy(tmp_path, residus_wal=True)
     cible = tmp_path / "appdata" / "data"
@@ -161,9 +160,9 @@ def test_migration_deplace_les_residus_wal_restants(
 
     deplaces = migrate_legacy_data(legacy, cible)
 
-    # La sauvegarde a bien été demandée AVANT le déplacement, au bon endroit.
+    # La sauvegarde a bien ete demandee AVANT le deplacement, au bon endroit.
     assert appels == [tmp_path / "appdata" / "backups_migration"]
-    # Bases triées, chacune suivie de ses résidus encore présents.
+    # Bases triees, chacune suivie de ses residus encore presents.
     assert deplaces == [
         "client.sqlite",
         "client.sqlite-wal",
@@ -176,7 +175,7 @@ def test_migration_deplace_les_residus_wal_restants(
 
 
 def test_migration_refusee_si_cible_occupee(tmp_path: Path) -> None:
-    """Cible déjà peuplée : refus en français, rien n'est déplacé ni sauvegardé."""
+    """Cible deja peuplee : refus en francais, rien n'est deplace ni sauvegarde."""
     legacy = _creer_legacy(tmp_path)
     cible = tmp_path / "cible"
     cible.mkdir()
@@ -191,7 +190,7 @@ def test_migration_refusee_si_cible_occupee(tmp_path: Path) -> None:
 
 
 def test_migration_legacy_sans_base(tmp_path: Path) -> None:
-    """Aucune base dans le dossier hérité : la sauvegarde préalable refuse."""
+    """Aucune base dans le dossier herite : la sauvegarde prealable refuse."""
     legacy = tmp_path / "data_store"
     legacy.mkdir()
     with pytest.raises(FileNotFoundError):
@@ -199,7 +198,7 @@ def test_migration_legacy_sans_base(tmp_path: Path) -> None:
 
 
 def test_migration_bases_restent_lisibles(tmp_path: Path) -> None:
-    """Les bases migrées restent des bases SQLite valides."""
+    """Les bases migrees restent des bases SQLite valides."""
     legacy = _creer_legacy(tmp_path)
     cible = tmp_path / "appdata" / "data"
     migrate_legacy_data(legacy, cible)
@@ -210,12 +209,12 @@ def test_migration_bases_restent_lisibles(tmp_path: Path) -> None:
         conn.close()
 
 
-# --- Résolution du répertoire des bases (run_app.resolve_db_dir) ---------------------
+# Resolution du repertoire des bases (run_app.resolve_db_dir)
 
 
 def test_resolve_a_db_dir_explicite_prioritaire(tmp_path: Path) -> None:
-    """(a) ``--db-dir`` explicite : utilisé tel quel, fabrique jamais appelée."""
-    _creer_legacy(tmp_path)  # même avec un data_store hérité présent
+    """(a) ``--db-dir`` explicite : utilise tel quel, fabrique jamais appelee."""
+    _creer_legacy(tmp_path)  # meme avec un data_store herite present
 
     def fabrique_interdite() -> Path:
         raise AssertionError("data_dir_factory ne doit pas être appelée en cas (a)")
@@ -225,14 +224,14 @@ def test_resolve_a_db_dir_explicite_prioritaire(tmp_path: Path) -> None:
         str(explicite), migrate=True, cwd=tmp_path, data_dir_factory=fabrique_interdite
     )
     assert resultat == explicite
-    # Le data_store hérité n'a pas été touché.
+    # Le data_store herite n'a pas ete touche.
     assert (tmp_path / "data_store" / "registry.sqlite").is_file()
 
 
 def test_resolve_b_legacy_sans_flag_conserve_et_avertit(
     tmp_path: Path, caplog: pytest.LogCaptureFixture
 ) -> None:
-    """(b) sans ``--migrate-data`` : comportement historique + avertissement loggé."""
+    """(b) sans ``--migrate-data`` : comportement historique + avertissement logge."""
     legacy = _creer_legacy(tmp_path)
     cible = tmp_path / "appdata" / "data"
 
@@ -242,7 +241,7 @@ def test_resolve_b_legacy_sans_flag_conserve_et_avertit(
         )
 
     assert resultat == legacy
-    assert (legacy / "registry.sqlite").is_file()  # rien n'a été déplacé
+    assert (legacy / "registry.sqlite").is_file()  # rien n'a ete deplace
     assert not cible.exists()
     assert "risque de corruption" in caplog.text
     assert "--migrate-data" in caplog.text
@@ -263,7 +262,7 @@ def test_resolve_b_legacy_avec_flag_migre(tmp_path: Path) -> None:
 
 
 def test_resolve_c_defaut_cree(tmp_path: Path) -> None:
-    """(c) ni --db-dir ni data_store hérité : emplacement par défaut, créé."""
+    """(c) ni --db-dir ni data_store herite : emplacement par defaut, cree."""
     cible = tmp_path / "appdata" / "data"
     resultat = resolve_db_dir(None, migrate=False, cwd=tmp_path, data_dir_factory=_fabrique(cible))
     assert resultat == cible
@@ -271,7 +270,7 @@ def test_resolve_c_defaut_cree(tmp_path: Path) -> None:
 
 
 def test_resolve_c_flag_migration_sans_legacy_inoffensif(tmp_path: Path) -> None:
-    """(c) ``--migrate-data`` sans data_store hérité : simple emplacement par défaut."""
+    """(c) ``--migrate-data`` sans data_store herite : simple emplacement par defaut."""
     cible = tmp_path / "appdata" / "data"
     resultat = resolve_db_dir(None, migrate=True, cwd=tmp_path, data_dir_factory=_fabrique(cible))
     assert resultat == cible

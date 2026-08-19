@@ -17,15 +17,15 @@ from PIL import Image, ImageDraw
 VE = Path("C:/PRIVEE/GIT/SMART_GREEN_SUPPLY_CHAIN/VOLUME_ENTREPOT")
 OUT = Path(__file__).resolve().parent / "img"
 
-OCHRE = (255, 186, 0)      # ALTEN charter shade, hand annotation
-AZURE = (0, 139, 210)      # ALTEN main azure, model output
-CONF = 0.25                # same threshold evaluer.py and tester.py use
+OCHRE = (255, 186, 0)  # ALTEN charter shade, hand annotation
+AZURE = (0, 139, 210)  # ALTEN main azure, model output
+CONF = 0.25  # same threshold evaluer.py and tester.py use
 
 CHIPS = {
-    "a": "cfea0b1a09e78615",   # match
-    "b": "00f50c5cf03fea4a",   # partial
-    "c": "5b1dc10c58cdc2d8",   # missed
-    "d": "2c84a0419f0485da",   # true negative
+    "a": "cfea0b1a09e78615",  # match
+    "b": "00f50c5cf03fea4a",  # partial
+    "c": "5b1dc10c58cdc2d8",  # missed
+    "d": "2c84a0419f0485da",  # true negative
 }
 
 
@@ -58,7 +58,7 @@ def main():
 
     import analyse
     model = YOLO(str(VE / "runs/quai3/weights/best.pt"))
-    imgsz = analyse.imgsz_entraine(model)   # infer at the size it was trained at
+    imgsz = analyse.imgsz_entraine(model)  # infer at the size it was trained at
 
     for tag, stem in CHIPS.items():
         src = VE / "yolo/images/val" / f"{stem}.png"

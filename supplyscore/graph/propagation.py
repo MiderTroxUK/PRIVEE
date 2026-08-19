@@ -1,48 +1,48 @@
 """Moteur de propagation des urgences sur le DAG supply chain.
 
-Le moteur lit les urgences LOCALES (ud_local, ur_local) déjà posées sur les
-nœuds par le core (hors périmètre de ce module) et calcule les urgences
-PROPAGÉES (ud, ur) :
+Le moteur lit les urgences LOCALES (ud_local, ur_local) deja posees sur les
+noeuds par le core (hors perimetre de ce module) et calcule les urgences
+PROPAGEES (ud, ur) :
 
-- Ud (besoin déclaré) se propage en DESCENDANT, du client final (rang 0)
+- Ud (besoin declare) se propage en DESCENDANT, du client final (rang 0)
   vers les fournisseurs profonds (rang N) :
-      Ud_i = 1 - (1 - Ud_loc_i) * Π_{k ∈ Succ(i)} (1 - γ_ik · Ud_k)
+      Ud_i = 1 - (1 - Ud_loc_i) * Pi_{k  dans  Succ(i)} (1 - gamma_ik - Ud_k)
 
-- Ur (risque réel) se propage en MONTANT, des fournisseurs profonds (rang N)
+- Ur (risque reel) se propage en MONTANT, des fournisseurs profonds (rang N)
   vers le client final (rang 0) :
-      Ur_i = 1 - (1 - Ur_loc_i) * Π_{j ∈ Pred(i)} (1 - β_ji · Ur_j)
+      Ur_i = 1 - (1 - Ur_loc_i) * Pi_{j  dans  Pred(i)} (1 - beta_ji - Ur_j)
 
-Les règles de statut (DONE -> Ur_loc effectif 0.0, ABANDONED -> 1.0) sont
-appliquées AVANT la propagation montante en déléguant à la source de vérité
+Les regles de statut (DONE -> Ur_loc effectif 0.0, ABANDONED -> 1.0) sont
+appliquees AVANT la propagation montante en deleguant a la source de verite
 unique :mod:`supplyscore.core.status_rules`.
 
 Les arcs de secours (ArcKind.BACKUP) sont purement documentaires et INERTES
-ici : le moteur ne parcourt que les voisins nominaux (comportement par défaut
-de ``predecessors``/``successors`` du dépôt) et ``topological_order`` ignore
+ici : le moteur ne parcourt que les voisins nominaux (comportement par defaut
+de ``predecessors``/``successors`` du depot) et ``topological_order`` ignore
 aussi les backup. Ils n'influencent donc ni Ud, ni Ur, ni ``simulate_shock``.
 
-Propagation INCRÉMENTALE (E14.4) : le moteur tient deux ensembles « sales »
-(``_dirty_ud``, ``_dirty_ur``) alimentés par l'orchestrateur — questionnaire
-soumis → ``mark_dirty_ud(i)``, ``ur_local`` recalculé différent →
-``mark_dirty_ur(i)``, mutation de structure → ``invalidate()``.
+Propagation INCREMENTALE (E14.4) : le moteur tient deux ensembles " sales "
+(``_dirty_ud``, ``_dirty_ur``) alimentes par l'orchestrateur - questionnaire
+soumis -> ``mark_dirty_ud(i)``, ``ur_local`` recalcule different ->
+``mark_dirty_ur(i)``, mutation de structure -> ``invalidate()``.
 :meth:`PropagationEngine.propagate_incremental` ne recalcule alors que les
-nœuds affectés (cônes amont/aval des nœuds sales), les valeurs des nœuds non
-affectés étant relues du cache (``node.urgency.ud`` / ``node.urgency.ur``).
+noeuds affectes (cones amont/aval des noeuds sales), les valeurs des noeuds non
+affectes etant relues du cache (``node.urgency.ud`` / ``node.urgency.ur``).
 
-Toutes les valeurs propagées sont clipées dans [0, 1]. Ce module ne calcule
-PAS l'adéquation (rôle de core/adequation) ; côté core, il n'importe que les
-règles de statut unifiées (supplyscore.core.status_rules).
+Toutes les valeurs propagees sont clipees dans [0, 1]. Ce module ne calcule
+PAS l'adequation (role de core/adequation) ; cote core, il n'importe que les
+regles de statut unifiees (supplyscore.core.status_rules).
 
-Dé-saturation Δl (HÉLIOS v7, U3) : sur un réseau saturé (Ur = 1.0 partout en
-aval), le clip [0, 1] écrase tous les ΔUr de :meth:`PropagationEngine.simulate_shock`
-à 0. :meth:`PropagationEngine.simulate_shock_detailed` fournit en plus Δl, un
-écart de log-survie l(p) = −ln(1−p) calculé sur un jumeau ε-régularisé : même
-récurrence montante écrite en espace survie, valeurs locales effectives
-clipées dans [0, 1−ε] (ε = 1e-9) pour qu'aucun produit de survie ne s'annule,
-l accumulé en espace log — strictement discriminant même en pleine
+De-saturation Deltal (HELIOS v7, U3) : sur un reseau sature (Ur = 1.0 partout en
+aval), le clip [0, 1] ecrase tous les DeltaUr de :meth:`PropagationEngine.simulate_shock`
+a 0. :meth:`PropagationEngine.simulate_shock_detailed` fournit en plus Deltal, un
+ecart de log-survie l(p) = -ln(1-p) calcule sur un jumeau epsilon-regularise : meme
+recurrence montante ecrite en espace survie, valeurs locales effectives
+clipees dans [0, 1-epsilon] (epsilon = 1e-9) pour qu'aucun produit de survie ne s'annule,
+l accumule en espace log - strictement discriminant meme en pleine
 saturation. :meth:`PropagationEngine.compute_ur_batch` et
-:meth:`PropagationEngine.compute_ell_batch` vectorisent les mêmes passes
-topologiques sur S tirages simultanés (criticité probabiliste, lecture seule).
+:meth:`PropagationEngine.compute_ell_batch` vectorisent les memes passes
+topologiques sur S tirages simultanes (criticite probabiliste, lecture seule).
 """
 
 from __future__ import annotations
@@ -59,15 +59,10 @@ from supplyscore.domain.models import TaskStatus, UrgencyState
 from supplyscore.graph.memory_repo import InMemoryGraphRepository
 from supplyscore.graph.repository import GraphRepository
 
-#: Seuil de saturation ε du jumeau régularisé de :meth:`simulate_shock_detailed` :
-#: chaque valeur LOCALE effective y est clipée dans [0, 1−ε], si bien qu'aucun
-#: produit de survie ne s'annule et que l(p) = −ln(1−p) reste fini partout.
-#: Même valeur que ``supplyscore.core.explain._EPS_SAT`` (cohérence E8).
+#: Seuil de saturation epsilon du jumeau regularise de :meth:`simulate_shock_detailed` : chaque valeur LOCALE effective y est clipee dans [0, 1-epsilon], si bien qu'aucun produit de survie ne s'annule et que l(p) = -ln(1-p) reste fini partout. Meme valeur que ``supplyscore.core.explain._EPS_SAT`` (coherence E8).
 _EPS_SAT: float = 1e-9
 
-#: Plancher des facteurs de survie du jumeau log-survie — garde purement
-#: numérique (β = 1 avec survie amont sous le plus petit flottant normal),
-#: jamais atteinte sur des graphes réalistes : garantit l fini dans tous les cas.
+#: Plancher des facteurs de survie du jumeau log-survie - garde purement numerique (beta = 1 avec survie amont sous le plus petit flottant normal), jamais atteinte sur des graphes realistes : garantit l fini dans tous les cas.
 _SURVIVAL_FLOOR: float = 2.2250738585072014e-308
 
 
@@ -77,18 +72,18 @@ def _clip01(value: float) -> float:
 
 @dataclass(frozen=True)
 class ShockDetail:
-    """Choc what-if détaillé : ΔUr standard ET Δl en log-survie régularisée.
+    """Choc what-if detaille : DeltaUr standard ET Deltal en log-survie regularisee.
 
     Attributes:
-        delta_ur: ``{node_id: ΔUr}`` — identique à
-            :meth:`PropagationEngine.simulate_shock` (Ur choqué − Ur de
-            référence, pipeline standard clipé dans [0, 1]).
-        delta_ell: ``{node_id: Δl}`` — écart de log-survie l(p) = −ln(1−p)
-            entre l'état choqué et la référence, calculés tous deux sur le
-            jumeau ε-régularisé (récurrence en espace survie, valeurs
-            locales clipées dans [0, 1−ε], l accumulé en log) : reste
-            strictement informatif là où le clip [0, 1] écrase ΔUr à 0
-            (réseau saturé).
+        delta_ur: ``{node_id: DeltaUr}`` - identique a
+            :meth:`PropagationEngine.simulate_shock` (Ur choque - Ur de
+            reference, pipeline standard clipe dans [0, 1]).
+        delta_ell: ``{node_id: Deltal}`` - ecart de log-survie l(p) = -ln(1-p)
+            entre l'etat choque et la reference, calcules tous deux sur le
+            jumeau epsilon-regularise (recurrence en espace survie, valeurs
+            locales clipees dans [0, 1-epsilon], l accumule en log) : reste
+            strictement informatif la ou le clip [0, 1] ecrase DeltaUr a 0
+            (reseau sature).
     """
 
     delta_ur: dict[str, float]
@@ -99,62 +94,59 @@ class PropagationEngine:
     """Propage Ud (descendant) et Ur (montant) sur un GraphRepository."""
 
     def __init__(self, repo: GraphRepository) -> None:
-        """Initialise le moteur sur le dépôt de graphe ``repo``.
+        """Initialise le moteur sur le depot de graphe ``repo``.
 
-        Avant la première propagation, TOUT est réputé sale
+        Avant la premiere propagation, TOUT est repute sale
         (``_all_dirty = True``) : le premier :meth:`propagate_incremental`
-        délègue donc à :meth:`propagate_all`.
+        delegue donc a :meth:`propagate_all`.
         """
         self._repo = repo
-        #: Nœuds dont le Ur effectif a changé (ur_local recalculé, statut).
+        #: Noeuds dont le Ur effectif a change (ur_local recalcule, statut).
         self._dirty_ur: set[str] = set()
-        #: Nœuds dont le ud_local a changé (questionnaire AHP soumis).
+        #: Noeuds dont le ud_local a change (questionnaire AHP soumis).
         self._dirty_ud: set[str] = set()
-        #: Tout est sale (mutation de structure ou jamais propagé).
+        #: Tout est sale (mutation de structure ou jamais propage).
         self._all_dirty = True
-        #: ``structure_version`` du dépôt mémoire vue à la dernière propagation
-        #: complète — filet de sécurité : une mutation de structure qui n'est
-        #: pas passée par l'orchestrateur (ex. ``MutationService._sync_repo_arc``
-        #: qui remplace un arc pour changer son β) est ainsi détectée.
+        #: ``structure_version`` du depot memoire vue a la derniere propagation complete - filet de securite : une mutation de structure qui n'est pas passee par l'orchestrateur (ex. ``MutationService._sync_repo_arc`` qui remplace un arc pour changer son beta) est ainsi detectee.
         self._seen_structure_version: int | None = None
 
-    # --- Suivi incrémental (E14.4) -----------------------------------------
+    # Suivi incremental (E14.4)
 
     def mark_dirty_ur(self, node_id: str) -> None:
-        """Marque le nœud sale côté Ur : son ``ur_local`` effectif a changé."""
+        """Marque le noeud sale cote Ur : son ``ur_local`` effectif a change."""
         self._dirty_ur.add(node_id)
 
     def mark_dirty_ud(self, node_id: str) -> None:
-        """Marque le nœud sale côté Ud : son ``ud_local`` a changé."""
+        """Marque le noeud sale cote Ud : son ``ud_local`` a change."""
         self._dirty_ud.add(node_id)
 
     def invalidate(self) -> None:
         """Marque TOUT le graphe comme sale (mutation de structure).
 
-        Appelée par l'orchestrateur sur toute mutation de structure
-        (ajout/suppression de nœud ou d'arc, recalage des rangs) : le prochain
-        :meth:`propagate_incremental` délègue à :meth:`propagate_all`.
+        Appelee par l'orchestrateur sur toute mutation de structure
+        (ajout/suppression de noeud ou d'arc, recalage des rangs) : le prochain
+        :meth:`propagate_incremental` delegue a :meth:`propagate_all`.
         """
         self._all_dirty = True
         self._dirty_ur.clear()
         self._dirty_ud.clear()
 
     def _repo_structure_version(self) -> int | None:
-        """Version de structure du dépôt, ou None s'il n'en expose pas.
+        """Version de structure du depot, ou None s'il n'en expose pas.
 
         Seul :class:`InMemoryGraphRepository` expose ``structure_version`` ;
-        pour un autre dépôt (Neo4j), le moteur s'en remet aux appels
-        explicites à :meth:`invalidate` de l'orchestrateur.
+        pour un autre depot (Neo4j), le moteur s'en remet aux appels
+        explicites a :meth:`invalidate` de l'orchestrateur.
         """
         if isinstance(self._repo, InMemoryGraphRepository):
             return self._repo.structure_version
         return None
 
     def _descendants(self, node_id: str) -> set[str]:
-        """Cône aval de ``node_id`` (exclu) via les arcs nominaux.
+        """Cone aval de ``node_id`` (exclu) via les arcs nominaux.
 
         Chemin rapide ``InMemoryGraphRepository.descendants`` (networkx) ;
-        repli générique en largeur via ``successors`` pour tout autre dépôt
+        repli generique en largeur via ``successors`` pour tout autre depot
         respectant le contrat :class:`GraphRepository`.
         """
         if isinstance(self._repo, InMemoryGraphRepository):
@@ -169,10 +161,10 @@ class PropagationEngine:
         return seen
 
     def _ancestors(self, node_id: str) -> set[str]:
-        """Cône amont de ``node_id`` (exclu) via les arcs nominaux.
+        """Cone amont de ``node_id`` (exclu) via les arcs nominaux.
 
         Chemin rapide ``InMemoryGraphRepository.ancestors`` (networkx) ;
-        repli générique en largeur via ``predecessors`` pour tout autre dépôt.
+        repli generique en largeur via ``predecessors`` pour tout autre depot.
         """
         if isinstance(self._repo, InMemoryGraphRepository):
             return self._repo.ancestors(node_id)
@@ -185,14 +177,14 @@ class PropagationEngine:
                     stack.append(pred.id)
         return seen
 
-    # --- Calculs purs (sans écriture) -------------------------------------
+    # Calculs purs (sans ecriture)
 
     def _compute_ud(self) -> dict[str, float]:
-        """Ud propagé, calculé du rang 0 vers le rang N (ordre topo inverse)."""
+        """Ud propage, calcule du rang 0 vers le rang N (ordre topo inverse)."""
         ud: dict[str, float] = {}
         for node_id in reversed(self._repo.topological_order()):
             node = self._repo.get_node(node_id)
-            assert node is not None  # id issu de topological_order() du même dépôt
+            assert node is not None  # id issu de topological_order() du meme depot
             ud_loc = effective_ud_local(node.status, node.urgency.ud_local)
             attenuation = 1.0
             for client in self._repo.successors(node_id):
@@ -203,11 +195,11 @@ class PropagationEngine:
         return ud
 
     def _effective_ur_local(self, node_id: str, overrides: dict[str, float]) -> float:
-        """Ur_local effectif d'un nœud : override what-if sinon règle de statut."""
+        """Ur_local effectif d'un noeud : override what-if sinon regle de statut."""
         if node_id in overrides:
             return overrides[node_id]
         node = self._repo.get_node(node_id)
-        assert node is not None  # id issu de topological_order() du même dépôt
+        assert node is not None  # id issu de topological_order() du meme depot
         return effective_ur_local(node.status, node.urgency.ur_local)
 
     def _compute_ur(
@@ -215,15 +207,15 @@ class PropagationEngine:
         overrides: dict[str, float] | None = None,
         clip: tuple[float, float] = (0.0, 1.0),
     ) -> dict[str, float]:
-        """Ur propagé, calculé du rang N vers le rang 0 (ordre topologique).
+        """Ur propage, calcule du rang N vers le rang 0 (ordre topologique).
 
         Args:
-            overrides: ``{node_id: ur_local}`` what-if substitués aux valeurs
+            overrides: ``{node_id: ur_local}`` what-if substitues aux valeurs
                 effectives (cf. :meth:`simulate_shock`).
-            clip: bornes ``(lo, hi)`` des valeurs propagées. Le défaut
-                ``(0.0, 1.0)`` reproduit le pipeline standard à l'identique
-                (bit à bit). Un ``hi < 1.0`` active le jumeau ε-régularisé :
-                la valeur LOCALE effective est alors clipée elle aussi dans
+            clip: bornes ``(lo, hi)`` des valeurs propagees. Le defaut
+                ``(0.0, 1.0)`` reproduit le pipeline standard a l'identique
+                (bit a bit). Un ``hi < 1.0`` active le jumeau epsilon-regularise :
+                la valeur LOCALE effective est alors clipee elle aussi dans
                 ``[lo, hi]``, si bien qu'aucun facteur de survie ne s'annule.
         """
         overrides = overrides or {}
@@ -237,29 +229,29 @@ class PropagationEngine:
             attenuation = 1.0
             for supplier in self._repo.predecessors(node_id):
                 arc = self._repo.get_arc(supplier.id, node_id)
-                assert arc is not None  # supplier est un prédécesseur : l'arc existe
+                assert arc is not None  # supplier est un predecesseur : l'arc existe
                 attenuation *= 1.0 - arc.beta * ur[supplier.id]
             ur[node_id] = min(max(1.0 - (1.0 - ur_loc) * attenuation, lo), hi)
         return ur
 
     def _compute_ell(self, overrides: dict[str, float] | None = None) -> dict[str, float]:
-        """Log-survie l propagée du jumeau ε-régularisé (rang N vers rang 0).
+        """Log-survie l propagee du jumeau epsilon-regularise (rang N vers rang 0).
 
-        Même récurrence montante que :meth:`_compute_ur`, écrite en espace
-        survie : s_i = (1 − Ur_loc_i)·Π_j ((1 − β_ji) + β_ji·s_j) — identité
-        algébrique de 1 − β·Ur_j avec Ur_j = 1 − s_j — la valeur locale
-        effective étant clipée dans [0, 1−ε] (ε = 1e-9). Aucun facteur ne
-        s'annule donc, et l_i = −ln(s_i) est accumulé en espace log : exact
-        en profondeur, jamais écrasé par le clip [0, 1] du pipeline standard
-        ni par un plafond à 1−ε sur les valeurs propagées.
+        Meme recurrence montante que :meth:`_compute_ur`, ecrite en espace
+        survie : s_i = (1 - Ur_loc_i)-Pi_j ((1 - beta_ji) + beta_ji-s_j) - identite
+        algebrique de 1 - beta-Ur_j avec Ur_j = 1 - s_j - la valeur locale
+        effective etant clipee dans [0, 1-epsilon] (epsilon = 1e-9). Aucun facteur ne
+        s'annule donc, et l_i = -ln(s_i) est accumule en espace log : exact
+        en profondeur, jamais ecrase par le clip [0, 1] du pipeline standard
+        ni par un plafond a 1-epsilon sur les valeurs propagees.
 
         Args:
-            overrides: ``{node_id: ur_local}`` what-if substitués aux valeurs
-                effectives (mêmes règles que :meth:`_compute_ur`).
+            overrides: ``{node_id: ur_local}`` what-if substitues aux valeurs
+                effectives (memes regles que :meth:`_compute_ur`).
 
         Returns:
-            ``{node_id: l_i}`` avec l_i ≥ 0 fini ; hors saturation,
-            l_i = −ln(1 − Ur_i) du pipeline standard à l'arrondi près.
+            ``{node_id: l_i}`` avec l_i >= 0 fini ; hors saturation,
+            l_i = -ln(1 - Ur_i) du pipeline standard a l'arrondi pres.
         """
         overrides = overrides or {}
         ell: dict[str, float] = {}
@@ -268,7 +260,7 @@ class PropagationEngine:
             value = -math.log(1.0 - ur_loc)
             for supplier in self._repo.predecessors(node_id):
                 arc = self._repo.get_arc(supplier.id, node_id)
-                assert arc is not None  # supplier est un prédécesseur : l'arc existe
+                assert arc is not None  # supplier est un predecesseur : l'arc existe
                 survival = math.exp(-ell[supplier.id])
                 value -= math.log(max(1.0 - arc.beta + arc.beta * survival, _SURVIVAL_FLOOR))
             ell[node_id] = value
@@ -278,8 +270,8 @@ class PropagationEngine:
         """Nombre de tirages S des overrides d'un lot (1 si aucun override).
 
         Raises:
-            ValueError: si les tableaux n'ont pas tous la même forme (S,),
-                ou si un override vise un nœud inconnu du dépôt.
+            ValueError: si les tableaux n'ont pas tous la meme forme (S,),
+                ou si un override vise un noeud inconnu du depot.
         """
         unknown = sorted(nid for nid in overrides if self._repo.get_node(nid) is None)
         if unknown:
@@ -294,38 +286,38 @@ class PropagationEngine:
         overrides: dict[str, NDArray[np.float64]] | None = None,
         clip: tuple[float, float] = (0.0, 1.0),
     ) -> dict[str, NDArray[np.float64]]:
-        """Ur propagé pour S tirages simultanés — passe topologique vectorisée.
+        """Ur propage pour S tirages simultanes - passe topologique vectorisee.
 
-        Mêmes formules que :meth:`_compute_ur`, mais chaque valeur de la passe
-        est un vecteur numpy de forme (S,) : le tirage s de chaque nœud ne
-        dépend que des tirages s de ses fournisseurs, les S propagations sont
-        donc rigoureusement indépendantes et calculées en une seule passe.
-        Méthode PURE : aucune écriture dans le dépôt.
+        Memes formules que :meth:`_compute_ur`, mais chaque valeur de la passe
+        est un vecteur numpy de forme (S,) : le tirage s de chaque noeud ne
+        depend que des tirages s de ses fournisseurs, les S propagations sont
+        donc rigoureusement independantes et calculees en une seule passe.
+        Methode PURE : aucune ecriture dans le depot.
 
-        Avec ``S = 1`` et sans override, le résultat coïncide avec
-        :meth:`_compute_ur` à 1e-12 près (testé sur graphes aléatoires).
+        Avec ``S = 1`` et sans override, le resultat coincide avec
+        :meth:`_compute_ur` a 1e-12 pres (teste sur graphes aleatoires).
 
-        Benchmark indicatif (mesuré, Python 3.12 / numpy 2.4, Windows, dépôt
-        mémoire 10 rangs × 100 nœuds) : 1 000 nœuds × S = 500 tirages ≈
-        0.03 s la passe complète, contre ≈ 1.5 s pour 500 passes scalaires
-        équivalentes (~0.003 s l'une) — le coût est dominé par le parcours du
+        Benchmark indicatif (mesure, Python 3.12 / numpy 2.4, Windows, depot
+        memoire 10 rangs x 100 noeuds) : 1 000 noeuds x S = 500 tirages ~=
+        0.03 s la passe complete, contre ~= 1.5 s pour 500 passes scalaires
+        equivalentes (~0.003 s l'une) - le cout est domine par le parcours du
         graphe, pas par l'axe S.
 
         Args:
-            overrides: ``{node_id: tableau (S,) de ur_local}`` — valeurs
-                locales tirées pour les nœuds choisis ; les autres nœuds
-                gardent leur ``ur_local`` effectif (diffusé sur l'axe S).
-                ``None`` ou vide : S = 1 (propagation de référence).
-            clip: bornes ``(lo, hi)`` des valeurs propagées — mêmes règles
+            overrides: ``{node_id: tableau (S,) de ur_local}`` - valeurs
+                locales tirees pour les noeuds choisis ; les autres noeuds
+                gardent leur ``ur_local`` effectif (diffuse sur l'axe S).
+                ``None`` ou vide : S = 1 (propagation de reference).
+            clip: bornes ``(lo, hi)`` des valeurs propagees - memes regles
                 que :meth:`_compute_ur` (``hi < 1.0`` clippe aussi les
-                valeurs locales effectives : jumeau ε-régularisé).
+                valeurs locales effectives : jumeau epsilon-regularise).
 
         Returns:
-            ``{node_id: tableau (S,) des Ur propagés}``.
+            ``{node_id: tableau (S,) des Ur propages}``.
 
         Raises:
-            ValueError: si les tableaux d'override n'ont pas tous la même
-                forme (S,), ou si un override vise un nœud inconnu.
+            ValueError: si les tableaux d'override n'ont pas tous la meme
+                forme (S,), ou si un override vise un noeud inconnu.
         """
         overrides = overrides or {}
         n_draws = self._batch_draws(overrides)
@@ -342,7 +334,7 @@ class PropagationEngine:
             attenuation = np.ones(n_draws, dtype=float)
             for supplier in self._repo.predecessors(node_id):
                 arc = self._repo.get_arc(supplier.id, node_id)
-                assert arc is not None  # supplier est un prédécesseur : l'arc existe
+                assert arc is not None  # supplier est un predecesseur : l'arc existe
                 attenuation *= 1.0 - arc.beta * ur[supplier.id]
             ur[node_id] = np.clip(1.0 - (1.0 - ur_loc) * attenuation, lo, hi)
         return ur
@@ -350,25 +342,25 @@ class PropagationEngine:
     def compute_ell_batch(
         self, overrides: dict[str, NDArray[np.float64]] | None = None
     ) -> dict[str, NDArray[np.float64]]:
-        """Log-survie l du jumeau ε-régularisé pour S tirages simultanés.
+        """Log-survie l du jumeau epsilon-regularise pour S tirages simultanes.
 
-        Version vectorisée de :meth:`_compute_ell` — mêmes formules, chaque
-        valeur de la passe étant un vecteur numpy (S,) ; mêmes conventions
-        d'overrides que :meth:`compute_ur_batch`. Méthode PURE : aucune
-        écriture dans le dépôt. Avec S = 1, coïncide avec
-        :meth:`_compute_ell` au bruit d'arrondi près (testé).
+        Version vectorisee de :meth:`_compute_ell` - memes formules, chaque
+        valeur de la passe etant un vecteur numpy (S,) ; memes conventions
+        d'overrides que :meth:`compute_ur_batch`. Methode PURE : aucune
+        ecriture dans le depot. Avec S = 1, coincide avec
+        :meth:`_compute_ell` au bruit d'arrondi pres (teste).
 
         Args:
-            overrides: ``{node_id: tableau (S,) de ur_local}`` — valeurs
-                locales tirées pour les nœuds choisis ; ``None`` ou vide :
-                S = 1 (référence).
+            overrides: ``{node_id: tableau (S,) de ur_local}`` - valeurs
+                locales tirees pour les noeuds choisis ; ``None`` ou vide :
+                S = 1 (reference).
 
         Returns:
-            ``{node_id: tableau (S,) des l_i ≥ 0}``.
+            ``{node_id: tableau (S,) des l_i >= 0}``.
 
         Raises:
-            ValueError: si les tableaux d'override n'ont pas tous la même
-                forme (S,), ou si un override vise un nœud inconnu.
+            ValueError: si les tableaux d'override n'ont pas tous la meme
+                forme (S,), ou si un override vise un noeud inconnu.
         """
         overrides = overrides or {}
         n_draws = self._batch_draws(overrides)
@@ -382,33 +374,33 @@ class PropagationEngine:
             value = -np.log(1.0 - np.clip(ur_loc, 0.0, hi))
             for supplier in self._repo.predecessors(node_id):
                 arc = self._repo.get_arc(supplier.id, node_id)
-                assert arc is not None  # supplier est un prédécesseur : l'arc existe
+                assert arc is not None  # supplier est un predecesseur : l'arc existe
                 survival = np.exp(-ell[supplier.id])
                 value -= np.log(np.maximum(1.0 - arc.beta + arc.beta * survival, _SURVIVAL_FLOOR))
             ell[node_id] = value
         return ell
 
-    # --- Propagations persistantes -----------------------------------------
+    # Propagations persistantes
 
     def propagate_descending(self) -> dict[str, float]:
-        """Calcule et persiste Ud sur chaque nœud. Retourne {id: ud}."""
+        """Calcule et persiste Ud sur chaque noeud. Retourne {id: ud}."""
         ud = self._compute_ud()
         now = time.time()
         for node_id, value in ud.items():
             node = self._repo.get_node(node_id)
-            assert node is not None  # id issu de _compute_ud() sur le même dépôt
+            assert node is not None  # id issu de _compute_ud() sur le meme depot
             node.urgency.ud = value
             node.urgency.timestamp = now
             self._repo.update_node(node)
         return ud
 
     def propagate_ascending(self) -> dict[str, float]:
-        """Calcule et persiste Ur sur chaque nœud. Retourne {id: ur}."""
+        """Calcule et persiste Ur sur chaque noeud. Retourne {id: ur}."""
         ur = self._compute_ur()
         now = time.time()
         for node_id, value in ur.items():
             node = self._repo.get_node(node_id)
-            assert node is not None  # id issu de _compute_ur() sur le même dépôt
+            assert node is not None  # id issu de _compute_ur() sur le meme depot
             node.urgency.ur = value
             node.urgency.timestamp = now
             self._repo.update_node(node)
@@ -419,8 +411,8 @@ class PropagationEngine:
 
         Persiste les valeurs et retourne {node_id: UrgencyState}.
 
-        Réinitialise aussi l'état incrémental : tout vient d'être recalculé,
-        plus rien n'est sale et la version de structure du dépôt est resynchronisée.
+        Reinitialise aussi l'etat incremental : tout vient d'etre recalcule,
+        plus rien n'est sale et la version de structure du depot est resynchronisee.
         """
         self.propagate_descending()
         self.propagate_ascending()
@@ -431,32 +423,32 @@ class PropagationEngine:
         return {node.id: node.urgency for node in self._repo.nodes()}
 
     def propagate_incremental(self) -> dict[str, UrgencyState]:
-        """Propagation restreinte aux nœuds affectés par les ensembles sales.
+        """Propagation restreinte aux noeuds affectes par les ensembles sales.
 
-        Affectés_Ur = union, sur s ∈ dirty_ur, de {s} et descendants(s) — Ur
-        se propage en aval ; Affectés_Ud = union, sur s ∈ dirty_ud, de {s} et
-        ancestors(s) — Ud se propage en amont. Le Ud est recalculé en ordre topologique INVERSE
-        restreint aux Affectés_Ud (les Ud des successeurs non affectés sont
+        Affectes_Ur = union, sur s  dans  dirty_ur, de {s} et descendants(s) - Ur
+        se propage en aval ; Affectes_Ud = union, sur s  dans  dirty_ud, de {s} et
+        ancestors(s) - Ud se propage en amont. Le Ud est recalcule en ordre topologique INVERSE
+        restreint aux Affectes_Ud (les Ud des successeurs non affectes sont
         relus du cache ``node.urgency.ud``), puis le Ur en ordre topologique
-        restreint aux Affectés_Ur (Ur des prédécesseurs non affectés relus du
-        cache). Les timestamps sont posés comme dans :meth:`propagate_all`
-        (un ``time.time()`` par phase, sur les seuls nœuds recalculés). Les
-        ensembles sales sont vidés en fin d'appel.
+        restreint aux Affectes_Ur (Ur des predecesseurs non affectes relus du
+        cache). Les timestamps sont poses comme dans :meth:`propagate_all`
+        (un ``time.time()`` par phase, sur les seuls noeuds recalcules). Les
+        ensembles sales sont vides en fin d'appel.
 
-        Délègue à :meth:`propagate_all` quand TOUT est sale : après
-        :meth:`invalidate`, avant la première propagation, ou si la version
-        de structure du dépôt mémoire a changé depuis la dernière propagation
-        complète (mutation de structure hors orchestrateur).
+        Delegue a :meth:`propagate_all` quand TOUT est sale : apres
+        :meth:`invalidate`, avant la premiere propagation, ou si la version
+        de structure du depot memoire a change depuis la derniere propagation
+        complete (mutation de structure hors orchestrateur).
 
-        CHOIX SIMPLE documenté : si un nœud HORS zone affectée n'a jamais été
-        propagé (cache absent — ``urgency.ud`` ou ``urgency.ur`` None), on
-        délègue au complet plutôt que d'élargir les ensembles affectés ; le
-        cas ne survient qu'une fois (à la première propagation d'un graphe),
-        l'élargissement ne ferait gagner aucune passe.
+        CHOIX SIMPLE documente : si un noeud HORS zone affectee n'a jamais ete
+        propage (cache absent - ``urgency.ud`` ou ``urgency.ur`` None), on
+        delegue au complet plutot que d'elargir les ensembles affectes ; le
+        cas ne survient qu'une fois (a la premiere propagation d'un graphe),
+        l'elargissement ne ferait gagner aucune passe.
 
         Returns:
-            ``{node_id: UrgencyState}`` de TOUS les nœuds (recalculés +
-            cachés) — même contrat de retour que :meth:`propagate_all`.
+            ``{node_id: UrgencyState}`` de TOUS les noeuds (recalcules +
+            caches) - meme contrat de retour que :meth:`propagate_all`.
         """
         if self._all_dirty or self._repo_structure_version() != self._seen_structure_version:
             return self.propagate_all()  # vide les ensembles sales et resynchronise
@@ -474,7 +466,7 @@ class PropagationEngine:
             never_propagated = (node.urgency.ud is None and node.id not in affected_ud) or (
                 node.urgency.ur is None and node.id not in affected_ur
             )
-            if never_propagated:  # cache absent hors zone affectée → complet
+            if never_propagated:  # cache absent hors zone affectee -> complet
                 return self.propagate_all()
 
         order = self._repo.topological_order()
@@ -487,13 +479,13 @@ class PropagationEngine:
         return {node.id: node.urgency for node in self._repo.nodes()}
 
     def _recompute_ud_restricted(self, order: list[str], affected: set[str]) -> None:
-        """Recalcule et persiste Ud sur les seuls nœuds ``affected``.
+        """Recalcule et persiste Ud sur les seuls noeuds ``affected``.
 
         Parcours en ordre topologique inverse (clients avant fournisseurs),
-        restreint à ``affected``. Nœud « frontière » : un successeur hors
-        zone affectée contribue par son Ud en CACHE (``urgency.ud``), garanti
-        non-None par le balayage « cache absent » de l'appelant ; un
-        successeur affecté contribue par sa valeur fraîche (déjà calculée,
+        restreint a ``affected``. Noeud " frontiere " : un successeur hors
+        zone affectee contribue par son Ud en CACHE (``urgency.ud``), garanti
+        non-None par le balayage " cache absent " de l'appelant ; un
+        successeur affecte contribue par sa valeur fraiche (deja calculee,
         l'ordre inverse visitant les clients d'abord).
         """
         fresh: dict[str, float] = {}
@@ -501,15 +493,15 @@ class PropagationEngine:
             if node_id not in affected:
                 continue
             node = self._repo.get_node(node_id)
-            assert node is not None  # id issu de topological_order() du même dépôt
+            assert node is not None  # id issu de topological_order() du meme depot
             ud_loc = effective_ud_local(node.status, node.urgency.ud_local)
             attenuation = 1.0
             for client in self._repo.successors(node_id):
                 if client.id in fresh:
                     ud_k = fresh[client.id]
                 else:
-                    cached = client.urgency.ud  # frontière : successeur non affecté
-                    assert cached is not None  # garanti par le balayage « cache absent »
+                    cached = client.urgency.ud  # frontiere : successeur non affecte
+                    assert cached is not None  # garanti par le balayage " cache absent "
                     ud_k = cached
                 arc = self._repo.get_arc(node_id, client.id)
                 assert arc is not None  # client est un successeur : l'arc existe
@@ -518,54 +510,54 @@ class PropagationEngine:
         now = time.time()
         for node_id, value in fresh.items():
             node = self._repo.get_node(node_id)
-            assert node is not None  # id issu de la boucle ci-dessus, même dépôt
+            assert node is not None  # id issu de la boucle ci-dessus, meme depot
             node.urgency.ud = value
             node.urgency.timestamp = now
             self._repo.update_node(node)
 
     def _recompute_ur_restricted(self, order: list[str], affected: set[str]) -> None:
-        """Recalcule et persiste Ur sur les seuls nœuds ``affected``.
+        """Recalcule et persiste Ur sur les seuls noeuds ``affected``.
 
         Parcours en ordre topologique (fournisseurs avant clients), restreint
-        à ``affected``. Nœud « frontière » : un prédécesseur hors zone
-        affectée contribue par son Ur en CACHE (``urgency.ur``), garanti
-        non-None par le balayage « cache absent » de l'appelant ; un
-        prédécesseur affecté contribue par sa valeur fraîche.
+        a ``affected``. Noeud " frontiere " : un predecesseur hors zone
+        affectee contribue par son Ur en CACHE (``urgency.ur``), garanti
+        non-None par le balayage " cache absent " de l'appelant ; un
+        predecesseur affecte contribue par sa valeur fraiche.
         """
         fresh: dict[str, float] = {}
         for node_id in order:
             if node_id not in affected:
                 continue
             node = self._repo.get_node(node_id)
-            assert node is not None  # id issu de topological_order() du même dépôt
+            assert node is not None  # id issu de topological_order() du meme depot
             ur_loc = effective_ur_local(node.status, node.urgency.ur_local)
             attenuation = 1.0
             for supplier in self._repo.predecessors(node_id):
                 if supplier.id in fresh:
                     ur_j = fresh[supplier.id]
                 else:
-                    cached = supplier.urgency.ur  # frontière : prédécesseur non affecté
-                    assert cached is not None  # garanti par le balayage « cache absent »
+                    cached = supplier.urgency.ur  # frontiere : predecesseur non affecte
+                    assert cached is not None  # garanti par le balayage " cache absent "
                     ur_j = cached
                 arc = self._repo.get_arc(supplier.id, node_id)
-                assert arc is not None  # supplier est un prédécesseur : l'arc existe
+                assert arc is not None  # supplier est un predecesseur : l'arc existe
                 attenuation *= 1.0 - arc.beta * ur_j
             fresh[node_id] = _clip01(1.0 - (1.0 - ur_loc) * attenuation)
         now = time.time()
         for node_id, value in fresh.items():
             node = self._repo.get_node(node_id)
-            assert node is not None  # id issu de la boucle ci-dessus, même dépôt
+            assert node is not None  # id issu de la boucle ci-dessus, meme depot
             node.urgency.ur = value
             node.urgency.timestamp = now
             self._repo.update_node(node)
 
-    # --- What-if / statuts -------------------------------------------------
+    # What-if / statuts
 
     def simulate_shock(self, node_id: str, new_ur_local: float) -> dict[str, float]:
-        """Choc what-if : ΔUr par nœud si node_id passait à new_ur_local.
+        """Choc what-if : DeltaUr par noeud si node_id passait a new_ur_local.
 
-        Ne persiste RIEN : ni le ur_local simulé, ni les Ur recalculés.
-        Retourne {node_id: delta_ur} (Ur choqué - Ur de référence).
+        Ne persiste RIEN : ni le ur_local simule, ni les Ur recalcules.
+        Retourne {node_id: delta_ur} (Ur choque - Ur de reference).
         """
         if self._repo.get_node(node_id) is None:
             raise KeyError(f"Nœud inconnu : {node_id!r}")
@@ -574,34 +566,34 @@ class PropagationEngine:
         return {nid: shocked[nid] - baseline[nid] for nid in baseline}
 
     def simulate_shock_detailed(self, node_id: str, new_ur_local: float) -> ShockDetail:
-        """Choc what-if détaillé : ΔUr standard ET Δl log-survie par nœud.
+        """Choc what-if detaille : DeltaUr standard ET Deltal log-survie par noeud.
 
-        Méthode PURE : rien n'est persisté. ``delta_ur`` provient du pipeline
-        standard — identique à :meth:`simulate_shock`. ``delta_ell`` provient
-        du jumeau ε-régularisé (:meth:`_compute_ell`) : même récurrence
-        montante écrite en espace survie, chaque valeur locale effective
-        (choquée comprise) clipée dans [0, 1−ε] (ε = 1e-9) pour qu'aucun
-        produit de survie ne s'annule, puis l(p) = −ln(1−p) accumulé en
-        espace log ; Δl_i = l(Ur'_i) − l(Ur_i).
+        Methode PURE : rien n'est persiste. ``delta_ur`` provient du pipeline
+        standard - identique a :meth:`simulate_shock`. ``delta_ell`` provient
+        du jumeau epsilon-regularise (:meth:`_compute_ell`) : meme recurrence
+        montante ecrite en espace survie, chaque valeur locale effective
+        (choquee comprise) clipee dans [0, 1-epsilon] (epsilon = 1e-9) pour qu'aucun
+        produit de survie ne s'annule, puis l(p) = -ln(1-p) accumule en
+        espace log ; Deltal_i = l(Ur'_i) - l(Ur_i).
 
-        l est la MÊME convention log-survie que la décomposition
+        l est la MEME convention log-survie que la decomposition
         ``explain_ur_local`` (les ``ells``) de
-        :mod:`supplyscore.core.explain` : additive le long de la chaîne dans
-        le noisy-OR (les l des facteurs s'ajoutent là où les survies se
-        multiplient). Sur un réseau saturé (Ur = 1.0 partout en aval), ΔUr
-        vaut 0 par écrasement du clip alors que Δl reste strictement
+        :mod:`supplyscore.core.explain` : additive le long de la chaine dans
+        le noisy-OR (les l des facteurs s'ajoutent la ou les survies se
+        multiplient). Sur un reseau sature (Ur = 1.0 partout en aval), DeltaUr
+        vaut 0 par ecrasement du clip alors que Deltal reste strictement
         discriminant : il mesure l'aggravation en profondeur du choc (hors
-        saturation, Δl_i = ln((1 − Ur_i)/(1 − Ur'_i)) du pipeline standard).
+        saturation, Deltal_i = ln((1 - Ur_i)/(1 - Ur'_i)) du pipeline standard).
 
         Args:
-            node_id: nœud choqué.
-            new_ur_local: ``ur_local`` simulé du nœud (clipé dans [0, 1]).
+            node_id: noeud choque.
+            new_ur_local: ``ur_local`` simule du noeud (clipe dans [0, 1]).
 
         Returns:
-            :class:`ShockDetail` — ``delta_ur`` et ``delta_ell`` par nœud.
+            :class:`ShockDetail` - ``delta_ur`` et ``delta_ell`` par noeud.
 
         Raises:
-            KeyError: si ``node_id`` est inconnu du dépôt.
+            KeyError: si ``node_id`` est inconnu du depot.
         """
         if self._repo.get_node(node_id) is None:
             raise KeyError(f"Nœud inconnu : {node_id!r}")
@@ -616,18 +608,18 @@ class PropagationEngine:
         )
 
     def apply_status(self, node_id: str, status: TaskStatus) -> None:
-        """Pose le statut sur le nœud SANS propager.
+        """Pose le statut sur le noeud SANS propager.
 
-        La méthode persiste uniquement le nouveau statut ; appeler
-        :meth:`propagate_all` (ou ``evaluate_all`` côté orchestrateur,
+        La methode persiste uniquement le nouveau statut ; appeler
+        :meth:`propagate_all` (ou ``evaluate_all`` cote orchestrateur,
         unique point de propagation) ensuite pour recalculer Ud/Ur.
 
         Args:
-            node_id: identifiant du nœud.
-            status: nouveau statut à persister.
+            node_id: identifiant du noeud.
+            status: nouveau statut a persister.
 
         Raises:
-            KeyError: si ``node_id`` est inconnu du dépôt.
+            KeyError: si ``node_id`` est inconnu du depot.
         """
         node = self._repo.get_node(node_id)
         if node is None:

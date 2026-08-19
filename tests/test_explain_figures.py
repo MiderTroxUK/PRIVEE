@@ -1,8 +1,8 @@
 """Tests des figures d'explication (phase E8, Lot 8.3).
 
-Les entrées sont des SimpleNamespace : les constructeurs lisent les
-attributs en duck-typing, sans dépendre des dataclasses du moteur
-d'explicabilité.
+Les entrees sont des SimpleNamespace : les constructeurs lisent les
+attributs en duck-typing, sans dependre des dataclasses du moteur
+d'explicabilite.
 """
 
 from types import SimpleNamespace
@@ -39,7 +39,7 @@ def _criterion(index: int, label: str, weight: float, score: float) -> SimpleNam
 
 
 def _all_texts(component) -> str:
-    """Concatène récursivement tous les textes d'un arbre de composants Dash."""
+    """Concatene recursivement tous les textes d'un arbre de composants Dash."""
     if isinstance(component, str):
         return component
     children = getattr(component, "children", None)
@@ -50,7 +50,7 @@ def _all_texts(component) -> str:
     return " ".join(_all_texts(child) for child in children)
 
 
-# --- ur_waterfall_figure --------------------------------------------------------------
+# ur_waterfall_figure
 
 
 def test_ur_waterfall_two_active_blocks():
@@ -63,7 +63,7 @@ def test_ur_waterfall_two_active_blocks():
     assert trace.measure == ("relative", "relative", "total")
     assert trace.x == ("Temps", "Risque", "Ur local")
     assert trace.y == pytest.approx((0.3, 0.2, 0.5))
-    # Total final == ur_local : les mesures relatives somment exactement à 0.5.
+    # Total final == ur_local : les mesures relatives somment exactement a 0.5.
     assert trace.y[0] + trace.y[1] == pytest.approx(0.5)
 
 
@@ -98,7 +98,7 @@ def test_block_labels_cover_the_six_kpi_blocks():
     assert BLOCK_LABELS_FR["perf"] == "Performance (OEE)"
 
 
-# --- propagation_bars_figure ----------------------------------------------------------
+# propagation_bars_figure
 
 
 def test_propagation_bars_local_plus_one_supplier():
@@ -132,13 +132,13 @@ def test_propagation_bars_fully_local_message_clients():
 
 
 def test_propagation_bars_no_edges_but_partial_local_still_draws_local_bar():
-    # Cas tout-nul : part locale 0 sans voisin -> on trace quand même « Local ».
+    # Cas tout-nul : part locale 0 sans voisin -> on trace quand meme " Local ".
     fig = propagation_bars_figure(0.0, [])
     assert fig.data[0].y == ("Local",)
     assert fig.data[0].x == pytest.approx((0.0,))
 
 
-# --- ud_criteria_figure ---------------------------------------------------------------
+# ud_criteria_figure
 
 
 def test_ud_criteria_four_bars_and_sum_annotation():
@@ -172,7 +172,7 @@ def test_ud_criteria_empty_message():
     assert "Aucun critère" in fig.layout.annotations[0].text
 
 
-# --- adequation_equation_block --------------------------------------------------------
+# adequation_equation_block
 
 
 def _trace(**overrides) -> SimpleNamespace:
@@ -195,7 +195,7 @@ def test_adequation_block_instantiates_equation():
     assert "2.25" in text
     assert "38.4" in text
     assert "sous-estimation" in text
-    # Équation chiffrée : erreurs, pénalité instanciée, normalisation e^−2.25.
+    # Equation chiffree : erreurs, penalite instanciee, normalisation e^-2.25.
     assert "e_sous = [Ur − Ud]+ = 0.31" in text
     assert "e_sur = [Ud − Ur]+ = 0.00" in text
     assert "pénalité = 2.25×0.31^0.88 = 0.80" in text

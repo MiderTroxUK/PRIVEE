@@ -20,10 +20,10 @@ import numpy as np
 from shapely.geometry import LineString
 from skimage.morphology import skeletonize
 
-TOL_M = 10.0        # RDP tolerance, was 25 px at roughly 0.43 m/px
-MIN_SEG_M = 17.0    # a terminal stub shorter than this is not a wing, was 40 px
-MIN_RATIO = 0.18    # ... and only pruned if it is also a small share of the whole
-ANGLE_DEG = 20.0    # below this a joint is drift, not a bend
+TOL_M = 10.0  # RDP tolerance, was 25 px at roughly 0.43 m/px
+MIN_SEG_M = 17.0  # a terminal stub shorter than this is not a wing, was 40 px
+MIN_RATIO = 0.18  # ... and only pruned if it is also a small share of the whole
+ANGLE_DEG = 20.0  # below this a joint is drift, not a bend
 
 
 def _longest_path(skel):
@@ -113,8 +113,7 @@ def classify_coords(coords):
     if len(bends) == 1:
         return "L"
     turns = [b for b in bends if b != 0]
-    # Two or more bends the same way fold the building back on itself: that is a U.
-    # Bends that alternate are a dog-leg, which reads as an L.
+    # Two or more bends the same way fold the building back on itself: that is a U. Bends that alternate are a dog-leg, which reads as an L.
     if len(turns) >= 2 and all(t == turns[0] for t in turns):
         return "U"
     return "L"

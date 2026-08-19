@@ -1,10 +1,10 @@
-"""Couche d'orchestration — relie le core mathématique, le graphe et la persistance.
+"""Couche d'orchestration - relie le core mathematique, le graphe et la persistance.
 
-Pipeline complet pour un projet à la date t :
-  1. Ud_local  : dernier questionnaire AHP de chaque nœud (lissé EMA si historique)
-  2. Ur_local  : UrModel sur les KPIs du nœud
+Pipeline complet pour un projet a la date t :
+  1. Ud_local  : dernier questionnaire AHP de chaque noeud (lisse EMA si historique)
+  2. Ur_local  : UrModel sur les KPIs du noeud
   3. Propagation descendante (Ud) et montante (Ur) sur le DAG
-  4. Adéquation A, fausse urgence F, risque caché H par nœud
+  4. Adequation A, fausse urgence F, risque cache H par noeud
   5. Persistance de l'historique d'urgence dans la base du client
 """
 
@@ -45,16 +45,16 @@ from supplyscore.mc.lead_time import N_TIRAGES_MAX, N_TIRAGES_MIN, ResultatMC, S
 from supplyscore.mcda.promethee import Critere, PrometheeII, ResultatPromethee
 from supplyscore.services.mutations import MutationService
 
-#: nombre maximal de ClientDatabase gardées ouvertes simultanément (cache LRU).
+#: nombre maximal de ClientDatabase gardees ouvertes simultanement (cache LRU).
 _CLIENT_CACHE_SIZE = 64
 
 
 class SupplyScoreService:
-    """Façade unique consommée par l'UI et les scripts.
+    """Facade unique consommee par l'UI et les scripts.
 
-    Thread-safety : le serveur Dash sert chaque requête dans un thread
-    distinct ; les méthodes publiques mutantes prennent donc ``self._lock``
-    (RLock réentrant — les méthodes peuvent s'appeler entre elles).
+    Thread-safety : le serveur Dash sert chaque requete dans un thread
+    distinct ; les methodes publiques mutantes prennent donc ``self._lock``
+    (RLock reentrant - les methodes peuvent s'appeler entre elles).
     """
 
     def __init__(
@@ -67,20 +67,20 @@ class SupplyScoreService:
         clock: Clock | None = None,
         client_cache_size: int = _CLIENT_CACHE_SIZE,
     ):
-        """Initialise la façade et ses dépendances (bases, graphe, modèles).
+        """Initialise la facade et ses dependances (bases, graphe, modeles).
 
         Args:
-            db_dir: répertoire racine des bases SQLite.
-            repo: dépôt de graphe (en mémoire par défaut).
-            ur_model: modèle d'urgence réelle (défaut : ``UrModel()``).
-            adequation: moteur d'adéquation (défaut : ``AdequationEngine()``).
+            db_dir: repertoire racine des bases SQLite.
+            repo: depot de graphe (en memoire par defaut).
+            ur_model: modele d'urgence reelle (defaut : ``UrModel()``).
+            adequation: moteur d'adequation (defaut : ``AdequationEngine()``).
             rho_smoothing: coefficient de lissage EMA du Ud_local.
-            clock: horloge par défaut (mode « réel ») ; chaque projet peut
+            clock: horloge par defaut (mode " reel ") ; chaque projet peut
                 la remplacer par une :class:`GameClock` via
-                :meth:`set_clock_mode` (mode « jeu », serious game).
+                :meth:`set_clock_mode` (mode " jeu ", serious game).
             client_cache_size: taille du cache LRU des bases client ouvertes
-                (défaut 64 — suffisant pour un serious game ; monter vers le
-                nombre de nœuds sur les très grands graphes pour éviter le
+                (defaut 64 - suffisant pour un serious game ; monter vers le
+                nombre de noeuds sur les tres grands graphes pour eviter le
                 va-et-vient open/close pendant ``evaluate_all(persist=True)``).
         """
         self.db_dir = Path(db_dir)
@@ -95,20 +95,21 @@ class SupplyScoreService:
         self._client_dbs: OrderedDict[str, ClientDatabase] = OrderedDict()
         self._client_cache_size = max(1, int(client_cache_size))
         self._lock = threading.RLock()
-        #: Cache léger du UrModel effectif par projet (omega FBWM fusionné),
-        #: invalidé projet par projet dans :meth:`set_poids_criteres`.
+        #: Cache leger du UrModel effectif par projet (omega FBWM fusionne), invalide projet par projet dans :meth:`set_poids_criteres`.
         self._ur_models: dict[str, UrModel] = {}
-        #: Dernier résultat Monte Carlo par projet (IC95 pour l'UI), purgé au
-        #: retour en mode analytique. Cf. :meth:`last_mc_result`.
+        #: Dernier resultat Monte Carlo par projet (IC95 pour l'UI), purge au retour en mode analytique. Cf. :meth:`last_mc_result`.
         self._last_mc: dict[str, ResultatMC] = {}
         self.mutations = MutationService(
             registry=self.registry,
             client_db_factory=self.client_db,
             clock=self.clock,
             repo=self.repo,
+            # Les snapshots KPI doivent suivre l'horloge du PROJET, comme tout
+            # le reste de l'historique ; l'horloge du service n'avance pas.
+            clock_for=self.clock_for,
         )
 
-    # --- cycle de vie -----------------------------------------------------------
+    # cycle de vie
 
     def close(self) -> None:
         """Ferme le registre et toutes les bases client encore ouvertes."""
@@ -119,7 +120,7 @@ class SupplyScoreService:
             self.registry.close()
 
     def __enter__(self) -> SupplyScoreService:
-        """Entre dans le context manager (retourne la façade elle-même)."""
+        """Entre dans le context manager (retourne la facade elle-meme)."""
         return self
 
     def __exit__(
@@ -131,14 +132,14 @@ class SupplyScoreService:
         """Sort du context manager en fermant toutes les bases."""
         self.close()
 
-    # --- accès bases client --------------------------------------------------
+    # acces bases client
 
     def client_db(self, node_id: str) -> ClientDatabase:
-        """Retourne (en la créant au besoin) la base SQLite dédiée au nœud.
+        """Retourne (en la creant au besoin) la base SQLite dediee au noeud.
 
-        Le cache est un LRU borné à ``client_cache_size`` entrées (constructeur,
-        défaut 64) : la base la plus anciennement utilisée est fermée puis
-        évincée au-delà de la borne.
+        Le cache est un LRU borne a ``client_cache_size`` entrees (constructeur,
+        defaut 64) : la base la plus anciennement utilisee est fermee puis
+        evincee au-dela de la borne.
         """
         with self._lock:
             db = self._client_dbs.get(node_id)
@@ -152,12 +153,12 @@ class SupplyScoreService:
                 evicted.close()
             return db
 
-    # --- gestion projet / graphe ----------------------------------------------
+    # gestion projet / graphe
 
     def create_project(
         self, project: Project, nodes: list[SupplyNode], arcs: list[SupplyArc]
     ) -> None:
-        """Persiste le projet, ses nœuds et ses arcs, et alimente le graphe."""
+        """Persiste le projet, ses noeuds et ses arcs, et alimente le graphe."""
         with self._lock:
             self.registry.save_project(project)
             for n in nodes:
@@ -169,7 +170,7 @@ class SupplyScoreService:
             self.propagation.invalidate()  # mutation de structure : tout sale (E14.4)
 
     def load_graph_from_registry(self) -> None:
-        """Recharge le graphe en mémoire depuis la base registre (au démarrage)."""
+        """Recharge le graphe en memoire depuis la base registre (au demarrage)."""
         self.repo.clear()
         for n in self.registry.list_nodes():
             self.repo.add_node(n)
@@ -184,12 +185,12 @@ class SupplyScoreService:
         gamma: float = 0.5,
         beta: float = 0.5,
     ) -> None:
-        """Ajoute un client/fournisseur de rang quelconque, relié à ses clients aval.
+        """Ajoute un client/fournisseur de rang quelconque, relie a ses clients aval.
 
-        Après l'ajout des arcs, les rangs de TOUS les nœuds sont recalés sur la
-        définition canonique « plus longue distance vers un puits » (faiblesse
-        #10 : le rang « 1 + max(cibles) » déduit par l'UI peut diverger de
-        cette définition dans les graphes en diamant).
+        Apres l'ajout des arcs, les rangs de TOUS les noeuds sont recales sur la
+        definition canonique " plus longue distance vers un puits " (faiblesse
+        #10 : le rang " 1 + max(cibles) " deduit par l'UI peut diverger de
+        cette definition dans les graphes en diamant).
         """
         with self._lock:
             self.registry.save_node(node)
@@ -201,42 +202,42 @@ class SupplyScoreService:
             self._reassign_ranks()
 
     def remove_arc(self, source_id: str, target_id: str) -> None:
-        """Retire l'arc fournisseur -> client, recale les rangs puis réévalue.
+        """Retire l'arc fournisseur -> client, recale les rangs puis reevalue.
 
-        L'arc est retiré du dépôt en mémoire ET du registre SQLite ; les rangs
-        canoniques sont ensuite recalculés (un fournisseur devenu isolé passe
-        au rang 0) et le réseau entier est réévalué avec persistance.
+        L'arc est retire du depot en memoire ET du registre SQLite ; les rangs
+        canoniques sont ensuite recalcules (un fournisseur devenu isole passe
+        au rang 0) et le reseau entier est reevalue avec persistance.
 
         Args:
-            source_id: id du nœud fournisseur (origine de l'arc).
-            target_id: id du nœud client (cible de l'arc).
+            source_id: id du noeud fournisseur (origine de l'arc).
+            target_id: id du noeud client (cible de l'arc).
 
         Raises:
-            KeyError: si l'arc est inconnu (message en français, rien n'est
-                modifié dans ce cas).
+            KeyError: si l'arc est inconnu (message en francais, rien n'est
+                modifie dans ce cas).
         """
         with self._lock:
-            self.repo.remove_arc(source_id, target_id)  # KeyError français si absent
+            self.repo.remove_arc(source_id, target_id)  # KeyError francais si absent
             self.registry.delete_arc(source_id, target_id)
             self._reassign_ranks()
             self.evaluate_all(persist=True)
 
     def remove_node(self, node_id: str) -> None:
-        """Supprime le nœud du graphe et du registre — sa base SQLite est ARCHIVÉE.
+        """Supprime le noeud du graphe et du registre - sa base SQLite est ARCHIVEE.
 
-        Le fichier ``<node_id>.sqlite`` du client n'est PAS supprimé : il est
-        conservé en archive (historique des évaluations AHP, snapshots KPI,
-        série d'urgence) pour audit ultérieur. Seule la connexion ouverte est
-        fermée proprement puis évincée du cache LRU. La suppression cascade
+        Le fichier ``<node_id>.sqlite`` du client n'est PAS supprime : il est
+        conserve en archive (historique des evaluations AHP, snapshots KPI,
+        serie d'urgence) pour audit ulterieur. Seule la connexion ouverte est
+        fermee proprement puis evincee du cache LRU. La suppression cascade
         dans le registre (arcs incidents, tags, jalons, onboarding), puis les
-        rangs canoniques sont recalculés et le réseau réévalué.
+        rangs canoniques sont recalcules et le reseau reevalue.
 
         Args:
-            node_id: id du nœud à supprimer.
+            node_id: id du noeud a supprimer.
 
         Raises:
-            KeyError: si le nœud est inconnu (message en français, rien n'est
-                modifié dans ce cas).
+            KeyError: si le noeud est inconnu (message en francais, rien n'est
+                modifie dans ce cas).
         """
         with self._lock:
             if self.repo.get_node(node_id) is None:
@@ -250,24 +251,24 @@ class SupplyScoreService:
             self.evaluate_all(persist=True)
 
     def reassign_ranks(self) -> None:
-        """Recale les rangs canoniques (API publique — éditeurs de graphe)."""
+        """Recale les rangs canoniques (API publique - editeurs de graphe)."""
         with self._lock:
             self._reassign_ranks()
 
     def _reassign_ranks(self) -> None:
-        """Recale tous les rangs sur la définition canonique et persiste les écarts.
+        """Recale tous les rangs sur la definition canonique et persiste les ecarts.
 
-        Le rang canonique d'un nœud est sa plus longue distance vers un puits
+        Le rang canonique d'un noeud est sa plus longue distance vers un puits
         via les arcs NOMINAUX (``InMemoryGraphRepository.assign_ranks``). Pour
-        un dépôt qui n'expose pas ``assign_ranks``, la même définition est
-        recalculée ici à partir du contrat :class:`GraphRepository` (tri
-        topologique + successeurs nominaux). Chaque nœud dont le rang a changé
-        est mis à jour dans le dépôt ET sauvegardé dans le registre.
+        un depot qui n'expose pas ``assign_ranks``, la meme definition est
+        recalculee ici a partir du contrat :class:`GraphRepository` (tri
+        topologique + successeurs nominaux). Chaque noeud dont le rang a change
+        est mis a jour dans le depot ET sauvegarde dans le registre.
 
         Point de passage unique des MUTATIONS DE STRUCTURE de l'orchestrateur
         (``add_node``, ``remove_node``, ``remove_arc`` et ``reassign_ranks``
-        public passent tous ici) : la propagation incrémentale est invalidée —
-        le prochain ``evaluate_all`` repassera par une propagation complète.
+        public passent tous ici) : la propagation incrementale est invalidee -
+        le prochain ``evaluate_all`` repassera par une propagation complete.
         """
         with self._lock:
             self.propagation.invalidate()  # mutation de structure : tout sale (E14.4)
@@ -275,7 +276,7 @@ class SupplyScoreService:
             ranks: dict[str, int]
             if isinstance(self.repo, InMemoryGraphRepository):
                 ranks = self.repo.assign_ranks()
-            else:  # définition canonique recalculée via le contrat abstrait
+            else:  # definition canonique recalculee via le contrat abstrait
                 ranks = {}
                 for node_id in reversed(self.repo.topological_order()):
                     successors = self.repo.successors(node_id)
@@ -284,20 +285,20 @@ class SupplyScoreService:
                 if previous.get(node_id) == rank:
                     continue
                 node = self.repo.get_node(node_id)
-                if node is None:  # pragma: no cover - assign_ranks ne renvoie que des nœuds connus
+                if node is None:  # pragma: no cover - assign_ranks ne renvoie que des noeuds connus
                     continue
                 node.rank = rank
                 self.repo.update_node(node)
                 self.registry.save_node(node)
 
     def set_status(self, node_id: str, status: TaskStatus) -> dict[str, UrgencyState]:
-        """Tâche finie/abandonnée : pose le statut puis réévalue UNE fois le réseau.
+        """Tache finie/abandonnee : pose le statut puis reevalue UNE fois le reseau.
 
-        Si le nœud a des jalons, le statut CASCADE sur eux (marquer un nœud
-        terminé termine ses jalons actifs, l'abandonner les abandonne) — le
-        statut global dérivant des jalons, c'est la seule façon cohérente de
-        le changer. ``evaluate_all(persist=True)`` (appelé une seule fois) se
-        charge ensuite des règles de statut et de la propagation.
+        Si le noeud a des jalons, le statut CASCADE sur eux (marquer un noeud
+        termine termine ses jalons actifs, l'abandonner les abandonne) - le
+        statut global derivant des jalons, c'est la seule facon coherente de
+        le changer. ``evaluate_all(persist=True)`` (appele une seule fois) se
+        charge ensuite des regles de statut et de la propagation.
         """
         with self._lock:
             status = TaskStatus(status)
@@ -319,10 +320,10 @@ class SupplyScoreService:
                 self.repo.update_node(node)
             return self.evaluate_all(persist=True)
 
-    # --- horloge bimodale par projet ---------------------------------------------
+    # horloge bimodale par projet
 
     def clock_for(self, project_id: str) -> Clock:
-        """Horloge effective du projet : GameClock si mode « jeu », sinon l'horloge réelle."""
+        """Horloge effective du projet : GameClock si mode " jeu ", sinon l'horloge reelle."""
         raw = self.registry.get_setting(project_id, "clock")
         if isinstance(raw, dict) and raw.get("mode") == "game":
             return GameClock(
@@ -332,18 +333,18 @@ class SupplyScoreService:
         return self.clock
 
     def clock_mode(self, project_id: str) -> str:
-        """Mode d'horloge du projet : ``"game"`` ou ``"real"`` (défaut)."""
+        """Mode d'horloge du projet : ``"game"`` ou ``"real"`` (defaut)."""
         raw = self.registry.get_setting(project_id, "clock")
         if isinstance(raw, dict) and raw.get("mode") == "game":
             return "game"
         return "real"
 
     def set_clock_mode(self, project_id: str, mode: str) -> None:
-        """Bascule l'horloge du projet entre temps réel et temps de jeu.
+        """Bascule l'horloge du projet entre temps reel et temps de jeu.
 
-        En mode « jeu », l'origine est posée à l'instant de la bascule et les
-        semaines écoulées repartent de zéro (sauf si le projet était déjà en
-        mode jeu : son avancement est conservé).
+        En mode " jeu ", l'origine est posee a l'instant de la bascule et les
+        semaines ecoulees repartent de zero (sauf si le projet etait deja en
+        mode jeu : son avancement est conserve).
         """
         with self._lock:
             if mode not in ("real", "game"):
@@ -353,7 +354,7 @@ class SupplyScoreService:
                 return
             raw = self.registry.get_setting(project_id, "clock")
             if isinstance(raw, dict) and raw.get("mode") == "game":
-                return  # déjà en mode jeu : on conserve l'avancement
+                return  # deja en mode jeu : on conserve l'avancement
             self.registry.set_setting(
                 project_id,
                 "clock",
@@ -361,9 +362,9 @@ class SupplyScoreService:
             )
 
     def advance_week(self, project_id: str, n: int = 1) -> dict[str, UrgencyState]:
-        """Avance le temps de jeu de ``n`` semaine(s) puis réévalue tout le réseau.
+        """Avance le temps de jeu de ``n`` semaine(s) puis reevalue tout le reseau.
 
-        Réservé aux projets en mode « jeu » (ValueError sinon).
+        Reserve aux projets en mode " jeu " (ValueError sinon).
         """
         with self._lock:
             raw = self.registry.get_setting(project_id, "clock")
@@ -384,7 +385,7 @@ class SupplyScoreService:
             )
             return self.evaluate_all(persist=True)
 
-    # --- pondération FBWM des blocs d'Ur + classement PROMETHEE (E12) ---------------
+    # ponderation FBWM des blocs d'Ur + classement PROMETHEE (E12)
 
     def set_poids_criteres(
         self,
@@ -398,20 +399,20 @@ class SupplyScoreService:
 
         Les poids alimentent le ``omega`` de l'OU probabiliste de
         :class:`UrModel` via :meth:`_ur_model_for` ; les blocs absents du
-        dictionnaire conservent leur poids par défaut.
+        dictionnaire conservent leur poids par defaut.
 
         Args:
             project_id: projet porteur des poids.
-            poids: poids par nom de bloc (clés ⊆ :data:`BLOCKS`, valeurs
+            poids: poids par nom de bloc (cles ? :data:`BLOCKS`, valeurs
                 >= 0, somme strictement positive).
-            methode: provenance des poids (``"fbwm"`` par défaut).
-            xi_star: ξ* du solveur FBWM (indicateur de cohérence), ou None.
-            iso_week_val: semaine ISO de rattachement ; None → semaine
+            methode: provenance des poids (``"fbwm"`` par defaut).
+            xi_star: xi* du solveur FBWM (indicateur de coherence), ou None.
+            iso_week_val: semaine ISO de rattachement ; None -> semaine
                 courante du projet (selon SON horloge).
 
         Raises:
-            ValueError: bloc inconnu, poids négatif ou somme des poids non
-                strictement positive (messages en français).
+            ValueError: bloc inconnu, poids negatif ou somme des poids non
+                strictement positive (messages en francais).
         """
         with self._lock:
             inconnus = sorted(set(poids) - set(BLOCKS))
@@ -440,7 +441,7 @@ class SupplyScoreService:
             self._ur_models.pop(project_id, None)  # invalide le cache du projet
 
     def poids_criteres(self, project_id: str) -> dict[str, float] | None:
-        """Poids des blocs d'Ur stockés pour le projet, ou None si absents."""
+        """Poids des blocs d'Ur stockes pour le projet, ou None si absents."""
         raw = self.registry.get_setting(project_id, "omega_ur")
         if not isinstance(raw, dict):
             return None
@@ -450,18 +451,18 @@ class SupplyScoreService:
         return {str(nom): float(w) for nom, w in poids.items()}
 
     def _ur_model_for(self, project_id: str | None) -> UrModel:
-        """Modèle Ur effectif du projet : omega FBWM fusionné, sinon le défaut.
+        """Modele Ur effectif du projet : omega FBWM fusionne, sinon le defaut.
 
-        Sans poids stockés, retourne ``self.ur_model`` tel quel ; sinon une
+        Sans poids stockes, retourne ``self.ur_model`` tel quel ; sinon une
         copie via :func:`dataclasses.replace` avec
-        ``omega = {**omega_defaut, **poids_stockés}``. Cache léger par
-        projet, invalidé par :meth:`set_poids_criteres`.
+        ``omega = {**omega_defaut, **poids_stockes}``. Cache leger par
+        projet, invalide par :meth:`set_poids_criteres`.
 
         Args:
-            project_id: projet concerné ; None → modèle par défaut.
+            project_id: projet concerne ; None -> modele par defaut.
 
         Returns:
-            Le :class:`UrModel` à utiliser pour les nœuds du projet.
+            Le :class:`UrModel` a utiliser pour les noeuds du projet.
         """
         if project_id is None:
             return self.ur_model
@@ -478,28 +479,28 @@ class SupplyScoreService:
             return model
 
     def classement_promethee(self, project_id: str) -> ResultatPromethee:
-        """Classement PROMETHEE II des nœuds du projet « à traiter en priorité ».
+        """Classement PROMETHEE II des noeuds du projet " a traiter en priorite ".
 
-        Alternatives : les nœuds ACTIFS du projet (statut ACTIVE, onboarding
-        terminé). Valeurs : les six blocs d'urgence de
-        :meth:`UrModel.blocks` au temps du projet — mêmes règles que
+        Alternatives : les noeuds ACTIFS du projet (statut ACTIVE, onboarding
+        termine). Valeurs : les six blocs d'urgence de
+        :meth:`UrModel.blocks` au temps du projet - memes regles que
         :meth:`refresh_ur_local` (temps et jalons par projet, via
-        :meth:`_project_times`) ; blocs calculés en ANALYTIQUE, le mode
-        Monte Carlo (E13) ne concerne que l'agrégation d'Ur. Critères : les
-        six blocs en sens « max », fonction de préférence par défaut
+        :meth:`_project_times`) ; blocs calcules en ANALYTIQUE, le mode
+        Monte Carlo (E13) ne concerne que l'agregation d'Ur. Criteres : les
+        six blocs en sens " max ", fonction de preference par defaut
         (:class:`LineaireIndifference`). Poids : l'omega effectif du projet
-        (poids FBWM stockés complétés par les défauts ; uniformes sans poids
-        stockés) — les blocs de poids nul sont exclus du classement, comme
+        (poids FBWM stockes completes par les defauts ; uniformes sans poids
+        stockes) - les blocs de poids nul sont exclus du classement, comme
         ils le sont de l'OU probabiliste.
 
         Args:
-            project_id: projet à classer.
+            project_id: projet a classer.
 
         Returns:
-            Le :class:`ResultatPromethee` (φ, φ⁺, φ⁻, classement complet).
+            Le :class:`ResultatPromethee` (phi, phi^+, phi^-, classement complet).
 
         Raises:
-            ValueError: si le projet compte moins de 2 nœuds actifs.
+            ValueError: si le projet compte moins de 2 noeuds actifs.
         """
         with self._lock:
             actifs = [
@@ -528,7 +529,7 @@ class SupplyScoreService:
             poids = {nom: model.omega.get(nom, 1.0) for nom in retenus}
             return PrometheeII(criteres, poids).classer(valeurs)
 
-    # --- mode Monte Carlo du lead time (E13) -----------------------------------------
+    # mode Monte Carlo du lead time (E13)
 
     def set_lead_time_mode(
         self,
@@ -539,27 +540,27 @@ class SupplyScoreService:
     ) -> None:
         """Choisit le mode de calcul de u_time du projet (analytique ou Monte Carlo).
 
-        CHOIX DOCUMENTÉ : ``n_tirages`` est validé ICI, à l'écriture, contre
-        les bornes du simulateur — une configuration invalide ne peut donc
-        jamais atteindre :meth:`evaluate_all` (le garde-fou mémoire
-        N × n_nœuds, lui, reste évalué à l'exécution car il dépend de la
+        CHOIX DOCUMENTE : ``n_tirages`` est valide ICI, a l'ecriture, contre
+        les bornes du simulateur - une configuration invalide ne peut donc
+        jamais atteindre :meth:`evaluate_all` (le garde-fou memoire
+        N x n_noeuds, lui, reste evalue a l'execution car il depend de la
         taille courante du graphe).
 
-        Repasser en mode analytique purge le dernier résultat MC mémorisé du
-        projet (:meth:`last_mc_result` retourne alors None — l'UI n'affiche
-        pas d'IC95 périmé).
+        Repasser en mode analytique purge le dernier resultat MC memorise du
+        projet (:meth:`last_mc_result` retourne alors None - l'UI n'affiche
+        pas d'IC95 perime).
 
         Args:
-            project_id: projet concerné.
+            project_id: projet concerne.
             mode: ``"analytique"`` ou ``"monte_carlo"``.
             n_tirages: nombre de tirages N (mode MC), dans
                 [:data:`N_TIRAGES_MIN`, :data:`N_TIRAGES_MAX`].
-            graine: graine PCG64 figée, ou None → graine STABLE dérivée de
-                (project_id, semaine ISO du projet) à chaque évaluation.
+            graine: graine PCG64 figee, ou None -> graine STABLE derivee de
+                (project_id, semaine ISO du projet) a chaque evaluation.
 
         Raises:
             ValueError: mode inconnu ou ``n_tirages`` hors bornes
-                (messages en français).
+                (messages en francais).
         """
         with self._lock:
             if mode not in ("analytique", "monte_carlo"):
@@ -579,7 +580,7 @@ class SupplyScoreService:
                 self._last_mc.pop(project_id, None)
 
     def lead_time_mode(self, project_id: str) -> dict[str, Any]:
-        """Configuration lead time du projet (``{"mode": "analytique"}`` par défaut)."""
+        """Configuration lead time du projet (``{"mode": "analytique"}`` par defaut)."""
         raw = self.registry.get_setting(project_id, "lead_time")
         if isinstance(raw, dict) and raw.get("mode") in ("analytique", "monte_carlo"):
             return dict(raw)
@@ -588,29 +589,29 @@ class SupplyScoreService:
     def last_mc_result(self, project_id: str) -> ResultatMC | None:
         """Dernier :class:`ResultatMC` du projet (IC95 pour l'UI), ou None.
 
-        Renseigné à chaque :meth:`evaluate_all` automatique (``t=None``)
-        d'un projet en mode « monte_carlo » ; None pour un projet analytique
-        (y compris après un retour en mode analytique, qui purge l'entrée).
+        Renseigne a chaque :meth:`evaluate_all` automatique (``t=None``)
+        d'un projet en mode " monte_carlo " ; None pour un projet analytique
+        (y compris apres un retour en mode analytique, qui purge l'entree).
         """
         return self._last_mc.get(project_id)
 
-    # --- questionnaire AHP -----------------------------------------------------
+    # questionnaire AHP
 
     def submit_assessment(self, assessment: AHPAssessment) -> int:
-        """Enregistre un questionnaire hebdo et met à jour le Ud_local lissé du nœud.
+        """Enregistre un questionnaire hebdo et met a jour le Ud_local lisse du noeud.
 
-        Garde-fou serveur (faiblesse #9) : une évaluation incohérente au sens
-        de Saaty (``consistency_ratio >= CONSISTENCY_THRESHOLD``) est REFUSÉE
-        ici même — RIEN n'est persisté. L'UI vérifie déjà le CR, mais un appel
-        direct au service ne peut plus contourner ce contrôle.
+        Garde-fou serveur (faiblesse #9) : une evaluation incoherente au sens
+        de Saaty (``consistency_ratio >= CONSISTENCY_THRESHOLD``) est REFUSEE
+        ici meme - RIEN n'est persiste. L'UI verifie deja le CR, mais un appel
+        direct au service ne peut plus contourner ce controle.
 
-        Si ``assessment.iso_week`` est vide, la semaine ISO est posée depuis
-        l'horloge du projet (``clock_for``) quand ``project_id`` est renseigné,
-        sinon depuis l'horloge par défaut du service.
+        Si ``assessment.iso_week`` est vide, la semaine ISO est posee depuis
+        l'horloge du projet (``clock_for``) quand ``project_id`` est renseigne,
+        sinon depuis l'horloge par defaut du service.
 
         Raises:
-            ValueError: si le ratio de cohérence atteint le seuil de Saaty
-                (jugements incohérents, message en français).
+            ValueError: si le ratio de coherence atteint le seuil de Saaty
+                (jugements incoherents, message en francais).
         """
         with self._lock:
             if assessment.consistency_ratio >= CONSISTENCY_THRESHOLD:
@@ -632,8 +633,7 @@ class SupplyScoreService:
                 node.urgency.ud_local = ud_smoothed(prev, assessment.ud, self.rho)
                 self.repo.update_node(node)
                 self.registry.save_node(node)
-                # Le ud_local a (potentiellement) changé : propagation Ud à
-                # refaire sur le cône amont du nœud (E14.4).
+                # Le ud_local a (potentiellement) change : propagation Ud a refaire sur le cone amont du noeud (E14.4).
                 self.propagation.mark_dirty_ud(node.id)
             return rowid
 
@@ -646,7 +646,7 @@ class SupplyScoreService:
         criteria_scores: list[float],
         notes: str = "",
     ) -> AHPAssessment:
-        """Construit une évaluation complète depuis les réponses brutes du questionnaire."""
+        """Construit une evaluation complete depuis les reponses brutes du questionnaire."""
         res = run_ahp(comparisons, n=len(criteria_scores))
         ud = compute_ud(res.weights, np.asarray(criteria_scores, dtype=float))
         return AHPAssessment(
@@ -662,13 +662,13 @@ class SupplyScoreService:
             notes=notes,
         )
 
-    # --- pipeline d'évaluation ---------------------------------------------------
+    # pipeline d'evaluation
 
     def _project_times(self) -> dict[str, tuple[float, float]]:
         """Temps courant par projet : ``project_id -> (t_heures, t0_ts epoch)``.
 
-        ``t_heures`` est le temps écoulé depuis l'origine du projet selon SON
-        horloge (réelle ou de jeu) — c'est le « t » des formules d'urgence.
+        ``t_heures`` est le temps ecoule depuis l'origine du projet selon SON
+        horloge (reelle ou de jeu) - c'est le " t " des formules d'urgence.
         """
         times: dict[str, tuple[float, float]] = {}
         for project in self.registry.list_projects():
@@ -678,33 +678,33 @@ class SupplyScoreService:
         return times
 
     def _mc_u_time_overrides(self, times: dict[str, tuple[float, float]]) -> dict[str, float]:
-        """u_time simulés par nœud pour les projets en mode « monte_carlo ».
+        """u_time simules par noeud pour les projets en mode " monte_carlo ".
 
-        Pour chaque projet en mode Monte Carlo, exécute UNE SEULE FOIS
+        Pour chaque projet en mode Monte Carlo, execute UNE SEULE FOIS
         :class:`SimulateurLeadTime` puis ne consomme que les u_time des
-        nœuds du projet. COÛT DOCUMENTÉ : le simulateur travaille sur le
-        DÉPÔT ENTIER (sa récurrence suit le ``topological_order()`` global,
-        il n'accepte pas de sous-ensemble) — chaque projet en mode MC coûte
-        donc une passe complète N × n_nœuds(repo), les nœuds des autres
-        projets étant simulés puis ignorés.
+        noeuds du projet. COUT DOCUMENTE : le simulateur travaille sur le
+        DEPOT ENTIER (sa recurrence suit le ``topological_order()`` global,
+        il n'accepte pas de sous-ensemble) - chaque projet en mode MC coute
+        donc une passe complete N x n_noeuds(repo), les noeuds des autres
+        projets etant simules puis ignores.
 
-        La graine est celle stockée dans ``project_settings['lead_time']`` ;
-        sinon une graine STABLE est dérivée de (project_id, semaine ISO du
-        projet) via ``zlib.crc32`` — deux rafraîchissements de la même
-        semaine produisent des résultats identiques bit à bit (le dashboard
-        ne « clignote » pas), et la graine change naturellement à la semaine
+        La graine est celle stockee dans ``project_settings['lead_time']`` ;
+        sinon une graine STABLE est derivee de (project_id, semaine ISO du
+        projet) via ``zlib.crc32`` - deux rafraichissements de la meme
+        semaine produisent des resultats identiques bit a bit (le dashboard
+        ne " clignote " pas), et la graine change naturellement a la semaine
         suivante. Le dernier :class:`ResultatMC` de chaque projet est
-        mémorisé dans ``self._last_mc`` (cf. :meth:`last_mc_result`).
+        memorise dans ``self._last_mc`` (cf. :meth:`last_mc_result`).
 
         Args:
             times: temps par projet, au format de :meth:`_project_times`.
 
         Returns:
-            ``{node_id: u_time simulé}`` — les nœuds sans échéance (u_time
-            None côté simulateur) sont absents (aucun override).
+            ``{node_id: u_time simule}`` - les noeuds sans echeance (u_time
+            None cote simulateur) sont absents (aucun override).
 
         Raises:
-            ValueError: garde-fou mémoire du simulateur (N × n_nœuds trop
+            ValueError: garde-fou memoire du simulateur (N x n_noeuds trop
                 grand pour le graphe courant).
         """
         overrides: dict[str, float] = {}
@@ -738,37 +738,36 @@ class SupplyScoreService:
         return overrides
 
     def refresh_ur_local(self, t: float | None = None) -> None:
-        """Recalcule Ur_local de chaque nœud depuis ses KPIs et jalons.
+        """Recalcule Ur_local de chaque noeud depuis ses KPIs et jalons.
 
-        Avec ``t=None`` (défaut), le temps de chaque nœud vient de l'horloge
-        de SON projet, ses jalons pilotent u_time (mode v2), le modèle Ur
-        appliqué est celui de SON projet (:meth:`_ur_model_for`, omega FBWM
-        — E12) et les projets en mode « monte_carlo » reçoivent leur u_time
-        simulé (:meth:`_mc_u_time_overrides` — E13). Avec un ``t`` explicite,
-        comportement v1 : pas de jalons, temps forcé identique partout,
+        Avec ``t=None`` (defaut), le temps de chaque noeud vient de l'horloge
+        de SON projet, ses jalons pilotent u_time (mode v2), le modele Ur
+        applique est celui de SON projet (:meth:`_ur_model_for`, omega FBWM
+        - E12) et les projets en mode " monte_carlo " recoivent leur u_time
+        simule (:meth:`_mc_u_time_overrides` - E13). Avec un ``t`` explicite,
+        comportement v1 : pas de jalons, temps force identique partout,
         ``self.ur_model`` pour tous et JAMAIS de Monte Carlo
-        (rétro-compatibilité tests/outillage).
+        (retro-compatibilite tests/outillage).
 
-        Le statut dérivé des jalons est appliqué AVANT le calcul (un nœud
-        dont tous les jalons sont terminés passe DONE) ; les règles de statut
-        (DONE → 0, ABANDONED → 1) restent dans ``core.status_rules`` et
+        Le statut derive des jalons est applique AVANT le calcul (un noeud
+        dont tous les jalons sont termines passe DONE) ; les regles de statut
+        (DONE -> 0, ABANDONED -> 1) restent dans ``core.status_rules`` et
         priment sur l'override Monte Carlo.
 
         Point de passage UNIQUE des changements de KPIs/statuts/temps pour la
-        propagation incrémentale (E14.4) : tout nœud dont le ``ur_local``
-        calculé CHANGE par rapport à la valeur précédente est marqué
-        ``dirty_ur`` (comparaison AVANT écriture). Le ``ur_local`` stocké
-        intégrant déjà les règles de statut (``UrModel.ur_local`` délègue à
-        ``status_rules``), un changement de statut sans effet numérique sur le
-        ``ur_local`` est sans effet sur la propagation — aucun marquage requis.
+        propagation incrementale (E14.4) : tout noeud dont le ``ur_local``
+        calcule CHANGE par rapport a la valeur precedente est marque
+        ``dirty_ur`` (comparaison AVANT ecriture). Le ``ur_local`` stocke
+        integrant deja les regles de statut (``UrModel.ur_local`` delegue a
+        ``status_rules``), un changement de statut sans effet numerique sur le
+        ``ur_local`` est sans effet sur la propagation - aucun marquage requis.
         """
         times = self._project_times() if t is None else None
         mc_overrides = self._mc_u_time_overrides(times) if times is not None else {}
         for node in self.repo.nodes():
             previous_ur_local = node.urgency.ur_local
             if node.onboarding_state == "draft":
-                # Nœud en cours d'onboarding : contribution neutre au pipeline
-                # tant que le wizard n'est pas terminé.
+                # Noeud en cours d'onboarding : contribution neutre au pipeline tant que le wizard n'est pas termine.
                 node.urgency.ur_local = 0.0
             else:
                 milestones = None
@@ -798,30 +797,30 @@ class SupplyScoreService:
     def evaluate_all(
         self, t: float | None = None, persist: bool = False, incremental: bool = True
     ) -> dict[str, UrgencyState]:
-        """Pipeline complet : Ur_local -> propagation -> adéquation (-> persistance).
+        """Pipeline complet : Ur_local -> propagation -> adequation (-> persistance).
 
-        Avec ``persist=True``, chaque état est journalisé dans la base du
-        client ET l'état courant est figé dans le registre (table
-        ``node_urgency``) pour survivre à un redémarrage.
+        Avec ``persist=True``, chaque etat est journalise dans la base du
+        client ET l'etat courant est fige dans le registre (table
+        ``node_urgency``) pour survivre a un redemarrage.
 
-        Propagation INCRÉMENTALE (E14.4) : quand ``t`` est None ET
-        ``incremental`` est True (défaut), la propagation passe par
-        :meth:`PropagationEngine.propagate_incremental` — seuls les cônes des
-        nœuds marqués sales (questionnaires, ``ur_local`` recalculés,
-        structure) sont recalculés. Le chemin ``t`` explicite reste
-        ``propagate_all`` (rétro-compatibilité v1) ; ``incremental=False``
-        permet de forcer la propagation complète (tests, contrôle croisé).
+        Propagation INCREMENTALE (E14.4) : quand ``t`` est None ET
+        ``incremental`` est True (defaut), la propagation passe par
+        :meth:`PropagationEngine.propagate_incremental` - seuls les cones des
+        noeuds marques sales (questionnaires, ``ur_local`` recalcules,
+        structure) sont recalcules. Le chemin ``t`` explicite reste
+        ``propagate_all`` (retro-compatibilite v1) ; ``incremental=False``
+        permet de forcer la propagation complete (tests, controle croise).
 
         Horodatage (correctif E11) : en mode automatique (``t=None``), les
-        états sont horodatés par l'horloge de LEUR projet — en mode « jeu »
-        l'historique tombe ainsi dans la bonne semaine SIMULÉE, pas dans la
-        semaine réelle du poste (le moteur de propagation, lui, horodate à
+        etats sont horodates par l'horloge de LEUR projet - en mode " jeu "
+        l'historique tombe ainsi dans la bonne semaine SIMULEE, pas dans la
+        semaine reelle du poste (le moteur de propagation, lui, horodate a
         l'heure murale).
 
-        Modes E12/E13 : en mode automatique, chaque nœud est évalué avec le
+        Modes E12/E13 : en mode automatique, chaque noeud est evalue avec le
         UrModel de SON projet (omega FBWM) et, pour les projets en mode
-        « monte_carlo », avec le u_time simulé ; avec un ``t`` explicite,
-        comportement v1 strict (``self.ur_model``, jamais de Monte Carlo) —
+        " monte_carlo ", avec le u_time simule ; avec un ``t`` explicite,
+        comportement v1 strict (``self.ur_model``, jamais de Monte Carlo) -
         cf. :meth:`refresh_ur_local`.
         """
         with self._lock:
@@ -848,37 +847,29 @@ class SupplyScoreService:
                     node.urgency = state
                     self.repo.update_node(node)
             if persist:
-                # Écritures PAR LOTS (faiblesse #14) : un seul executemany
-                # UPSERT dans le registre — UNE transaction pour les N nœuds au
-                # lieu de N commits. Côté clients, chaque base est journalisée
-                # par un lot groupé PAR base ; une base ne contenant que SON
-                # nœud (1 nœud = 1 base), chaque lot compte ici une seule ligne
-                # — le gain vient du registre et de la transaction unique par
-                # base. Champ à champ, les lignes écrites sont identiques à
-                # celles de l'ancien chemin unitaire (save_urgency +
-                # save_urgency_state nœud par nœud).
+                # Ecritures PAR LOTS (faiblesse #14) : un seul executemany UPSERT dans le registre - UNE transaction pour les N noeuds au lieu de N commits. Cote clients, chaque base est journalisee par un lot groupe PAR base ; une base ne contenant que SON noeud (1 noeud = 1 base), chaque lot compte ici une seule ligne - le gain vient du registre et de la transaction unique par base. Champ a champ, les lignes ecrites sont identiques a celles de l'ancien chemin unitaire (save_urgency + save_urgency_state noeud par noeud).
                 self.registry.save_urgencies(states)
                 for node_id, state in states.items():
                     self.client_db(node_id).save_urgency_states([(node_id, state)])
             return states
 
     def simulate_shock(self, node_id: str, new_ur_local: float) -> dict[str, float]:
-        """Scénario catastrophe what-if : retourne les ΔUr propagés sans rien persister.
+        """Scenario catastrophe what-if : retourne les DeltaUr propages sans rien persister.
 
-        CHOIX DOCUMENTÉ (E13) : le what-if reste ANALYTIQUE même pour un
-        projet en mode « monte_carlo » — il doit répondre instantanément
-        dans l'UI, là où une passe MC coûte N × n_nœuds tirages.
+        CHOIX DOCUMENTE (E13) : le what-if reste ANALYTIQUE meme pour un
+        projet en mode " monte_carlo " - il doit repondre instantanement
+        dans l'UI, la ou une passe MC coute N x n_noeuds tirages.
         """
         return self.propagation.simulate_shock(node_id, new_ur_local)
 
-    # --- données de démonstration ---------------------------------------------------
+    # donnees de demonstration
 
     def seed_demo(self, n_ranks: int = 3, seed: int = 42) -> Project:
-        """Génère un projet de test aléatoire complet (questionnaires inclus).
+        """Genere un projet de test aleatoire complet (questionnaires inclus).
 
         Enrichissements v2 : origine temporelle = maintenant (les jalons
-        deviennent de vraies échéances), 2-4 jalons par nœud, tags et
-        taxonomie, ~1 arc de secours sur 10. Données de TEST uniquement —
+        deviennent de vraies echeances), 2-4 jalons par noeud, tags et
+        taxonomie, ~1 arc de secours sur 10. Donnees de TEST uniquement -
         jamais en production.
         """
         with self._lock:

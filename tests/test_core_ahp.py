@@ -1,4 +1,4 @@
-"""Tests du module AHP (urgence déclarée Ud)."""
+"""Tests du module AHP (urgence declaree Ud)."""
 
 import numpy as np
 import pytest
@@ -38,7 +38,7 @@ class TestBuildMatrix:
 
 class TestPriorityAndConsistency:
     def test_matrice_identite_poids_egaux_cr_nul(self):
-        """Matrice de jugements neutre (tout à 1) -> poids égaux, CR = 0."""
+        """Matrice de jugements neutre (tout a 1) -> poids egaux, CR = 0."""
         a = np.ones((4, 4))
         w = priority_vector(a)
         assert np.allclose(w, 0.25)
@@ -48,7 +48,7 @@ class TestPriorityAndConsistency:
         assert cr == pytest.approx(0.0, abs=1e-12)
 
     def test_jugements_coherents_poids_attendus(self):
-        """Matrice parfaitement cohérente w ∝ [8, 4, 2, 1] -> poids exacts."""
+        """Matrice parfaitement coherente w ? [8, 4, 2, 1] -> poids exacts."""
         comparisons = {
             (0, 1): 2.0,
             (0, 2): 4.0,

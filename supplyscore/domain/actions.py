@@ -1,65 +1,65 @@
-"""Catalogue d'actions correctives — cœur de la couche prescriptive HÉLIOS v7.
+"""Catalogue d'actions correctives - coeur de la couche prescriptive HELIOS v7.
 
-Une :class:`ActionSpec` décrit une action corrective candidate avec DEUX
-applications de même sémantique :
+Une :class:`ActionSpec` decrit une action corrective candidate avec DEUX
+applications de meme semantique :
 
-- :attr:`~ActionSpec.apply_to_rollout` — application SIMULÉE, pure, consommée
+- :attr:`~ActionSpec.apply_to_rollout` - application SIMULEE, pure, consommee
   par les rollouts contrefactuels Monte Carlo (worker U9) ;
-- :attr:`~ActionSpec.apply_to_project` — application RÉELLE, qui écrit dans le
+- :attr:`~ActionSpec.apply_to_project` - application REELLE, qui ecrit dans le
   projet via :class:`~supplyscore.services.mutations.MutationService` (jamais
-  d'écriture directe).
+  d'ecriture directe).
 
-Les deux applications doivent produire le MÊME effet relatif sur le système
-(cf. tests d'équivalence de ce module) — c'est ce qui rend la prescription
-contrefactuelle honnête : ce qui est simulé est ce qui serait réellement fait.
+Les deux applications doivent produire le MEME effet relatif sur le systeme
+(cf. tests d'equivalence de ce module) - c'est ce qui rend la prescription
+contrefactuelle honnete : ce qui est simule est ce qui serait reellement fait.
 
 Contrat du state de rollout
 ----------------------------
-:data:`RolloutState` est un dictionnaire à 4 clés, propriété du moteur Monte
-Carlo (U9) ; ce module ne fait qu'y lire/écrire selon la convention suivante
-(documentée ici faute d'implémentation commune au moment de l'écriture) :
+:data:`RolloutState` est un dictionnaire a 4 cles, propriete du moteur Monte
+Carlo (U9) ; ce module ne fait qu'y lire/ecrire selon la convention suivante
+(documentee ici faute d'implementation commune au moment de l'ecriture) :
 
-- ``"ur_local"`` : tableau (numpy ou compatible) — trajectoire d'urgence
-  locale agrégée du nœud sur l'horizon du rollout. Modifié par
+- ``"ur_local"`` : tableau (numpy ou compatible) - trajectoire d'urgence
+  locale agregee du noeud sur l'horizon du rollout. Modifie par
   :func:`_apply_rollout_expedition_express` (le contrat de rollout n'isolant
-  pas le bloc temporel, la réduction de lead time est reportée sur
-  l'agrégat).
-- ``"hazard"`` : tableau — trajectoire de hazard (risque de rupture/stock)
-  du nœud. Modifié par :func:`_apply_rollout_boost_capacite`.
-- ``"deadlines_h"`` : ``dict[str, float]`` — échéances en heures, par clé
-  métier (jalon...). Modifié par :func:`_apply_rollout_replanifier_jalon`,
-  qui décale UNIQUEMENT l'entrée de valeur minimale (l'échéance la plus
-  proche) — même règle de sélection que :func:`_apply_project_replanifier_jalon`
-  côté réel (:func:`~supplyscore.domain.milestones.next_active_milestone`),
-  pour que les deux applications portent sur le même jalon.
-- ``"arc_beta"`` : ``dict[str, float]`` — contribution beta actuellement
-  comptée dans la propagation montante, par id d'arc
+  pas le bloc temporel, la reduction de lead time est reportee sur
+  l'agregat).
+- ``"hazard"`` : tableau - trajectoire de hazard (risque de rupture/stock)
+  du noeud. Modifie par :func:`_apply_rollout_boost_capacite`.
+- ``"deadlines_h"`` : ``dict[str, float]`` - echeances en heures, par cle
+  metier (jalon...). Modifie par :func:`_apply_rollout_replanifier_jalon`,
+  qui decale UNIQUEMENT l'entree de valeur minimale (l'echeance la plus
+  proche) - meme regle de selection que :func:`_apply_project_replanifier_jalon`
+  cote reel (:func:`~supplyscore.domain.milestones.next_active_milestone`),
+  pour que les deux applications portent sur le meme jalon.
+- ``"arc_beta"`` : ``dict[str, float]`` - contribution beta actuellement
+  comptee dans la propagation montante, par id d'arc
   (:attr:`~supplyscore.domain.models.SupplyArc.id`). Un arc de secours pas
-  encore promu y apparaît sous la clé ``f"{arc.id}:backup"`` (convention de
+  encore promu y apparait sous la cle ``f"{arc.id}:backup"`` (convention de
   ce module) ; :func:`_apply_rollout_promouvoir_arc_secours` le promeut en
-  ajoutant son beta à la contribution nominale et en retirant l'entrée
-  ``:backup`` — s'il y en a plusieurs, celle de plus petite ``source_id``
-  est choisie, même règle de départage que côté réel.
+  ajoutant son beta a la contribution nominale et en retirant l'entree
+  ``:backup`` - s'il y en a plusieurs, celle de plus petite ``source_id``
+  est choisie, meme regle de departage que cote reel.
 
-Chaque ``apply_to_rollout`` est PURE : le ``state`` reçu n'est jamais
-modifié en place, une copie modifiée est retournée (cf. :func:`_clone_state`).
-Cette copie est SUPERFICIELLE : les clés non touchées par une action donnée
-restent des références PARTAGÉES avec le ``state`` d'entrée (ex. tout le
-state retourné par les actions identité). Un consommateur qui dérive
-plusieurs rollouts à partir d'un même state parent (ex. un arbre de
-scénarios) ne doit donc jamais muter en place un conteneur reçu en retour —
-seule la création de nouveaux conteneurs (comme le fait ce module) préserve
-la pureté de bout en bout.
+Chaque ``apply_to_rollout`` est PURE : le ``state`` recu n'est jamais
+modifie en place, une copie modifiee est retournee (cf. :func:`_clone_state`).
+Cette copie est SUPERFICIELLE : les cles non touchees par une action donnee
+restent des references PARTAGEES avec le ``state`` d'entree (ex. tout le
+state retourne par les actions identite). Un consommateur qui derive
+plusieurs rollouts a partir d'un meme state parent (ex. un arbre de
+scenarios) ne doit donc jamais muter en place un conteneur recu en retour -
+seule la creation de nouveaux conteneurs (comme le fait ce module) preserve
+la purete de bout en bout.
 
-Identité d'opérateur des écritures automatiques
+Identite d'operateur des ecritures automatiques
 -------------------------------------------------
-``apply_to_project`` ne reçoit pas d'``operator_id`` (contrat gelé :
-``apply_to_project(service, node_id) -> None``) : les écritures réelles sont
-donc attribuées à l'identité constante :data:`_OPERATEUR_ACTION`
-(``source="action"`` côté :class:`~supplyscore.services.mutations.MutationService`),
-distincte des éditions humaines. Un moteur d'exécution qui connaît
-l'opérateur réel (déclencheur humain d'une prescription) peut l'enrichir en
-aval, dans son propre journal — hors périmètre de ce catalogue.
+``apply_to_project`` ne recoit pas d'``operator_id`` (contrat gele :
+``apply_to_project(service, node_id) -> None``) : les ecritures reelles sont
+donc attribuees a l'identite constante :data:`_OPERATEUR_ACTION`
+(``source="action"`` cote :class:`~supplyscore.services.mutations.MutationService`),
+distincte des editions humaines. Un moteur d'execution qui connait
+l'operateur reel (declencheur humain d'une prescription) peut l'enrichir en
+aval, dans son propre journal - hors perimetre de ce catalogue.
 """
 
 from __future__ import annotations
@@ -75,8 +75,7 @@ from supplyscore.domain.models import ArcKind, SupplyArc, SupplyNode, UrgencySta
 if TYPE_CHECKING:
     from supplyscore.services.orchestrator import SupplyScoreService
 
-#: Identité d'opérateur des écritures automatiques du catalogue (cf. docstring
-#: de module) — distincte d'un ``operator_id`` humain.
+#: Identite d'operateur des ecritures automatiques du catalogue (cf. docstring de module) - distincte d'un ``operator_id`` humain.
 _OPERATEUR_ACTION = "action:catalogue"
 
 _UNE_SEMAINE_S: float = 7.0 * 24.0 * 3600.0
@@ -84,49 +83,44 @@ _UNE_SEMAINE_H: float = 7.0 * 24.0
 _DEUX_SEMAINES_S: float = 2.0 * _UNE_SEMAINE_S
 _DEUX_SEMAINES_H: float = 2.0 * _UNE_SEMAINE_H
 
-#: Facteur d'expédition express — réduction documentée de 30 % du lead time,
-#: appliqué à l'identique côté rollout (:func:`_apply_rollout_expedition_express`)
-#: pour rendre le test d'équivalence sim/réel exact.
+#: Facteur d'expedition express - reduction documentee de 30 % du lead time, applique a l'identique cote rollout (:func:`_apply_rollout_expedition_express`) pour rendre le test d'equivalence sim/reel exact.
 _FACTEUR_EXPRESS: float = 0.7
 
-#: Amortissement documenté de la trajectoire de hazard après renfort de
-#: capacité (débit + volume) — cf. :func:`_apply_rollout_boost_capacite`.
+#: Amortissement documente de la trajectoire de hazard apres renfort de capacite (debit + volume) - cf. :func:`_apply_rollout_boost_capacite`.
 _FACTEUR_HAZARD_CAPACITE: float = 0.75
 
-#: Renforts documentés de ``boost_capacite`` : +30 % de débit, +20 % de volume max.
+#: Renforts documentes de ``boost_capacite`` : +30 % de debit, +20 % de volume max.
 _FACTEUR_FLOW_BOOST: float = 1.3
 _FACTEUR_VOLUME_BOOST: float = 1.2
 
-#: Suffixe marquant, dans ``state["arc_beta"]``, un arc de secours pas encore
-#: promu (cf. docstring de module).
+#: Suffixe marquant, dans ``state["arc_beta"]``, un arc de secours pas encore promu (cf. docstring de module).
 _SUFFIXE_BACKUP: str = ":backup"
 
-#: Liste FERMÉE des objectifs opérationnels mesurables, référencée par le
-#: journal d'interventions (U16) pour qualifier l'effet visé d'une action.
+#: Liste FERMEE des objectifs operationnels mesurables, referencee par le journal d'interventions (U16) pour qualifier l'effet vise d'une action.
 OBJECTIFS_OPERATIONNELS: tuple[str, ...] = (
-    "tenir_echeance_client",  # respecter la deadline d'origine (accélération)
-    "renegocier_echeance",  # décaler la deadline en accord avec le programme/client
-    "fiabiliser_approvisionnement",  # réduire la dépendance à un fournisseur défaillant
-    "augmenter_capacite",  # lever un goulot capacitaire ou de débit
-    "realigner_ud_ur",  # réduire l'écart entre urgence déclarée et urgence réelle
-    "maitriser_cout",  # contenir le surcoût d'intervention
+    "tenir_echeance_client",  # respecter la deadline d'origine (acceleration)
+    "renegocier_echeance",  # decaler la deadline en accord avec le programme/client
+    "fiabiliser_approvisionnement",  # reduire la dependance a un fournisseur defaillant
+    "augmenter_capacite",  # lever un goulot capacitaire ou de debit
+    "realigner_ud_ur",  # reduire l'ecart entre urgence declaree et urgence reelle
+    "maitriser_cout",  # contenir le surcout d'intervention
 )
 
 
-# --- Contexte en lecture seule -----------------------------------------------------
+# Contexte en lecture seule
 
 
 @dataclass(frozen=True)
 class ContexteAction:
-    """Contexte en lecture seule d'un nœud, consommé par les préconditions.
+    """Contexte en lecture seule d'un noeud, consomme par les preconditions.
 
     Attributes:
-        node: nœud cible de l'action.
-        arcs_entrants: arcs NOMINAUX entrants (fournisseurs actifs du nœud).
-        arcs_backup: arcs BACKUP entrants (arcs de secours candidats à la
+        node: noeud cible de l'action.
+        arcs_entrants: arcs NOMINAUX entrants (fournisseurs actifs du noeud).
+        arcs_backup: arcs BACKUP entrants (arcs de secours candidats a la
             promotion par l'action ``"promouvoir_arc_secours"`` de :data:`CATALOGUE_V1`).
-        urgency: état d'urgence courant du nœud (alias de ``node.urgency``).
-        milestones: jalons du nœud (ordre quelconque, cf.
+        urgency: etat d'urgence courant du noeud (alias de ``node.urgency``).
+        milestones: jalons du noeud (ordre quelconque, cf.
             :mod:`supplyscore.domain.milestones`).
     """
 
@@ -138,20 +132,20 @@ class ContexteAction:
 
 
 def contexte_pour(service: SupplyScoreService, node_id: str) -> ContexteAction:
-    """Construit le :class:`ContexteAction` d'un nœud depuis la façade applicative.
+    """Construit le :class:`ContexteAction` d'un noeud depuis la facade applicative.
 
-    Lecture seule : n'écrit rien, ne passe jamais par
+    Lecture seule : n'ecrit rien, ne passe jamais par
     :class:`~supplyscore.services.mutations.MutationService`.
 
     Args:
-        service: façade applicative (dépôt de graphe en mémoire, registre).
-        node_id: identifiant du nœud.
+        service: facade applicative (depot de graphe en memoire, registre).
+        node_id: identifiant du noeud.
 
     Returns:
-        Le :class:`ContexteAction` du nœud.
+        Le :class:`ContexteAction` du noeud.
 
     Raises:
-        KeyError: si le nœud est inconnu du dépôt en mémoire.
+        KeyError: si le noeud est inconnu du depot en memoire.
     """
     node = service.repo.get_node(node_id)
     if node is None:
@@ -170,39 +164,39 @@ def contexte_pour(service: SupplyScoreService, node_id: str) -> ContexteAction:
     )
 
 
-# --- State de rollout (Monte Carlo contrefactuel, worker U9) -----------------------
+# State de rollout (Monte Carlo contrefactuel, worker U9)
 
-#: State de rollout — dictionnaire à 4 clés, cf. docstring de module.
+#: State de rollout - dictionnaire a 4 cles, cf. docstring de module.
 RolloutState = dict[str, Any]
 
 
 def _clone_state(state: RolloutState) -> RolloutState:
     """Copie superficielle du state (nouveau dict de premier niveau).
 
-    Chaque fonction ``apply_to_rollout`` qui modifie une clé imbriquée
+    Chaque fonction ``apply_to_rollout`` qui modifie une cle imbriquee
     (``deadlines_h``, ``arc_beta``, ``ur_local``, ``hazard``) construit un
-    NOUVEL objet pour cette clé plutôt que de muter l'existant — c'est cette
-    discipline, combinée à cette copie superficielle, qui garantit la pureté
-    (``state`` en entrée n'est jamais modifié).
+    NOUVEL objet pour cette cle plutot que de muter l'existant - c'est cette
+    discipline, combinee a cette copie superficielle, qui garantit la purete
+    (``state`` en entree n'est jamais modifie).
     """
     return dict(state)
 
 
-# --- Coût structuré -----------------------------------------------------------------
+# Cout structure
 
 
 class CoutAction(TypedDict):
-    """Coût structuré d'une action corrective (contrat gelé n° 8).
+    """Cout structure d'une action corrective (contrat gele no 8).
 
     Attributes:
-        monetaire: intervalle ``(lo, hi)`` en euros, ou None si à chiffrer
-            par projet (coût trop dépendant du contexte pour un défaut générique).
+        monetaire: intervalle ``(lo, hi)`` en euros, ou None si a chiffrer
+            par projet (cout trop dependant du contexte pour un defaut generique).
         temps_h: charge humaine en heures, ou None si sans objet.
-        penalite_client_evitee: intervalle ``(lo, hi)`` de pénalité
-            contractuelle évitée, ou None si sans objet.
-        mobilisation: description qualitative des équipes/ressources mobilisées.
-        p_echec_execution_defaut: probabilité d'échec d'exécution par
-            défaut, dans [0, 1] (cf. :func:`_validate_catalogue`).
+        penalite_client_evitee: intervalle ``(lo, hi)`` de penalite
+            contractuelle evitee, ou None si sans objet.
+        mobilisation: description qualitative des equipes/ressources mobilisees.
+        p_echec_execution_defaut: probabilite d'echec d'execution par
+            defaut, dans [0, 1] (cf. :func:`_validate_catalogue`).
     """
 
     monetaire: tuple[float, float] | None
@@ -212,32 +206,32 @@ class CoutAction(TypedDict):
     p_echec_execution_defaut: float
 
 
-# --- Contrat ActionSpec (n° 8) -------------------------------------------------------
+# Contrat ActionSpec (no 8)
 
 
 @dataclass(frozen=True)
 class ActionSpec:
-    """Action corrective candidate : effet simulé ET effet réel de même sémantique.
+    """Action corrective candidate : effet simule ET effet reel de meme semantique.
 
     Attributes:
-        id: identifiant unique (clé de :data:`CATALOGUE_V1`).
-        libelle: libellé d'affichage en français.
-        preconditions: ``ctx -> bool`` — l'action est-elle applicable au nœud ?
-        apply_to_rollout: ``state -> state`` — application SIMULÉE, PURE
+        id: identifiant unique (cle de :data:`CATALOGUE_V1`).
+        libelle: libelle d'affichage en francais.
+        preconditions: ``ctx -> bool`` - l'action est-elle applicable au noeud ?
+        apply_to_rollout: ``state -> state`` - application SIMULEE, PURE
             (cf. :data:`RolloutState`).
-        apply_to_project: ``(service, node_id) -> None`` — application
-            RÉELLE, via :class:`~supplyscore.services.mutations.MutationService`
+        apply_to_project: ``(service, node_id) -> None`` - application
+            REELLE, via :class:`~supplyscore.services.mutations.MutationService`
             uniquement.
-        delai_effet_weeks: ``(min, mode, max)`` — délai avant effet complet,
+        delai_effet_weeks: ``(min, mode, max)`` - delai avant effet complet,
             en semaines (distribution triangulaire), ``min <= mode <= max``.
-        cout: coût structuré (cf. :class:`CoutAction`).
-        risque_secondaire: description française du risque secondaire de
-            l'action (ce qu'elle peut dégrader ailleurs).
-        incompatibles: ids d'actions ne pouvant pas être combinées avec
-            celle-ci dans le même plan d'intervention (doivent exister dans
+        cout: cout structure (cf. :class:`CoutAction`).
+        risque_secondaire: description francaise du risque secondaire de
+            l'action (ce qu'elle peut degrader ailleurs).
+        incompatibles: ids d'actions ne pouvant pas etre combinees avec
+            celle-ci dans le meme plan d'intervention (doivent exister dans
             :data:`CATALOGUE_V1`).
         objectifs_operationnels: sous-ensemble de :data:`OBJECTIFS_OPERATIONNELS`
-            visé par l'action.
+            vise par l'action.
     """
 
     id: str
@@ -252,28 +246,28 @@ class ActionSpec:
     objectifs_operationnels: list[str]
 
 
-# --- promouvoir_arc_secours ----------------------------------------------------------
+# promouvoir_arc_secours
 
 
 def _precondition_promouvoir_arc_secours(ctx: ContexteAction) -> bool:
-    """Vrai si au moins un arc de secours alimente le nœud."""
+    """Vrai si au moins un arc de secours alimente le noeud."""
     return bool(ctx.arcs_backup)
 
 
 def _apply_project_promouvoir_arc_secours(service: SupplyScoreService, node_id: str) -> None:
     """Promeut l'arc de secours entrant prioritaire en arc nominal.
 
-    Sélectionne, parmi les arcs BACKUP entrants du nœud, celui de
-    ``source_id`` le plus petit (ordre lexicographique — règle de départage
-    déterministe et documentée, utile quand plusieurs arcs de secours
+    Selectionne, parmi les arcs BACKUP entrants du noeud, celui de
+    ``source_id`` le plus petit (ordre lexicographique - regle de departage
+    deterministe et documentee, utile quand plusieurs arcs de secours
     existent) et le fait basculer en
     :attr:`~supplyscore.domain.models.ArcKind.NOMINAL` via
     :meth:`~supplyscore.services.mutations.MutationService.upsert_arc`.
-    No-op silencieux si le nœud n'a aucun arc de secours entrant (la
-    précondition n'est pas revérifiée ici — un appel direct reste possible).
+    No-op silencieux si le noeud n'a aucun arc de secours entrant (la
+    precondition n'est pas reverifiee ici - un appel direct reste possible).
 
     Raises:
-        KeyError: si le nœud est inconnu du dépôt en mémoire.
+        KeyError: si le noeud est inconnu du depot en memoire.
     """
     if service.repo.get_node(node_id) is None:
         raise KeyError(f"Nœud inconnu : {node_id!r}")
@@ -288,15 +282,15 @@ def _apply_project_promouvoir_arc_secours(service: SupplyScoreService, node_id: 
 def _apply_rollout_promouvoir_arc_secours(state: RolloutState) -> RolloutState:
     """Active dans ``arc_beta`` l'arc de secours en attente prioritaire.
 
-    Ajoute le beta de l'arc de secours (clé ``f"{arc_id}:backup"``) à la
-    contribution nominale déjà présente sous ``arc_id`` (0.0 si absente) et
-    retire l'entrée ``:backup`` — traduction, côté rollout, d'une dépendance
-    désormais répartie sur un second fournisseur actif. S'il y a plusieurs
-    entrées ``:backup`` en attente, celle de plus petite ``source_id`` est
-    choisie — MÊME règle de départage que côté réel
+    Ajoute le beta de l'arc de secours (cle ``f"{arc_id}:backup"``) a la
+    contribution nominale deja presente sous ``arc_id`` (0.0 si absente) et
+    retire l'entree ``:backup`` - traduction, cote rollout, d'une dependance
+    desormais repartie sur un second fournisseur actif. S'il y a plusieurs
+    entrees ``:backup`` en attente, celle de plus petite ``source_id`` est
+    choisie - MEME regle de departage que cote reel
     (:func:`_apply_project_promouvoir_arc_secours`), pour que les deux
-    applications promeuvent toujours le même arc. No-op (copie inchangée)
-    si aucune entrée ``:backup`` n'est présente.
+    applications promeuvent toujours le meme arc. No-op (copie inchangee)
+    si aucune entree ``:backup`` n'est presente.
     """
     new_state = _clone_state(state)
     arc_beta = dict(state.get("arc_beta", {}))
@@ -310,25 +304,25 @@ def _apply_rollout_promouvoir_arc_secours(state: RolloutState) -> RolloutState:
     return new_state
 
 
-# --- replanifier_jalon -----------------------------------------------------------------
+# replanifier_jalon
 
 
 def _precondition_replanifier_jalon(ctx: ContexteAction) -> bool:
-    """Vrai si un jalon ACTIVE existe pour le nœud."""
+    """Vrai si un jalon ACTIVE existe pour le noeud."""
     return next_active_milestone(ctx.milestones) is not None
 
 
 def _apply_project_replanifier_jalon(service: SupplyScoreService, node_id: str) -> None:
-    """Décale de 2 semaines la deadline du prochain jalon actif (règle §6.3).
+    """Decale de 2 semaines la deadline du prochain jalon actif (regle section 6.3).
 
-    Règle « revue de programme » du protocole HÉLIOS §6.3 : seule
-    ``deadline_ts`` est décalée, ``start_ts`` reste inchangé (le jalon est
-    déjà en cours) — l'invariant ``start_ts < deadline_ts`` de
+    Regle " revue de programme " du protocole HELIOS section 6.3 : seule
+    ``deadline_ts`` est decalee, ``start_ts`` reste inchange (le jalon est
+    deja en cours) - l'invariant ``start_ts < deadline_ts`` de
     :meth:`~supplyscore.services.mutations.MutationService.update_milestone`
-    reste donc trivialement respecté. No-op si le nœud n'a aucun jalon actif.
+    reste donc trivialement respecte. No-op si le noeud n'a aucun jalon actif.
 
     Raises:
-        KeyError: si le nœud est inconnu du dépôt en mémoire.
+        KeyError: si le noeud est inconnu du depot en memoire.
     """
     if service.repo.get_node(node_id) is None:
         raise KeyError(f"Nœud inconnu : {node_id!r}")
@@ -344,13 +338,13 @@ def _apply_project_replanifier_jalon(service: SupplyScoreService, node_id: str) 
 
 
 def _apply_rollout_replanifier_jalon(state: RolloutState) -> RolloutState:
-    """Décale de 2 semaines (336 h) l'échéance la plus proche de ``deadlines_h``.
+    """Decale de 2 semaines (336 h) l'echeance la plus proche de ``deadlines_h``.
 
-    Même règle de sélection que côté réel
+    Meme regle de selection que cote reel
     (:func:`_apply_project_replanifier_jalon`, via
     :func:`~supplyscore.domain.milestones.next_active_milestone`) : seule
-    l'entrée de valeur MINIMALE (l'échéance la plus proche) est décalée, les
-    autres restent inchangées. No-op si ``deadlines_h`` est vide.
+    l'entree de valeur MINIMALE (l'echeance la plus proche) est decalee, les
+    autres restent inchangees. No-op si ``deadlines_h`` est vide.
     """
     new_state = _clone_state(state)
     deadlines = dict(state.get("deadlines_h", {}))
@@ -361,21 +355,21 @@ def _apply_rollout_replanifier_jalon(state: RolloutState) -> RolloutState:
     return new_state
 
 
-# --- expedition_express -----------------------------------------------------------------
+# expedition_express
 
 
 def _precondition_expedition_express(ctx: ContexteAction) -> bool:
-    """Toujours applicable (aucune précondition métier au-delà du nœud existant)."""
+    """Toujours applicable (aucune precondition metier au-dela du noeud existant)."""
     return True
 
 
 def _apply_project_expedition_express(service: SupplyScoreService, node_id: str) -> None:
-    """Réduit le lead time du nœud de 30 % (facteur documenté :data:`_FACTEUR_EXPRESS`).
+    """Reduit le lead time du noeud de 30 % (facteur documente :data:`_FACTEUR_EXPRESS`).
 
-    No-op si ``time.lead_time_h`` n'est pas renseigné (rien à accélérer).
+    No-op si ``time.lead_time_h`` n'est pas renseigne (rien a accelerer).
 
     Raises:
-        KeyError: si le nœud est inconnu du dépôt en mémoire.
+        KeyError: si le noeud est inconnu du depot en memoire.
     """
     node = service.repo.get_node(node_id)
     if node is None:
@@ -392,36 +386,36 @@ def _apply_project_expedition_express(service: SupplyScoreService, node_id: str)
 
 
 def _apply_rollout_expedition_express(state: RolloutState) -> RolloutState:
-    """Réduit de 30 % la trajectoire d'urgence locale ``ur_local`` (même facteur que le KPI).
+    """Reduit de 30 % la trajectoire d'urgence locale ``ur_local`` (meme facteur que le KPI).
 
-    Simplification documentée : le contrat de rollout n'expose pas le bloc
-    temporel isolément — la réduction du lead time est donc reportée sur la
-    trajectoire agrégée ``ur_local``, DANS LA MÊME PROPORTION que la
-    réduction réelle du KPI. C'est ce qui rend le test d'équivalence
-    sim/réel exact (même variation relative des deux côtés).
+    Simplification documentee : le contrat de rollout n'expose pas le bloc
+    temporel isolement - la reduction du lead time est donc reportee sur la
+    trajectoire agregee ``ur_local``, DANS LA MEME PROPORTION que la
+    reduction reelle du KPI. C'est ce qui rend le test d'equivalence
+    sim/reel exact (meme variation relative des deux cotes).
     """
     new_state = _clone_state(state)
     new_state["ur_local"] = state["ur_local"] * _FACTEUR_EXPRESS
     return new_state
 
 
-# --- boost_capacite -----------------------------------------------------------------------
+# boost_capacite
 
 
 def _precondition_boost_capacite(ctx: ContexteAction) -> bool:
-    """Applicable si au moins un KPI de capacité/débit est renseigné."""
+    """Applicable si au moins un KPI de capacite/debit est renseigne."""
     inv = ctx.node.kpis.inventory
     return inv.flow_rate is not None or inv.max_volume_m3 is not None
 
 
 def _apply_project_boost_capacite(service: SupplyScoreService, node_id: str) -> None:
-    """Augmente le débit (+30 %) et/ou le volume max (+20 %) du nœud, si renseignés.
+    """Augmente le debit (+30 %) et/ou le volume max (+20 %) du noeud, si renseignes.
 
-    Les deux KPIs sont indépendants : seuls ceux effectivement renseignés
-    sont modifiés (no-op complet si ni l'un ni l'autre ne l'est).
+    Les deux KPIs sont independants : seuls ceux effectivement renseignes
+    sont modifies (no-op complet si ni l'un ni l'autre ne l'est).
 
     Raises:
-        KeyError: si le nœud est inconnu du dépôt en mémoire.
+        KeyError: si le noeud est inconnu du depot en memoire.
     """
     node = service.repo.get_node(node_id)
     if node is None:
@@ -439,71 +433,71 @@ def _apply_project_boost_capacite(service: SupplyScoreService, node_id: str) -> 
 
 
 def _apply_rollout_boost_capacite(state: RolloutState) -> RolloutState:
-    """Réduit de 25 % la trajectoire de hazard (rupture/stock) du nœud.
+    """Reduit de 25 % la trajectoire de hazard (rupture/stock) du noeud.
 
-    Simplification documentée : un débit/volume accru réduit le risque de
-    rupture plutôt que l'urgence temporelle — traduit ici par un
+    Simplification documentee : un debit/volume accru reduit le risque de
+    rupture plutot que l'urgence temporelle - traduit ici par un
     amortissement de la trajectoire ``hazard``, distincte de ``ur_local``
-    (utilisée par :func:`_apply_rollout_expedition_express`).
+    (utilisee par :func:`_apply_rollout_expedition_express`).
     """
     new_state = _clone_state(state)
     new_state["hazard"] = state["hazard"] * _FACTEUR_HAZARD_CAPACITE
     return new_state
 
 
-# --- revue_declaration -----------------------------------------------------------------
+# revue_declaration
 
 
 def _precondition_revue_declaration(ctx: ContexteAction) -> bool:
-    """Applicable si une urgence déclarée (Ud local) existe déjà pour le nœud."""
+    """Applicable si une urgence declaree (Ud local) existe deja pour le noeud."""
     return ctx.urgency.ud_local is not None
 
 
 def _apply_project_revue_declaration(service: SupplyScoreService, node_id: str) -> None:
-    """No-op côté écriture : déclenche une demande de réévaluation (couche insight).
+    """No-op cote ecriture : declenche une demande de reevaluation (couche insight).
 
-    Aucun KPI n'est modifié — seule la couche d'explicabilité/insight (hors
-    périmètre de ce module) consomme le déclenchement de cette action pour
-    solliciter un nouveau questionnaire AHP auprès de l'opérateur terrain.
+    Aucun KPI n'est modifie - seule la couche d'explicabilite/insight (hors
+    perimetre de ce module) consomme le declenchement de cette action pour
+    solliciter un nouveau questionnaire AHP aupres de l'operateur terrain.
     """
     return None
 
 
 def _apply_rollout_revue_declaration(state: RolloutState) -> RolloutState:
-    """Identité : la révision de la déclaration n'a pas d'effet simulable direct."""
+    """Identite : la revision de la declaration n'a pas d'effet simulable direct."""
     return _clone_state(state)
 
 
-# --- ne_rien_faire (bras de référence) -----------------------------------------------
+# ne_rien_faire (bras de reference)
 
 
 def _precondition_ne_rien_faire(ctx: ContexteAction) -> bool:
-    """Toujours applicable — bras de référence (baseline) du catalogue."""
+    """Toujours applicable - bras de reference (baseline) du catalogue."""
     return True
 
 
 def _apply_project_ne_rien_faire(service: SupplyScoreService, node_id: str) -> None:
-    """No-op total : aucune écriture, par définition du bras de référence."""
+    """No-op total : aucune ecriture, par definition du bras de reference."""
     return None
 
 
 def _apply_rollout_ne_rien_faire(state: RolloutState) -> RolloutState:
-    """Identité stricte : retourne une copie inchangée du state."""
+    """Identite stricte : retourne une copie inchangee du state."""
     return _clone_state(state)
 
 
-# --- Catalogue V1 ---------------------------------------------------------------------
+# Catalogue V1
 
 
 def _validate_catalogue(catalogue: dict[str, ActionSpec]) -> None:
-    """Valide les invariants d'intégrité du catalogue.
+    """Valide les invariants d'integrite du catalogue.
 
     Raises:
-        ValueError: id incohérent avec sa clé, ``incompatibles`` référençant
-            un id absent du catalogue ou non symétrique,
+        ValueError: id incoherent avec sa cle, ``incompatibles`` referencant
+            un id absent du catalogue ou non symetrique,
             ``p_echec_execution_defaut`` hors [0, 1], ou
-            ``delai_effet_weeks`` non croissant (``min <= mode <= max``) —
-            un seul message, toutes les erreurs listées.
+            ``delai_effet_weeks`` non croissant (``min <= mode <= max``) -
+            un seul message, toutes les erreurs listees.
     """
     errors: list[str] = []
     for key, spec in catalogue.items():
@@ -529,7 +523,7 @@ def _validate_catalogue(catalogue: dict[str, ActionSpec]) -> None:
         raise ValueError("Catalogue d'actions invalide : " + " ; ".join(errors))
 
 
-#: Catalogue V1 — 6 actions correctives (contrat gelé n° 8).
+#: Catalogue V1 - 6 actions correctives (contrat gele no 8).
 CATALOGUE_V1: dict[str, ActionSpec] = {
     "promouvoir_arc_secours": ActionSpec(
         id="promouvoir_arc_secours",
@@ -539,7 +533,7 @@ CATALOGUE_V1: dict[str, ActionSpec] = {
         apply_to_project=_apply_project_promouvoir_arc_secours,
         delai_effet_weeks=(0.5, 1.0, 2.0),
         cout=CoutAction(
-            monetaire=None,  # à chiffrer par projet (requalification fournisseur)
+            monetaire=None,  # a chiffrer par projet (requalification fournisseur)
             temps_h=8.0,
             penalite_client_evitee=None,
             mobilisation="achats + qualité fournisseur de secours",

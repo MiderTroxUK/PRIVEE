@@ -20,10 +20,10 @@ from supplyscore.infra.logging import (
 
 @pytest.fixture
 def logger_propre() -> Iterator[logging.Logger]:
-    """Restaure l'état du logger « supplyscore » après chaque test.
+    """Restaure l'etat du logger " supplyscore " apres chaque test.
 
-    Les handlers ajoutés pendant le test sont retirés et fermés (important
-    sous Windows pour le nettoyage de tmp_path), le niveau initial est rétabli.
+    Les handlers ajoutes pendant le test sont retires et fermes (important
+    sous Windows pour le nettoyage de tmp_path), le niveau initial est retabli.
     """
     logger = logging.getLogger("supplyscore")
     handlers_initiaux = list(logger.handlers)
@@ -42,7 +42,7 @@ def _flush(logger: logging.Logger) -> None:
 
 
 def test_ecrit_fichier_et_format(tmp_path: Path, logger_propre: logging.Logger) -> None:
-    """Un log INFO est écrit dans tmp_path/logs/supplyscore.log au format FR."""
+    """Un log INFO est ecrit dans tmp_path/logs/supplyscore.log au format FR."""
     log_dir = tmp_path / "logs"
     logger = configure_logging(level="INFO", log_dir=log_dir)
     logger.info("message de test")
@@ -56,7 +56,7 @@ def test_ecrit_fichier_et_format(tmp_path: Path, logger_propre: logging.Logger) 
 
 
 def test_accepte_log_dir_en_chaine(tmp_path: Path, logger_propre: logging.Logger) -> None:
-    """``log_dir`` peut être une chaîne ; le dossier est créé au besoin."""
+    """``log_dir`` peut etre une chaine ; le dossier est cree au besoin."""
     log_dir = tmp_path / "sous" / "logs"
     logger = configure_logging(log_dir=str(log_dir))
     logger.info("via chaîne")
@@ -65,7 +65,7 @@ def test_accepte_log_dir_en_chaine(tmp_path: Path, logger_propre: logging.Logger
 
 
 def test_handlers_attendus(tmp_path: Path, logger_propre: logging.Logger) -> None:
-    """Le logger reçoit un handler fichier rotatif (2 Mo × 5) et une console."""
+    """Le logger recoit un handler fichier rotatif (2 Mo x 5) et une console."""
     logger = configure_logging(log_dir=tmp_path / "logs")
     rotatifs = [h for h in logger.handlers if isinstance(h, RotatingFileHandler)]
     consoles = [
@@ -96,7 +96,7 @@ def test_idempotent_pas_de_duplication(tmp_path: Path, logger_propre: logging.Lo
 
 
 def test_niveau_respecte(tmp_path: Path, logger_propre: logging.Logger) -> None:
-    """En niveau INFO, les messages DEBUG sont filtrés."""
+    """En niveau INFO, les messages DEBUG sont filtres."""
     log_dir = tmp_path / "logs"
     logger = configure_logging(level="INFO", log_dir=log_dir)
     logger.debug("message-debug-filtre")
@@ -109,7 +109,7 @@ def test_niveau_respecte(tmp_path: Path, logger_propre: logging.Logger) -> None:
 
 
 def test_niveau_debug_et_casse(tmp_path: Path, logger_propre: logging.Logger) -> None:
-    """Le niveau est insensible à la casse ; en DEBUG, les debug passent."""
+    """Le niveau est insensible a la casse ; en DEBUG, les debug passent."""
     log_dir = tmp_path / "logs"
     logger = configure_logging(level="debug", log_dir=log_dir)
     logger.debug("debug-visible")

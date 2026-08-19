@@ -1,8 +1,8 @@
-"""Tests d'intégration de la phase E2 : domaine v2 câblé bout en bout.
+"""Tests d'integration de la phase E2 : domaine v2 cable bout en bout.
 
-Vérifie que la démo enrichie (jalons, tags, arcs backup) alimente le pipeline
-et que l'horloge de jeu rend les échéances vivantes : avancer les semaines
-fait monter l'urgence temporelle des nœuds dont les deadlines approchent.
+Verifie que la demo enrichie (jalons, tags, arcs backup) alimente le pipeline
+et que l'horloge de jeu rend les echeances vivantes : avancer les semaines
+fait monter l'urgence temporelle des noeuds dont les deadlines approchent.
 """
 
 import pytest
@@ -25,17 +25,17 @@ def test_seed_demo_is_enriched(service):
     nodes = service.repo.nodes()
     assert nodes, "la démo doit créer des nœuds"
 
-    # origine temporelle posée à maintenant (horloge du service)
+    # origine temporelle posee a maintenant (horloge du service)
     stored = service.registry.get_project(project.id)
     assert stored is not None and stored.t0_ts == pytest.approx(1_750_000_000.0)
 
-    # chaque nœud a 2 à 4 jalons, triés par position
+    # chaque noeud a 2 a 4 jalons, tries par position
     for node in nodes:
         milestones = service.registry.list_milestones(node.id)
         assert 2 <= len(milestones) <= 4
         assert [m.position for m in milestones] == sorted(m.position for m in milestones)
 
-    # taxonomie et tags présents, chaque nœud porte 1 à 3 tags existants
+    # taxonomie et tags presents, chaque noeud porte 1 a 3 tags existants
     tags = service.registry.list_tags(project.id)
     categories = service.registry.list_tag_categories(project.id)
     assert len(categories) == 2 and 4 <= len(tags) <= 6
@@ -76,10 +76,10 @@ def test_seed_demo_reproducible(service, tmp_path):
 
 
 def test_game_clock_drives_urgency_up(service):
-    """Avancer le temps de jeu fait monter l'urgence réelle moyenne du réseau.
+    """Avancer le temps de jeu fait monter l'urgence reelle moyenne du reseau.
 
-    Les jalons de la démo s'étalent sur ~1 à 8 semaines : après 30 semaines de
-    jeu, la plupart des deadlines sont dépassées (u_time -> 1) — la moyenne des
+    Les jalons de la demo s'etalent sur ~1 a 8 semaines : apres 30 semaines de
+    jeu, la plupart des deadlines sont depassees (u_time -> 1) - la moyenne des
     Ur doit strictement monter.
     """
     project = service.seed_demo(n_ranks=2, seed=7)
@@ -98,7 +98,7 @@ def test_game_clock_drives_urgency_up(service):
 
 
 def test_derived_status_persists_after_restart(service, tmp_path):
-    """Le statut dérivé des jalons survit à un redémarrage (registre + node_urgency)."""
+    """Le statut derive des jalons survit a un redemarrage (registre + node_urgency)."""
     service.seed_demo(n_ranks=2, seed=3)
     states = service.evaluate_all(persist=True)
     db_dir = service.db_dir

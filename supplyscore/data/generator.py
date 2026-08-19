@@ -1,11 +1,11 @@
-"""Générateur de données de TEST aléatoires pour supplyscore.
+"""Generateur de donnees de TEST aleatoires pour supplyscore.
 
-ATTENTION : ce module produit des données SIMULÉES, destinées uniquement aux
-tests, démos et environnements de développement. Il ne doit JAMAIS être
-utilisé en production pour alimenter de vraies décisions logistiques.
+ATTENTION : ce module produit des donnees SIMULEES, destinees uniquement aux
+tests, demos et environnements de developpement. Il ne doit JAMAIS etre
+utilise en production pour alimenter de vraies decisions logistiques.
 
-Le générateur construit des chaînes d'approvisionnement plausibles (DAG par
-rangs, KPIs réalistes) et des questionnaires AHP simulés cohérents (CR < 0.10).
+Le generateur construit des chaines d'approvisionnement plausibles (DAG par
+rangs, KPIs realistes) et des questionnaires AHP simules coherents (CR < 0.10).
 """
 
 from __future__ import annotations
@@ -32,12 +32,12 @@ from supplyscore.domain.models import (
 )
 from supplyscore.domain.tags import Tag, TagCategory
 
-# Échelle de Saaty (jugements admissibles dans une matrice de comparaison).
+# Echelle de Saaty (jugements admissibles dans une matrice de comparaison).
 _SAATY_SCALE: tuple[float, ...] = tuple(
     [1.0 / k for k in range(9, 1, -1)] + [float(k) for k in range(1, 10)]
 )
 
-# Indice aléatoire de Saaty (Random Index) pour le calcul du CR.
+# Indice aleatoire de Saaty (Random Index) pour le calcul du CR.
 _RANDOM_INDEX: dict[int, float] = {
     1: 0.0,
     2: 0.0,
@@ -83,24 +83,24 @@ _TRANSPORT_LABELS: tuple[str, ...] = ("Truck", "Train", "Ship", "Barge")
 
 
 class RandomSupplyChainGenerator:
-    """Générateur reproductible de chaînes d'approvisionnement de TEST.
+    """Generateur reproductible de chaines d'approvisionnement de TEST.
 
-    Même ``seed`` -> même sortie. Toutes les valeurs aléatoires passent par
+    Meme ``seed`` -> meme sortie. Toutes les valeurs aleatoires passent par
     l'instance :class:`random.Random` interne (y compris les UUID).
     """
 
     def __init__(self, seed: int | None = None) -> None:
-        """Initialise le PRNG interne avec ``seed`` (même seed -> même sortie)."""
+        """Initialise le PRNG interne avec ``seed`` (meme seed -> meme sortie)."""
         self._rng = random.Random(seed)
 
-    # -- helpers internes -------------------------------------------------------
+    # helpers internes
 
     def _uuid(self) -> str:
-        """UUID déterministe (dérivé du PRNG seedé, pas de uuid4 global)."""
+        """UUID deterministe (derive du PRNG seede, pas de uuid4 global)."""
         return str(uuid.UUID(int=self._rng.getrandbits(128), version=4))
 
     def _node_kpis(self) -> KPIBundle:
-        """KPIs aléatoires plausibles pour un nœud (tous les blocs remplis)."""
+        """KPIs aleatoires plausibles pour un noeud (tous les blocs remplis)."""
         rng = self._rng
 
         demand = rng.uniform(10.0, 500.0)
@@ -122,6 +122,8 @@ class RandomSupplyChainGenerator:
         )
 
         lead_time_h = rng.uniform(24.0, 720.0)
+        # CRENEAU DE FLUX RESERVE - ne pas supprimer. Ce tirage alimentait ``delay_h`` ; sa valeur est desormais ignoree (cf. ``delay_h=0.0`` ci-dessous), mais le TIRAGE lui-meme est conserve parce que le generateur est seede et que toute la reproductibilite du depot en depend : usine synthetique de ``projects/factory/dgp.py``, jeu d'entrainement de la couche de calibration, fixtures de demo et de test. Retirer l'appel decale tout le flux aleatoire en aval et change SILENCIEUSEMENT chaque scenario genere a seed egal - constate sur trois tests (rapport de session, figures du tableau de bord, heatmap PROMETHEE) qui decrivaient soudain un autre graphe.
+        rng.uniform(0.0, 72.0)
         time_kpis = TimeKPIs(
             speed_kmh=rng.uniform(40.0, 90.0),
             distance_range_km=distance_km * rng.uniform(1.0, 1.5),
@@ -129,7 +131,8 @@ class RandomSupplyChainGenerator:
             refuel_time_h=rng.uniform(0.25, 4.0),
             lead_time_h=lead_time_h,
             lead_time_std_h=lead_time_h * rng.uniform(0.03, 0.20),
-            delay_h=rng.uniform(0.0, 72.0),
+            # delay_h est un ETAT ACCUMULE - " combien de production a reellement ete perdue a ce jour " - et il DEMARRE A ZERO : un noeud qu'on vient de generer n'a subi aucun incident. Le tirage aleatoire qui figurait ici datait de l'epoque ou le champ etait dormant (ecrit, jamais lu) ; depuis qu'il alimente additivement les trois estimateurs de P(jalon rate), il injectait sur chaque noeud une penalite que personne n'avait declaree. Mesure sur un cas serre (lead 200 h, sigma 30 h, marge 260 h, avancement 0) : u_time = 0,023 a delay = 0 contre 0,282 EN MOYENNE sous le tirage uniforme 0-72 h, et jusqu'a 0,655 en haut du tirage. Un choc qui doit peser passe par ``domain.events._arret_impact``, jamais par le generateur. (Le tirage correspondant reste consomme plus haut - cf. le creneau de flux reserve, indispensable a la reproductibilite seedee.)
+            delay_h=0.0,
             deadline_h=lead_time_h * rng.uniform(1.1, 2.5),  # toujours > lead time
         )
 
@@ -140,7 +143,7 @@ class RandomSupplyChainGenerator:
             product_cost=product_cost,
             tariff=rng.uniform(1.0, 1.35),
             nominal_op_cost=nominal_op_cost,
-            op_cost=nominal_op_cost * (1.0 + cost_volatility),  # cohérent
+            op_cost=nominal_op_cost * (1.0 + cost_volatility),  # coherent
             fuel_cost=rng.uniform(100.0, 5_000.0),
             risk_cost=nominal_op_cost * rng.uniform(0.01, 0.15),
             storage_cost=rng.uniform(50.0, 2_000.0),
@@ -217,7 +220,7 @@ class RandomSupplyChainGenerator:
             latitude=lat + rng.uniform(-0.5, 0.5),
             longitude=lon + rng.uniform(-0.5, 0.5),
             kpis=self._node_kpis(),
-            # timestamp déterministe : garantit la reproductibilité à seed égal
+            # timestamp deterministe : garantit la reproductibilite a seed egal
             urgency=UrgencyState(timestamp=0.0),
         )
 
@@ -233,20 +236,20 @@ class RandomSupplyChainGenerator:
             kpis=self._arc_kpis(),
         )
 
-    # -- API publique -----------------------------------------------------------
+    # API publique
 
     def generate(
         self,
         n_ranks: int = 3,
         breadth: tuple[int, int] = (1, 3),
     ) -> tuple[Project, list[SupplyNode], list[SupplyArc]]:
-        """Construit un DAG de chaîne d'approvisionnement de TEST.
+        """Construit un DAG de chaine d'approvisionnement de TEST.
 
         - 1 client final au rang 0 (label "Client"), porteur du :class:`Project` ;
-        - à chaque rang ``r`` de 1 à ``n_ranks``, chaque nœud du rang ``r-1``
-          reçoit entre ``breadth[0]`` et ``breadth[1]`` fournisseurs dédiés ;
+        - a chaque rang ``r`` de 1 a ``n_ranks``, chaque noeud du rang ``r-1``
+          recoit entre ``breadth[0]`` et ``breadth[1]`` fournisseurs dedies ;
         - ~20 % des fournisseurs servent en plus un second client du rang
-          inférieur (arcs croisés), toujours orientés rang r -> rang r-1 :
+          inferieur (arcs croises), toujours orientes rang r -> rang r-1 :
           aucun cycle possible.
         """
         if n_ranks < 1:
@@ -282,8 +285,7 @@ class RandomSupplyChainGenerator:
                     current_rank.append(supplier)
                     arcs.append(self._make_arc(supplier, consumer))
 
-            # Arcs croisés : un fournisseur peut servir un 2e client du rang
-            # inférieur (~20 % de chance), toujours rang r -> rang r-1.
+            # Arcs croises : un fournisseur peut servir un 2e client du rang inferieur (~20 % de chance), toujours rang r -> rang r-1.
             if len(previous_rank) >= 2:
                 existing = {(a.source_id, a.target_id) for a in arcs}
                 for supplier in current_rank:
@@ -309,34 +311,34 @@ class RandomSupplyChainGenerator:
         p_arc_croise: float = 0.25,
         enrich: bool = False,
     ) -> tuple[Project, list[SupplyNode], list[SupplyArc]]:
-        """DAG de stress pour les bancs de performance (E14) — large ET profond.
+        """DAG de stress pour les bancs de performance (E14) - large ET profond.
 
         Topologie : 1 client final au rang 0 (porteur du :class:`Project`),
-        puis des rangs successifs de ``largeur_rang`` nœuds (le dernier rang
-        complète à ``n_nodes``). Chaque nœud du rang ``r`` alimente exactement
-        1 nœud du rang ``r-1`` (cible tirée au hasard), plus, avec probabilité
-        ``p_arc_croise``, un arc croisé vers un AUTRE nœud du rang inférieur.
-        Tous les arcs sont orientés rang ``r`` -> rang ``r-1`` : aucun cycle
-        possible par construction. KPIs complets sur chaque nœud
-        (:meth:`_node_kpis`), reproductible à seed égal (tout l'aléa passe par
+        puis des rangs successifs de ``largeur_rang`` noeuds (le dernier rang
+        complete a ``n_nodes``). Chaque noeud du rang ``r`` alimente exactement
+        1 noeud du rang ``r-1`` (cible tiree au hasard), plus, avec probabilite
+        ``p_arc_croise``, un arc croise vers un AUTRE noeud du rang inferieur.
+        Tous les arcs sont orientes rang ``r`` -> rang ``r-1`` : aucun cycle
+        possible par construction. KPIs complets sur chaque noeud
+        (:meth:`_node_kpis`), reproductible a seed egal (tout l'alea passe par
         ``self._rng``).
 
-        STRICT NÉCESSAIRE POUR MESURER : par défaut, PAS de jalons ni de tags
-        — les bancs E14 chronomètrent propagation, persistance, Monte Carlo et
-        rendu, qui n'en dépendent pas. Avec ``enrich=True``, les tags de TEST
-        sont posés sur les nœuds (``node.tags``) et des arcs de secours sont
-        ajoutés ; les jalons, persistés par nœud côté service, restent à
-        générer par l'appelant via :meth:`generate_milestones` (la signature
+        STRICT NECESSAIRE POUR MESURER : par defaut, PAS de jalons ni de tags
+        - les bancs E14 chronometrent propagation, persistance, Monte Carlo et
+        rendu, qui n'en dependent pas. Avec ``enrich=True``, les tags de TEST
+        sont poses sur les noeuds (``node.tags``) et des arcs de secours sont
+        ajoutes ; les jalons, persistes par noeud cote service, restent a
+        generer par l'appelant via :meth:`generate_milestones` (la signature
         de retour ne les transporte pas).
 
         Args:
-            n_nodes: nombre total de nœuds (client final inclus), >= 2.
+            n_nodes: nombre total de noeuds (client final inclus), >= 2.
             largeur_rang: largeur cible de chaque rang (>= 1).
-            p_arc_croise: probabilité d'un arc croisé par nœud, dans [0, 1].
-            enrich: ajoute tags (sur les nœuds) et arcs de secours.
+            p_arc_croise: probabilite d'un arc croise par noeud, dans [0, 1].
+            enrich: ajoute tags (sur les noeuds) et arcs de secours.
 
         Returns:
-            ``(project, nodes, arcs)`` — mêmes types que :meth:`generate`.
+            ``(project, nodes, arcs)`` - memes types que :meth:`generate`.
 
         Raises:
             ValueError: ``n_nodes < 2``, ``largeur_rang < 1`` ou
@@ -389,14 +391,14 @@ class RandomSupplyChainGenerator:
 
         return project, nodes, arcs
 
-    # -- enrichissements v2 (jalons, tags, arcs de secours) ----------------------
+    # enrichissements v2 (jalons, tags, arcs de secours)
 
     def generate_milestones(self, node_id: str, t0_ts: float) -> list[Milestone]:
-        """Jalons de TEST pour un nœud : 2 à 4 fenêtres successives depuis ``t0_ts``.
+        """Jalons de TEST pour un noeud : 2 a 4 fenetres successives depuis ``t0_ts``.
 
-        Les deadlines sont RELATIVES à ``t0_ts`` (l'origine du projet) pour que
-        l'horloge — réelle ou de jeu — rende les échéances vivantes. Le premier
-        jalon est parfois déjà terminé (~30 % de chance).
+        Les deadlines sont RELATIVES a ``t0_ts`` (l'origine du projet) pour que
+        l'horloge - reelle ou de jeu - rende les echeances vivantes. Le premier
+        jalon est parfois deja termine (~30 % de chance).
         """
         rng = self._rng
         kinds = ["proto", "serie", "livraison", "custom"]
@@ -426,7 +428,7 @@ class RandomSupplyChainGenerator:
         return milestones
 
     def generate_tags(self, project_id: str) -> tuple[list[TagCategory], list[Tag]]:
-        """Taxonomie de TEST : 2 catégories colorées et 4 à 6 tags rattachés."""
+        """Taxonomie de TEST : 2 categories colorees et 4 a 6 tags rattaches."""
         rng = self._rng
         categories = [
             TagCategory(id=self._uuid(), project_id=project_id, name="Procédé", color="#2c5f7c"),
@@ -453,7 +455,7 @@ class RandomSupplyChainGenerator:
         return categories, tags
 
     def pick_node_tags(self, tag_ids: list[str]) -> list[str]:
-        """Tire 1 à 3 tags (sans doublon) pour un nœud."""
+        """Tire 1 a 3 tags (sans doublon) pour un noeud."""
         if not tag_ids:
             return []
         rng = self._rng
@@ -463,10 +465,10 @@ class RandomSupplyChainGenerator:
     def generate_backup_arcs(
         self, nodes: list[SupplyNode], arcs: list[SupplyArc]
     ) -> list[SupplyArc]:
-        """Arcs de secours de TEST : ~1 arc nominal sur 10 reçoit un fournisseur backup.
+        """Arcs de secours de TEST : ~1 arc nominal sur 10 recoit un fournisseur backup.
 
-        L'arc backup relie un AUTRE nœud du même rang que le fournisseur nominal
-        vers le même client (purement visuel — inerte dans les calculs).
+        L'arc backup relie un AUTRE noeud du meme rang que le fournisseur nominal
+        vers le meme client (purement visuel - inerte dans les calculs).
         """
         rng = self._rng
         by_id = {n.id: n for n in nodes}
@@ -510,17 +512,17 @@ class RandomSupplyChainGenerator:
         n_criteria: int = 4,
         notes: str = "",
     ) -> AHPAssessment:
-        """Questionnaire AHP simulé COHÉRENT (CR < 0.10 garanti).
+        """Questionnaire AHP simule COHERENT (CR < 0.10 garanti).
 
-        Tire des poids cibles aléatoires, construit les comparaisons par paires
-        à partir des ratios ``w_i / w_j`` arrondis à l'échelle de Saaty, puis
-        recalcule les poids par moyenne des lignes normalisées (AHP standard)
-        et le ratio de cohérence — sans dépendre de ``supplyscore.core``.
+        Tire des poids cibles aleatoires, construit les comparaisons par paires
+        a partir des ratios ``w_i / w_j`` arrondis a l'echelle de Saaty, puis
+        recalcule les poids par moyenne des lignes normalisees (AHP standard)
+        et le ratio de coherence - sans dependre de ``supplyscore.core``.
 
-        ``urgency_bias`` dans [0, 1] décale les scores critères : 0 -> scores
-        proches de 1 (pas urgent), 1 -> proches de 9 (très urgent).
+        ``urgency_bias`` dans [0, 1] decale les scores criteres : 0 -> scores
+        proches de 1 (pas urgent), 1 -> proches de 9 (tres urgent).
 
-        Le défaut ``n_criteria=4`` est aligné sur les 4 critères de l'UI du
+        Le defaut ``n_criteria=4`` est aligne sur les 4 criteres de l'UI du
         questionnaire (``CRITERIA`` de :mod:`supplyscore.core.ahp`).
         """
         rng = self._rng
@@ -528,8 +530,7 @@ class RandomSupplyChainGenerator:
         if n < 2:
             raise ValueError("n_criteria doit être >= 2")
 
-        # Boucle de sécurité : l'arrondi Saaty d'une matrice issue de vrais
-        # ratios donne quasi toujours CR < 0.10 ; on retire au cas où.
+        # Boucle de securite : l'arrondi Saaty d'une matrice issue de vrais ratios donne quasi toujours CR < 0.10 ; on retire au cas ou.
         for _ in range(100):
             target = [rng.uniform(1.0, 4.0) for _ in range(n)]
             total = sum(target)
@@ -545,11 +546,11 @@ class RandomSupplyChainGenerator:
             if cr < 0.10:
                 break
 
-        # Scores critères [1, 9] centrés selon urgency_bias.
+        # Scores criteres [1, 9] centres selon urgency_bias.
         center = 1.0 + 8.0 * min(max(urgency_bias, 0.0), 1.0)
         criteria_scores = [min(max(rng.gauss(center, 1.2), 1.0), 9.0) for _ in range(n)]
 
-        # Ud = (somme pondérée des scores - 1) / 8, dans [0, 1].
+        # Ud = (somme ponderee des scores - 1) / 8, dans [0, 1].
         weighted = sum(w * s for w, s in zip(weights, criteria_scores, strict=True))
         ud = (weighted - 1.0) / 8.0
 
@@ -568,8 +569,8 @@ class RandomSupplyChainGenerator:
 
     @staticmethod
     def _solve_ahp(comparisons: dict[tuple[int, int], float], n: int) -> tuple[list[float], float]:
-        """Poids AHP (moyenne des lignes normalisées) + ratio de cohérence."""
-        # Matrice complète réciproque.
+        """Poids AHP (moyenne des lignes normalisees) + ratio de coherence."""
+        # Matrice complete reciproque.
         matrix = [[1.0] * n for _ in range(n)]
         for (i, j), value in comparisons.items():
             matrix[i][j] = value
@@ -579,7 +580,7 @@ class RandomSupplyChainGenerator:
         col_sums = [sum(matrix[i][j] for i in range(n)) for j in range(n)]
         weights = [sum(matrix[i][j] / col_sums[j] for j in range(n)) / n for i in range(n)]
 
-        # lambda_max approché : moyenne de (A.w)_i / w_i.
+        # lambda_max approche : moyenne de (A.w)_i / w_i.
         aw = [sum(matrix[i][j] * weights[j] for j in range(n)) for i in range(n)]
         lambda_max = sum(aw[i] / weights[i] for i in range(n)) / n
 

@@ -1,14 +1,14 @@
-"""Tests du Lot 6.5 : page « /hebdo » — revue hebdomadaire en quatre volets, sans serveur.
+"""Tests du Lot 6.5 : page " /hebdo " - revue hebdomadaire en quatre volets, sans serveur.
 
-Couvre : la bijection Saaty↔bipolaire (17 valeurs) et l'inverse des notes,
-le pré-remplissage du volet AHP depuis la dernière évaluation, « Confirmer à
-l'identique » (nouvelle évaluation persistée cette semaine, volet ✓), le
-volet KPIs (enregistrement → registre, « rien n'a changé » → décroissance,
-avertissement double comptage), le volet Jalons (confirm_milestone audité),
-le volet Événements (preview avant/après, apply, décision avec snapshot,
-annulation avec ConflictError français) et la clôture (durée, erreur
-française si incomplet). Callbacks appelés directement (fonctions module),
-service seedé partagé via ``set_service`` et libéré en teardown, FixedClock.
+Couvre : la bijection Saaty<->bipolaire (17 valeurs) et l'inverse des notes,
+le pre-remplissage du volet AHP depuis la derniere evaluation, " Confirmer a
+l'identique " (nouvelle evaluation persistee cette semaine, volet [ok]), le
+volet KPIs (enregistrement -> registre, " rien n'a change " -> decroissance,
+avertissement double comptage), le volet Jalons (confirm_milestone audite),
+le volet Evenements (preview avant/apres, apply, decision avec snapshot,
+annulation avec ConflictError francais) et la cloture (duree, erreur
+francaise si incomplet). Callbacks appeles directement (fonctions module),
+service seede partage via ``set_service`` et libere en teardown, FixedClock.
 """
 
 from __future__ import annotations
@@ -32,11 +32,11 @@ from supplyscore.web_ui import set_service
 from supplyscore.web_ui.pages import weekly
 from supplyscore.web_ui.pages.questionnaire import KPI_FIELDS, PAIRS
 
-#: Mercredi 2026-06-10 12:00 locale — semaine ISO « 2026-S24 ».
+#: Mercredi 2026-06-10 12:00 locale - semaine ISO " 2026-S24 ".
 _NOW = datetime(2026, 6, 10, 12, 0).timestamp()
 _WEEK = "2026-S24"
 
-#: Paramètres de la panne machine du cas chiffré du PLAN (0.02 → ~0.0563).
+#: Parametres de la panne machine du cas chiffre du PLAN (0.02 -> ~0.0563).
 _PANNE = {"duree_arret_h": 24.0, "gravite": "majeure"}
 
 _OPERATOR = {"name": "testeuse"}
@@ -49,7 +49,7 @@ def fixed_clock() -> FixedClock:
 
 @pytest.fixture
 def service(tmp_path: Path, fixed_clock: FixedClock):
-    """Service à horloge figée (2026-S24), partagé par les callbacks de la page."""
+    """Service a horloge figee (2026-S24), partage par les callbacks de la page."""
     svc = SupplyScoreService(db_dir=tmp_path / "store", clock=fixed_clock)
     set_service(svc)
     yield svc
@@ -59,7 +59,7 @@ def service(tmp_path: Path, fixed_clock: FixedClock):
 
 @pytest.fixture
 def node_id(service: SupplyScoreService) -> str:
-    """Premier nœud actif (ordre déterministe) du projet de démo seedé."""
+    """Premier noeud actif (ordre deterministe) du projet de demo seede."""
     service.seed_demo(n_ranks=2, seed=1)
     nodes = sorted(service.repo.nodes(), key=lambda n: n.id)
     actifs = [n for n in nodes if n.status is TaskStatus.ACTIVE]
@@ -69,7 +69,7 @@ def node_id(service: SupplyScoreService) -> str:
 
 @pytest.fixture
 def store(node_id: str) -> dict:
-    """Contenu de ``store-hebdo`` après sélection du nœud."""
+    """Contenu de ``store-hebdo`` apres selection du noeud."""
     return {"node_id": node_id}
 
 
@@ -94,12 +94,12 @@ def _kpi_args(**values: float) -> tuple[list, list[dict]]:
 
 
 def _param_args(params: dict) -> tuple[list, list[dict]]:
-    """Valeurs/ids des champs {"type": "ev-param"} d'un formulaire d'événement."""
+    """Valeurs/ids des champs {"type": "ev-param"} d'un formulaire d'evenement."""
     ids = [{"type": "ev-param", "index": name} for name in params]
     return list(params.values()), ids
 
 
-# --- Conversions Saaty ↔ UI -----------------------------------------------------------
+# Conversions Saaty <-> UI
 
 
 class TestConversions:
@@ -117,7 +117,7 @@ class TestConversions:
         assert weekly.saaty_to_score6(1.0) == 1
 
 
-# --- Volet 1 : pré-remplissage et soumissions ------------------------------------------
+# Volet 1 : pre-remplissage et soumissions
 
 
 class TestVoletAhp:
@@ -129,7 +129,7 @@ class TestVoletAhp:
 
         for (i, j), saaty in latest.comparisons.items():
             assert pairs[f"{i}-{j}"] == weekly.saaty_to_bipolar(saaty)
-            # L'échelle de Saaty discrète du générateur fait l'aller-retour exact.
+            # L'echelle de Saaty discrete du generateur fait l'aller-retour exact.
             assert bipolar_to_saaty(pairs[f"{i}-{j}"]) == pytest.approx(saaty)
         for k, s in enumerate(latest.criteria_scores):
             assert scores[str(k)] == weekly.saaty_to_score6(s)
@@ -180,7 +180,7 @@ class TestVoletAhp:
         assert _volets(service, node_id)["ahp"] == 1
 
     def test_save_refuse_un_cr_incoherent(self, service, node_id, store) -> None:
-        # (0,1)=+8 et (1,2)=+8 mais (0,2)=-8 : jugements volontairement incohérents.
+        # (0,1)=+8 et (1,2)=+8 mais (0,2)=-8 : jugements volontairement incoherents.
         sliders = {"0-1": 8, "0-2": -8, "0-3": 0, "1-2": 8, "1-3": 0, "2-3": 0}
         pair_ids = [{"type": "hebdo-ahp-pair", "index": key} for key in sliders]
         score_ids = [{"type": "hebdo-ahp-score", "index": str(k)} for k in range(4)]
@@ -195,7 +195,7 @@ class TestVoletAhp:
         assert _volets(service, node_id)["ahp"] == 0
 
 
-# --- Volet 2 : KPIs --------------------------------------------------------------------
+# Volet 2 : KPIs
 
 
 class TestVoletKpis:
@@ -221,7 +221,7 @@ class TestVoletKpis:
         p_apres = _kpi(service, node_id, "risk.failure_probability")
         assert p_apres is not None and p_apres < 0.2
         assert _volets(service, node_id)["kpis"] == 1
-        # Chaque bloc KPI porte sa ligne d'audit de confirmation « __confirmed__ ».
+        # Chaque bloc KPI porte sa ligne d'audit de confirmation " __confirmed__ ".
         client = service.client_db(node_id)
         trail = AuditTrail(client.conn, FixedClock(_NOW), lock=client.lock)
         entries = trail.history("node_kpis", node_id, field="__confirmed__", limit=20)
@@ -251,7 +251,7 @@ class TestVoletKpis:
         assert _volets(service, node_id)["kpis"] == 0
 
 
-# --- Volet 3 : jalons ------------------------------------------------------------------
+# Volet 3 : jalons
 
 
 class TestVoletJalons:
@@ -283,7 +283,7 @@ class TestVoletJalons:
         assert relu is not None
         assert relu.progress == pytest.approx(nouveau_pct / 100.0)
         assert _volets(service, node_id)["jalons"] == 1
-        # confirm_milestone passe par MutationService : audit « milestone » au registre.
+        # confirm_milestone passe par MutationService : audit " milestone " au registre.
         trail = AuditTrail(service.registry.conn, FixedClock(_NOW), lock=service.registry.lock)
         entries = trail.history("milestone", jalon.id, field="progress", limit=5)
         assert entries and entries[0].source == "weekly"
@@ -311,7 +311,7 @@ class TestVoletJalons:
         assert "Confirmer les jalons" in body
 
 
-# --- Volet 4 : événements et décision --------------------------------------------------
+# Volet 4 : evenements et decision
 
 
 class TestVoletEvenements:
@@ -324,7 +324,7 @@ class TestVoletEvenements:
         assert "Avant" in table and "Après" in table
         assert "risk.failure_probability" in table
         assert "0.02" in table
-        # Rien n'est écrit : la prévisualisation est pure.
+        # Rien n'est ecrit : la previsualisation est pure.
         assert _kpi(service, node_id, "risk.failure_probability") == 0.02
 
     def test_apply_journalise_et_marque_le_volet(self, service, node_id, store) -> None:
@@ -348,7 +348,7 @@ class TestVoletEvenements:
     ) -> None:
         service.mutations.update_kpis(node_id, {"risk.failure_probability": 0.02}, source="edit")
         event = EventEngine(service).apply(node_id, "panne_machine", _PANNE, operator_id="op")
-        # Réécriture manuelle d'un KPI touché : l'annulation doit refuser.
+        # Reecriture manuelle d'un KPI touche : l'annulation doit refuser.
         service.mutations.update_kpis(node_id, {"risk.failure_probability": 0.5}, source="edit")
         monkeypatch.setattr(
             weekly, "_triggered_id", lambda: {"type": "ev-revert", "index": event.id}
@@ -397,7 +397,7 @@ class TestVoletEvenements:
         assert _volets(service, node_id)["evenements"] == 1
 
 
-# --- Clôture ---------------------------------------------------------------------------
+# Cloture
 
 
 class TestCloture:
@@ -423,7 +423,7 @@ class TestCloture:
         assert review.review_status(node_id)["completed_at"] == _NOW
 
 
-# --- Sélection de nœud, layout et câblage ----------------------------------------------
+# Selection de noeud, layout et cablage
 
 
 class TestPage:
@@ -434,7 +434,7 @@ class TestPage:
         assert data == {"node_id": node_id}
         assert f"Semaine {_WEEK}" in str(banner)
         assert "0/4 volets" in str(outputs[2])
-        # started_at posé par WeeklyReview.start (idempotent).
+        # started_at pose par WeeklyReview.start (idempotent).
         assert WeeklyReview(service).review_status(node_id)["started_at"] == _NOW
         corps = "".join(str(part) for part in outputs[7:11])
         assert "hebdo-ahp-confirm-btn" in corps
@@ -454,7 +454,7 @@ class TestPage:
             {"project_id": node.project_id, "name": "Démo"}
         )
         labels = {option["value"]: option["label"] for option in options}
-        # seed_demo soumet une évaluation cette semaine : le nœud est « À jour ».
+        # seed_demo soumet une evaluation cette semaine : le noeud est " A jour ".
         assert "À jour" in labels[node_id]
 
     def test_layout_et_enregistrement_des_callbacks(self, service, node_id) -> None:

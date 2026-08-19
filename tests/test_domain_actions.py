@@ -1,12 +1,12 @@
-"""Tests du catalogue d'actions correctives (U15, contrat gelé n° 8).
+"""Tests du catalogue d'actions correctives (U15, contrat gele no 8).
 
-Couvre : intégrité du catalogue (ids, incompatibles, bornes de coût et de
-délai), préconditions (cas vrai/faux par action), pureté de
-``apply_to_rollout`` (le state en entrée n'est jamais modifié), effet
-numérique de chaque ``apply_to_rollout``, écritures réelles de chaque
-``apply_to_project`` (via ``MutationService`` uniquement) et équivalence
-sim/réel (même variation relative pour ``expedition_express``, même arc
-promu en nominal des deux côtés pour ``promouvoir_arc_secours``).
+Couvre : integrite du catalogue (ids, incompatibles, bornes de cout et de
+delai), preconditions (cas vrai/faux par action), purete de
+``apply_to_rollout`` (le state en entree n'est jamais modifie), effet
+numerique de chaque ``apply_to_rollout``, ecritures reelles de chaque
+``apply_to_project`` (via ``MutationService`` uniquement) et equivalence
+sim/reel (meme variation relative pour ``expedition_express``, meme arc
+promu en nominal des deux cotes pour ``promouvoir_arc_secours``).
 """
 
 from __future__ import annotations
@@ -35,7 +35,7 @@ _DEUX_SEMAINES_H = 2.0 * 7.0 * 24.0
 _DEUX_SEMAINES_S = _DEUX_SEMAINES_H * 3600.0
 
 
-# --- Fixtures et aides ---------------------------------------------------------------
+# Fixtures et aides
 
 
 @pytest.fixture
@@ -79,7 +79,7 @@ def _toy_project(service: SupplyScoreService) -> tuple[SupplyNode, SupplyArc]:
     """Client + fournisseur nominal + fournisseur de secours (arc backup, beta=0.4).
 
     Returns:
-        Le nœud client et l'arc de secours entrant (encore BACKUP).
+        Le noeud client et l'arc de secours entrant (encore BACKUP).
     """
     project = Project(id="p1", name="Projet test", owner_node_id="client")
     client = SupplyNode(id="client", name="Client", project_id="p1", rank=0)
@@ -99,7 +99,7 @@ def _toy_project(service: SupplyScoreService) -> tuple[SupplyNode, SupplyArc]:
     return client, backup_arc
 
 
-# --- Intégrité du catalogue -----------------------------------------------------------
+# Integrite du catalogue
 
 
 class TestCatalogueIntegrity:
@@ -137,7 +137,7 @@ class TestCatalogueIntegrity:
                 assert objectif in OBJECTIFS_OPERATIONNELS
 
     def test_validate_catalogue_accepte_le_vrai_catalogue(self):
-        _validate_catalogue(CATALOGUE_V1)  # ne lève pas
+        _validate_catalogue(CATALOGUE_V1)  # ne leve pas
 
     def test_validate_catalogue_rejette_id_incoherent(self):
         broken = dict(CATALOGUE_V1)
@@ -171,10 +171,7 @@ class TestCatalogueIntegrity:
             _validate_catalogue(broken)
 
     def test_validate_catalogue_rejette_incompatibilite_asymetrique(self):
-        # boost_capacite ne référence personne dans le vrai catalogue : le
-        # rendre incompatible avec expedition_express sans réciprocité doit
-        # être rejeté (cf. finding de revue : incompatibles doit être une
-        # relation symétrique pour rester utilisable sans ambiguïté).
+        # boost_capacite ne reference personne dans le vrai catalogue : le rendre incompatible avec expedition_express sans reciprocite doit etre rejete (cf. finding de revue : incompatibles doit etre une relation symetrique pour rester utilisable sans ambiguite).
         broken = dict(CATALOGUE_V1)
         broken["boost_capacite"] = dataclasses.replace(
             broken["boost_capacite"], incompatibles=["expedition_express"]
@@ -188,7 +185,7 @@ class TestCatalogueIntegrity:
                 assert key in CATALOGUE_V1[other_id].incompatibles
 
 
-# --- Préconditions ---------------------------------------------------------------------
+# Preconditions
 
 
 class TestPreconditions:
@@ -231,13 +228,12 @@ class TestPreconditions:
         assert spec.preconditions(_ctx(urgency=UrgencyState(ud_local=None))) is False
 
     def test_ne_rien_faire_toujours_applicable(self):
-        # Bras de référence : toujours applicable par contrat — pas de cas
-        # « faux » à tester pour cette action (cf. docstring du catalogue).
+        # Bras de reference : toujours applicable par contrat - pas de cas " faux " a tester pour cette action (cf. docstring du catalogue).
         spec = CATALOGUE_V1["ne_rien_faire"]
         assert spec.preconditions(_ctx()) is True
 
 
-# --- Pureté de apply_to_rollout ---------------------------------------------------------
+# Purete de apply_to_rollout
 
 
 class TestRolloutPurity:
@@ -257,7 +253,7 @@ class TestRolloutPurity:
         assert state["arc_beta"] == snapshot["arc_beta"]
 
 
-# --- Effet numérique de apply_to_rollout, par action -------------------------------------
+# Effet numerique de apply_to_rollout, par action
 
 
 class TestApplyToRolloutEffects:
@@ -279,10 +275,7 @@ class TestApplyToRolloutEffects:
         assert result["arc_beta"] == {"fournisseur_nominal->client": 0.5}
 
     def test_promouvoir_arc_secours_departage_par_petite_source_id(self):
-        # Régression : avec plusieurs backups en attente, le rollout doit
-        # choisir EXACTEMENT le même (plus petite source_id) que le côté réel
-        # (_apply_project_promouvoir_arc_secours utilise min(..., key=source_id)),
-        # sinon les deux applications promeuvent des arcs différents.
+        # Regression : avec plusieurs backups en attente, le rollout doit choisir EXACTEMENT le meme (plus petite source_id) que le cote reel (_apply_project_promouvoir_arc_secours utilise min(..., key=source_id)), sinon les deux applications promeuvent des arcs differents.
         state = _sample_state()
         state["arc_beta"] = {
             "z_fournisseur->client:backup": 0.9,
@@ -297,17 +290,14 @@ class TestApplyToRolloutEffects:
         }
 
     def test_replanifier_jalon_decale_336h_uniquement_lechance_la_plus_proche(self):
-        # Régression : seule l'échéance MINIMALE bouge, les autres restent en
-        # place — même règle que côté réel (next_active_milestone), sinon
-        # les deux applications ne portent plus sur le même jalon dès que le
-        # nœud a plus d'un jalon actif (cf. RandomSupplyChainGenerator).
+        # Regression : seule l'echeance MINIMALE bouge, les autres restent en place - meme regle que cote reel (next_active_milestone), sinon les deux applications ne portent plus sur le meme jalon des que le noeud a plus d'un jalon actif (cf. RandomSupplyChainGenerator).
         state = _sample_state()
 
         result = CATALOGUE_V1["replanifier_jalon"].apply_to_rollout(state)
 
         assert result["deadlines_h"] == {
-            "m1": 100.0 + _DEUX_SEMAINES_H,  # la plus proche (100 < 200) : décalée
-            "m2": 200.0,  # inchangée
+            "m1": 100.0 + _DEUX_SEMAINES_H,  # la plus proche (100 < 200) : decalee
+            "m2": 200.0,  # inchangee
         }
 
     def test_replanifier_jalon_no_op_si_deadlines_h_vide(self):
@@ -343,7 +333,7 @@ class TestApplyToRolloutEffects:
             assert np.array_equal(result["ur_local"], state["ur_local"])
 
 
-# --- apply_to_project : écritures réelles ------------------------------------------------
+# apply_to_project : ecritures reelles
 
 
 class TestApplyToProject:
@@ -356,7 +346,7 @@ class TestApplyToProject:
         client = SupplyNode(id="client", name="Client", project_id="p1")
         service.create_project(project, [client], [])
 
-        CATALOGUE_V1["promouvoir_arc_secours"].apply_to_project(service, "client")  # ne lève pas
+        CATALOGUE_V1["promouvoir_arc_secours"].apply_to_project(service, "client")  # ne leve pas
 
     def test_promouvoir_arc_secours_departage_deterministe(self, service):
         project = Project(id="p1", name="Projet", owner_node_id="client")
@@ -390,8 +380,7 @@ class TestApplyToProject:
         assert updated.start_ts == 0.0
 
     def test_replanifier_jalon_ne_touche_que_le_jalon_le_plus_proche(self, service):
-        # Régression : avec 2 jalons ACTIVE, seul celui de deadline minimale
-        # (next_active_milestone) doit bouger — le second reste intact.
+        # Regression : avec 2 jalons ACTIVE, seul celui de deadline minimale (next_active_milestone) doit bouger - le second reste intact.
         project = Project(id="p1", name="Projet", owner_node_id="n1")
         node = SupplyNode(id="n1", name="Atelier", project_id="p1")
         service.create_project(project, [node], [])
@@ -414,7 +403,7 @@ class TestApplyToProject:
         node = SupplyNode(id="n1", name="Atelier", project_id="p1")
         service.create_project(project, [node], [])
 
-        CATALOGUE_V1["replanifier_jalon"].apply_to_project(service, "n1")  # ne lève pas
+        CATALOGUE_V1["replanifier_jalon"].apply_to_project(service, "n1")  # ne leve pas
 
     def test_replanifier_jalon_keyerror_si_noeud_inconnu(self, service):
         with pytest.raises(KeyError):
@@ -464,7 +453,7 @@ class TestApplyToProject:
     def test_boost_capacite_ne_touche_que_le_kpi_renseigne(self, service):
         project = Project(id="p1", name="Projet", owner_node_id="n1")
         node = SupplyNode(id="n1", name="Atelier", project_id="p1")
-        node.kpis.inventory.flow_rate = 50.0  # max_volume_m3 non renseigné
+        node.kpis.inventory.flow_rate = 50.0  # max_volume_m3 non renseigne
         service.create_project(project, [node], [])
 
         CATALOGUE_V1["boost_capacite"].apply_to_project(service, "n1")
@@ -479,7 +468,7 @@ class TestApplyToProject:
         node = SupplyNode(id="n1", name="Atelier", project_id="p1")
         service.create_project(project, [node], [])
 
-        CATALOGUE_V1["boost_capacite"].apply_to_project(service, "n1")  # ne lève pas
+        CATALOGUE_V1["boost_capacite"].apply_to_project(service, "n1")  # ne leve pas
 
     def test_boost_capacite_keyerror_si_noeud_inconnu(self, service):
         with pytest.raises(KeyError):
@@ -492,7 +481,7 @@ class TestApplyToProject:
         assert CATALOGUE_V1["ne_rien_faire"].apply_to_project(service, "fantome") is None
 
 
-# --- contexte_pour ---------------------------------------------------------------------
+# contexte_pour
 
 
 class TestContextePour:
@@ -515,12 +504,12 @@ class TestContextePour:
             contexte_pour(service, "fantome")
 
 
-# --- Équivalence sim/réel ----------------------------------------------------------------
+# Equivalence sim/reel
 
 
 class TestEquivalenceSimReel:
     def test_expedition_express_meme_variation_relative(self, service):
-        """expedition_express : même facteur -30 % côté KPI réel et côté rollout simulé."""
+        """expedition_express : meme facteur -30 % cote KPI reel et cote rollout simule."""
         service.seed_demo(n_ranks=2, seed=7)
         node = next(n for n in service.repo.nodes() if n.kpis.time.lead_time_h is not None)
         old_lead = node.kpis.time.lead_time_h
@@ -546,7 +535,7 @@ class TestEquivalenceSimReel:
         assert real_relative_change == pytest.approx(-0.3)
 
     def test_promouvoir_arc_secours_meme_arc_active_des_deux_cotes(self, service):
-        """« Même esprit » : arc nominal côté réel, arc actif (même beta) côté simulé."""
+        """" Meme esprit " : arc nominal cote reel, arc actif (meme beta) cote simule."""
         client, backup_arc = _toy_project(service)
 
         CATALOGUE_V1["promouvoir_arc_secours"].apply_to_project(service, client.id)

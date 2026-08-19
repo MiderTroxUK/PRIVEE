@@ -1,7 +1,7 @@
-"""Tests de la couche d'audit générique append-only (supplyscore.data.audit).
+"""Tests de la couche d'audit generique append-only (supplyscore.data.audit).
 
-La table ``audit_log`` sera créée par les migrations (autre lot) : ici les
-tests la créent eux-mêmes en SQL brut, avec EXACTEMENT le schéma cible.
+La table ``audit_log`` sera creee par les migrations (autre lot) : ici les
+tests la creent eux-memes en SQL brut, avec EXACTEMENT le schema cible.
 """
 
 from __future__ import annotations
@@ -17,7 +17,7 @@ import pytest
 from supplyscore.core.clock import FixedClock
 from supplyscore.data.audit import AuditEntry, AuditTrail
 
-# Schéma cible de la table (verbatim PLAN.md E3 Lot 3.1).
+# Schema cible de la table (verbatim PLAN.md E3 Lot 3.1).
 AUDIT_SCHEMA = """
 CREATE TABLE audit_log (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -51,7 +51,7 @@ def trail(conn: sqlite3.Connection, clock: FixedClock) -> AuditTrail:
     return AuditTrail(conn, clock)
 
 
-# --- record + history : entrée complète, valeurs retypées -----------------------
+# record + history : entree complete, valeurs retypees
 
 
 class TestRecordAndHistory:
@@ -126,7 +126,7 @@ class TestRecordAndHistory:
         assert not any("update" in name.lower() or "delete" in name.lower() for name in public)
 
 
-# --- value_at -------------------------------------------------------------------
+# value_at
 
 
 class TestValueAt:
@@ -147,11 +147,11 @@ class TestValueAt:
     def test_value_at_same_timestamp_takes_highest_id(self, trail: AuditTrail):
         trail.record("node", "n1", "f", None, "premier", "edit")
         trail.record("node", "n1", "f", "premier", "second", "edit")
-        # Même timestamp (horloge figée) : départage par id décroissant.
+        # Meme timestamp (horloge figee) : departage par id decroissant.
         assert trail.value_at("node", "n1", "f", 100.0) == "second"
 
 
-# --- record_many : lot atomique --------------------------------------------------
+# record_many : lot atomique
 
 
 class TestRecordMany:
@@ -159,7 +159,7 @@ class TestRecordMany:
         entries = [("node", f"n{i}", "f", None, i, "migration", "") for i in range(50)]
         trail.record_many(entries)
         assert _count(conn) == 50
-        assert not conn.in_transaction  # le lot est commité
+        assert not conn.in_transaction  # le lot est commite
 
     def test_invalid_entry_mid_batch_writes_nothing(
         self, trail: AuditTrail, conn: sqlite3.Connection
@@ -167,7 +167,7 @@ class TestRecordMany:
         entries: list[tuple[str, str, str, Any, Any, str, str]] = [
             ("node", f"n{i}", "f", None, i, "edit", "") for i in range(10)
         ]
-        entries[5] = ("node", "n5", "f", None, object(), "edit", "")  # non sérialisable JSON
+        entries[5] = ("node", "n5", "f", None, object(), "edit", "")  # non serialisable JSON
         with pytest.raises(TypeError):
             trail.record_many(entries)
         assert _count(conn) == 0
@@ -191,7 +191,7 @@ class TestRecordMany:
         assert _count(conn) == 0
 
 
-# --- history : filtres, limit, before, ordre -------------------------------------
+# history : filtres, limit, before, ordre
 
 
 class TestHistoryFilters:
@@ -242,19 +242,19 @@ class TestHistoryFilters:
         assert [e.new_value for e in entries] == [3]
 
 
-# --- iso_week --------------------------------------------------------------------
+# iso_week
 
 
 class TestIsoWeek:
     def test_known_date_gives_2026_s24(self, conn: sqlite3.Connection):
-        # Midi local le mercredi 10 juin 2026 — semaine ISO 24 de 2026.
+        # Midi local le mercredi 10 juin 2026 - semaine ISO 24 de 2026.
         clock = FixedClock(datetime(2026, 6, 10, 12, 0).timestamp())
         trail = AuditTrail(conn, clock)
         trail.record("node", "n1", "f", None, 1, "weekly")
         assert trail.history("node", "n1")[0].iso_week == "2026-S24"
 
     def test_iso_year_boundary(self, conn: sqlite3.Connection):
-        # Le 1er janvier 2021 appartient à la semaine ISO 53 de... 2020.
+        # Le 1er janvier 2021 appartient a la semaine ISO 53 de... 2020.
         clock = FixedClock(datetime(2021, 1, 1, 12, 0).timestamp())
         trail = AuditTrail(conn, clock)
         trail.record("node", "n1", "f", None, 1, "weekly")
@@ -270,22 +270,22 @@ class TestIsoWeek:
         assert weeks == ["2026-S25", "2026-S24"]
 
 
-# --- Transactions : intégration à la transaction de l'hôte -----------------------
+# Transactions : integration a la transaction de l'hote
 
 
 class TestTransactions:
     def test_record_commits_when_no_transaction(self, trail: AuditTrail, conn: sqlite3.Connection):
         trail.record("node", "n1", "f", None, 1, "edit")
         assert not conn.in_transaction
-        conn.rollback()  # sans effet : déjà commité
+        conn.rollback()  # sans effet : deja commite
         assert _count(conn) == 1
 
     def test_record_joins_host_transaction(self, trail: AuditTrail, conn: sqlite3.Connection):
         conn.execute("BEGIN")
         trail.record("node", "n1", "f", None, 1, "edit")
-        assert conn.in_transaction  # pas de commit imposé par l'audit
+        assert conn.in_transaction  # pas de commit impose par l'audit
         conn.rollback()
-        assert _count(conn) == 0  # l'hôte a annulé : l'audit suit
+        assert _count(conn) == 0  # l'hote a annule : l'audit suit
 
         conn.execute("BEGIN")
         trail.record("node", "n1", "f", None, 1, "edit")
@@ -303,15 +303,15 @@ class TestTransactions:
         ]
         with pytest.raises(sqlite3.IntegrityError):
             trail.record_many(bad)
-        assert conn.in_transaction  # la transaction hôte survit
+        assert conn.in_transaction  # la transaction hote survit
         conn.commit()
-        # Seule l'écriture antérieure de l'hôte est conservée, le lot est annulé.
+        # Seule l'ecriture anterieure de l'hote est conservee, le lot est annule.
         entries = trail.history("node", "avant")
         assert len(entries) == 1
         assert _count(conn) == 1
 
 
-# --- Concurrence ------------------------------------------------------------------
+# Concurrence
 
 
 class TestConcurrency:
@@ -326,7 +326,7 @@ class TestConcurrency:
             try:
                 for i in range(50):
                     trail.record("node", f"{tag}-{i}", "f", None, i, "edit", operator_id=tag)
-            except Exception as exc:  # pragma: no cover — échec remonté à l'assert
+            except Exception as exc:  # pragma: no cover - echec remonte a l'assert
                 errors.append(exc)
 
         threads = [threading.Thread(target=worker, args=(tag,)) for tag in ("t1", "t2")]

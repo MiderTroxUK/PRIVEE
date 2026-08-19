@@ -1,8 +1,8 @@
-"""Smoke tests de l'UI web Dash — aucun serveur lancé.
+"""Smoke tests de l'UI web Dash - aucun serveur lance.
 
-Les callbacks étant des fonctions nommées au niveau module (enregistrées via
-``app.callback(...)(fn)`` dans ``register_callbacks``), ils sont appelés
-directement ici, sans contexte de requête Dash.
+Les callbacks etant des fonctions nommees au niveau module (enregistrees via
+``app.callback(...)(fn)`` dans ``register_callbacks``), ils sont appeles
+directement ici, sans contexte de requete Dash.
 """
 
 import pytest
@@ -19,7 +19,7 @@ from supplyscore.web_ui.pages import dashboard, projects, questionnaire, simulat
 
 @pytest.fixture
 def service(tmp_path):
-    """Service seedé avec une petite démo, partagé par les callbacks."""
+    """Service seede avec une petite demo, partage par les callbacks."""
     svc = SupplyScoreService(db_dir=tmp_path / "store")
     svc.seed_demo(n_ranks=2, seed=1)
     set_service(svc)
@@ -27,7 +27,7 @@ def service(tmp_path):
     set_service(None)
 
 
-# --- Application -----------------------------------------------------------------
+# Application
 
 
 def test_create_app_builds_layout(service):
@@ -38,7 +38,7 @@ def test_create_app_builds_layout(service):
         assert component_id in tree
 
 
-# --- Layouts des 4 pages ------------------------------------------------------------
+# Layouts des 4 pages
 
 
 @pytest.mark.parametrize(
@@ -56,7 +56,7 @@ def test_page_layout_builds(service, page, expected_id):
     assert expected_id in tree
 
 
-# --- Figures du dashboard avec les données de la démo --------------------------------
+# Figures du dashboard avec les donnees de la demo
 
 
 def test_dashboard_figures_with_demo_data(service):
@@ -65,8 +65,11 @@ def test_dashboard_figures_with_demo_data(service):
     assert nodes and arcs
 
     dag = dashboard_dag_figure(nodes, arcs)
-    assert len(dag.data) >= 2  # trace des arêtes + trace des nœuds
-    assert len(dag.data[1].x) == len(nodes)
+    assert len(dag.data) >= 2  # trace des aretes + trace des noeuds
+    # La trace des noeuds se repere a son echelle de couleur, PAS a sa position : une trace " arcs de secours " s'intercale des que la demo en compte (cf. ``dashboard_dag_figure``), ce qui decalait l'index 1.
+    traces_noeuds = [t for t in dag.data if t.marker.colorscale is not None]
+    assert len(traces_noeuds) == 1
+    assert len(traces_noeuds[0].x) == len(nodes)
 
     node = nodes[0]
     series = service.client_db(node.id).urgency_series(node.id)
@@ -75,7 +78,7 @@ def test_dashboard_figures_with_demo_data(service):
     assert len(hist.data) == 3  # Ud, Ur et A
 
 
-# --- Logique de sauvegarde du questionnaire -----------------------------------------
+# Logique de sauvegarde du questionnaire
 
 
 def _pair_args():
@@ -123,11 +126,11 @@ def test_save_assessment_callback_persists(service):
     after = service.client_db(node.id).list_assessments(node.id)
     assert len(after) == before + 1
     assert after[-1].operator_id == "test"
-    # Notes à 3/6 -> Saaty 4.2, poids égaux -> Ud = (4.2 - 1) / 8 = 0.4
+    # Notes a 3/6 -> Saaty 4.2, poids egaux -> Ud = (4.2 - 1) / 8 = 0.4
     assert after[-1].ud == pytest.approx(0.4)
     assert after[-1].is_consistent
     assert "enregistrée" in str(message)
-    # Le KPI renseigné a bien été écrit sur le nœud et persisté.
+    # Le KPI renseigne a bien ete ecrit sur le noeud et persiste.
     assert service.repo.get_node(node.id).kpis.time.lead_time_h == pytest.approx(120.0)
     assert service.registry.get_node(node.id).kpis.time.lead_time_h == pytest.approx(120.0)
 

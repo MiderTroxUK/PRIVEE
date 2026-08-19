@@ -1,35 +1,35 @@
-"""Page « /graphe » : éditeur de structure du graphe — arcs, tags et statuts (Lot 10.4).
+"""Page " /graphe " : editeur de structure du graphe - arcs, tags et statuts (Lot 10.4).
 
-Cinq cartes : le tableau ÉDITABLE des arcs du projet actif (γ/β/δ, nature
-nominal/backup, label), l'ajout d'arc, la suppression d'arc confirmée, la
-taxonomie (catégories, tags, affectation) et les statuts de tâche. Toutes les
-écritures métier passent par :class:`~supplyscore.services.mutations.MutationService`
-(``source="edit"``, opérateur courant) ou par la façade
+Cinq cartes : le tableau EDITABLE des arcs du projet actif (gamma/beta/delta, nature
+nominal/backup, label), l'ajout d'arc, la suppression d'arc confirmee, la
+taxonomie (categories, tags, affectation) et les statuts de tache. Toutes les
+ecritures metier passent par :class:`~supplyscore.services.mutations.MutationService`
+(``source="edit"``, operateur courant) ou par la facade
 :class:`~supplyscore.services.orchestrator.SupplyScoreService` ; chaque action
-réussie incrémente ``dcc.Store(id="graph-edit-refresh")``, qui re-rend le
-tableau et toutes les listes déroulantes.
+reussie incremente ``dcc.Store(id="graph-edit-refresh")``, qui re-rend le
+tableau et toutes les listes deroulantes.
 
-Pièges documentés :
+Pieges documentes :
 
-- **Anti-cycle AVANT toute écriture** : ``MutationService.upsert_arc`` commite
-  l'arc dans le REGISTRE puis seulement synchronise le graphe en mémoire
-  (``_sync_repo_arc`` → ``repo.add_arc``). Si le ``ValueError`` de cycle du
-  dépôt partait de là, l'arc resterait COMMITÉ en base sans rollback possible.
-  Le contrôle anti-cycle (:func:`_creerait_un_cycle`, BFS sur
+- **Anti-cycle AVANT toute ecriture** : ``MutationService.upsert_arc`` commite
+  l'arc dans le REGISTRE puis seulement synchronise le graphe en memoire
+  (``_sync_repo_arc`` -> ``repo.add_arc``). Si le ``ValueError`` de cycle du
+  depot partait de la, l'arc resterait COMMITE en base sans rollback possible.
+  Le controle anti-cycle (:func:`_creerait_un_cycle`, BFS sur
   ``repo.successors`` du client vers le fournisseur, arcs nominaux seulement)
-  est donc fait ICI, avant tout appel à ``upsert_arc`` — à l'ajout d'arc comme
-  au passage backup → nominal dans le tableau. La boucle sur soi-même est
-  refusée pour toutes les natures.
+  est donc fait ICI, avant tout appel a ``upsert_arc`` - a l'ajout d'arc comme
+  au passage backup -> nominal dans le tableau. La boucle sur soi-meme est
+  refusee pour toutes les natures.
 - **UN SEUL ``dcc.ConfirmDialogProvider`` sur la page** (suppression d'arc) :
-  plusieurs boîtes de confirmation natives sur une même page créent une race
-  entre leurs ``submit_n_clicks`` (un dialogue peut rester armé et valider
-  l'action d'une AUTRE carte au clic suivant). Règle : une boîte par page.
-- **Diff du tableau par ligne** : chaque ligne porte une clé ``id`` stable
-  ``"source_id->target_id"`` (jamais affichée — clé de diff fiable même après
-  tri) ; le diff se fait contre ``data_previous`` (None au premier rendu →
-  ``no_update`` intégral). Une valeur hors bornes ou une nature inconnue
-  recharge le tableau depuis le registre : rien n'est écrit, aucune ligne
-  d'audit n'est créée (la validation de ``upsert_arc`` précède toute écriture).
+  plusieurs boites de confirmation natives sur une meme page creent une race
+  entre leurs ``submit_n_clicks`` (un dialogue peut rester arme et valider
+  l'action d'une AUTRE carte au clic suivant). Regle : une boite par page.
+- **Diff du tableau par ligne** : chaque ligne porte une cle ``id`` stable
+  ``"source_id->target_id"`` (jamais affichee - cle de diff fiable meme apres
+  tri) ; le diff se fait contre ``data_previous`` (None au premier rendu ->
+  ``no_update`` integral). Une valeur hors bornes ou une nature inconnue
+  recharge le tableau depuis le registre : rien n'est ecrit, aucune ligne
+  d'audit n'est creee (la validation de ``upsert_arc`` precede toute ecriture).
 """
 
 from __future__ import annotations
@@ -60,7 +60,7 @@ from supplyscore.web_ui.components.layout import (
 )
 from supplyscore.web_ui.components.operator import current_operator
 
-#: Bouton d'action destructive (suppression d'arc), aligné sur la page Simulation.
+#: Bouton d'action destructive (suppression d'arc), aligne sur la page Simulation.
 _BUTTON_DANGER_STYLE = {**BUTTON_STYLE, "backgroundColor": COLORS["alert"]}
 
 _TABLE_STYLE_CELL = {
@@ -76,11 +76,10 @@ _TABLE_STYLE_HEADER = {
     "color": COLORS["text"],
 }
 
-#: Sous-titres internes de la carte « Tags & taxonomie ».
+#: Sous-titres internes de la carte " Tags & taxonomie ".
 _H4_STYLE = {"margin": "14px 0 6px", "fontSize": "15px", "color": COLORS["primary"]}
 
-#: Colonnes du tableau des arcs — Fournisseur/Client en lecture seule,
-#: γ/β/δ numériques éditables, Nature en dropdown par colonne, Label libre.
+#: Colonnes du tableau des arcs - Fournisseur/Client en lecture seule, gamma/beta/delta numeriques editables, Nature en dropdown par colonne, Label libre.
 _ARC_COLUMNS: list[dict[str, Any]] = [
     {"name": "Fournisseur", "id": "Fournisseur", "editable": False},
     {"name": "Client", "id": "Client", "editable": False},
@@ -91,7 +90,7 @@ _ARC_COLUMNS: list[dict[str, Any]] = [
     {"name": "Label", "id": "Label", "editable": True},
 ]
 
-#: Options du dropdown de colonne « Nature » (valeurs = membres d'ArcKind).
+#: Options du dropdown de colonne " Nature " (valeurs = membres d'ArcKind).
 _NATURE_DROPDOWN: dict[str, dict[str, Any]] = {
     "Nature": {
         "options": [
@@ -101,14 +100,14 @@ _NATURE_DROPDOWN: dict[str, dict[str, Any]] = {
     }
 }
 
-#: Options du dropdown « Nature » de la carte d'ajout d'arc.
+#: Options du dropdown " Nature " de la carte d'ajout d'arc.
 _NATURE_OPTIONS: list[dict[str, str]] = [
     {"label": "Nominal (flux réel)", "value": str(ArcKind.NOMINAL)},
     {"label": "Backup (secours, inerte)", "value": str(ArcKind.BACKUP)},
 ]
 
 
-# --- Helpers purs ------------------------------------------------------------------
+# Helpers purs
 
 
 def _creerait_un_cycle(repo: GraphRepository, source_id: str, target_id: str) -> bool:
@@ -116,16 +115,16 @@ def _creerait_un_cycle(repo: GraphRepository, source_id: str, target_id: str) ->
 
     BFS sur ``repo.successors`` (arcs nominaux seulement) depuis le CLIENT
     (``target_id``) : si le FOURNISSEUR (``source_id``) est atteignable, alors
-    ajouter l'arc fournisseur → client fermerait le cycle. La boucle sur
-    soi-même est un cycle par définition.
+    ajouter l'arc fournisseur -> client fermerait le cycle. La boucle sur
+    soi-meme est un cycle par definition.
 
     Args:
-        repo: dépôt de graphe en mémoire.
-        source_id: nœud fournisseur de l'arc envisagé.
-        target_id: nœud client de l'arc envisagé.
+        repo: depot de graphe en memoire.
+        source_id: noeud fournisseur de l'arc envisage.
+        target_id: noeud client de l'arc envisage.
 
     Returns:
-        True si l'ajout (ou le passage en nominal) doit être refusé.
+        True si l'ajout (ou le passage en nominal) doit etre refuse.
     """
     if source_id == target_id:
         return True
@@ -143,7 +142,7 @@ def _creerait_un_cycle(repo: GraphRepository, source_id: str, target_id: str) ->
 
 
 def _project_nodes(service: SupplyScoreService, project_id: str | None) -> list[SupplyNode]:
-    """Nœuds du projet actif (tout le graphe si aucun projet n'est sélectionné)."""
+    """Noeuds du projet actif (tout le graphe si aucun projet n'est selectionne)."""
     nodes = service.repo.nodes()
     if project_id:
         nodes = [n for n in nodes if n.project_id == project_id]
@@ -151,13 +150,13 @@ def _project_nodes(service: SupplyScoreService, project_id: str | None) -> list[
 
 
 def _project_arcs(service: SupplyScoreService, project_id: str | None) -> list[SupplyArc]:
-    """Arcs du registre dont les DEUX extrémités appartiennent au projet actif."""
+    """Arcs du registre dont les DEUX extremites appartiennent au projet actif."""
     ids = {n.id for n in _project_nodes(service, project_id)}
     return [a for a in service.registry.list_arcs() if a.source_id in ids and a.target_id in ids]
 
 
 def _arc_rows(service: SupplyScoreService, project_id: str | None) -> list[dict[str, Any]]:
-    """Lignes du tableau des arcs — clé ``id`` stable ``"source->target"``."""
+    """Lignes du tableau des arcs - cle ``id`` stable ``"source->target"``."""
     names = {n.id: n.name for n in service.repo.nodes()}
     return [
         {
@@ -175,7 +174,7 @@ def _arc_rows(service: SupplyScoreService, project_id: str | None) -> list[dict[
 
 
 def _arc_options(service: SupplyScoreService, project_id: str | None) -> list[dict[str, str]]:
-    """Options « Fournisseur → Client » du dropdown de suppression d'arc."""
+    """Options " Fournisseur -> Client " du dropdown de suppression d'arc."""
     names = {n.id: n.name for n in service.repo.nodes()}
     return [
         {
@@ -189,7 +188,7 @@ def _arc_options(service: SupplyScoreService, project_id: str | None) -> list[di
 
 
 def _tag_options(service: SupplyScoreService, project_id: str | None) -> list[dict[str, str]]:
-    """Options du dropdown des tags du projet — « nom (catégorie) » si rattaché."""
+    """Options du dropdown des tags du projet - " nom (categorie) " si rattache."""
     if not project_id:
         return []
     categories = {c.id: c.name for c in service.registry.list_tag_categories(project_id)}
@@ -202,7 +201,7 @@ def _tag_options(service: SupplyScoreService, project_id: str | None) -> list[di
 
 
 def _category_options(service: SupplyScoreService, project_id: str | None) -> list[dict[str, str]]:
-    """Options du dropdown des catégories de tags du projet."""
+    """Options du dropdown des categories de tags du projet."""
     if not project_id:
         return []
     categories = service.registry.list_tag_categories(project_id)
@@ -210,11 +209,11 @@ def _category_options(service: SupplyScoreService, project_id: str | None) -> li
 
 
 def _to_float(value: Any, field: str) -> float:
-    """Coerce une valeur de cellule en flottant (message français sinon).
+    """Coerce une valeur de cellule en flottant (message francais sinon).
 
     Args:
-        value: contenu brut de la cellule (nombre, chaîne, None…).
-        field: nom affiché du champ (γ, β, δ) pour le message d'erreur.
+        value: contenu brut de la cellule (nombre, chaine, None...).
+        field: nom affiche du champ (gamma, beta, delta) pour le message d'erreur.
 
     Returns:
         La valeur convertie en ``float``.
@@ -229,7 +228,7 @@ def _to_float(value: Any, field: str) -> float:
 
 
 def _to_kind(value: Any) -> ArcKind:
-    """Coerce la valeur de la colonne « Nature » en :class:`ArcKind` (message français)."""
+    """Coerce la valeur de la colonne " Nature " en :class:`ArcKind` (message francais)."""
     try:
         return ArcKind(str(value))
     except ValueError:
@@ -239,16 +238,16 @@ def _to_kind(value: Any) -> ArcKind:
 
 
 def _arc_label(service: SupplyScoreService, source_id: str, target_id: str) -> str:
-    """Libellé humain « Fournisseur → Client » d'un arc (noms des nœuds)."""
+    """Libelle humain " Fournisseur -> Client " d'un arc (noms des noeuds)."""
     names = {n.id: n.name for n in service.repo.nodes()}
     return f"{names.get(source_id, source_id)} → {names.get(target_id, target_id)}"
 
 
-# --- Layout -----------------------------------------------------------------------
+# Layout
 
 
 def layout() -> html.Div:
-    """Construit la page Éditeur de graphe (état du service relu à chaque navigation)."""
+    """Construit la page Editeur de graphe (etat du service relu a chaque navigation)."""
     return html.Div(
         [
             dcc.Store(id="graph-edit-refresh", data=0),
@@ -257,8 +256,7 @@ def layout() -> html.Div:
             card(
                 "Arcs",
                 [
-                    # E16.6 — dcc.Loading autour du tableau des arcs (zone lente
-                    # sur les grands graphes) : l'id reste sur la DataTable.
+                    # E16.6 - dcc.Loading autour du tableau des arcs (zone lente sur les grands graphes) : l'id reste sur la DataTable.
                     dcc.Loading(
                         type="circle",
                         children=dash_table.DataTable(  # type: ignore[attr-defined]
@@ -350,8 +348,7 @@ def layout() -> html.Div:
                         width="380px",
                     ),
                     html.Div(
-                        # UN SEUL ConfirmDialogProvider sur toute la page : plusieurs
-                        # boîtes natives créent une race entre submit_n_clicks.
+                        # UN SEUL ConfirmDialogProvider sur toute la page : plusieurs boites natives creent une race entre submit_n_clicks.
                         dcc.ConfirmDialogProvider(
                             children=html.Button("Supprimer l'arc", style=_BUTTON_DANGER_STYLE),
                             id="arc-del-confirm",
@@ -408,8 +405,7 @@ def layout() -> html.Div:
                         "Couleur (DAG)",
                         dcc.Input(
                             id="tag-cat-color-input",
-                            # Le stub Dash ne liste pas "color", mais le navigateur
-                            # rend bien le sélecteur natif <input type="color">.
+                            # Le stub Dash ne liste pas "color", mais le navigateur rend bien le selecteur natif <input type="color">.
                             type="color",  # type: ignore[arg-type]
                             value=COLORS["primary"],
                             style={**INPUT_STYLE, "height": "36px", "padding": "2px"},
@@ -479,19 +475,19 @@ def layout() -> html.Div:
     )
 
 
-# --- Callbacks (fonctions nommées, testables sans serveur) -------------------------
+# Callbacks (fonctions nommees, testables sans serveur)
 
 
 def refresh_view_callback(project_data, _refresh):
-    """Re-rend le tableau des arcs et toutes les listes déroulantes de la page.
+    """Re-rend le tableau des arcs et toutes les listes deroulantes de la page.
 
-    Déclenché par le changement de projet actif (``store-project``) et par
-    chaque action réussie (``graph-edit-refresh``). Sans projet sélectionné,
-    tout le graphe est affiché mais les tags (par projet) restent vides.
+    Declenche par le changement de projet actif (``store-project``) et par
+    chaque action reussie (``graph-edit-refresh``). Sans projet selectionne,
+    tout le graphe est affiche mais les tags (par projet) restent vides.
 
     Args:
         project_data: contenu de ``store-project`` (``{"project_id", "name"}``).
-        _refresh: compteur ``graph-edit-refresh`` (seul le déclenchement compte).
+        _refresh: compteur ``graph-edit-refresh`` (seul le declenchement compte).
 
     Returns:
         Lignes du tableau, options des sept dropdowns et bandeau d'information.
@@ -528,28 +524,28 @@ def refresh_view_callback(project_data, _refresh):
 
 
 def edit_arc_callback(_timestamp, data, data_previous, project_data, operator_data, refresh):
-    """Applique les éditions de cellules du tableau des arcs (diff par ligne ``id``).
+    """Applique les editions de cellules du tableau des arcs (diff par ligne ``id``).
 
-    Au premier rendu, ``data_previous`` vaut None : ``no_update`` intégral.
-    Chaque ligne modifiée reconstruit un :class:`SupplyArc` complet (KPIs de
-    l'arc existant conservés) passé à ``mutations.upsert_arc(source="edit")``.
-    Le passage backup → nominal est contrôlé anti-cycle AVANT l'écriture
+    Au premier rendu, ``data_previous`` vaut None : ``no_update`` integral.
+    Chaque ligne modifiee reconstruit un :class:`SupplyArc` complet (KPIs de
+    l'arc existant conserves) passe a ``mutations.upsert_arc(source="edit")``.
+    Le passage backup -> nominal est controle anti-cycle AVANT l'ecriture
     (cf. docstring du module : ``upsert_arc`` ne garantit pas le rollback).
-    Si la nature a changé, les rangs sont recalés ; le réseau est ensuite
-    réévalué avec persistance. Toute erreur recharge le tableau depuis le
-    registre (aucune écriture, aucun audit) avec un message français.
+    Si la nature a change, les rangs sont recales ; le reseau est ensuite
+    reevalue avec persistance. Toute erreur recharge le tableau depuis le
+    registre (aucune ecriture, aucun audit) avec un message francais.
 
     Args:
-        _timestamp: ``data_timestamp`` du tableau (déclencheur seulement).
+        _timestamp: ``data_timestamp`` du tableau (declencheur seulement).
         data: contenu courant du tableau.
-        data_previous: contenu précédent (None au premier rendu).
+        data_previous: contenu precedent (None au premier rendu).
         project_data: contenu de ``store-project``.
         operator_data: contenu de ``store-operator``.
         refresh: compteur courant de ``graph-edit-refresh``.
 
     Returns:
-        ``(données du tableau, message, refresh)`` — table ``no_update`` en cas
-        de succès (anti-scintillement), rechargée en cas d'erreur.
+        ``(donnees du tableau, message, refresh)`` - table ``no_update`` en cas
+        de succes (anti-scintillement), rechargee en cas d'erreur.
     """
     if data_previous is None:
         return no_update, no_update, no_update
@@ -611,24 +607,24 @@ def edit_arc_callback(_timestamp, data, data_previous, project_data, operator_da
 
 
 def add_arc_callback(n_clicks, source_id, target_id, gamma, beta, nature, operator_data, refresh):
-    """Ajoute un arc fournisseur → client (anti-cycle AVANT toute écriture).
+    """Ajoute un arc fournisseur -> client (anti-cycle AVANT toute ecriture).
 
-    Refus en français : sélection incomplète, boucle sur soi-même, arc déjà
-    présent (à modifier dans le tableau), cycle nominal. En cas de succès :
-    ``mutations.upsert_arc(source="edit")``, rangs recalés, réseau réévalué.
+    Refus en francais : selection incomplete, boucle sur soi-meme, arc deja
+    present (a modifier dans le tableau), cycle nominal. En cas de succes :
+    ``mutations.upsert_arc(source="edit")``, rangs recales, reseau reevalue.
 
     Args:
-        n_clicks: clics sur « Ajouter l'arc ».
-        source_id: nœud fournisseur choisi.
-        target_id: nœud client choisi.
-        gamma: valeur du slider γ.
-        beta: valeur du slider β.
+        n_clicks: clics sur " Ajouter l'arc ".
+        source_id: noeud fournisseur choisi.
+        target_id: noeud client choisi.
+        gamma: valeur du slider gamma.
+        beta: valeur du slider beta.
         nature: nature choisie (nominal/backup).
         operator_data: contenu de ``store-operator``.
         refresh: compteur courant de ``graph-edit-refresh``.
 
     Returns:
-        ``(message, refresh)`` — refresh inchangé (``no_update``) en cas d'échec.
+        ``(message, refresh)`` - refresh inchange (``no_update``) en cas d'echec.
     """
     if not n_clicks:
         raise PreventUpdate
@@ -655,8 +651,7 @@ def add_arc_callback(n_clicks, source_id, target_id, gamma, beta, nature, operat
             no_update,
         )
     kind = _to_kind(nature or str(ArcKind.NOMINAL))
-    # Contrôle anti-cycle AVANT upsert_arc : le service commite le registre
-    # avant de synchroniser le repo — il n'y aurait pas de rollback après coup.
+    # Controle anti-cycle AVANT upsert_arc : le service commite le registre avant de synchroniser le repo - il n'y aurait pas de rollback apres coup.
     if kind is ArcKind.NOMINAL and _creerait_un_cycle(service.repo, source_id, target_id):
         return (
             html.Span(
@@ -677,7 +672,7 @@ def add_arc_callback(n_clicks, source_id, target_id, gamma, beta, nature, operat
         service.mutations.upsert_arc(
             arc, source="edit", operator_id=current_operator(operator_data)
         )
-    except ValueError as exc:  # bornes γ/β/δ — message français du service
+    except ValueError as exc:  # bornes gamma/beta/delta - message francais du service
         return html.Span(f"Ajout refusé : {exc}", style=MSG_ALERT_STYLE), no_update
     service.reassign_ranks()
     service.evaluate_all(persist=True)
@@ -690,7 +685,7 @@ def add_arc_callback(n_clicks, source_id, target_id, gamma, beta, nature, operat
 
 
 def delete_arc_callback(submit_n_clicks, arc_value, refresh):
-    """Supprime l'arc choisi après confirmation (``service.remove_arc``).
+    """Supprime l'arc choisi apres confirmation (``service.remove_arc``).
 
     Args:
         submit_n_clicks: confirmations du ``dcc.ConfirmDialogProvider``.
@@ -698,7 +693,7 @@ def delete_arc_callback(submit_n_clicks, arc_value, refresh):
         refresh: compteur courant de ``graph-edit-refresh``.
 
     Returns:
-        ``(message, refresh)`` — refresh inchangé en cas d'échec.
+        ``(message, refresh)`` - refresh inchange en cas d'echec.
     """
     if not submit_n_clicks:
         raise PreventUpdate
@@ -712,7 +707,7 @@ def delete_arc_callback(submit_n_clicks, arc_value, refresh):
     libelle = _arc_label(service, source_id, target_id)
     try:
         service.remove_arc(source_id, target_id)
-    except KeyError as exc:  # message français du dépôt
+    except KeyError as exc:  # message francais du depot
         return html.Span(str(exc.args[0]), style=MSG_ALERT_STYLE), no_update
     message = html.Span(
         f"Arc « {libelle} » supprimé — rangs recalés et propagation recalculée.",
@@ -722,17 +717,17 @@ def delete_arc_callback(submit_n_clicks, arc_value, refresh):
 
 
 def create_category_callback(n_clicks, name, color, project_data, refresh):
-    """Crée une catégorie de tags pour le projet actif (nom + couleur du DAG).
+    """Cree une categorie de tags pour le projet actif (nom + couleur du DAG).
 
     Args:
-        n_clicks: clics sur « Créer la catégorie ».
+        n_clicks: clics sur " Creer la categorie ".
         name: nom saisi.
         color: couleur hex de l'input ``type="color"``.
         project_data: contenu de ``store-project``.
         refresh: compteur courant de ``graph-edit-refresh``.
 
     Returns:
-        ``(message, refresh)`` — refresh inchangé en cas d'échec.
+        ``(message, refresh)`` - refresh inchange en cas d'echec.
     """
     if not n_clicks:
         raise PreventUpdate
@@ -751,17 +746,17 @@ def create_category_callback(n_clicks, name, color, project_data, refresh):
 
 
 def create_tag_callback(n_clicks, name, category_id, project_data, refresh):
-    """Crée un tag du projet actif, rattaché ou non à une catégorie.
+    """Cree un tag du projet actif, rattache ou non a une categorie.
 
     Args:
-        n_clicks: clics sur « Créer le tag ».
+        n_clicks: clics sur " Creer le tag ".
         name: nom saisi.
-        category_id: catégorie choisie (None = tag libre).
+        category_id: categorie choisie (None = tag libre).
         project_data: contenu de ``store-project``.
         refresh: compteur courant de ``graph-edit-refresh``.
 
     Returns:
-        ``(message, refresh)`` — refresh inchangé en cas d'échec.
+        ``(message, refresh)`` - refresh inchange en cas d'echec.
     """
     if not n_clicks:
         raise PreventUpdate
@@ -783,13 +778,13 @@ def create_tag_callback(n_clicks, name, category_id, project_data, refresh):
 
 
 def node_tags_callback(node_id):
-    """Pré-remplit le dropdown multi des tags avec les tags ACTUELS du nœud choisi.
+    """Pre-remplit le dropdown multi des tags avec les tags ACTUELS du noeud choisi.
 
     Args:
-        node_id: nœud choisi dans « Affecter des tags à un nœud ».
+        node_id: noeud choisi dans " Affecter des tags a un noeud ".
 
     Returns:
-        La liste des ids de tags actuellement liés au nœud ([] sans nœud).
+        La liste des ids de tags actuellement lies au noeud ([] sans noeud).
     """
     if not node_id:
         return []
@@ -798,17 +793,17 @@ def node_tags_callback(node_id):
 
 
 def assign_tags_callback(n_clicks, node_id, tag_ids, operator_data, refresh):
-    """Remplace les tags du nœud choisi (``mutations.set_node_tags(source="edit")``).
+    """Remplace les tags du noeud choisi (``mutations.set_node_tags(source="edit")``).
 
     Args:
-        n_clicks: clics sur « Affecter ».
-        node_id: nœud choisi.
+        n_clicks: clics sur " Affecter ".
+        node_id: noeud choisi.
         tag_ids: ids de tags choisis (liste, None = vide).
         operator_data: contenu de ``store-operator``.
         refresh: compteur courant de ``graph-edit-refresh``.
 
     Returns:
-        ``(message, refresh)`` — refresh inchangé en cas d'échec.
+        ``(message, refresh)`` - refresh inchange en cas d'echec.
     """
     if not n_clicks:
         raise PreventUpdate
@@ -822,7 +817,7 @@ def assign_tags_callback(n_clicks, node_id, tag_ids, operator_data, refresh):
             source="edit",
             operator_id=current_operator(operator_data),
         )
-    except KeyError as exc:  # message français du service
+    except KeyError as exc:  # message francais du service
         return html.Span(str(exc.args[0]), style=MSG_ALERT_STYLE), no_update
     node = service.registry.get_node(str(node_id))
     name = node.name if node is not None else str(node_id)
@@ -838,16 +833,16 @@ def assign_tags_callback(n_clicks, node_id, tag_ids, operator_data, refresh):
 
 
 def apply_status_callback(n_clicks, node_id, status_value, refresh):
-    """Applique un statut de tâche au nœud choisi (``service.set_status``).
+    """Applique un statut de tache au noeud choisi (``service.set_status``).
 
     Args:
-        n_clicks: clics sur « Appliquer ».
-        node_id: nœud choisi.
+        n_clicks: clics sur " Appliquer ".
+        node_id: noeud choisi.
         status_value: statut choisi (valeur de :class:`TaskStatus`).
         refresh: compteur courant de ``graph-edit-refresh``.
 
     Returns:
-        ``(message, refresh)`` — refresh inchangé en cas d'échec.
+        ``(message, refresh)`` - refresh inchange en cas d'echec.
     """
     if not n_clicks:
         raise PreventUpdate
@@ -866,7 +861,7 @@ def apply_status_callback(n_clicks, node_id, status_value, refresh):
 
 
 def delete_node_callback(n_clicks, node_id, ack, refresh):
-    """Supprime un nœud du graphe (base client archivée) après confirmation cochée."""
+    """Supprime un noeud du graphe (base client archivee) apres confirmation cochee."""
     if not n_clicks:
         raise PreventUpdate
     service = get_service()
@@ -891,7 +886,7 @@ def delete_node_callback(n_clicks, node_id, ack, refresh):
 
 
 def register_callbacks(app) -> None:
-    """Enregistre les callbacks de la page Éditeur de graphe sur l'application Dash."""
+    """Enregistre les callbacks de la page Editeur de graphe sur l'application Dash."""
     app.callback(
         Output("arc-edit-table", "data"),
         Output("arc-add-source-dd", "options"),

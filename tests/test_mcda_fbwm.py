@@ -1,4 +1,4 @@
-"""Tests unitaires du solveur FBWM (Guo & Zhao 2017) — phase E12, Lot 12.2."""
+"""Tests unitaires du solveur FBWM (Guo & Zhao 2017) - phase E12, Lot 12.2."""
 
 import math
 from types import SimpleNamespace
@@ -16,9 +16,7 @@ from supplyscore.mcda.fbwm import (
     resoudre_fbwm,
 )
 
-# ---------------------------------------------------------------------------
-# Configuration de référence (3 critères, jugements plausibles)
-# ---------------------------------------------------------------------------
+# Configuration de reference (3 criteres, jugements plausibles)
 
 CRITERES = ["cout", "delai", "qualite"]
 BEST, WORST = "cout", "qualite"
@@ -37,10 +35,10 @@ class TestConstantes:
 
 
 class TestCasAnalytiqueCrisp:
-    """Cas crisp dégénéré (l = m = u) du PLAN : a_B = (1, 2, 4), a_W = (4, 2, 1).
+    """Cas crisp degenere (l = m = u) du PLAN : a_B = (1, 2, 4), a_W = (4, 2, 1).
 
-    Cohérent (a_13 = a_12 · a_23) : la solution BWM exacte est w = (4/7, 2/7, 1/7)
-    avec ξ* = 0 — le solveur flou doit la retrouver.
+    Coherent (a_13 = a_12 - a_23) : la solution BWM exacte est w = (4/7, 2/7, 1/7)
+    avec xi* = 0 - le solveur flou doit la retrouver.
     """
 
     def test_poids_exacts_et_xi_quasi_nul(self):
@@ -53,7 +51,7 @@ class TestCasAnalytiqueCrisp:
         assert res.poids["c2"] == pytest.approx(2 / 7, abs=1e-3)
         assert res.poids["c3"] == pytest.approx(1 / 7, abs=1e-3)
         assert sum(res.poids.values()) == pytest.approx(1.0, abs=1e-9)
-        # À ξ* = 0 la solution est nécessairement crisp : étalement quasi nul.
+        # A xi* = 0 la solution est necessairement crisp : etalement quasi nul.
         for bas, _modal, haut in res.poids_flous.values():
             assert haut - bas < 1e-2
         assert res.coherent
@@ -81,7 +79,7 @@ class TestAppelPublic:
             assert modal <= haut + 1e-9
 
     def test_deux_criteres_minimal(self):
-        # n = 2 : 2n − 3 = 1 seule comparaison (a_BW), portée par le côté Best.
+        # n = 2 : 2n - 3 = 1 seule comparaison (a_BW), portee par le cote Best.
         res = resoudre_fbwm(["a", "b"], "a", "b", {"b": "assez_plus_important"}, {}, graine=0)
         assert res.converge
         assert res.poids["a"] == pytest.approx(2 / 3, abs=2e-2)
@@ -134,12 +132,12 @@ class TestValidations:
             resoudre_fbwm(CRITERES, BEST, "inconnu", BVA, AVW)
 
     def test_jugement_best_vers_autres_manquant(self):
-        bva = {"qualite": "tres_plus_important"}  # « delai » manquant
+        bva = {"qualite": "tres_plus_important"}  # " delai " manquant
         with pytest.raises(ValueError, match="manquant dans best_vers_autres"):
             resoudre_fbwm(CRITERES, BEST, WORST, bva, AVW)
 
     def test_jugement_autres_vers_worst_manquant(self):
-        avw = {"cout": "tres_plus_important"}  # « delai » manquant
+        avw = {"cout": "tres_plus_important"}  # " delai " manquant
         with pytest.raises(ValueError, match="manquant dans autres_vers_worst"):
             resoudre_fbwm(CRITERES, BEST, WORST, BVA, avw)
 
@@ -149,7 +147,7 @@ class TestValidations:
             resoudre_fbwm(CRITERES, BEST, WORST, bva, AVW)
 
     def test_cle_inattendue_dans_best_vers_autres(self):
-        bva = {**BVA, "cout": "egalement_important"}  # le Meilleur lui-même
+        bva = {**BVA, "cout": "egalement_important"}  # le Meilleur lui-meme
         with pytest.raises(ValueError, match="Clé inattendue dans best_vers_autres"):
             resoudre_fbwm(CRITERES, BEST, WORST, bva, AVW)
 
@@ -163,14 +161,14 @@ class TestReproductibilite:
     def test_meme_graine_meme_resultat_bit_a_bit(self):
         r1 = resoudre_fbwm(CRITERES, BEST, WORST, BVA, AVW, graine=42)
         r2 = resoudre_fbwm(CRITERES, BEST, WORST, BVA, AVW, graine=42)
-        assert r1 == r2  # dataclass gelée : égalité champ à champ, bit à bit
+        assert r1 == r2  # dataclass gelee : egalite champ a champ, bit a bit
         assert r1.poids == r2.poids
         assert r1.poids_flous == r2.poids_flous
         assert r1.xi_star == r2.xi_star
 
 
 class TestRepliUniforme:
-    """Échec de convergence forcé : repli uniforme, jamais d'exception."""
+    """Echec de convergence force : repli uniforme, jamais d'exception."""
 
     def _verifie_repli(self, res: ResultatFBWM) -> None:
         assert res.converge is False

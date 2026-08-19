@@ -1,10 +1,10 @@
-"""Tests du Lot 6.3 : DecisionService — journal des décisions hebdomadaires.
+"""Tests du Lot 6.3 : DecisionService - journal des decisions hebdomadaires.
 
-Couvre : le snapshot automatique des scores ``{ud, ur, a, f, h}`` (égalité
-champ à champ avec ``node.urgency``, None toléré), la description vide
-(ValueError, rien d'écrit), le filtre par semaine de ``list_for_node``,
-l'agrégation triée ``created_at`` DESC de ``list_for_project`` et l'horloge
-de jeu (record après ``advance_week(2)`` → semaine simulée).
+Couvre : le snapshot automatique des scores ``{ud, ur, a, f, h}`` (egalite
+champ a champ avec ``node.urgency``, None tolere), la description vide
+(ValueError, rien d'ecrit), le filtre par semaine de ``list_for_node``,
+l'agregation triee ``created_at`` DESC de ``list_for_project`` et l'horloge
+de jeu (record apres ``advance_week(2)`` -> semaine simulee).
 """
 
 from __future__ import annotations
@@ -19,7 +19,7 @@ from supplyscore.domain.models import Project, SupplyNode, TaskStatus
 from supplyscore.services import SupplyScoreService
 from supplyscore.services.decisions import Decision, DecisionService
 
-#: Mercredi 2026-06-10 12:00 locale — semaine ISO « 2026-S24 ».
+#: Mercredi 2026-06-10 12:00 locale - semaine ISO " 2026-S24 ".
 _NOW = datetime(2026, 6, 10, 12, 0).timestamp()
 _WEEK = 604_800.0
 
@@ -38,13 +38,13 @@ def service(tmp_path: Path, fixed_clock: FixedClock):
 
 @pytest.fixture
 def projet(service: SupplyScoreService) -> Project:
-    """Projet de démonstration reproductible (seed_demo)."""
+    """Projet de demonstration reproductible (seed_demo)."""
     return service.seed_demo(n_ranks=2, seed=1)
 
 
 @pytest.fixture
 def node_id(service: SupplyScoreService, projet: Project) -> str:
-    """Premier nœud actif (ordre déterministe) du projet de démo."""
+    """Premier noeud actif (ordre deterministe) du projet de demo."""
     nodes = sorted(service.repo.nodes(), key=lambda n: n.id)
     actifs = [
         n for n in nodes if n.status is TaskStatus.ACTIVE and n.onboarding_state == "complete"
@@ -58,7 +58,7 @@ def decisions(service: SupplyScoreService) -> DecisionService:
     return DecisionService(service)
 
 
-# --- record : snapshot automatique des scores ----------------------------------------
+# record : snapshot automatique des scores
 
 
 class TestRecord:
@@ -79,7 +79,7 @@ class TestRecord:
             "f": urgence.false_urgency,
             "h": urgence.hidden_risk,
         }
-        # Le projet de démo a des scores calculés : le snapshot n'est pas vide.
+        # Le projet de demo a des scores calcules : le snapshot n'est pas vide.
         assert decision.scores["ud"] is not None
         assert decision.node_id == node_id
         assert decision.iso_week == iso_week(_NOW) == "2026-S24"
@@ -87,13 +87,13 @@ class TestRecord:
         assert decision.operator_id == "op-7"
         assert decision.description == "Relancer le fournisseur"
 
-        # Persistée et relue à l'identique (round-trip JSON des scores compris).
+        # Persistee et relue a l'identique (round-trip JSON des scores compris).
         assert decisions.list_for_node(node_id) == [decision]
 
     def test_scores_none_toleres(
         self, service: SupplyScoreService, decisions: DecisionService, projet: Project
     ) -> None:
-        # Nœud vierge : urgency par défaut, tous les scores à None.
+        # Noeud vierge : urgency par defaut, tous les scores a None.
         service.registry.save_node(SupplyNode(id="n-vierge", name="Vierge", project_id=projet.id))
 
         decision = decisions.record("n-vierge", "Première décision")
@@ -122,7 +122,7 @@ class TestRecord:
         assert d1.id != d2.id
 
 
-# --- list_for_node : filtre par semaine ----------------------------------------------
+# list_for_node : filtre par semaine
 
 
 class TestListForNode:
@@ -136,14 +136,14 @@ class TestListForNode:
         fixed_clock.set(_NOW + _WEEK)  # semaine suivante
         d2 = decisions.record(node_id, "Décision S25")
 
-        # Sans filtre : tri created_at DESC (la plus récente d'abord).
+        # Sans filtre : tri created_at DESC (la plus recente d'abord).
         assert [d.id for d in decisions.list_for_node(node_id)] == [d2.id, d1.id]
         assert [d.id for d in decisions.list_for_node(node_id, "2026-S24")] == [d1.id]
         assert [d.id for d in decisions.list_for_node(node_id, "2026-S25")] == [d2.id]
         assert decisions.list_for_node(node_id, "2026-S01") == []
 
 
-# --- list_for_project : agrégation triée ---------------------------------------------
+# list_for_project : agregation triee
 
 
 class TestListForProject:
@@ -166,7 +166,7 @@ class TestListForProject:
 
         assert [d.id for d in decisions.list_for_project(projet.id)] == [d3.id, d2.id, d1.id]
 
-        # Filtre par semaine : la semaine suivante ne remonte que sa décision.
+        # Filtre par semaine : la semaine suivante ne remonte que sa decision.
         fixed_clock.set(_NOW + _WEEK)
         d4 = decisions.record(n2, "Décision D")
         s24 = [d.id for d in decisions.list_for_project(projet.id, "2026-S24")]
@@ -179,7 +179,7 @@ class TestListForProject:
         assert decisions.list_for_project("p-fantome") == []
 
 
-# --- Horloge du PROJET : mode jeu -----------------------------------------------------
+# Horloge du PROJET : mode jeu
 
 
 class TestHorlogeJeu:

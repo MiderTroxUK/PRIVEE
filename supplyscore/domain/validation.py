@@ -1,19 +1,19 @@
-"""Validation exhaustive du domaine — erreurs bloquantes et avertissements (E10.1).
+"""Validation exhaustive du domaine - erreurs bloquantes et avertissements (E10.1).
 
-Deux sévérités, deux philosophies :
+Deux severites, deux philosophies :
 
-- « erreur » : la valeur est physiquement impossible ou hors des bornes de
+- " erreur " : la valeur est physiquement impossible ou hors des bornes de
   :data:`supplyscore.domain.constraints.KPI_CONSTRAINTS` (NaN, infini,
-  probabilité > 1...) — l'enregistrement doit être refusé ;
-- « avertissement » : la situation est anormale mais RÉELLE (stock au-delà de
-  la capacité déclarée, échéance déjà intenable...) — l'opérateur doit pouvoir
+  probabilite > 1...) - l'enregistrement doit etre refuse ;
+- " avertissement " : la situation est anormale mais REELLE (stock au-dela de
+  la capacite declaree, echeance deja intenable...) - l'operateur doit pouvoir
   l'enregistrer telle quelle, le signal est purement informatif et n'est
   JAMAIS bloquant.
 
-Les bornes champ à champ proviennent exclusivement de
-:mod:`supplyscore.domain.constraints` (source de vérité unique, partagée avec
-l'UI) ; ce module y ajoute les contrôles croisés inter-champs et la validation
-des entités (:class:`~supplyscore.domain.models.SupplyNode`,
+Les bornes champ a champ proviennent exclusivement de
+:mod:`supplyscore.domain.constraints` (source de verite unique, partagee avec
+l'UI) ; ce module y ajoute les controles croises inter-champs et la validation
+des entites (:class:`~supplyscore.domain.models.SupplyNode`,
 :class:`~supplyscore.domain.models.SupplyArc`,
 :class:`~supplyscore.domain.milestones.Milestone`,
 :class:`~supplyscore.domain.specsheet.CahierDesCharges`).
@@ -30,24 +30,24 @@ from supplyscore.domain.milestones import Milestone
 from supplyscore.domain.models import KPIBundle, SupplyArc, SupplyNode
 from supplyscore.domain.specsheet import CahierDesCharges
 
-#: États d'onboarding acceptés pour un nœud.
+#: Etats d'onboarding acceptes pour un noeud.
 _ONBOARDING_STATES = frozenset({"draft", "complete"})
 
 
 @dataclass(frozen=True)
 class ValidationIssue:
-    """Constat de validation : champ fautif, message français et sévérité."""
+    """Constat de validation : champ fautif, message francais et severite."""
 
     champ: str
     message_fr: str
     severite: Literal["erreur", "avertissement"]
 
 
-# --- Briques internes -----------------------------------------------------------
+# Briques internes
 
 
 def _non_fini(champ: str, value: float) -> ValidationIssue:
-    """Erreur « valeur non finie » (NaN ou ±inf) pour ``champ``."""
+    """Erreur " valeur non finie " (NaN ou +/-inf) pour ``champ``."""
     return ValidationIssue(champ, f"{champ} : valeur non finie ({value!r})", "erreur")
 
 
@@ -61,7 +61,7 @@ def _check_intervalle(champ: str, value: float, lo: float, hi: float) -> Validat
 
 
 def _check_montant(champ: str, value: float) -> ValidationIssue | None:
-    """Erreur si ``value`` n'est pas finie ou est négative (montant), sinon None."""
+    """Erreur si ``value`` n'est pas finie ou est negative (montant), sinon None."""
     if not math.isfinite(value):
         return _non_fini(champ, value)
     if value < 0.0:
@@ -70,7 +70,7 @@ def _check_montant(champ: str, value: float) -> ValidationIssue | None:
 
 
 def _avertissements_croises(b: KPIBundle) -> list[ValidationIssue]:
-    """Avertissements croisés inter-champs d'un bundle KPI (jamais bloquants)."""
+    """Avertissements croises inter-champs d'un bundle KPI (jamais bloquants)."""
     issues: list[ValidationIssue] = []
     inv, tps, co2, cost = b.inventory, b.time, b.co2, b.cost
     if (
@@ -149,20 +149,20 @@ def _avertissements_croises(b: KPIBundle) -> list[ValidationIssue]:
     return issues
 
 
-# --- API publique ----------------------------------------------------------------
+# API publique
 
 
 def validate_kpis(b: KPIBundle) -> list[ValidationIssue]:
-    """Valide un bundle KPI : bornes champ à champ + contrôles croisés.
+    """Valide un bundle KPI : bornes champ a champ + controles croises.
 
-    Chaque champ renseigné est confronté aux bornes de
+    Chaque champ renseigne est confronte aux bornes de
     :data:`~supplyscore.domain.constraints.KPI_CONSTRAINTS` via
-    :func:`~supplyscore.domain.constraints.validate_kpi_value` (sévérité
-    « erreur » : bornes, NaN, infinis). Les incohérences inter-champs (stock
-    au-delà de la capacité, échéance < lead time, cible CO2 >= maximum,
-    débit sans demande, coût réel < nominal) produisent des
-    « avertissement » jamais bloquants : l'opérateur doit pouvoir
-    enregistrer des situations anormales réelles.
+    :func:`~supplyscore.domain.constraints.validate_kpi_value` (severite
+    " erreur " : bornes, NaN, infinis). Les incoherences inter-champs (stock
+    au-dela de la capacite, echeance < lead time, cible CO2 >= maximum,
+    debit sans demande, cout reel < nominal) produisent des
+    " avertissement " jamais bloquants : l'operateur doit pouvoir
+    enregistrer des situations anormales reelles.
     """
     issues: list[ValidationIssue] = []
     for path in KPI_CONSTRAINTS:
@@ -176,7 +176,7 @@ def validate_kpis(b: KPIBundle) -> list[ValidationIssue]:
 
 
 def validate_node(n: SupplyNode) -> list[ValidationIssue]:
-    """Valide un nœud : identité, rang, géolocalisation, onboarding et KPIs."""
+    """Valide un noeud : identite, rang, geolocalisation, onboarding et KPIs."""
     issues: list[ValidationIssue] = []
     if not n.name.strip():
         issues.append(ValidationIssue("name", "nom de nœud vide", "erreur"))
@@ -204,7 +204,7 @@ def validate_node(n: SupplyNode) -> list[ValidationIssue]:
 
 
 def validate_arc(a: SupplyArc) -> list[ValidationIssue]:
-    """Valide un arc : coefficients de propagation bornés et absence de boucle."""
+    """Valide un arc : coefficients de propagation bornes et absence de boucle."""
     issues: list[ValidationIssue] = []
     coefficients = (("gamma", a.gamma, 1.0), ("beta", a.beta, 1.0), ("delta", a.delta, 2.0))
     for champ, value, hi in coefficients:
@@ -223,7 +223,7 @@ def validate_arc(a: SupplyArc) -> list[ValidationIssue]:
 
 
 def validate_milestone(m: Milestone) -> list[ValidationIssue]:
-    """Valide un jalon : nom, fenêtre temporelle finie et ordonnée, avancement."""
+    """Valide un jalon : nom, fenetre temporelle finie et ordonnee, avancement."""
     issues: list[ValidationIssue] = []
     if not m.name.strip():
         issues.append(ValidationIssue("name", "nom de jalon vide", "erreur"))
@@ -247,7 +247,7 @@ def validate_milestone(m: Milestone) -> list[ValidationIssue]:
 
 
 def validate_cdc(c: CahierDesCharges) -> list[ValidationIssue]:
-    """Valide un cahier des charges : budgets, livrables, qualité et pénalités."""
+    """Valide un cahier des charges : budgets, livrables, qualite et penalites."""
     issues: list[ValidationIssue] = []
     montants = (("budget_total", c.budget_total), ("target_unit_cost", c.target_unit_cost))
     for champ, montant in montants:
@@ -287,10 +287,10 @@ def validate_cdc(c: CahierDesCharges) -> list[ValidationIssue]:
 
 
 def erreurs(issues: list[ValidationIssue]) -> list[ValidationIssue]:
-    """Filtre les constats bloquants (sévérité « erreur »)."""
+    """Filtre les constats bloquants (severite " erreur ")."""
     return [issue for issue in issues if issue.severite == "erreur"]
 
 
 def avertissements(issues: list[ValidationIssue]) -> list[ValidationIssue]:
-    """Filtre les constats informatifs (sévérité « avertissement »)."""
+    """Filtre les constats informatifs (severite " avertissement ")."""
     return [issue for issue in issues if issue.severite == "avertissement"]

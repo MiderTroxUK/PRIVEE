@@ -1,8 +1,8 @@
-"""Tags et taxonomie par projet — tri, filtres et coloration du graphe.
+"""Tags et taxonomie par projet - tri, filtres et coloration du graphe.
 
-Deux niveaux : des catégories contrôlées par projet (`TagCategory`, avec
-couleur pour le DAG) et des tags libres (`Tag`) rattachables ou non à une
-catégorie. Les nœuds portent des listes d'ids de tags (`SupplyNode.tags`).
+Deux niveaux : des categories controlees par projet (`TagCategory`, avec
+couleur pour le DAG) et des tags libres (`Tag`) rattachables ou non a une
+categorie. Les noeuds portent des listes d'ids de tags (`SupplyNode.tags`).
 """
 
 from __future__ import annotations
@@ -12,7 +12,7 @@ from dataclasses import dataclass
 
 @dataclass
 class TagCategory:
-    """Catégorie de tags contrôlée par projet (ex : « Procédé », « Région »)."""
+    """Categorie de tags controlee par projet (ex : " Procede ", " Region ")."""
 
     id: str
     project_id: str
@@ -22,7 +22,7 @@ class TagCategory:
 
 @dataclass
 class Tag:
-    """Tag libre (auto-complété), éventuellement rattaché à une catégorie."""
+    """Tag libre (auto-complete), eventuellement rattache a une categorie."""
 
     id: str
     project_id: str

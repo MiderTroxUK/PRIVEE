@@ -1,12 +1,12 @@
-"""Tests ciblés du DGP de l'usine de campagnes (U6, ``projects/factory/dgp.py``).
+"""Tests cibles du DGP de l'usine de campagnes (U6, ``projects/factory/dgp.py``).
 
-Se concentre sur les propriétés de CORRECTION critiques du plan (D18/D21/D29) :
-paire CRN à bruit identique, absence de fuite du stress latent dans les
-structures observables, bornes du plan QMC, cohérence AHP du déclarant
-synthétique et acceptation des paramètres d'évènement tirés par
+Se concentre sur les proprietes de CORRECTION critiques du plan (D18/D21/D29) :
+paire CRN a bruit identique, absence de fuite du stress latent dans les
+structures observables, bornes du plan QMC, coherence AHP du declarant
+synthetique et acceptation des parametres d'evenement tires par
 ``compute_impacts``. Les modules ``dgp``/``run_random_campaign`` vivent hors
 ``supplyscore`` (``projects/factory/``, hors couverture par convention) --
-importés ici via un ajout ciblé de ``sys.path``.
+importes ici via un ajout cible de ``sys.path``.
 """
 
 from __future__ import annotations
@@ -23,15 +23,15 @@ _FACTORY_DIR = Path(__file__).resolve().parent.parent / "projects" / "factory"
 if str(_FACTORY_DIR) not in sys.path:
     sys.path.append(str(_FACTORY_DIR))
 
-import dgp  # noqa: E402 -- après l'ajout de sys.path, par nécessité
+import dgp  # noqa: E402 -- apres l'ajout de sys.path, par necessite
 
-# --- Plan QMC -------------------------------------------------------------------------
+# Plan QMC
 
 
 def test_sample_regimes_bounds_and_determinism():
     regimes_a = dgp.sample_regimes(seed=42, n_chains=17)
     regimes_b = dgp.sample_regimes(seed=42, n_chains=17)
-    assert regimes_a == regimes_b  # même seed -> même plan (dataclasses frozen comparables)
+    assert regimes_a == regimes_b  # meme seed -> meme plan (dataclasses frozen comparables)
     assert len(regimes_a) == 17
     for regime in regimes_a:
         assert regime.n_ranks in dgp.N_RANKS_CHOICES
@@ -62,11 +62,11 @@ def test_dgp_manifest_schema():
     assert manifest["dgp_params_id"] == regime.params_id
 
 
-# --- Paire CRN (D18) -- LA propriété de correction la plus critique -------------------
+# Paire CRN (D18) -- LA propriete de correction la plus critique
 
 
 def test_dynamics_week_step_consumes_identical_rng_regardless_of_mitigation():
-    """Le flux BRUT consommé ne dépend PAS de ``mitigation_active`` -- condition de la paire CRN."""
+    """Le flux BRUT consomme ne depend PAS de ``mitigation_active`` -- condition de la paire CRN."""
     regime = dgp.Regime(n_ranks=4, a=-3.0, b=5.0, p_choc=0.05, sigma=0.08)
     base_state = np.random.default_rng(12345).bit_generator.state
 
@@ -78,17 +78,16 @@ def test_dynamics_week_step_consumes_identical_rng_regardless_of_mitigation():
     rng_b.bit_generator.state = copy.deepcopy(base_state)
     result_b = dgp.dynamics_week_step(rng_b, 0.5, 0.5, regime, mitigation_active=0.9)
 
-    # Tirages BRUTS identiques (les innovations ne dépendent pas de mitigation_active).
+    # Tirages BRUTS identiques (les innovations ne dependent pas de mitigation_active).
     assert result_a.innovations == result_b.innovations
-    # Flux consommé de façon identique (même nombre, même ordre de tirages) : l'état du
-    # générateur après l'appel est BIT-IDENTIQUE malgré une mitigation différente.
+    # Flux consomme de facon identique (meme nombre, meme ordre de tirages) : l'etat du generateur apres l'appel est BIT-IDENTIQUE malgre une mitigation differente.
     assert rng_a.bit_generator.state == rng_b.bit_generator.state
-    # Seule la transformation déterministe diffère : la mitigation doit réduire s.
+    # Seule la transformation deterministe differe : la mitigation doit reduire s.
     assert result_a.s > result_b.s
 
 
 def test_dynamics_week_step_fixed_shape_across_many_draws():
-    """Sur de nombreux tirages, l'état du générateur après N pas ne dépend jamais de l'issue."""
+    """Sur de nombreux tirages, l'etat du generateur apres N pas ne depend jamais de l'issue."""
     regime = dgp.Regime(n_ranks=3, a=-3.5, b=6.0, p_choc=0.05, sigma=0.1)
     base_state = np.random.default_rng(7).bit_generator.state
 
@@ -108,7 +107,7 @@ def test_dynamics_week_step_fixed_shape_across_many_draws():
 
 
 def test_replay_without_action_matches_manual_loop():
-    """``replay_without_action`` == rejouer ``dynamics_week_step`` à la main, tirage pour tirage."""
+    """``replay_without_action`` == rejouer ``dynamics_week_step`` a la main, tirage pour tirage."""
     regime = dgp.Regime(n_ranks=3, a=-3.0, b=6.0, p_choc=0.05, sigma=0.1)
     base_rng = np.random.default_rng(999)
     checkpoint = copy.deepcopy(base_rng.bit_generator.state)
@@ -130,7 +129,7 @@ def test_replay_without_action_matches_manual_loop():
 
 
 def test_replay_without_action_does_not_mutate_caller_state():
-    """``replay_without_action`` consomme un CLONE -- l'état passé en argument reste intact."""
+    """``replay_without_action`` consomme un CLONE -- l'etat passe en argument reste intact."""
     regime = dgp.Regime(n_ranks=3, a=-3.0, b=6.0, p_choc=0.05, sigma=0.1)
     original_rng = np.random.default_rng(42)
     state_before = copy.deepcopy(original_rng.bit_generator.state)
@@ -139,18 +138,18 @@ def test_replay_without_action_does_not_mutate_caller_state():
     dgp.replay_without_action(checkpoint, 0.1, 0.1, regime, skip_weeks=0, weeks=4)
 
     assert original_rng.bit_generator.state == state_before
-    assert checkpoint == state_before  # l'appelant n'a pas non plus vu SON dict muté
+    assert checkpoint == state_before  # l'appelant n'a pas non plus vu SON dict mute
 
 
 def test_mitigation_yields_nonzero_delta_on_a_real_but_bounded_fraction():
-    """K_MITIG donne un signal causal RÉEL, ni nul ni « toujours gagnant ».
+    """K_MITIG donne un signal causal REEL, ni nul ni " toujours gagnant ".
 
-    Reproduit la mesure de calibration documentée sur :data:`dgp.K_MITIG` :
-    à mitigation substantielle (0.3, plausible à K_MITIG=25 pour un effet
-    observé de l'ordre de 1 %), une fraction MESURABLE mais MINORITAIRE des
-    essais voit son issue à 4 semaines basculer entre les deux branches --
-    ni ~0 % (signal mort) ni proche de 100 % (déterministe, pas de calibration
-    d'évènement rare réaliste).
+    Reproduit la mesure de calibration documentee sur :data:`dgp.K_MITIG` :
+    a mitigation substantielle (0.3, plausible a K_MITIG=25 pour un effet
+    observe de l'ordre de 1 %), une fraction MESURABLE mais MINORITAIRE des
+    essais voit son issue a 4 semaines basculer entre les deux branches --
+    ni ~0 % (signal mort) ni proche de 100 % (deterministe, pas de calibration
+    d'evenement rare realiste).
     """
     regimes = dgp.sample_regimes(seed=55, n_chains=20)
     n_trials = 0
@@ -159,7 +158,7 @@ def test_mitigation_yields_nonzero_delta_on_a_real_but_bounded_fraction():
         for trial in range(10):
             rng = np.random.default_rng(dgp.derive_seed(regime.params_id, "mitig_test", trial))
             stress_kpi, hidden = 0.0, 0.0
-            for _ in range(6):  # échauffe le stress à un niveau plausible en campagne
+            for _ in range(6):  # echauffe le stress a un niveau plausible en campagne
                 r = dgp.dynamics_week_step(rng, stress_kpi, hidden, regime, mitigation_active=0.0)
                 stress_kpi, hidden = r.stress_kpi, r.hidden
             checkpoint = copy.deepcopy(rng.bit_generator.state)
@@ -186,29 +185,27 @@ def test_mitigation_yields_nonzero_delta_on_a_real_but_bounded_fraction():
 
 
 def test_effective_window_start_floors_at_tour_plus_one():
-    """Régression : sans ce plancher, un délai nul (``date_effet <= tour``) désalignait
-    d'une semaine la fenêtre rejouée (``replay_without_action``) et la fenêtre relue dans
-    ``event_fired_timeline`` -- deux ensembles de semaines différents, capables de faire
-    diverger ``delta_u_vrai`` même quand aucune mitigation n'est jamais active (ex.
-    ``ne_rien_faire``, dont l'effet vrai est TOUJOURS nul). Trouvé par inspection d'une
-    campagne réelle, pas par la seule relecture du code -- cf. run_random_campaign.py."""
+    """Regression : sans ce plancher, un delai nul (``date_effet <= tour``) desalignait
+    d'une semaine la fenetre rejouee (``replay_without_action``) et la fenetre relue dans
+    ``event_fired_timeline`` -- deux ensembles de semaines differents, capables de faire
+    diverger ``delta_u_vrai`` meme quand aucune mitigation n'est jamais active (ex.
+    ``ne_rien_faire``, dont l'effet vrai est TOUJOURS nul). Trouve par inspection d'une
+    campagne reelle, pas par la seule relecture du code -- cf. run_random_campaign.py."""
     sys.path.append(str(_FACTORY_DIR))
     import run_random_campaign as rrc
 
-    # Délai nul ou négatif (date_effet <= tour, ex. ne_rien_faire ou expedition_express
-    # avec un délai tiré à 0) : la fenêtre est plancherée à tour + 1 (checkpoint pris
-    # APRÈS les tirages de la semaine ``tour`` -- rien avant ``tour + 1`` n'est rejouable).
+    # Delai nul ou negatif (date_effet <= tour, ex. ne_rien_faire ou expedition_express avec un delai tire a 0) : la fenetre est plancheree a tour + 1 (checkpoint pris APRES les tirages de la semaine ``tour`` -- rien avant ``tour + 1`` n'est rejouable).
     assert rrc._effective_window_start(date_effet=5, tour=5) == 6
     assert rrc._effective_window_start(date_effet=3, tour=5) == 6
-    # Délai strictement positif (date_effet > tour) : la fenêtre démarre bien à date_effet.
+    # Delai strictement positif (date_effet > tour) : la fenetre demarre bien a date_effet.
     assert rrc._effective_window_start(date_effet=8, tour=5) == 8
     assert rrc._effective_window_start(date_effet=6, tour=5) == 6
 
 
 def test_ne_rien_faire_shadow_matches_true_continuation_zero_delay():
-    """Régression bout-en-bout : ``ne_rien_faire`` (délai TOUJOURS nul -> date_effet ==
-    tour) ne doit jamais faire diverger la relecture fantôme de la VRAIE continuation du
-    flux dynamique -- exactement le scénario où le bug de désalignement se manifestait."""
+    """Regression bout-en-bout : ``ne_rien_faire`` (delai TOUJOURS nul -> date_effet ==
+    tour) ne doit jamais faire diverger la relecture fantome de la VRAIE continuation du
+    flux dynamique -- exactement le scenario ou le bug de desalignement se manifestait."""
     sys.path.append(str(_FACTORY_DIR))
     import run_random_campaign as rrc
 
@@ -219,7 +216,7 @@ def test_ne_rien_faire_shadow_matches_true_continuation_zero_delay():
     try:
         project = service.seed_demo(n_ranks=2, seed=1)
         node = service.repo.nodes_by_project(project.id)[0]
-        regime = dgp.Regime(n_ranks=2, a=-2.0, b=8.0, p_choc=0.08, sigma=0.15)  # régime "chaud"
+        regime = dgp.Regime(n_ranks=2, a=-2.0, b=8.0, p_choc=0.08, sigma=0.15)  # regime "chaud"
         dyn_rng = np.random.default_rng(123456)
         op_rng = np.random.default_rng(654321)
         ctx = rrc._build_ctx(node, service.registry.list_milestones(node.id))
@@ -240,17 +237,14 @@ def test_ne_rien_faire_shadow_matches_true_continuation_zero_delay():
             regime=regime,
             active_effects=active_effects,
         )
-        assert record["date_effet"] == 3  # ne_rien_faire : délai nul par construction
+        assert record["date_effet"] == 3  # ne_rien_faire : delai nul par construction
         assert record["effet_vrai_param"] == 0.0
         assert active_effects[node.id] == []  # aucune mitigation n'est jamais active
-        # stress_latent : journalisé en clé de PREMIER NIVEAU (vérité-terrain), jamais
-        # dans etat_avant (observable seul) -- les deux règles vérifiées simultanément.
+        # stress_latent : journalise en cle de PREMIER NIVEAU (verite-terrain), jamais dans etat_avant (observable seul) -- les deux regles verifiees simultanement.
         assert record["stress_latent"] == 0.35
         assert "stress_latent" not in record["etat_avant"]
 
-        # dyn_rng n'a PAS été consommé par _run_intervention lui-même (seul un CLONE de
-        # son état l'est, dans replay_without_action) : le continuer À LA MAIN, sur le
-        # MÊME objet, donne la VRAIE continuation semaine par semaine.
+        # dyn_rng n'a PAS ete consomme par _run_intervention lui-meme (seul un CLONE de son etat l'est, dans replay_without_action) : le continuer A LA MAIN, sur le MEME objet, donne la VRAIE continuation semaine par semaine.
         stress_kpi, hidden = 0.3, 0.2
         issue_true_continuation = False
         for _ in range(dgp.EFFECT_WINDOW_WEEKS):
@@ -264,8 +258,8 @@ def test_ne_rien_faire_shadow_matches_true_continuation_zero_delay():
 
 
 def test_intervention_record_has_frozen_schema_fields():
-    """Schéma figé de ``interventions_truth.jsonl`` : tous les champs requis présents,
-    ``stress_latent`` au premier niveau (vérité-terrain) et ABSENT de ``etat_avant``."""
+    """Schema fige de ``interventions_truth.jsonl`` : tous les champs requis presents,
+    ``stress_latent`` au premier niveau (verite-terrain) et ABSENT de ``etat_avant``."""
     sys.path.append(str(_FACTORY_DIR))
     import run_random_campaign as rrc
 
@@ -319,7 +313,7 @@ def test_intervention_record_has_frozen_schema_fields():
         service.close()
 
 
-# --- Pas de fuite du stress latent dans l'observable (D21/D32) -----------------------
+# Pas de fuite du stress latent dans l'observable (D21/D32)
 
 
 def test_build_ctx_never_leaks_latent_stress():
@@ -345,7 +339,7 @@ def test_build_ctx_never_leaks_latent_stress():
     }
 
 
-# --- Aléa d'évènement : bornes et acceptation par compute_impacts --------------------
+# Alea d'evenement : bornes et acceptation par compute_impacts
 
 
 def test_gravite_bucket_thresholds():
@@ -375,7 +369,7 @@ def test_draw_event_params_within_field_bounds():
 
 
 def test_draw_event_params_strictly_positive_duration_fields():
-    """À stress NUL (le cas limite), les champs de durée restent strictement positifs."""
+    """A stress NUL (le cas limite), les champs de duree restent strictement positifs."""
     from supplyscore.domain.events import EVENT_CALIBRATION
 
     strictly_positive = {"duree_arret_h", "retard_h", "duree_prevue_h"}
@@ -390,11 +384,11 @@ def test_draw_event_params_strictly_positive_duration_fields():
 
 
 def test_draw_event_params_accepted_by_compute_impacts():
-    """Les paramètres tirés ne font jamais lever ``compute_impacts`` (bornes/validation)."""
+    """Les parametres tires ne font jamais lever ``compute_impacts`` (bornes/validation)."""
     from supplyscore.domain.events import compute_impacts
     from supplyscore.domain.models import KPIBundle
 
-    kpis = KPIBundle()  # bundle vide : cas le plus défavorable (tous les KPIs à None)
+    kpis = KPIBundle()  # bundle vide : cas le plus defavorable (tous les KPIs a None)
     rng = np.random.default_rng(13)
     for event_type in dgp.EVENT_POOL:
         for s in (0.0, 0.2, 0.5, 0.8, 1.0):
@@ -403,7 +397,7 @@ def test_draw_event_params_accepted_by_compute_impacts():
             compute_impacts(event_type, params, kpis)  # ne doit pas lever
 
 
-# --- Déclarant synthétique (palier 0) -------------------------------------------------
+# Declarant synthetique (palier 0)
 
 
 def test_synthetic_respond_shape_and_bounds():
@@ -423,7 +417,7 @@ def test_bipolar_saaty_roundtrip():
 
 
 def test_synthetic_respond_mostly_consistent_ahp():
-    """Le déclarant synthétique doit quasi-toujours passer le seuil de cohérence de Saaty."""
+    """Le declarant synthetique doit quasi-toujours passer le seuil de coherence de Saaty."""
     from supplyscore.core.ahp import run_ahp
 
     rng = np.random.default_rng(2024)
@@ -443,7 +437,7 @@ def test_response_to_ahp_inputs_rejects_malformed_response():
         dgp.response_to_ahp_inputs({"bipolar": [1, 2], "scores_ui": [1, 2, 3, 4]})
 
 
-# --- Catalogue d'actions de repli -----------------------------------------------------
+# Catalogue d'actions de repli
 
 
 def test_fallback_catalogue_has_required_actions():
@@ -478,17 +472,17 @@ def test_objectif_atteint_requires_threshold():
     assert dgp.objectif_atteint(action, None, 0.30) is False
 
 
-# --- Calibration du taux d'évènement (ordre de grandeur, tolérance large) ------------
+# Calibration du taux d'evenement (ordre de grandeur, tolerance large)
 
 
 def test_average_event_rate_in_target_band():
-    """Taux d'évènement médian sur le plan QMC dans un ordre de grandeur raisonnable.
+    """Taux d'evenement median sur le plan QMC dans un ordre de grandeur raisonnable.
 
-    Tolérance volontairement LARGE (pas [3, 4] %) : ``a`` peut atteindre -2 sur
-    certains régimes du plan (borne fournie, hors périmètre U6), ce qui à lui
-    seul donne déjà sigmoid(-2) ≈ 12 %/semaine à stress nul -- irréductible par
-    ``KAPPA_BADNESS``. Ce test garde-fou détecte une régression GROSSIÈRE de
-    calibration (ex. une taux moyen à 50 % ou à 0.01 %), pas un écart fin.
+    Tolerance volontairement LARGE (pas [3, 4] %) : ``a`` peut atteindre -2 sur
+    certains regimes du plan (borne fournie, hors perimetre U6), ce qui a lui
+    seul donne deja sigmoid(-2) ~= 12 %/semaine a stress nul -- irreductible par
+    ``KAPPA_BADNESS``. Ce test garde-fou detecte une regression GROSSIERE de
+    calibration (ex. une taux moyen a 50 % ou a 0.01 %), pas un ecart fin.
     """
     regimes = dgp.sample_regimes(seed=321, n_chains=24)
     rates = []

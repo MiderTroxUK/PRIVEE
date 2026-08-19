@@ -25,7 +25,7 @@ BST = Path("C:/PRIVEE/AZURE/docs/BST_DISCO_JH_2026")
 OUT = Path(__file__).resolve().parent / "img"
 OUT.mkdir(parents=True, exist_ok=True)
 
-# ---- ALTEN Brand Book 2025 (EN), certified colours only --------------------
+# ALTEN Brand Book 2025 (EN), certified colours only
 NAVY = "#043962"
 AZURE = "#008BD2"
 OCHRE = "#FFBA00"
@@ -75,8 +75,7 @@ def training_curve():
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
-    # quai2 is a resume of an intermediate dataset and was validated on a different
-    # 50-image split: not comparable on the same axes, so it is left out.
+    # quai2 is a resume of an intermediate dataset and was validated on a different 50-image split: not comparable on the same axes, so it is left out.
     runs = [
         ("quai",  "86 chips · 640 px",           NAVY_LIGHT, "--", 2.0),
         ("quai4", "351 chips · 1280 px",         OCHRE,      "-",  2.2),
@@ -182,8 +181,8 @@ def business_metric():
     import numpy as np
 
     labels = ["median error\non dock count", "images within\n±25 %", "negatives left\ncorrectly empty"]
-    first = [62, 22, 89]     # runs/quai   — 86 chips,  50 val images
-    kept = [53, 28, 87]      # runs/quai3  — 351 chips, 91 val images
+    first = [62, 22, 89]  # runs/quai   - 86 chips,  50 val images
+    kept = [53, 28, 87]  # runs/quai3  - 351 chips, 91 val images
     x = np.arange(len(labels))
     fig, ax = plt.subplots(figsize=(6.6, 3.2), dpi=200)
     ax.bar(x - 0.19, first, 0.36, color=LINE_GREY, label="first model · 86 chips", zorder=3)
@@ -211,7 +210,7 @@ def business_metric():
     print(f"{'yolo_business.png':34s} rendered")
 
 
-# ---------------------------------------------------------------- logos & brick 1
+# logos & brick 1
 for name in ("LogoALTEN.png", "LogoESTIA.png", "LogoCranfield.png"):
     copy(BST / "Poster" / "img" / name, name)
 for name in ("helios_llm_pilot_adequacy.png", "campaign_network.png", "urgency_gap.png"):
@@ -220,16 +219,14 @@ for name in ("explainability_waterfall.png", "three_layer_architecture.png"):
     trim(BST / "Images" / "2.Problem" / name if name.startswith("three")
          else BST / "Images" / "4.Operations" / name, name)
 
-# ---------------------------------------------------------------- brick 2 plates
-# The annotated logic plate: drop the 132 px French legend bar, keep the imagery.
+# brick 2 plates The annotated logic plate: drop the 132 px French legend bar, keep the imagery.
 plate(VE / "data/EXPLICATION_aire_manoeuvre.png", "ve_logic.jpg",
       crop=(0, 132, 1150, 932), width=1150)
 # Same plate, zoomed on the dock apron: footprint edge, canopy bays, trailers.
 plate(VE / "data/EXPLICATION_aire_manoeuvre.png", "ve_logic_zoom.jpg",
       crop=(690, 130, 960, 300), width=1080)
 
-# Docks legible with no truck at all — the two panels that justify segmentation.
-# Cropped tight on the canopy band: the empty yard below carries no information.
+# Docks legible with no truck at all - the two panels that justify segmentation. Cropped tight on the canopy band: the empty yard below carries no information.
 plate(VE / "data/PREUVE_aire_visible_sans_camion.png", "ve_proof_deret.jpg",
       crop=(0, 22, 675, 132), width=1000)
 plate(VE / "data/PREUVE_aire_visible_sans_camion.png", "ve_proof_clesud.jpg",
@@ -242,8 +239,7 @@ plate(VE / "test_inedit/71214df692ced694.png", "ve_case_fp.jpg",
       crop=(0, 12, 1000, 812), width=900)
 plate(VE / "zone_toulouse/site_01.png", "ve_zone.jpg",
       crop=(0, 12, 578, 1200), width=620)
-# The 221 docks/ha site: BD TOPO split one warehouse, so a 435 m apron landed on a
-# 5 149 m2 fragment. The quality gate caught it — this is the error-analysis plate.
+# The 221 docks/ha site: BD TOPO split one warehouse, so a 435 m apron landed on a 5 149 m2 fragment. The quality gate caught it - this is the error-analysis plate.
 plate(VE / "zone_toulouse/site_02.png", "ve_zone_bad.jpg",
       crop=(0, 12, 744, 1200), width=760)
 plate(VE / "runs/quai3/val_batch1_pred.jpg", "ve_val_grid.jpg",
@@ -259,14 +255,12 @@ for tag, src in (("xxl", "survey_XXL-megaDC.png"), ("frigo", "survey_frigo.png")
 plate(VE / "data/thr_cmp_HR20.png", "ve_hr20.jpg", width=520)
 plate(VE / "data/thr_cmp_THR8.png", "ve_thr8.jpg", width=520)
 
-# ve_gt_*.jpg and ve_pr_*.jpg are produced by make_pairs.py, not here: the ultralytics
-# validation grids bleed class labels across cell borders, so those plates are redrawn.
+# ve_gt_*.jpg and ve_pr_*.jpg are produced by make_pairs.py, not here: the ultralytics validation grids bleed class labels across cell borders, so those plates are redrawn.
 
 # Which KPI blocks feed real urgency, straight from the report.
 trim(BST / "Images" / "4.Operations" / "causal_tree_blocks.png", "causal_tree_blocks.png")
 
-# How the twin updates itself, report figures rather than app screenshots: they read
-# at poster distance, the Dash screenshots do not.
+# How the twin updates itself, report figures rather than app screenshots: they read at poster distance, the Dash screenshots do not.
 trim(BST / "Images" / "4.Operations" / "event_pipeline.png", "ss_pipeline.png")
 trim(BST / "Images" / "4.Operations" / "weekly_cycle.png", "ss_cycle.png")
 trim(BST / "Images" / "4.Operations" / "urgency_propagation.png", "ss_propagation.png")
@@ -287,30 +281,26 @@ if TUTO.exists():
 else:
     print(f"{'ss_dashboard.jpg etc.':34s} SKIPPED, {TUTO} not found")
 
-# V4 zone-sweep plates, produced by make_sweep.py. SWEEP points at that run's output
-# folder; the poster reads these four filenames, so a new sweep only overwrites files.
+# V4 zone-sweep plates, produced by make_sweep.py. SWEEP points at that run's output folder; the poster reads these four filenames, so a new sweep only overwrites files.
 SWEEP = Path(os.environ.get("SWEEP_DIR", Path(__file__).resolve().parent / "sweep"))
 _OV = Path(__file__).resolve().parent / "samyolo" / "samyolo_overview.jpg"
 if not _OV.exists():
-    _OV = SWEEP / "sweep_overview.jpg"          # footprint-only fallback
+    _OV = SWEEP / "sweep_overview.jpg"  # footprint-only fallback
 if _OV.exists():
-    # No side crop: the caption band starts at the left edge, so trimming there would
-    # eat the first words of it.
+    # No side crop: the caption band starts at the left edge, so trimming there would eat the first words of it.
     plate(_OV, "ve_sweep.jpg", width=1500)
 else:
     print(f"{'ve_sweep.jpg':34s} SKIPPED, no overview plate found")
 
-# The three per-site plates come from make_sam_yolo.py: SAM3 roof, then shape and area,
-# then the YOLO aprons, all on one frame. Their burnt-in panel is cropped off because at
-# poster width its type would fall under 2 mm; the figcaptions carry the numbers instead.
+# The three per-site plates come from make_sam_yolo.py: SAM3 roof, then shape and area, then the YOLO aprons, all on one frame. Their burnt-in panel is cropped off because at poster width its type would fall under 2 mm; the figcaptions carry the numbers instead.
 SY = Path(__file__).resolve().parent / "samyolo"
 for tag in ("best", "mid", "flop"):
     p = SY / f"samyolo_{tag}.jpg"
     if p.exists():
         im = Image.open(p)
-        h_img = int(im.height * 0.866)              # imagery, panel dropped
-        cx, cy = im.width / 2, h_img / 2            # the site sits at the centre by construction
-        half = 0.30 * im.width                      # zoom in so the building fills the cell
+        h_img = int(im.height * 0.866)  # imagery, panel dropped
+        cx, cy = im.width / 2, h_img / 2  # the site sits at the centre by construction
+        half = 0.30 * im.width  # zoom in so the building fills the cell
         plate(p, f"ve_case_{tag}.jpg", width=820,
               crop=(int(cx - half), int(cy - half), int(cx + half), int(cy + half)))
     else:

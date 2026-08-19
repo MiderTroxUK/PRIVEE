@@ -1,14 +1,14 @@
-"""Règles de statut unifiées — urgences locales effectives selon le cycle de vie.
+"""Regles de statut unifiees - urgences locales effectives selon le cycle de vie.
 
-Source de vérité UNIQUE de la règle « DONE → Ur_local effectif 0.0,
-ABANDONED → 1.0 », auparavant dupliquée dans l'orchestrateur, dans
+Source de verite UNIQUE de la regle " DONE -> Ur_local effectif 0.0,
+ABANDONED -> 1.0 ", auparavant dupliquee dans l'orchestrateur, dans
 :meth:`UrModel.ur_local` et dans ``PropagationEngine._effective_ur_local``.
-Tout consommateur (core, graph, services) doit déléguer à ce module au lieu
-de réimplémenter la règle.
+Tout consommateur (core, graph, services) doit deleguer a ce module au lieu
+de reimplementer la regle.
 
 Les fonctions sont pures : elles ne modifient jamais le ``ur_local`` /
-``ud_local`` stocké sur le nœud, elles calculent la valeur EFFECTIVE à
-utiliser dans les agrégations et propagations.
+``ud_local`` stocke sur le noeud, elles calculent la valeur EFFECTIVE a
+utiliser dans les agregations et propagations.
 """
 
 from __future__ import annotations
@@ -17,24 +17,24 @@ from supplyscore.domain.models import TaskStatus
 
 
 def effective_ur_local(status: TaskStatus, ur_local: float | None) -> float:
-    """Urgence réelle locale effective d'un nœud selon son statut.
+    """Urgence reelle locale effective d'un noeud selon son statut.
 
-    Règles :
-        - ``DONE`` → 0.0 : une tâche finie n'est plus urgente, sa
+    Regles :
+        - ``DONE`` -> 0.0 : une tache finie n'est plus urgente, sa
           contribution montante est nulle ;
-        - ``ABANDONED`` → 1.0 : une tâche abandonnée est une urgence
+        - ``ABANDONED`` -> 1.0 : une tache abandonnee est une urgence
           maximale pour tout l'aval ;
-        - sinon → ``ur_local`` si non-None, 0.0 sinon (absence de mesure
+        - sinon -> ``ur_local`` si non-None, 0.0 sinon (absence de mesure
           = pas d'urgence connue).
 
     Args:
-        status: statut de la tâche portée par le nœud.
-        ur_local: urgence réelle locale mesurée (KPIs), ou None si inconnue.
+        status: statut de la tache portee par le noeud.
+        ur_local: urgence reelle locale mesuree (KPIs), ou None si inconnue.
 
     Returns:
-        Urgence réelle locale effective (>= 0 ; peut dépasser 1 si le
-        ``ur_local`` fourni dépasse 1, p. ex. tâche en retard — le clip
-        éventuel reste la responsabilité de l'appelant).
+        Urgence reelle locale effective (>= 0 ; peut depasser 1 si le
+        ``ur_local`` fourni depasse 1, p. ex. tache en retard - le clip
+        eventuel reste la responsabilite de l'appelant).
     """
     if status is TaskStatus.DONE:
         return 0.0
@@ -44,20 +44,20 @@ def effective_ur_local(status: TaskStatus, ur_local: float | None) -> float:
 
 
 def effective_ud_local(status: TaskStatus, ud_local: float | None) -> float:
-    """Urgence déclarée locale effective d'un nœud selon son statut.
+    """Urgence declaree locale effective d'un noeud selon son statut.
 
-    DÉCISION DE MODÉLISATION n°1 (tranchée en E9, cf.
-    ``docs/modele_mathematique.md`` § Décisions) : le statut n'écrase PAS le
-    besoin déclaré — un nœud DONE continue de propager son ``ud_local`` (le
-    flux physique et les dépendances aval existent encore). Pour isoler un
-    nœud, le supprimer ou couper ses arcs, pas le marquer DONE.
+    DECISION DE MODELISATION no1 (tranchee en E9, cf.
+    ``docs/modele_mathematique.md`` section  Decisions) : le statut n'ecrase PAS le
+    besoin declare - un noeud DONE continue de propager son ``ud_local`` (le
+    flux physique et les dependances aval existent encore). Pour isoler un
+    noeud, le supprimer ou couper ses arcs, pas le marquer DONE.
 
     Args:
-        status: statut de la tâche portée par le nœud (sans effet, par décision).
-        ud_local: urgence déclarée locale (questionnaire), ou None si absente.
+        status: statut de la tache portee par le noeud (sans effet, par decision).
+        ud_local: urgence declaree locale (questionnaire), ou None si absente.
 
     Returns:
-        Urgence déclarée locale effective (``ud_local`` ou 0.0).
+        Urgence declaree locale effective (``ud_local`` ou 0.0).
     """
-    del status  # Sans effet par décision n°1 — point d'application centralisé.
+    del status  # Sans effet par decision no1 - point d'application centralise.
     return ud_local if ud_local is not None else 0.0

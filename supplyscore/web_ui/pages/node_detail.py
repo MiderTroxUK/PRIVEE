@@ -1,32 +1,32 @@
-"""Fiche nœud 360° — vue d'ensemble par cartes et réédition section par section.
+"""Fiche noeud 360o - vue d'ensemble par cartes et reedition section par section.
 
 La page expose ``layout(node_id)`` et :func:`register_callbacks` ; le routage
-``/node/<id>`` est branché par la tâche d'intégration E5.I dans ``app.py``.
+``/node/<id>`` est branche par la tache d'integration E5.I dans ``app.py``.
 
 Principes de conception :
 
-- **Mêmes payloads, mêmes validations que le wizard** : chaque bouton
-  « Enregistrer » passe par :meth:`OnboardingService.save_section` (étapes 1,
+- **Memes payloads, memes validations que le wizard** : chaque bouton
+  " Enregistrer " passe par :meth:`OnboardingService.save_section` (etapes 1,
   2 et 3), donc par :class:`MutationService` (diff + validation + audit,
-  ``source='onboarding'``). En cas d'erreur, RIEN n'est écrit : les messages
-  français s'affichent au-dessus du formulaire, valeurs saisies conservées.
-- **Un seul bloc en édition à la fois** : ``dcc.Store(id="store-fiche")``
-  mémorise ``{"node_id", "editing"}`` ; cliquer « Modifier » sur une carte
-  re-rend les trois cartes éditables (les deux autres repassent en lecture).
-  Les boutons « Modifier » restent montés dans l'EN-TÊTE des cartes (inputs
-  stables pour Dash) ; seul le CORPS de la carte bascule lecture/édition.
+  ``source='onboarding'``). En cas d'erreur, RIEN n'est ecrit : les messages
+  francais s'affichent au-dessus du formulaire, valeurs saisies conservees.
+- **Un seul bloc en edition a la fois** : ``dcc.Store(id="store-fiche")``
+  memorise ``{"node_id", "editing"}`` ; cliquer " Modifier " sur une carte
+  re-rend les trois cartes editables (les deux autres repassent en lecture).
+  Les boutons " Modifier " restent montes dans l'EN-TETE des cartes (inputs
+  stables pour Dash) ; seul le CORPS de la carte bascule lecture/edition.
 - **Resauver le cahier des charges remplace les jalons** (delete + recreate,
-  sémantique du wizard) : la carte « Jalons » est donc re-rendue par
-  :func:`save_cdc_callback`. Les clauses de pénalité et les notes de la
-  version courante, non éditables dans le formulaire, sont reportées telles
+  semantique du wizard) : la carte " Jalons " est donc re-rendue par
+  :func:`save_cdc_callback`. Les clauses de penalite et les notes de la
+  version courante, non editables dans le formulaire, sont reportees telles
   quelles dans la nouvelle version.
-- **Historique d'audit fusionné** (choix documenté) : UNE seule table
-  ``history_table`` mêle les entrées de la base client (``node_kpis``) et du
-  registre (``node`` + arcs touchant le nœud), triées par timestamp
-  décroissant et tronquées aux 50 dernières.
-- Les scores du bandeau ne sont PAS recalculés après une sauvegarde (comme
+- **Historique d'audit fusionne** (choix documente) : UNE seule table
+  ``history_table`` mele les entrees de la base client (``node_kpis``) et du
+  registre (``node`` + arcs touchant le noeud), triees par timestamp
+  decroissant et tronquees aux 50 dernieres.
+- Les scores du bandeau ne sont PAS recalcules apres une sauvegarde (comme
   dans le wizard, seul ``complete()`` relance ``evaluate_all``) : ils
-  reflètent la dernière évaluation persistée.
+  refletent la derniere evaluation persistee.
 """
 
 from __future__ import annotations
@@ -79,27 +79,27 @@ from supplyscore.web_ui.components.layout import (
 from supplyscore.web_ui.components.operator import current_operator
 from supplyscore.web_ui.pages.questionnaire import KPI_FIELDS
 
-#: Nombre maximal d'entrées affichées dans le journal d'audit de la fiche.
+#: Nombre maximal d'entrees affichees dans le journal d'audit de la fiche.
 _AUDIT_LIMIT = 50
 
-#: Bouton « Modifier » -> section du store ``store-fiche`` qu'il bascule.
+#: Bouton " Modifier " -> section du store ``store-fiche`` qu'il bascule.
 _EDIT_BUTTONS: dict[str, str] = {
     "fiche-edit-identity-btn": "identity",
     "fiche-edit-cdc-btn": "cdc",
     "fiche-edit-kpis-btn": "kpis",
 }
 
-#: Libellés français des types de jalon (mêmes options que le formulaire).
+#: Libelles francais des types de jalon (memes options que le formulaire).
 _MS_KIND_FR: dict[str, str] = {opt["value"]: opt["label"] for opt in MILESTONE_KIND_OPTIONS}
 
-#: Libellés français des statuts de jalon.
+#: Libelles francais des statuts de jalon.
 _MS_STATUS_FR: dict[MilestoneStatus, str] = {
     MilestoneStatus.ACTIVE: "Actif",
     MilestoneStatus.DONE: "Terminé",
     MilestoneStatus.ABANDONED: "Abandonné",
 }
 
-# Styles alignés sur les DataTable existantes (dashboard, historique).
+# Styles alignes sur les DataTable existantes (dashboard, historique).
 _TABLE_STYLE_CELL = {
     "fontFamily": FONT_FAMILY,
     "fontSize": "13px",
@@ -141,32 +141,32 @@ _STATUS_PILL_STYLE = {
 _MUTED_STYLE = {"color": COLORS["muted"], "margin": "2px 0"}
 
 
-# --- Aides de mise en forme -----------------------------------------------------------
+# Aides de mise en forme
 
 
 def _fmt(value: float | None, digits: int = 2) -> str:
-    """Formate un score optionnel (« — » si jamais évalué)."""
+    """Formate un score optionnel (" - " si jamais evalue)."""
     return "—" if value is None else f"{value:.{digits}f}"
 
 
 def _fr(value: float, digits: int = 3) -> str:
-    """Nombre formaté à la française (virgule décimale) pour les PHRASES.
+    """Nombre formate a la francaise (virgule decimale) pour les PHRASES.
 
-    Réservé aux messages français visibles — jamais aux inputs ni aux
-    colonnes numériques de DataTable (Dash exige le point).
+    Reserve aux messages francais visibles - jamais aux inputs ni aux
+    colonnes numeriques de DataTable (Dash exige le point).
     """
     return f"{value:.{digits}f}".replace(".", ",")
 
 
 def _fmt_date(ts: float | None) -> str:
-    """Date locale « JJ/MM/AAAA » d'un epoch (« — » si non renseignée)."""
+    """Date locale " JJ/MM/AAAA " d'un epoch (" - " si non renseignee)."""
     if ts is None or ts <= 0:
         return "—"
     return datetime.fromtimestamp(float(ts)).strftime("%d/%m/%Y")
 
 
 def _project_clock(service: Any, node: Any) -> Any:
-    """Horloge effective du projet du nœud (horloge du service si sans projet)."""
+    """Horloge effective du projet du noeud (horloge du service si sans projet)."""
     return service.clock_for(node.project_id) if node.project_id else service.clock
 
 
@@ -179,28 +179,28 @@ def _errors_block(errors: list[str] | None) -> list:
 
 
 def _message_block(message: str | None) -> list:
-    """Message vert de succès (vide si aucun message)."""
+    """Message vert de succes (vide si aucun message)."""
     if not message:
         return []
     return [html.P(message, style=MSG_OK_STYLE)]
 
 
 def _field_line(label: str, value: str) -> html.P:
-    """Ligne « Libellé : valeur » d'une vue lecture."""
+    """Ligne " Libelle : valeur " d'une vue lecture."""
     return html.P([html.Strong(f"{label} : "), value], style={"margin": "2px 0"})
 
 
 def _score_chip(label: str, value: float | None, digits: int = 2) -> html.Span:
-    """Pastille de score du bandeau, ex. « Ud 0.42 » (« — » si jamais évalué)."""
+    """Pastille de score du bandeau, ex. " Ud 0.42 " (" - " si jamais evalue)."""
     return html.Span(f"{label} {_fmt(value, digits)}", style=_CHIP_STYLE)
 
 
 def _status_pill(node: Any) -> html.Span:
-    """Badge du statut de tâche du nœud (libellés :data:`STATUS_FR`)."""
+    """Badge du statut de tache du noeud (libelles :data:`STATUS_FR`)."""
     return html.Span(STATUS_FR.get(node.status, str(node.status)), style=_STATUS_PILL_STYLE)
 
 
-# --- Bandeau ---------------------------------------------------------------------------
+# Bandeau
 
 
 def _header(service: Any, node: Any) -> html.Div:
@@ -247,11 +247,11 @@ def _header(service: Any, node: Any) -> html.Div:
     )
 
 
-# --- Corps des cartes éditables (vues lecture) ------------------------------------------
+# Corps des cartes editables (vues lecture)
 
 
 def _identity_read(service: Any, node: Any, message: str | None = None) -> html.Div:
-    """Vue lecture de la carte « Identité & tags » (tags et connexions aval)."""
+    """Vue lecture de la carte " Identite & tags " (tags et connexions aval)."""
     registry = service.registry
     tags = registry.tags_of_node(node.id)
     names = {n.id: n.name for n in registry.list_nodes(node.project_id)}
@@ -282,13 +282,13 @@ def _identity_read(service: Any, node: Any, message: str | None = None) -> html.
 
 
 def _deliverable_label(deliverable: Any) -> str:
-    """Libellé d'un livrable : « nom — quantité unité » (« — » si manquant)."""
+    """Libelle d'un livrable : " nom - quantite unite " (" - " si manquant)."""
     quantity = "—" if deliverable.quantity is None else f"{deliverable.quantity:g}"
     return f"{deliverable.name or '—'} — {quantity} {deliverable.unit}".rstrip()
 
 
 def _cdc_read(service: Any, node: Any, message: str | None = None) -> html.Div:
-    """Vue lecture du cahier des charges : budget, livrables, qualité, versions."""
+    """Vue lecture du cahier des charges : budget, livrables, qualite, versions."""
     client = service.client_db(node.id)
     latest = client.latest_spec_sheet(node.id)
     if latest is None:
@@ -329,7 +329,7 @@ def _cdc_read(service: Any, node: Any, message: str | None = None) -> html.Div:
 
 
 def _kpis_read(node: Any, message: str | None = None) -> html.Div:
-    """Vue lecture des KPIs courants : tableau compact « valeur + unité » par bloc."""
+    """Vue lecture des KPIs courants : tableau compact " valeur + unite " par bloc."""
     rows = []
     for block_title, fields in KPI_FIELDS:
         for key, label_text in fields:
@@ -356,7 +356,7 @@ def _kpis_read(node: Any, message: str | None = None) -> html.Div:
     return html.Div([*_message_block(message), table])
 
 
-# --- Corps des cartes éditables (vues édition) ------------------------------------------
+# Corps des cartes editables (vues edition)
 
 
 def _identity_edit(
@@ -365,14 +365,14 @@ def _identity_edit(
     errors: list[str] | None = None,
     values: dict | None = None,
 ) -> html.Div:
-    """Vue édition de l'identité : formulaire partagé pré-rempli + Enregistrer.
+    """Vue edition de l'identite : formulaire partage pre-rempli + Enregistrer.
 
     Args:
-        service: façade applicative partagée.
-        node: nœud édité (état registre).
-        errors: erreurs de validation à afficher au-dessus du formulaire.
-        values: payload soumis (re-soumission après erreur) ; ``None`` ->
-            pré-remplissage depuis l'état courant du registre.
+        service: facade applicative partagee.
+        node: noeud edite (etat registre).
+        errors: erreurs de validation a afficher au-dessus du formulaire.
+        values: payload soumis (re-soumission apres erreur) ; ``None`` ->
+            pre-remplissage depuis l'etat courant du registre.
     """
     registry = service.registry
     tag_options = [
@@ -417,15 +417,15 @@ def _cdc_edit(
     cdc: Any = None,
     milestones: list[Milestone] | None = None,
 ) -> html.Div:
-    """Vue édition du cahier des charges : formulaire partagé + Enregistrer.
+    """Vue edition du cahier des charges : formulaire partage + Enregistrer.
 
     Args:
-        service: façade applicative partagée.
-        node: nœud édité.
-        errors: erreurs de validation à afficher au-dessus du formulaire.
-        cdc: cahier des charges de pré-remplissage (``None`` -> version
+        service: facade applicative partagee.
+        node: noeud edite.
+        errors: erreurs de validation a afficher au-dessus du formulaire.
+        cdc: cahier des charges de pre-remplissage (``None`` -> version
             courante de la base client).
-        milestones: jalons de pré-remplissage (``None`` -> jalons du registre).
+        milestones: jalons de pre-remplissage (``None`` -> jalons du registre).
     """
     if cdc is None:
         latest = service.client_db(node.id).latest_spec_sheet(node.id)
@@ -440,14 +440,14 @@ def _cdc_edit(
 def _kpis_edit(
     node: Any, errors: list[str] | None = None, kpis: KPIBundle | None = None
 ) -> html.Div:
-    """Vue édition des KPIs : saisie guidée pré-remplie + Enregistrer."""
+    """Vue edition des KPIs : saisie guidee pre-remplie + Enregistrer."""
     form = kpi_guided_form("fiche", kpis if kpis is not None else node.kpis)
     save = html.Button("Enregistrer", id="fiche-save-kpis-btn", style=BUTTON_STYLE)
     return html.Div([*_errors_block(errors), form, save])
 
 
 def _section_body(service: Any, node: Any, section: str, editing: str | None) -> html.Div:
-    """Corps d'une carte éditable : édition si ``editing == section``, lecture sinon."""
+    """Corps d'une carte editable : edition si ``editing == section``, lecture sinon."""
     if section == "identity":
         if editing == section:
             return _identity_edit(service, node)
@@ -461,11 +461,11 @@ def _section_body(service: Any, node: Any, section: str, editing: str | None) ->
     return _kpis_read(node)
 
 
-# --- Cartes lecture seule ----------------------------------------------------------------
+# Cartes lecture seule
 
 
 def _milestones_body(service: Any, node: Any) -> Any:
-    """Tableau des jalons : avancement déclaré vs THÉORIQUE (horloge du projet)."""
+    """Tableau des jalons : avancement declare vs THEORIQUE (horloge du projet)."""
     milestones = service.registry.list_milestones(node.id)
     if not milestones:
         return html.P("Aucun jalon pour ce nœud.", style=_MUTED_STYLE)
@@ -499,7 +499,7 @@ def _milestones_body(service: Any, node: Any) -> Any:
 
 
 def _ahp_children(service: Any, node: Any) -> list:
-    """Dernière évaluation AHP + figure d'historique du Ud (``urgency_series``)."""
+    """Derniere evaluation AHP + figure d'historique du Ud (``urgency_series``)."""
     client = service.client_db(node.id)
     latest = client.latest_assessment(node.id)
     if latest is None:
@@ -512,8 +512,7 @@ def _ahp_children(service: Any, node: Any) -> list:
         )
     points = [(s.timestamp, s.ud) for s in client.urgency_series(node.id) if s.ud is not None]
     if points:
-        # Réutilisation documentée : la trajectoire en escalier du composant
-        # d'historique convient au Ud (une valeur tient entre deux saisies).
+        # Reutilisation documentee : la trajectoire en escalier du composant d'historique convient au Ud (une valeur tient entre deux saisies).
         figure = kpi_trajectory_figure(points, "Ud")
     else:
         figure = empty_figure("Aucun historique de Ud — première évaluation attendue.")
@@ -521,12 +520,12 @@ def _ahp_children(service: Any, node: Any) -> list:
 
 
 def _audit_entries(service: Any, node: Any) -> list[AuditEntry]:
-    """50 dernières entrées d'audit du nœud : base client + registre fusionnés.
+    """50 dernieres entrees d'audit du noeud : base client + registre fusionnes.
 
-    Choix documenté : UNE seule table fusionnée plutôt que deux — les entrées
-    ``node_kpis`` (base client du nœud) et ``node``/``arc`` (registre, arcs
-    touchant le nœud) sont triées ensemble par timestamp décroissant puis
-    tronquées à :data:`_AUDIT_LIMIT`.
+    Choix documente : UNE seule table fusionnee plutot que deux - les entrees
+    ``node_kpis`` (base client du noeud) et ``node``/``arc`` (registre, arcs
+    touchant le noeud) sont triees ensemble par timestamp decroissant puis
+    tronquees a :data:`_AUDIT_LIMIT`.
     """
     clock = _project_clock(service, node)
     client = service.client_db(node.id)
@@ -544,10 +543,10 @@ def _audit_entries(service: Any, node: Any) -> list[AuditEntry]:
 
 
 def _editable_card(title: str, section: str, body: Any, subtitle: str | None = None) -> html.Div:
-    """Carte avec bouton « Modifier » dans l'en-tête et corps re-rendable.
+    """Carte avec bouton " Modifier " dans l'en-tete et corps re-rendable.
 
-    Le bouton (id ``fiche-edit-<section>-btn``) reste TOUJOURS monté — c'est
-    le corps (id ``fiche-<section>-body``) qui bascule lecture/édition.
+    Le bouton (id ``fiche-edit-<section>-btn``) reste TOUJOURS monte - c'est
+    le corps (id ``fiche-<section>-body``) qui bascule lecture/edition.
     """
     header = html.Div(
         [
@@ -568,20 +567,19 @@ def _editable_card(title: str, section: str, body: Any, subtitle: str | None = N
                 style={"margin": "0 0 12px", "fontSize": "13px", "color": COLORS["muted"]},
             )
         )
-    # E16.5 — dcc.Loading autour du corps re-rendu par les callbacks de
-    # sauvegarde : l'id reste sur le html.Div interne (sortie des callbacks).
+    # E16.5 - dcc.Loading autour du corps re-rendu par les callbacks de sauvegarde : l'id reste sur le html.Div interne (sortie des callbacks).
     children.append(dcc.Loading(type="circle", children=html.Div(body, id=f"fiche-{section}-body")))
     return html.Div(children, style=CARD_STYLE)
 
 
-# --- Layout ------------------------------------------------------------------------------
+# Layout
 
 
 def layout(node_id: str) -> html.Div:
-    """Construit la fiche 360° du nœud (« Nœud introuvable » si id inconnu).
+    """Construit la fiche 360o du noeud (" Noeud introuvable " si id inconnu).
 
     Args:
-        node_id: identifiant du nœud (segment de l'URL ``/node/<id>``).
+        node_id: identifiant du noeud (segment de l'URL ``/node/<id>``).
     """
     service = get_service()
     node = service.repo.get_node(node_id) or service.registry.get_node(node_id)
@@ -644,12 +642,12 @@ def layout(node_id: str) -> html.Div:
     )
 
 
-# --- Aides des callbacks -------------------------------------------------------------------
+# Aides des callbacks
 
 
 def _triggered_id() -> Any:
-    """Id du composant déclencheur (None hors contexte de requête Dash)."""
-    try:  # ctx indisponible hors requête Dash (appel direct en test)
+    """Id du composant declencheur (None hors contexte de requete Dash)."""
+    try:  # ctx indisponible hors requete Dash (appel direct en test)
         from dash import ctx
 
         return ctx.triggered_id
@@ -658,7 +656,7 @@ def _triggered_id() -> Any:
 
 
 def _milestones_from_payload(node_id: str, raw: list[dict]) -> list[Milestone]:
-    """Jalons d'affichage reconstruits depuis le payload soumis (pré-remplissage)."""
+    """Jalons d'affichage reconstruits depuis le payload soumis (pre-remplissage)."""
     return [
         Milestone(
             id="",
@@ -674,7 +672,7 @@ def _milestones_from_payload(node_id: str, raw: list[dict]) -> list[Milestone]:
 
 
 def _kpis_with_overrides(kpis: KPIBundle, changes: dict) -> KPIBundle:
-    """Copie du bundle avec les valeurs soumises appliquées (pré-remplissage)."""
+    """Copie du bundle avec les valeurs soumises appliquees (pre-remplissage)."""
     bundle = kpis_from_json(kpis_to_json(kpis))
     for path, value in changes.items():
         block, _, field_name = str(path).partition(".")
@@ -684,15 +682,15 @@ def _kpis_with_overrides(kpis: KPIBundle, changes: dict) -> KPIBundle:
     return bundle
 
 
-# --- Callbacks (fonctions nommées, testables sans serveur) ----------------------------------
+# Callbacks (fonctions nommees, testables sans serveur)
 
 
 def toggle_edit_callback(_n_identity, _n_cdc, _n_kpis, fiche_data):
-    """Bascule UNE carte en édition, les deux autres repassant en lecture.
+    """Bascule UNE carte en edition, les deux autres repassant en lecture.
 
-    Re-cliquer « Modifier » sur la carte déjà en édition la repasse en
-    lecture. ``store-fiche`` mémorise la section en cours (une seule à la
-    fois) ; les trois corps de carte sont re-rendus à chaque bascule.
+    Re-cliquer " Modifier " sur la carte deja en edition la repasse en
+    lecture. ``store-fiche`` memorise la section en cours (une seule a la
+    fois) ; les trois corps de carte sont re-rendus a chaque bascule.
     """
     section = _EDIT_BUTTONS.get(str(_triggered_id() or ""))
     if section is None:
@@ -715,16 +713,16 @@ def toggle_edit_callback(_n_identity, _n_cdc, _n_kpis, fiche_data):
 def save_identity_callback(
     n_clicks, name, label, location, tags, targets, gamma, beta, arckind, operator_data, fiche_data
 ):
-    """Enregistre la section identité (mêmes payload/validations que le wizard).
+    """Enregistre la section identite (memes payload/validations que le wizard).
 
-    Parse les champs via :func:`parse_identity` (la clé ``tags`` est dupliquée
-    en ``tag_names``, clé attendue par ``save_section``), puis écrit via
-    :meth:`OnboardingService.save_section` (étape 1) avec l'opérateur du store
-    global. En cas d'erreur, rien n'est écrit et le formulaire est re-rendu
+    Parse les champs via :func:`parse_identity` (la cle ``tags`` est dupliquee
+    en ``tag_names``, cle attendue par ``save_section``), puis ecrit via
+    :meth:`OnboardingService.save_section` (etape 1) avec l'operateur du store
+    global. En cas d'erreur, rien n'est ecrit et le formulaire est re-rendu
     avec les valeurs soumises et les messages.
 
     Returns:
-        Le corps de la carte identité (lecture si succès, formulaire + erreurs
+        Le corps de la carte identite (lecture si succes, formulaire + erreurs
         sinon) et le contenu de ``store-fiche``.
     """
     if not n_clicks:
@@ -747,7 +745,7 @@ def save_identity_callback(
             "arckind": arckind,
         }
     )
-    payload["tag_names"] = list(payload["tags"])  # clé attendue par save_section
+    payload["tag_names"] = list(payload["tags"])  # cle attendue par save_section
     result = OnboardingService(service).save_section(
         node_id, 1, payload, operator_id=current_operator(operator_data)
     )
@@ -778,11 +776,11 @@ def save_cdc_callback(
 ):
     """Enregistre le cahier des charges + jalons (nouvelle version ``spec_sheet``).
 
-    Le payload de :func:`parse_cdc` est remballé au format attendu par
-    ``save_section`` (étape 2) : ``{"cdc": {...}, "milestones": [...]}``. Les
-    pénalités et notes de la version courante, non éditables ici, sont
-    reportées telles quelles. La carte « Jalons » est re-rendue : la
-    sauvegarde REMPLACE les jalons (sémantique du wizard).
+    Le payload de :func:`parse_cdc` est remballe au format attendu par
+    ``save_section`` (etape 2) : ``{"cdc": {...}, "milestones": [...]}``. Les
+    penalites et notes de la version courante, non editables ici, sont
+    reportees telles quelles. La carte " Jalons " est re-rendue : la
+    sauvegarde REMPLACE les jalons (semantique du wizard).
 
     Returns:
         Le corps de la carte cahier des charges, celui de la carte jalons
@@ -822,7 +820,7 @@ def save_cdc_callback(
         "quality": parsed["quality"],
     }
     latest = service.client_db(node_id).latest_spec_sheet(node_id)
-    if latest is not None:  # pénalités/notes de la version courante conservées
+    if latest is not None:  # penalites/notes de la version courante conservees
         current = cdc_from_json(latest[1])
         cdc_dict["penalties"] = [dataclasses.asdict(p) for p in current.penalties]
         cdc_dict["notes"] = current.notes
@@ -851,12 +849,12 @@ def save_kpis_callback(n_clicks, values, ids, operator_data, fiche_data):
     """Enregistre les KPIs saisis (diff + validation + audit via MutationService).
 
     Parse les inputs pattern-matching via :func:`parse_kpis` (champs vides
-    ignorés) puis écrit via ``save_section`` (étape 3). En cas d'erreur de
-    bornes, rien n'est écrit et le formulaire est re-rendu avec les valeurs
+    ignores) puis ecrit via ``save_section`` (etape 3). En cas d'erreur de
+    bornes, rien n'est ecrit et le formulaire est re-rendu avec les valeurs
     soumises.
 
     Returns:
-        Le corps de la carte KPIs (lecture si succès, formulaire + erreurs
+        Le corps de la carte KPIs (lecture si succes, formulaire + erreurs
         sinon) et le contenu de ``store-fiche``.
     """
     if not n_clicks:
@@ -880,7 +878,7 @@ def save_kpis_callback(n_clicks, values, ids, operator_data, fiche_data):
 
 
 def add_deliverable_callback(n_clicks, children):
-    """Ajoute une ligne « livrable » vierge au formulaire cahier des charges."""
+    """Ajoute une ligne " livrable " vierge au formulaire cahier des charges."""
     if not n_clicks:
         raise PreventUpdate
     rows = list(children or [])
@@ -889,7 +887,7 @@ def add_deliverable_callback(n_clicks, children):
 
 
 def add_milestone_callback(n_clicks, children):
-    """Ajoute une ligne « jalon » vierge au formulaire cahier des charges."""
+    """Ajoute une ligne " jalon " vierge au formulaire cahier des charges."""
     if not n_clicks:
         raise PreventUpdate
     rows = list(children or [])
@@ -898,11 +896,11 @@ def add_milestone_callback(n_clicks, children):
 
 
 def register_callbacks(app) -> None:
-    """Enregistre les callbacks de la fiche nœud sur l'application Dash.
+    """Enregistre les callbacks de la fiche noeud sur l'application Dash.
 
-    Les corps de carte et ``store-fiche`` sont aussi écrits par les callbacks
-    de sauvegarde : ces sorties partagées portent ``allow_duplicate=True``
-    (toutes avec ``prevent_initial_call=True``, exigé par Dash).
+    Les corps de carte et ``store-fiche`` sont aussi ecrits par les callbacks
+    de sauvegarde : ces sorties partagees portent ``allow_duplicate=True``
+    (toutes avec ``prevent_initial_call=True``, exige par Dash).
     """
     app.callback(
         Output("store-fiche", "data"),

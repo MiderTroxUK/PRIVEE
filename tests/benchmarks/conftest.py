@@ -1,13 +1,13 @@
 """Configuration des bancs de performance E14 (Lot 14.1).
 
-Les bancs sont EXCLUS du run rapide par défaut : ils ne s'exécutent que si la
-variable d'environnement ``SUPPLYSCORE_BENCH`` vaut ``"1"`` (posée par
-``scripts/ci.ps1 -Benchmarks``). Le marqueur ``benchmark_suite`` est enregistré
-ICI (conftest local) — aucun réglage pytest global n'est nécessaire, la suite
-rapide saute simplement ces fichiers à la collecte.
+Les bancs sont EXCLUS du run rapide par defaut : ils ne s'executent que si la
+variable d'environnement ``SUPPLYSCORE_BENCH`` vaut ``"1"`` (posee par
+``scripts/ci.ps1 -Benchmarks``). Le marqueur ``benchmark_suite`` est enregistre
+ICI (conftest local) - aucun reglage pytest global n'est necessaire, la suite
+rapide saute simplement ces fichiers a la collecte.
 
 Les bases SQLite des bancs vivent sous ``tmp_path_factory`` (%TEMP%), JAMAIS
-dans le dossier du projet potentiellement synchronisé cloud (faiblesse #21).
+dans le dossier du projet potentiellement synchronise cloud (faiblesse #21).
 """
 
 from __future__ import annotations
@@ -22,18 +22,18 @@ from supplyscore.data.generator import RandomSupplyChainGenerator
 from supplyscore.domain.models import Project, SupplyArc, SupplyNode
 from supplyscore.services import SupplyScoreService
 
-#: Instant figé des bancs (epoch s) — reproductibilité totale des mesures.
+#: Instant fige des bancs (epoch s) - reproductibilite totale des mesures.
 BENCH_NOW = 1_780_000_000.0
 
-#: Taille du DAG de stress — les budgets du PLAN sont exprimés @ 1 000 nœuds.
+#: Taille du DAG de stress - les budgets du PLAN sont exprimes @ 1 000 noeuds.
 N_NODES_STRESS = 1_000
 
-#: Seed figée du DAG de stress (mêmes données à chaque exécution des bancs).
+#: Seed figee du DAG de stress (memes donnees a chaque execution des bancs).
 SEED_STRESS = 1414
 
 
 def pytest_configure(config: pytest.Config) -> None:
-    """Enregistre le marqueur local des bancs (porté par TOUS les tests du dossier)."""
+    """Enregistre le marqueur local des bancs (porte par TOUS les tests du dossier)."""
     config.addinivalue_line(
         "markers",
         "benchmark_suite: banc de performance E14 — exécuté seulement si SUPPLYSCORE_BENCH=1",
@@ -41,7 +41,7 @@ def pytest_configure(config: pytest.Config) -> None:
 
 
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
-    """SKIP tous les bancs si SUPPLYSCORE_BENCH != '1' (run rapide par défaut)."""
+    """SKIP tous les bancs si SUPPLYSCORE_BENCH != '1' (run rapide par defaut)."""
     if os.environ.get("SUPPLYSCORE_BENCH") == "1":
         return
     skip_bench = pytest.mark.skip(
@@ -54,7 +54,7 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
 
 @pytest.fixture(scope="session")
 def stress_chain() -> tuple[Project, list[SupplyNode], list[SupplyArc]]:
-    """DAG de stress 1 000 nœuds reproductible — KPIs complets, sans jalons/tags."""
+    """DAG de stress 1 000 noeuds reproductible - KPIs complets, sans jalons/tags."""
     return RandomSupplyChainGenerator(seed=SEED_STRESS).generate_stress(n_nodes=N_NODES_STRESS)
 
 
@@ -63,17 +63,15 @@ def stress_service(
     tmp_path_factory: pytest.TempPathFactory,
     stress_chain: tuple[Project, list[SupplyNode], list[SupplyArc]],
 ) -> Iterator[SupplyScoreService]:
-    """Service chargé avec le DAG de stress, stockage sous %TEMP% (faiblesse #21).
+    """Service charge avec le DAG de stress, stockage sous %TEMP% (faiblesse #21).
 
-    SANS assessments : un questionnaire AHP simulé par nœud rendrait la
+    SANS assessments : un questionnaire AHP simule par noeud rendrait la
     fixture prohibitive (1 000 sauvegardes + lissages) ; ``ud_local`` reste
-    None, ce qui est accepté par la propagation et suffit pour mesurer.
+    None, ce qui est accepte par la propagation et suffit pour mesurer.
     """
     project, nodes, arcs = stress_chain
     db_dir = tmp_path_factory.mktemp("supplyscore_bench_store")
-    # client_cache_size dimensionné au graphe : sur 1 000 nœuds, le LRU par
-    # défaut (64) provoque ~1 000 open/close SQLite par evaluate_all(persist)
-    # — c'est le bouton de déploiement documenté pour les très grands graphes.
+    # client_cache_size dimensionne au graphe : sur 1 000 noeuds, le LRU par defaut (64) provoque ~1 000 open/close SQLite par evaluate_all(persist) - c'est le bouton de deploiement documente pour les tres grands graphes.
     svc = SupplyScoreService(db_dir=db_dir, clock=FixedClock(BENCH_NOW), client_cache_size=1_100)
     project.t0_ts = BENCH_NOW
     svc.create_project(project, nodes, arcs)

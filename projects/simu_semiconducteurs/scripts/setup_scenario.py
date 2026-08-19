@@ -1,11 +1,11 @@
-"""Mise en place du scénario HÉLIOS (U6) : projet, nœuds, arcs, jalons, mode jeu.
+"""Mise en place du scenario HELIOS (U6) : projet, noeuds, arcs, jalons, mode jeu.
 
 Usage :
     python setup_scenario.py --db-dir D [--force]
 
-Refuse de s'exécuter si la base contient déjà une campagne (sauf --force, qui
-exige une confirmation interactive). Après setup, l'horloge du projet est en
-mode « jeu » et la campagne attend ``inject_tour.py --tour 0``.
+Refuse de s'executer si la base contient deja une campagne (sauf --force, qui
+exige une confirmation interactive). Apres setup, l'horloge du projet est en
+mode " jeu " et la campagne attend ``inject_tour.py --tour 0``.
 """
 
 from __future__ import annotations
@@ -71,7 +71,7 @@ def main(argv: list[str] | None = None) -> int:
         ]
         service.create_project(project, nodes, arcs)
 
-        # KPIs initiaux (T0) — via MutationService : validation + audit.
+        # KPIs initiaux (T0) - via MutationService : validation + audit.
         for node_id, kpis in scenario.BASELINE_KPIS.items():
             service.mutations.update_kpis(
                 node_id, dict(kpis), source="setup", operator_id=FACILITATOR

@@ -1,36 +1,36 @@
-"""Modèle d'efficacité des actions — base bayésienne + garde-fous causaux (U17).
+"""Modele d'efficacite des actions - base bayesienne + garde-fous causaux (U17).
 
 Ce module est la **porte scientifique** de la couche prescriptive de SupplyScore.
-Il transforme un journal d'interventions (``interventions.csv``, contrat gelé n°9)
-en un artefact ``action_effects.json`` (contrat gelé n°10 v7) combinant :
+Il transforme un journal d'interventions (``interventions.csv``, contrat gele no9)
+en un artefact ``action_effects.json`` (contrat gele no10 v7) combinant :
 
-1. **Base bayésienne** — pour chaque couple (action × segment d'état-avant), un
-   modèle Beta-Binomial conjugué exact estime P(résolution opérationnelle |
-   exécution). Trois a priori sont exposés côte à côte (D27) : ``prior_sim``
-   (n₀ = 8, informé par une simulation), ``prior_faible`` (n₀ = 1, centré 0.5)
-   et ``donnees_seules`` (Jeffreys 0.5/0.5, référence sans a priori). P(exécution)
-   par action est un Beta sur la transition décidée → exécutée (D29).
+1. **Base bayesienne** - pour chaque couple (action x segment d'etat-avant), un
+   modele Beta-Binomial conjugue exact estime P(resolution operationnelle |
+   execution). Trois a priori sont exposes cote a cote (D27) : ``prior_sim``
+   (n_0 = 8, informe par une simulation), ``prior_faible`` (n_0 = 1, centre 0.5)
+   et ``donnees_seules`` (Jeffreys 0.5/0.5, reference sans a priori). P(execution)
+   par action est un Beta sur la transition decidee -> executee (D29).
 
-2. **Garde-fous causaux** (D20') — l'effet d'une action ne peut être qualifié de
-   « causal » qu'après : score de propension logistique (IRLS numpy) P(traité |
-   features observables d'état-avant), diagnostic d'*overlap* avec *trimming*
-   documenté, estimateur **IPW stabilisé** de la différence de risque, variante
+2. **Garde-fous causaux** (D20') - l'effet d'une action ne peut etre qualifie de
+   " causal " qu'apres : score de propension logistique (IRLS numpy) P(traite |
+   features observables d'etat-avant), diagnostic d'*overlap* avec *trimming*
+   documente, estimateur **IPW stabilise** de la difference de risque, variante
    **doublement robuste** (AIPW), et **E-value** de VanderWeele quantifiant la
-   sensibilité à une confusion non observée.
+   sensibilite a une confusion non observee.
 
-3. **Batterie de validation** (``--validate``, D32) — un banc synthétique
-   déterministe où la politique de l'opérateur dépend d'un *stress latent* absent
-   des features (confusion partiellement inobservée réelle) mesure la couverture
-   des IC, le biais, le taux de recommandation correcte, le regret décisionnel,
-   et **démontre chiffres à l'appui que le biais du naïf dépasse celui de l'IPW**.
+3. **Batterie de validation** (``--validate``, D32) - un banc synthetique
+   deterministe ou la politique de l'operateur depend d'un *stress latent* absent
+   des features (confusion partiellement inobservee reelle) mesure la couverture
+   des IC, le biais, le taux de recommandation correcte, le regret decisionnel,
+   et **demontre chiffres a l'appui que le biais du naif depasse celui de l'IPW**.
 
-Étiquetage honnête (D18') : toute sortie causale porte la mention « effet causal
-ESTIMÉ sous hypothèse de confusion observable ; sensibilité : e_value » — jamais
-« effet réel ». Les colonnes de vérité-terrain (``effet_vrai_param``,
+Etiquetage honnete (D18') : toute sortie causale porte la mention " effet causal
+ESTIME sous hypothese de confusion observable ; sensibilite : e_value " - jamais
+" effet reel ". Les colonnes de verite-terrain (``effet_vrai_param``,
 ``delta_u_vrai``, ``stress_latent``) n'entrent JAMAIS dans un estimateur : elles
-ne servent qu'à noter les estimateurs dans ``--validate``.
+ne servent qu'a noter les estimateurs dans ``--validate``.
 
-Dépendances : numpy et scipy uniquement (le cœur ``supplyscore`` n'est pas touché).
+Dependances : numpy et scipy uniquement (le coeur ``supplyscore`` n'est pas touche).
 
 Usage :
     python fit_action_effects.py --interventions F --out DIR [--validate]
@@ -52,11 +52,9 @@ from typing import Any
 import numpy as np
 from scipy import stats
 
-# =====================================================================================
 # Constantes de gouvernance
-# =====================================================================================
 
-#: Actions non nulles du catalogue U15 (CATALOGUE_V1) — bras de traitement possibles.
+#: Actions non nulles du catalogue U15 (CATALOGUE_V1) - bras de traitement possibles.
 ACTIONS_NON_NULLES: tuple[str, ...] = (
     "promouvoir_arc_secours",
     "replanifier_jalon",
@@ -65,21 +63,21 @@ ACTIONS_NON_NULLES: tuple[str, ...] = (
     "revue_declaration",
 )
 
-#: Bras de référence (« ne rien faire ») — contrefactuel de contrôle des estimateurs.
+#: Bras de reference (" ne rien faire ") - contrefactuel de controle des estimateurs.
 ACTION_NE_RIEN_FAIRE: str = "ne_rien_faire"
 
 #: Ensemble complet des actions attendues dans le journal.
 ACTIONS: tuple[str, ...] = (*ACTIONS_NON_NULLES, ACTION_NE_RIEN_FAIRE)
 
-#: Colonnes de VÉRITÉ-TERRAIN — interdites à tout estimateur, réservées à ``--validate``.
+#: Colonnes de VERITE-TERRAIN - interdites a tout estimateur, reservees a ``--validate``.
 COLONNES_VERITE: frozenset[str] = frozenset({"effet_vrai_param", "delta_u_vrai", "stress_latent"})
 
-#: Mention obligatoire accolée à toute sortie causale (D18'/D20').
+#: Mention obligatoire accolee a toute sortie causale (D18'/D20').
 LABEL_CAUSAL: str = (
     "effet causal ESTIMÉ sous hypothèse de confusion observable ; sensibilité : e_value"
 )
 
-#: Pseudo-observations de l'a priori simulé (D27).
+#: Pseudo-observations de l'a priori simule (D27).
 N0_PRIOR_SIM: float = 8.0
 #: Pseudo-observations de l'a priori faible (D27).
 N0_PRIOR_FAIBLE: float = 1.0
@@ -87,36 +85,34 @@ N0_PRIOR_FAIBLE: float = 1.0
 #: Bornes de la zone d'overlap acceptable pour le score de propension.
 OVERLAP_LO: float = 0.05
 OVERLAP_HI: float = 0.95
-#: Part maximale de propensions hors zone tolérée avant de lever ``overlap_ok=False``.
+#: Part maximale de propensions hors zone toleree avant de lever ``overlap_ok=False``.
 OVERLAP_PART_MAX: float = 0.10
-#: Effectif minimal par bras (après trimming) pour estimer une cellule causale.
+#: Effectif minimal par bras (apres trimming) pour estimer une cellule causale.
 MIN_PAR_BRAS: int = 12
 
-#: Seuil de rang « profond » (tier ≥ 2) pour l'axe de segmentation.
+#: Seuil de rang " profond " (tier >= 2) pour l'axe de segmentation.
 SEUIL_PROFOND: int = 2
-#: Seuil de saturation de l'urgence réelle locale.
+#: Seuil de saturation de l'urgence reelle locale.
 SEUIL_SATURATION: float = 0.90
 
-#: Version du schéma de l'artefact (contrat 10).
+#: Version du schema de l'artefact (contrat 10).
 SCHEMA_VERSION: int = 2
 
-#: Issues opérationnelles reconnues (définition gelée).
+#: Issues operationnelles reconnues (definition gelee).
 _ISSUES_VALIDES: frozenset[str] = frozenset({"resolu", "partiel", "echec", "en_cours", ""})
 
 
-# =====================================================================================
-# Chargement des données (numpy pur + csv stdlib — pas de pandas)
-# =====================================================================================
+# Chargement des donnees (numpy pur + csv stdlib - pas de pandas)
 
 
 @dataclass
 class Table:
-    """Journal d'interventions chargé en colonnes numpy typées.
+    """Journal d'interventions charge en colonnes numpy typees.
 
     Attributes:
         cols: table {nom_colonne: tableau numpy}. Les colonnes ``ea_*`` sont des
-            flottants ; ``decidee``/``executee`` des booléens ; les identifiants
-            et le résultat opérationnel des chaînes.
+            flottants ; ``decidee``/``executee`` des booleens ; les identifiants
+            et le resultat operationnel des chaines.
         n: nombre de lignes.
     """
 
@@ -124,13 +120,13 @@ class Table:
     n: int
 
     def feature_names(self) -> list[str]:
-        """Retourne les features observables (préfixe ``ea_``), triées et sûres.
+        """Retourne les features observables (prefixe ``ea_``), triees et sures.
 
-        Le préfixe ``ea_`` garantit par construction l'exclusion des colonnes de
-        vérité-terrain (``effet_vrai_param``…), qui ne le portent jamais.
+        Le prefixe ``ea_`` garantit par construction l'exclusion des colonnes de
+        verite-terrain (``effet_vrai_param``...), qui ne le portent jamais.
 
         Returns:
-            Liste triée des noms de colonnes observables numériques.
+            Liste triee des noms de colonnes observables numeriques.
         """
         noms = sorted(
             k
@@ -139,7 +135,7 @@ class Table:
             and k not in COLONNES_VERITE
             and np.issubdtype(self.cols[k].dtype, np.floating)
         )
-        # Garde-fou explicite : aucune fuite de vérité-terrain dans les features.
+        # Garde-fou explicite : aucune fuite de verite-terrain dans les features.
         assert not (set(noms) & COLONNES_VERITE), "fuite de vérité-terrain détectée"
         return noms
 
@@ -147,8 +143,8 @@ class Table:
         """Assemble la matrice de features (lignes = interventions, colonnes = names).
 
         Args:
-            names: colonnes observables à empiler.
-            mask: masque booléen optionnel de sélection de lignes.
+            names: colonnes observables a empiler.
+            mask: masque booleen optionnel de selection de lignes.
 
         Returns:
             Matrice ``(m, len(names))`` de flottants.
@@ -158,7 +154,7 @@ class Table:
 
 
 def _parse_bool(raw: str) -> bool:
-    """Interprète un booléen de CSV de façon tolérante.
+    """Interprete un booleen de CSV de facon tolerante.
 
     Args:
         raw: cellule brute.
@@ -170,7 +166,7 @@ def _parse_bool(raw: str) -> bool:
 
 
 def _parse_float(raw: str) -> float:
-    """Convertit une cellule en flottant, cellule vide → NaN.
+    """Convertit une cellule en flottant, cellule vide -> NaN.
 
     Args:
         raw: cellule brute.
@@ -194,11 +190,11 @@ def load_interventions(path: Path) -> Table:
         path: chemin du CSV.
 
     Returns:
-        Table colonne-orientée typée.
+        Table colonne-orientee typee.
 
     Raises:
-        ValueError: si des colonnes obligatoires manquent ou si le résultat
-            opérationnel est hors nomenclature gelée.
+        ValueError: si des colonnes obligatoires manquent ou si le resultat
+            operationnel est hors nomenclature gelee.
     """
     with path.open(newline="", encoding="utf-8") as fh:
         reader = csv.DictReader(fh)
@@ -231,16 +227,14 @@ def load_interventions(path: Path) -> Table:
     return Table(cols=cols, n=len(rows))
 
 
-# =====================================================================================
-# Segmentation en 8 cellules d'état-avant
-# =====================================================================================
+# Segmentation en 8 cellules d'etat-avant
 
 
 def _has_utime_features(t: Table) -> bool:
     """Indique si les sous-composantes d'urgence temporelle sont disponibles.
 
     Args:
-        t: table chargée.
+        t: table chargee.
 
     Returns:
         ``True`` si ``ea_u_time`` et au moins une autre composante existent.
@@ -250,27 +244,27 @@ def _has_utime_features(t: Table) -> bool:
 
 
 def assign_segments(t: Table) -> tuple[np.ndarray, dict[str, dict[str, str]]]:
-    """Affecte chaque intervention à l'une des 8 cellules d'état-avant.
+    """Affecte chaque intervention a l'une des 8 cellules d'etat-avant.
 
     Les 8 cellules croisent trois axes binaires :
 
-    * **profondeur** : ``profond`` si ``ea_depth ≥ 2`` (tier aval), sinon
-      ``proche``. À défaut de ``ea_depth``, proxy documenté par la médiane de
+    * **profondeur** : ``profond`` si ``ea_depth >= 2`` (tier aval), sinon
+      ``proche``. A defaut de ``ea_depth``, proxy documente par la mediane de
       ``ea_ur_local``.
-    * **saturation** : ``sature`` si ``ea_ur_local ≥ 0.9``, sinon ``nonsat``.
+    * **saturation** : ``sature`` si ``ea_ur_local >= 0.9``, sinon ``nonsat``.
     * **dominante** : si les composantes d'urgence existent, ``utime`` quand
-      ``ea_u_time`` domine (argmax des composantes), sinon ``autre`` ; à défaut,
-      repli sur ``ea_hidden_risk`` (``hirisk`` au-dessus de la médiane).
+      ``ea_u_time`` domine (argmax des composantes), sinon ``autre`` ; a defaut,
+      repli sur ``ea_hidden_risk`` (``hirisk`` au-dessus de la mediane).
 
     Args:
-        t: table chargée.
+        t: table chargee.
 
     Returns:
-        Couple ``(seg_ids, definitions)`` où ``seg_ids`` est un tableau de chaînes
-        de longueur ``t.n`` et ``definitions`` décrit chaque segment (contrat 10).
+        Couple ``(seg_ids, definitions)`` ou ``seg_ids`` est un tableau de chaines
+        de longueur ``t.n`` et ``definitions`` decrit chaque segment (contrat 10).
     """
     n = t.n
-    # --- Axe 1 : profondeur ------------------------------------------------------
+    # Axe 1 : profondeur
     if "ea_depth" in t.cols:
         depth = t.cols["ea_depth"]
         profond = depth >= SEUIL_PROFOND
@@ -281,11 +275,11 @@ def assign_segments(t: Table) -> tuple[np.ndarray, dict[str, dict[str, str]]]:
         profond = ur >= med
         def_profond = f"proxy : ea_ur_local ≥ médiane ({med:.3f})"
 
-    # --- Axe 2 : saturation ------------------------------------------------------
+    # Axe 2 : saturation
     ur_local = t.cols["ea_ur_local"]
     sature = ur_local >= SEUIL_SATURATION
 
-    # --- Axe 3 : dominante -------------------------------------------------------
+    # Axe 3 : dominante
     if _has_utime_features(t):
         comps = [c for c in ("ea_u_time", "ea_u_cost", "ea_u_quality", "ea_u_risk") if c in t.cols]
         mat = np.column_stack([t.cols[c] for c in comps])
@@ -322,18 +316,16 @@ def assign_segments(t: Table) -> tuple[np.ndarray, dict[str, dict[str, str]]]:
     return seg.astype(str), definitions
 
 
-# =====================================================================================
-# Base bayésienne : Beta-Binomial + P(exécution)
-# =====================================================================================
+# Base bayesienne : Beta-Binomial + P(execution)
 
 
 def _beta_summary(alpha: float, beta: float, n: int) -> dict[str, Any]:
-    """Résume un posterior Beta(alpha, beta) : moyenne et IC80.
+    """Resume un posterior Beta(alpha, beta) : moyenne et IC80.
 
     Args:
-        alpha: paramètre alpha du posterior.
-        beta: paramètre beta du posterior.
-        n: effectif de données ayant alimenté la cellule.
+        alpha: parametre alpha du posterior.
+        beta: parametre beta du posterior.
+        n: effectif de donnees ayant alimente la cellule.
 
     Returns:
         Dictionnaire ``{alpha, beta, n, p_resolution: {mean, lo80, hi80}}``.
@@ -353,21 +345,21 @@ def beta_posteriors(k: int, n: int, mean_sim: float) -> dict[str, Any]:
     """Calcule les trois posteriors Beta-Binomial d'une cellule (D27).
 
     Args:
-        k: nombre de résolutions (succès opérationnels) parmi les exécutées.
-        n: nombre d'interventions exécutées dans la cellule.
-        mean_sim: moyenne a priori simulée (source : ``--prior-sim`` ou taux global).
+        k: nombre de resolutions (succes operationnels) parmi les executees.
+        n: nombre d'interventions executees dans la cellule.
+        mean_sim: moyenne a priori simulee (source : ``--prior-sim`` ou taux global).
 
     Returns:
-        ``{prior_sim, prior_faible, donnees_seules}`` — chacun résumé Beta.
+        ``{prior_sim, prior_faible, donnees_seules}`` - chacun resume Beta.
 
     Note:
-        ``prior_faible`` (n₀=1, moyenne 0.5) coïncide numériquement avec
-        ``donnees_seules`` (Jeffreys 0.5/0.5) : c'est une propriété assumée des
-        deux a priori de référence, exposés séparément par le contrat 10.
+        ``prior_faible`` (n_0=1, moyenne 0.5) coincide numeriquement avec
+        ``donnees_seules`` (Jeffreys 0.5/0.5) : c'est une propriete assumee des
+        deux a priori de reference, exposes separement par le contrat 10.
     """
     mean_sim = min(max(mean_sim, 1e-4), 1 - 1e-4)
     a_sim, b_sim = mean_sim * N0_PRIOR_SIM, (1 - mean_sim) * N0_PRIOR_SIM
-    a_faible, b_faible = 0.5 * N0_PRIOR_FAIBLE, 0.5 * N0_PRIOR_FAIBLE  # → Beta(0.5, 0.5)
+    a_faible, b_faible = 0.5 * N0_PRIOR_FAIBLE, 0.5 * N0_PRIOR_FAIBLE  # -> Beta(0.5, 0.5)
     return {
         "prior_sim": _beta_summary(a_sim + k, b_sim + (n - k), n),
         "prior_faible": _beta_summary(a_faible + k, b_faible + (n - k), n),
@@ -376,14 +368,14 @@ def beta_posteriors(k: int, n: int, mean_sim: float) -> dict[str, Any]:
 
 
 def execution_posterior(t: Table, action: str) -> dict[str, Any]:
-    """Estime P(exécution | action) par un Beta de Jeffreys sur décidée → exécutée.
+    """Estime P(execution | action) par un Beta de Jeffreys sur decidee -> executee.
 
     Args:
-        t: table chargée.
+        t: table chargee.
         action: identifiant d'action.
 
     Returns:
-        ``{alpha, beta, n}`` du posterior Beta(0.5+exéc, 0.5+non-exéc).
+        ``{alpha, beta, n}`` du posterior Beta(0.5+exec, 0.5+non-exec).
     """
     m = (t.cols["action_id"] == action) & t.cols["decidee"]
     n_dec = int(m.sum())
@@ -391,19 +383,17 @@ def execution_posterior(t: Table, action: str) -> dict[str, Any]:
     return {"alpha": 0.5 + k_exec, "beta": 0.5 + (n_dec - k_exec), "n": n_dec}
 
 
-# =====================================================================================
-# Régression logistique par IRLS (numpy pur)
-# =====================================================================================
+# Regression logistique par IRLS (numpy pur)
 
 
 def _sigmoid(z: np.ndarray) -> np.ndarray:
-    """Sigmoïde stable numériquement.
+    """Sigmoide stable numeriquement.
 
     Args:
-        z: prédicteur linéaire.
+        z: predicteur lineaire.
 
     Returns:
-        Probabilités dans (0, 1).
+        Probabilites dans (0, 1).
     """
     z = np.clip(z, -30.0, 30.0)
     return 1.0 / (1.0 + np.exp(-z))
@@ -416,17 +406,17 @@ def irls_logistic(
     max_iter: int = 100,
     tol: float = 1e-8,
 ) -> tuple[np.ndarray, bool]:
-    """Ajuste une régression logistique par moindres carrés repondérés (IRLS).
+    """Ajuste une regression logistique par moindres carres reponderes (IRLS).
 
-    Une colonne d'intercept est ajoutée en tête. Une régularisation L2 (``ridge``)
-    stabilise les colonnes quasi-constantes ou colinéaires ; l'intercept n'est
-    pas pénalisé.
+    Une colonne d'intercept est ajoutee en tete. Une regularisation L2 (``ridge``)
+    stabilise les colonnes quasi-constantes ou colineaires ; l'intercept n'est
+    pas penalise.
 
     Args:
-        x: matrice de features déjà standardisées ``(m, p)``.
+        x: matrice de features deja standardisees ``(m, p)``.
         y: cible binaire ``(m,)``.
-        ridge: intensité de la pénalité L2 (jitter de stabilité).
-        max_iter: nombre maximal d'itérations de Newton.
+        ridge: intensite de la penalite L2 (jitter de stabilite).
+        max_iter: nombre maximal d'iterations de Newton.
         tol: seuil de convergence sur la variation des coefficients.
 
     Returns:
@@ -437,13 +427,13 @@ def irls_logistic(
     xd = np.column_stack([np.ones(m), x])
     beta = np.zeros(p + 1)
     pen = ridge * np.ones(p + 1)
-    pen[0] = 0.0  # intercept non pénalisé
+    pen[0] = 0.0  # intercept non penalise
     converged = False
     for _ in range(max_iter):
         eta = xd @ beta
         mu = _sigmoid(eta)
         w = np.clip(mu * (1 - mu), 1e-6, None)
-        # Hessienne régularisée et gradient pénalisé (Newton-Raphson).
+        # Hessienne regularisee et gradient penalise (Newton-Raphson).
         xtw = xd.T * w
         hess = xtw @ xd + np.diag(pen)
         grad = xd.T @ (y - mu) - pen * beta
@@ -459,13 +449,13 @@ def irls_logistic(
 
 
 def _standardize(x: np.ndarray) -> np.ndarray:
-    """Centre-réduit chaque colonne ; colonnes constantes → zéro.
+    """Centre-reduit chaque colonne ; colonnes constantes -> zero.
 
     Args:
         x: matrice brute ``(m, p)``.
 
     Returns:
-        Matrice standardisée ``(m, p)``.
+        Matrice standardisee ``(m, p)``.
     """
     mu = x.mean(axis=0)
     sd = x.std(axis=0)
@@ -475,19 +465,17 @@ def _standardize(x: np.ndarray) -> np.ndarray:
     return xs
 
 
-# =====================================================================================
-# Estimateurs causaux : propension → overlap → IPW / AIPW → E-value
-# =====================================================================================
+# Estimateurs causaux : propension -> overlap -> IPW / AIPW -> E-value
 
 
 def _e_value(rr: float) -> float | None:
-    """E-value de VanderWeele à partir d'un risk ratio.
+    """E-value de VanderWeele a partir d'un risk ratio.
 
     Args:
-        rr: risk ratio de l'issue défavorable (traité / non-traité).
+        rr: risk ratio de l'issue defavorable (traite / non-traite).
 
     Returns:
-        E-value (≥ 1), ou ``None`` si le RR est nul/indéfini (effet nul).
+        E-value (>= 1), ou ``None`` si le RR est nul/indefini (effet nul).
     """
     if rr is None or not math.isfinite(rr) or rr <= 0.0 or rr == 1.0:
         return None
@@ -496,16 +484,16 @@ def _e_value(rr: float) -> float | None:
 
 
 def _ipw_point(e: np.ndarray, t: np.ndarray, y: np.ndarray) -> tuple[float, float, float, float]:
-    """Estimateur IPW stabilisé : risques par bras, différence, effectif efficace.
+    """Estimateur IPW stabilise : risques par bras, difference, effectif efficace.
 
     Args:
-        e: propensions estimées ``P(traité | X)``.
+        e: propensions estimees ``P(traite | X)``.
         t: indicateur de traitement ``(m,)``.
-        y: issue défavorable binaire ``(m,)``.
+        y: issue defavorable binaire ``(m,)``.
 
     Returns:
-        ``(p0, p1, delta, n_eff)`` : risque non-traité, risque traité, différence
-        ``p0 − p1`` (réduction de risque) et effectif efficace des poids stabilisés.
+        ``(p0, p1, delta, n_eff)`` : risque non-traite, risque traite, difference
+        ``p0 - p1`` (reduction de risque) et effectif efficace des poids stabilises.
     """
     p_treat = float(t.mean())
     e = np.clip(e, 1e-4, 1 - 1e-4)
@@ -518,19 +506,19 @@ def _ipw_point(e: np.ndarray, t: np.ndarray, y: np.ndarray) -> tuple[float, floa
 
 
 def _aipw_point(x: np.ndarray, e: np.ndarray, t: np.ndarray, y: np.ndarray) -> float:
-    """Estimateur doublement robuste (AIPW) de la différence de risque.
+    """Estimateur doublement robuste (AIPW) de la difference de risque.
 
-    Combine un modèle d'issue logistique (avec le traitement en covariable) et une
-    correction IPW. Reste consistant si l'un des deux modèles est correct.
+    Combine un modele d'issue logistique (avec le traitement en covariable) et une
+    correction IPW. Reste consistant si l'un des deux modeles est correct.
 
     Args:
-        x: matrice de features standardisées ``(m, p)``.
-        e: propensions estimées ``(m,)``.
+        x: matrice de features standardisees ``(m, p)``.
+        e: propensions estimees ``(m,)``.
         t: indicateur de traitement ``(m,)``.
-        y: issue défavorable binaire ``(m,)``.
+        y: issue defavorable binaire ``(m,)``.
 
     Returns:
-        ``psi0 − psi1`` : réduction de risque doublement robuste.
+        ``psi0 - psi1`` : reduction de risque doublement robuste.
     """
     e = np.clip(e, 1e-4, 1 - 1e-4)
     xt = np.column_stack([x, t.astype(float)])
@@ -552,21 +540,21 @@ def estimate_causal_cell(
     rng: np.random.Generator,
     n_boot: int,
 ) -> dict[str, Any] | None:
-    """Estime l'effet causal d'une cellule (action × segment) avec garde-fous.
+    """Estime l'effet causal d'une cellule (action x segment) avec garde-fous.
 
-    Enchaîne : propension IRLS → diagnostic d'overlap + trimming [0.05, 0.95] →
-    IPW stabilisé + AIPW → IC80 par bootstrap pondéré stratifié → E-value.
+    Enchaine : propension IRLS -> diagnostic d'overlap + trimming [0.05, 0.95] ->
+    IPW stabilise + AIPW -> IC80 par bootstrap pondere stratifie -> E-value.
 
     Args:
         xcell: features observables brutes de la cellule ``(m, p)`` (deux bras).
         t: indicateur de traitement ``(m,)`` (1 = action, 0 = ne_rien_faire).
-        y: issue défavorable ``(m,)`` (1 = echec dans la fenêtre).
-        rng: générateur numpy graine pour le bootstrap.
+        y: issue defavorable ``(m,)`` (1 = echec dans la fenetre).
+        rng: generateur numpy graine pour le bootstrap.
         n_boot: nombre de tirages bootstrap.
 
     Returns:
         Dictionnaire de sortie causale (contrat 10), ou ``None`` si les effectifs
-        sont insuffisants même avant trimming.
+        sont insuffisants meme avant trimming.
     """
     if int((t == 1).sum()) < MIN_PAR_BRAS or int((t == 0).sum()) < MIN_PAR_BRAS:
         return None
@@ -575,7 +563,7 @@ def estimate_causal_cell(
     beta, converged = irls_logistic(xs, t.astype(float))
     e = _sigmoid(np.column_stack([np.ones(len(t)), xs]) @ beta)
 
-    # --- Overlap + trimming (diagnostic sur la cellule ENTIÈRE) ------------------
+    # Overlap + trimming (diagnostic sur la cellule ENTIERE)
     hors = (e < OVERLAP_LO) | (e > OVERLAP_HI)
     part_hors = float(hors.mean())
     keep = ~hors
@@ -593,14 +581,13 @@ def estimate_causal_cell(
             "label": LABEL_CAUSAL,
         }
 
-    # Ré-ajuste la propension sur l'ensemble d'analyse (post-trimming) pour que
-    # l'estimation ponctuelle et le bootstrap suivent EXACTEMENT la même procédure.
+    # Re-ajuste la propension sur l'ensemble d'analyse (post-trimming) pour que l'estimation ponctuelle et le bootstrap suivent EXACTEMENT la meme procedure.
     beta_k, conv_k = irls_logistic(xs_k, t_k.astype(float))
     e_k = _sigmoid(np.column_stack([np.ones(len(t_k)), xs_k]) @ beta_k)
     p0, p1, delta, n_eff = _ipw_point(e_k, t_k, y_k)
     delta_aipw = _aipw_point(xs_k, e_k, t_k, y_k)
 
-    # --- Bootstrap pondéré stratifié par bras (graine déterministe) --------------
+    # Bootstrap pondere stratifie par bras (graine deterministe)
     idx_t = np.where(t_k == 1)[0]
     idx_c = np.where(t_k == 0)[0]
     boots_ipw = np.empty(n_boot)
@@ -638,19 +625,17 @@ def estimate_causal_cell(
     }
 
 
-# =====================================================================================
 # Assemblage de l'artefact (contrat 10)
-# =====================================================================================
 
 
 def _global_success_rate(t: Table) -> float:
-    """Taux global de résolution parmi les interventions exécutées.
+    """Taux global de resolution parmi les interventions executees.
 
     Args:
-        t: table chargée.
+        t: table chargee.
 
     Returns:
-        Fraction de ``resultat_operationnel == 'resolu'`` sur les exécutées.
+        Fraction de ``resultat_operationnel == 'resolu'`` sur les executees.
     """
     exe = t.cols["executee"]
     res = t.cols["resultat_operationnel"]
@@ -667,16 +652,16 @@ def fit(
     n_boot: int = 500,
     seed: int = 20260723,
 ) -> dict[str, Any]:
-    """Ajuste l'ensemble du modèle et produit l'artefact ``action_effects`` (contrat 10).
+    """Ajuste l'ensemble du modele et produit l'artefact ``action_effects`` (contrat 10).
 
     Args:
-        t: journal d'interventions chargé.
+        t: journal d'interventions charge.
         prior_sim: dictionnaire optionnel ``{action_id: moyenne}`` de simulations.
         n_boot: tirages bootstrap par cellule causale.
-        seed: graine maîtresse (déterminisme du bootstrap).
+        seed: graine maitresse (determinisme du bootstrap).
 
     Returns:
-        Artefact conforme au contrat 10 (dictionnaire sérialisable JSON).
+        Artefact conforme au contrat 10 (dictionnaire serialisable JSON).
     """
     seg_ids, seg_defs = assign_segments(t)
     features = t.feature_names()
@@ -686,8 +671,7 @@ def fit(
     res = t.cols["resultat_operationnel"]
     seg_sorted = sorted(seg_defs)
     n_seg = len(seg_sorted)
-    # Graines-enfants tirées EN UNE FOIS puis indexées par (action, segment) : le
-    # déterminisme du bootstrap est alors trivialement reproductible.
+    # Graines-enfants tirees EN UNE FOIS puis indexees par (action, segment) : le determinisme du bootstrap est alors trivialement reproductible.
     child_seeds = np.random.SeedSequence(seed).spawn(len(ACTIONS) * n_seg)
 
     actions_out: dict[str, Any] = {}
@@ -704,7 +688,7 @@ def fit(
             if action == ACTION_NE_RIEN_FAIRE:
                 causal: dict[str, Any] | None = None
             else:
-                # Contraste : action exécutée vs ne_rien_faire, dans le segment.
+                # Contraste : action executee vs ne_rien_faire, dans le segment.
                 arm = (
                     ((action_arr == action) | (action_arr == ACTION_NE_RIEN_FAIRE))
                     & exe
@@ -738,19 +722,17 @@ def fit(
     }
 
 
-# =====================================================================================
-# Vérification du schéma (contrat 10) — mode --check
-# =====================================================================================
+# Verification du schema (contrat 10) - mode --check
 
 
 def check_schema(artifact: dict[str, Any]) -> None:
-    """Vérifie qu'un artefact respecte le contrat 10 (assertions dures).
+    """Verifie qu'un artefact respecte le contrat 10 (assertions dures).
 
     Args:
-        artifact: artefact rechargé depuis JSON.
+        artifact: artefact recharge depuis JSON.
 
     Raises:
-        AssertionError: à la première violation du contrat.
+        AssertionError: a la premiere violation du contrat.
     """
     assert artifact.get("schema_version") == SCHEMA_VERSION, "schema_version"
     assert "actions" in artifact and "segments" in artifact, "clés racines"
@@ -775,41 +757,39 @@ def check_schema(artifact: dict[str, Any]) -> None:
             if dci is not None:
                 assert {"est", "lo80", "hi80", "n_eff"} <= set(dci), f"IPW {sid}"
                 assert dci["lo80"] <= dci["hi80"] + 1e-9, f"ordre IC IPW {sid}"
-    # Cohérence des 8 cellules de segmentation.
+    # Coherence des 8 cellules de segmentation.
     assert len(artifact["segments"]) == 8, "8 segments attendus"
 
 
-# =====================================================================================
-# Banc synthétique déterministe (mimant l'usine) — vérité-terrain connue
-# =====================================================================================
+# Banc synthetique deterministe (mimant l'usine) - verite-terrain connue
 
 
 @dataclass
 class DGPParams:
-    """Paramètres d'un processus générateur de données (DGP) synthétique.
+    """Parametres d'un processus generateur de donnees (DGP) synthetique.
 
     Le DGP superpose deux confondeurs, comme dans une vraie usine :
 
-    * un confondeur **observé** ``x_obs`` (fonction des features d'état-avant),
-      présent dans le score de propension — l'IPW le neutralise entièrement ;
-    * le **stress latent**, seulement corrélé ``rho`` aux observables : sa part
-      ``sqrt(1−rho²)`` reste une confusion NON observée que l'IPW ne peut retirer
-      (d'où le biais résiduel que l'E-value quantifie).
+    * un confondeur **observe** ``x_obs`` (fonction des features d'etat-avant),
+      present dans le score de propension - l'IPW le neutralise entierement ;
+    * le **stress latent**, seulement correle ``rho`` aux observables : sa part
+      ``sqrt(1-rho^2)`` reste une confusion NON observee que l'IPW ne peut retirer
+      (d'ou le biais residuel que l'E-value quantifie).
 
-    C'est l'écart de traitement de ces deux confondeurs qui fait que le NAÏF
-    (aucun ajustement) est nettement plus biaisé que l'IPW.
+    C'est l'ecart de traitement de ces deux confondeurs qui fait que le NAIF
+    (aucun ajustement) est nettement plus biaise que l'IPW.
 
     Attributes:
-        nom: étiquette du jeu de paramètres.
+        nom: etiquette du jeu de parametres.
         n: nombre d'interventions.
-        rho: corrélation stress latent ↔ index observable (confusion partielle).
+        rho: correlation stress latent <-> index observable (confusion partielle).
         c0: biais de la politique d'intervention (logit).
-        c_x: sensibilité de la politique au confondeur observé.
-        c1: sensibilité de la politique au stress latent.
-        b_x: coefficient du confondeur observé sur le risque d'issue défavorable.
-        b_stress: coefficient du stress sur le risque d'issue défavorable.
-        base_seg: risque de base d'issue défavorable par segment (8 valeurs).
-        p_exec: probabilité d'exécution d'une action décidée (< 1).
+        c_x: sensibilite de la politique au confondeur observe.
+        c1: sensibilite de la politique au stress latent.
+        b_x: coefficient du confondeur observe sur le risque d'issue defavorable.
+        b_stress: coefficient du stress sur le risque d'issue defavorable.
+        base_seg: risque de base d'issue defavorable par segment (8 valeurs).
+        p_exec: probabilite d'execution d'une action decidee (< 1).
         delta_seed: graine de construction de la grille d'effets vrais.
     """
 
@@ -826,23 +806,9 @@ class DGPParams:
     delta_seed: int
 
 
-# -------------------------------------------------------------------------------------
-# INTÉGRITÉ SCIENTIFIQUE — les paramètres ci-dessous sont FIGÉS A PRIORI puis laissés
-# tels quels : ils ne sont PAS ajustés pour faire passer un critère. Rationnel des
-# magnitudes (indépendant du résultat de la batterie) :
-#   * rho ≈ 0.6 (0.55 pour DGP2) — imposé par le plan : la part observable du stress
-#     est minoritaire, la confusion reste MAJORITAIREMENT non observée par construction ;
-#   * b_x ≫ b_stress — le confondeur observé (KPIs) domine le confondeur latent ; l'IPW
-#     doit donc battre nettement le naïf, mais sans annuler le résidu latent ;
-#   * b_stress = 0.10 — le stress déplace le risque d'issue jusqu'à ~10 points sur son
-#     étendue, ordre de grandeur d'une action de force moyenne (confusion RÉALISTE) ;
-#   * c_x, c1 ~ 0.9 — politique d'intervention franchement confondue.
-# Conséquence ASSUMÉE : sous confusion partiellement non observée, l'IPW reste biaisé et
-# son IC80 SOUS-COUVRE (< 80 % nominal). C'est le résultat honnête que la batterie doit
-# révéler ; l'E-value en chiffre la sensibilité, et la porte U14 retient alors l'artefact.
-# -------------------------------------------------------------------------------------
+# Parametres figes a priori, jamais ajustes pour faire passer un critere : rho ~= 0.6 (0.55 DGP2), b_x >> b_stress, b_stress = 0.10, c_x et c1 ~ 0.9. Consequence assumee : sous confusion partiellement non observee l'IPW reste biaise et son IC80 sous-couvre ; l'E-value en chiffre la sensibilite.
 
-#: Jeu de paramètres principal du banc de validation.
+#: Jeu de parametres principal du banc de validation.
 DGP1 = DGPParams(
     nom="DGP1",
     n=4000,
@@ -857,7 +823,7 @@ DGP1 = DGPParams(
     delta_seed=7,
 )
 
-#: Second jeu de paramètres — JAMAIS utilisé pour construire l'a priori simulé.
+#: Second jeu de parametres - JAMAIS utilise pour construire l'a priori simule.
 DGP2 = DGPParams(
     nom="DGP2",
     n=4200,
@@ -874,17 +840,17 @@ DGP2 = DGPParams(
 
 
 def _delta_grid(seed: int) -> np.ndarray:
-    """Construit la grille d'effets vrais δ(action, segment) ∈ [0, ~0.20].
+    """Construit la grille d'effets vrais delta(action, segment)  dans  [0, ~0.20].
 
-    Chaque segment possède un vainqueur net (marge ≈ 0.03 sur le 2ᵉ, actions
+    Chaque segment possede un vainqueur net (marge ~= 0.03 sur le 2e, actions
     faibles clairement en dessous), de sorte que le taux de recommandation
-    correcte et le regret décisionnel soient tous deux atteignables.
+    correcte et le regret decisionnel soient tous deux atteignables.
 
     Args:
         seed: graine de rotation des vainqueurs.
 
     Returns:
-        Matrice ``(5, 8)`` des réductions de risque vraies (actions × segments).
+        Matrice ``(5, 8)`` des reductions de risque vraies (actions x segments).
     """
     rng = np.random.default_rng(seed)
     na, ns = len(ACTIONS_NON_NULLES), 8
@@ -893,7 +859,7 @@ def _delta_grid(seed: int) -> np.ndarray:
         gagnant = (s + seed) % na
         base = rng.uniform(0.05, 0.12, size=na)
         base[gagnant] = 0.18 + 0.01 * (s % 3)
-        # Écrase le 2ᵉ pour garantir une marge, garde les faibles bas.
+        # Ecrase le 2e pour garantir une marge, garde les faibles bas.
         ordre = np.argsort(base)[::-1]
         second = ordre[1]
         base[second] = min(base[second], base[gagnant] - 0.03)
@@ -902,28 +868,28 @@ def _delta_grid(seed: int) -> np.ndarray:
 
 
 def generate_dataset(params: DGPParams, seed: int) -> tuple[Table, np.ndarray]:
-    """Génère un journal synthétique complet (features + vérité-terrain).
+    """Genere un journal synthetique complet (features + verite-terrain).
 
-    La politique de l'opérateur dépend du **stress latent** ``P(traiter) =
-    sigmoïde(c0 + c1·stress)``. Le stress est ``rho·index_observable +
-    sqrt(1−rho²)·bruit`` : l'index observable (fonction des features) est
-    récupérable par le score de propension, le bruit reste une confusion NON
-    observée — d'où le biais résiduel que l'E-value doit cerner.
+    La politique de l'operateur depend du **stress latent** ``P(traiter) =
+    sigmoide(c0 + c1-stress)``. Le stress est ``rho-index_observable +
+    sqrt(1-rho^2)-bruit`` : l'index observable (fonction des features) est
+    recuperable par le score de propension, le bruit reste une confusion NON
+    observee - d'ou le biais residuel que l'E-value doit cerner.
 
     Args:
-        params: jeu de paramètres du DGP.
-        seed: graine de réplication.
+        params: jeu de parametres du DGP.
+        seed: graine de replication.
 
     Returns:
         Couple ``(table, delta_grid)`` : le journal (colonnes ``ea_*`` +
         ``effet_vrai_param``/``delta_u_vrai``/``stress_latent``) et la grille
-        d'effets vrais utilisée.
+        d'effets vrais utilisee.
     """
     rng = np.random.default_rng(seed * 1000 + params.delta_seed)
     n = params.n
     grid = _delta_grid(params.delta_seed)
 
-    # --- Features observables d'état-avant ---------------------------------------
+    # Features observables d'etat-avant
     depth = rng.integers(0, 5, size=n).astype(float)
     ur_local = rng.beta(2.0, 1.0, size=n)
     ud_local = rng.beta(2.0, 2.0, size=n)
@@ -950,19 +916,19 @@ def generate_dataset(params: DGPParams, seed: int) -> tuple[Table, np.ndarray]:
     seg_index = {sid: i for i, sid in enumerate(sorted(set(_all_segment_ids())))}
     s_idx = np.array([seg_index[s] for s in seg_ids])
 
-    # --- Deux confondeurs : un observé (récupérable) + le stress latent ----------
+    # Deux confondeurs : un observe (recuperable) + le stress latent
     def _std(v: np.ndarray) -> np.ndarray:
         return (v - v.mean()) / v.std()
 
     x_obs = _std(0.7 * hidden_risk + 0.5 * ur_local + 0.4 * u_risk)  # dans les features
     x_stress_obs = _std(0.6 * ud_local + 0.5 * false_urgency + 0.4 * u_time)
-    eps = rng.standard_normal(n)  # part NON observée du stress
+    eps = rng.standard_normal(n)  # part NON observee du stress
     stress = params.rho * x_stress_obs + math.sqrt(1 - params.rho**2) * eps
 
-    # --- Action candidate (uniforme sur les 5 non nulles) ------------------------
+    # Action candidate (uniforme sur les 5 non nulles)
     cand = rng.integers(0, len(ACTIONS_NON_NULLES), size=n)
 
-    # --- Politique confondue : traiter vs ne_rien_faire --------------------------
+    # Politique confondue : traiter vs ne_rien_faire
     p_treat = _sigmoid(params.c0 + params.c_x * x_obs + params.c1 * stress)
     treat = rng.random(n) < p_treat
     executee = treat & (rng.random(n) < params.p_exec)
@@ -973,7 +939,7 @@ def generate_dataset(params: DGPParams, seed: int) -> tuple[Table, np.ndarray]:
         ACTION_NE_RIEN_FAIRE,
     )
 
-    # --- Effet vrai de la ligne (0 si contrôle ou non exécuté) -------------------
+    # Effet vrai de la ligne (0 si controle ou non execute)
     base_arr = np.array(params.base_seg)
     delta_true_line = np.where(
         treat, grid[cand, s_idx], 0.0
@@ -987,7 +953,7 @@ def generate_dataset(params: DGPParams, seed: int) -> tuple[Table, np.ndarray]:
     )
     y_adv = rng.random(n) < p_adv
 
-    # --- Résultat opérationnel (label gelé) --------------------------------------
+    # Resultat operationnel (label gele)
     resultat = np.empty(n, dtype=object)
     succes = np.full(n, math.nan)
     q_resolu = np.clip(0.40 + 1.2 * delta_applique, 0.0, 0.95)
@@ -1006,15 +972,15 @@ def generate_dataset(params: DGPParams, seed: int) -> tuple[Table, np.ndarray]:
             resultat[i] = "partiel"
             succes[i] = 0.0
 
-    # --- Vérité-terrain (VALIDATION_ONLY) ----------------------------------------
+    # Verite-terrain (VALIDATION_ONLY)
     cols["stress_latent"] = stress
     cols["effet_vrai_param"] = delta_true_line
-    # delta_u_vrai = effet causal vrai de (action candidate, segment), 0 pour contrôle.
+    # delta_u_vrai = effet causal vrai de (action candidate, segment), 0 pour controle.
     cols["delta_u_vrai"] = np.where(treat, grid[cand, s_idx], 0.0)
 
     cols["action_id"] = action_id
     cols["decidee"] = np.ones(n, dtype=bool)
-    cols["executee"] = np.where(treat, executee, True)  # ne_rien_faire est « exécuté »
+    cols["executee"] = np.where(treat, executee, True)  # ne_rien_faire est " execute "
     cols["resultat_operationnel"] = resultat
     cols["succes"] = succes
     cols["chain_id"] = np.array([f"c{seed}" for _ in range(n)], dtype=object)
@@ -1039,22 +1005,20 @@ def _all_segment_ids() -> list[str]:
     return ids
 
 
-# =====================================================================================
 # Batterie de validation D32 (PORTE du pipeline)
-# =====================================================================================
 
 
 def _score_replication(params: DGPParams, seed: int, n_boot: int) -> dict[str, Any]:
-    """Ajuste le modèle sur une réplication et confronte estimateurs à la vérité.
+    """Ajuste le modele sur une replication et confronte estimateurs a la verite.
 
     Args:
-        params: jeu de paramètres du DGP.
-        seed: graine de la réplication.
+        params: jeu de parametres du DGP.
+        seed: graine de la replication.
         n_boot: tirages bootstrap par cellule.
 
     Returns:
         Dictionnaire d'observations par cellule et par segment (couverture,
-        biais IPW/naïf, recommandations, regret).
+        biais IPW/naif, recommandations, regret).
     """
     table, _grid = generate_dataset(params, seed)
     seg_ids, seg_defs = assign_segments(table)
@@ -1083,7 +1047,7 @@ def _score_replication(params: DGPParams, seed: int, n_boot: int) -> dict[str, A
             xcell = table.matrix(features, mask=arm)
             tt = (action_arr[arm] == action).astype(int)
             yy = (res[arm] == "echec").astype(int)
-            # Vérité de la cellule : δ vrai de (action, segment).
+            # Verite de la cellule : delta vrai de (action, segment).
             mask_act = arm & (action_arr == action)
             if int(mask_act.sum()) == 0:
                 continue
@@ -1094,7 +1058,7 @@ def _score_replication(params: DGPParams, seed: int, n_boot: int) -> dict[str, A
             if out is None or out.get("delta_causal_ipw") is None:
                 continue
 
-            # Estimateur naïf non ajusté : différence brute de risque.
+            # Estimateur naif non ajuste : difference brute de risque.
             p1_naif = float(yy[tt == 1].mean())
             p0_naif = float(yy[tt == 0].mean())
             delta_naif = p0_naif - p1_naif
@@ -1124,24 +1088,24 @@ def _score_replication(params: DGPParams, seed: int, n_boot: int) -> dict[str, A
 
 
 def run_validation(n_rep: int = 10, n_boot: int = 200, seed: int = 2026) -> dict[str, Any]:
-    """Exécute la batterie de validation causale complète (D32) sur DGP1 et DGP2.
+    """Execute la batterie de validation causale complete (D32) sur DGP1 et DGP2.
 
-    Critères (par DGP) :
+    Criteres (par DGP) :
 
-    * (i) couverture des IC80 vs ``delta_u_vrai`` — PASS si ∈ [70 %, 90 %] ;
+    * (i) couverture des IC80 vs ``delta_u_vrai`` - PASS si  dans  [70 %, 90 %] ;
     * (ii) biais moyen et biais absolu moyen (informatif) ;
-    * (iii) taux de recommandation correcte (argmax estimé = argmax vrai) — PASS ≥ 0.7 ;
-    * (iv) regret décisionnel moyen — PASS ≤ 0.02 ;
-    * (v) le biais absolu du NAÏF dépasse celui de l'IPW — PASS si oui ;
-    * (vi) rerun sur un second jeu de paramètres tenu hors a priori.
+    * (iii) taux de recommandation correcte (argmax estime = argmax vrai) - PASS >= 0.7 ;
+    * (iv) regret decisionnel moyen - PASS <= 0.02 ;
+    * (v) le biais absolu du NAIF depasse celui de l'IPW - PASS si oui ;
+    * (vi) rerun sur un second jeu de parametres tenu hors a priori.
 
     Args:
-        n_rep: réplications par DGP.
+        n_rep: replications par DGP.
         n_boot: tirages bootstrap par cellule.
-        seed: graine maîtresse.
+        seed: graine maitresse.
 
     Returns:
-        Résumé complet de la batterie, y compris le verdict global booléen.
+        Resume complet de la batterie, y compris le verdict global booleen.
     """
     resume: dict[str, Any] = {"dgp": {}}
     verdict_global = True
@@ -1151,11 +1115,7 @@ def run_validation(n_rep: int = 10, n_boot: int = 200, seed: int = 2026) -> dict
         ipw_abs: list[float] = []
         naif_abs: list[float] = []
         ipw_bias: list[float] = []
-        # Estimateur AGRÉGÉ (moyenne des points IPW sur les réplications) : sert aux
-        # métriques DÉCISIONNELLES (reco/regret), pour lesquelles la question est la
-        # qualité de la décision au volume de preuve de la campagne, et non le bruit
-        # d'échantillonnage d'une seule cellule de ~40 lignes. Couverture/biais/naïf
-        # restent, eux, PAR CELLULE (une cellule = une observation d'IC).
+        # Estimateur AGREGE (moyenne des points IPW sur les replications) : sert aux metriques DECISIONNELLES (reco/regret), pour lesquelles la question est la qualite de la decision au volume de preuve de la campagne, et non le bruit d'echantillonnage d'une seule cellule de ~40 lignes. Couverture/biais/naif restent, eux, PAR CELLULE (une cellule = une observation d'IC).
         pool_sum: dict[tuple[str, str], float] = {}
         pool_cnt: dict[tuple[str, str], int] = {}
         pool_vrai: dict[tuple[str, str], float] = {}
@@ -1172,7 +1132,7 @@ def run_validation(n_rep: int = 10, n_boot: int = 200, seed: int = 2026) -> dict
                 pool_sum[key] = pool_sum.get(key, 0.0) + c["ipw_est"]
                 pool_cnt[key] = pool_cnt.get(key, 0) + 1
                 pool_vrai[key] = c["delta_vrai"]
-            # Reco par réplication (informative, non bloquante — montre le bruit fini).
+            # Reco par replication (informative, non bloquante - montre le bruit fini).
             for sid, est in rep["est_par_segment"].items():
                 vrai = rep["vrai_par_segment"][sid]
                 communs = [a for a in est if a in vrai]
@@ -1182,7 +1142,7 @@ def run_validation(n_rep: int = 10, n_boot: int = 200, seed: int = 2026) -> dict
                     max(communs, key=lambda a: est[a]) == max(communs, key=lambda a: vrai[a])
                 )
 
-        # --- Reco / regret sur l'estimateur agrégé ---------------------------------
+        # Reco / regret sur l'estimateur agrege
         seg_est: dict[str, dict[str, float]] = {}
         for (sid, action), cnt in pool_cnt.items():
             seg_est.setdefault(sid, {})[action] = pool_sum[(sid, action)] / cnt
@@ -1239,7 +1199,7 @@ def _format_rapport(resume: dict[str, Any]) -> str:
     """Met en forme le rapport Markdown de la batterie de validation.
 
     Args:
-        resume: résumé produit par :func:`run_validation`.
+        resume: resume produit par :func:`run_validation`.
 
     Returns:
         Contenu Markdown du rapport.
@@ -1300,10 +1260,10 @@ def _format_rapport(resume: dict[str, Any]) -> str:
 
 
 def _print_validation(resume: dict[str, Any]) -> None:
-    """Imprime la batterie ligne à ligne, verdict global en dernier (parsable).
+    """Imprime la batterie ligne a ligne, verdict global en dernier (parsable).
 
     Args:
-        resume: résumé produit par :func:`run_validation`.
+        resume: resume produit par :func:`run_validation`.
     """
     print("=" * 72)
     print("BATTERIE DE VALIDATION CAUSALE (U17 — porte du pipeline, D32)")
@@ -1343,18 +1303,16 @@ def _print_validation(resume: dict[str, Any]) -> None:
     print("-" * 72)
 
 
-# =====================================================================================
-# Écriture du CSV de fixture
-# =====================================================================================
+# Ecriture du CSV de fixture
 
 
 def write_fixture(path: Path, params: DGPParams = DGP1, seed: int = 42) -> None:
-    """Écrit une fixture ``interventions.csv`` déterministe (contrat 9).
+    """Ecrit une fixture ``interventions.csv`` deterministe (contrat 9).
 
     Args:
         path: chemin de sortie.
-        params: DGP utilisé pour la génération.
-        seed: graine de génération.
+        params: DGP utilise pour la generation.
+        seed: graine de generation.
     """
     table, _ = generate_dataset(params, seed)
     ordre = [
@@ -1389,21 +1347,19 @@ def write_fixture(path: Path, params: DGPParams = DGP1, seed: int = 42) -> None:
             writer.writerow(row)
 
 
-# =====================================================================================
 # CLI
-# =====================================================================================
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Point d'entrée CLI.
+    """Point d'entree CLI.
 
     Args:
-        argv: arguments (par défaut ``sys.argv[1:]``).
+        argv: arguments (par defaut ``sys.argv[1:]``).
 
     Returns:
-        Code de sortie : 0 si succès (et validation PASS le cas échéant), 1 sinon.
+        Code de sortie : 0 si succes (et validation PASS le cas echeant), 1 sinon.
     """
-    # La console Windows (cp1252) ne code pas ≥/≤/− : on force l'UTF-8 en sortie.
+    # La console Windows (cp1252) ne code pas >=/<=/- : on force l'UTF-8 en sortie.
     for flux in (sys.stdout, sys.stderr):
         with contextlib.suppress(AttributeError, ValueError):
             flux.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[union-attr]

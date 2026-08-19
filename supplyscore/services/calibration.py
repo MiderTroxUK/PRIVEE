@@ -1,37 +1,37 @@
-"""Calibration prédiction/réalité — le score H a-t-il prédit les vraies ruptures ? (E11, Lot 11.1).
+"""Calibration prediction/realite - le score H a-t-il predit les vraies ruptures ? (E11, Lot 11.1).
 
-:class:`CalibrationService` confronte les risques cachés H persistés semaine
-après semaine (table ``urgency_history`` des bases CLIENT) aux issues
-défavorables réellement constatées ensuite. C'est l'instrument de mesure du
-serious game : matrice de confusion, précision/rappel et courbe de calibration.
+:class:`CalibrationService` confronte les risques caches H persistes semaine
+apres semaine (table ``urgency_history`` des bases CLIENT) aux issues
+defavorables reellement constatees ensuite. C'est l'instrument de mesure du
+serious game : matrice de confusion, precision/rappel et courbe de calibration.
 
-Définitions FIGÉES du lot 11.1 :
+Definitions FIGEES du lot 11.1 :
 
-- **Point d'observation** : un couple (nœud, semaine ISO S) où le nœud a un
-  état d'urgence persisté dans son historique (``urgency_history``) — on prend
-  le DERNIER état de la semaine S (``hidden_risk`` H et ``ur``). Les points
-  sans H (None) sont ignorés ; la semaine COURANTE du projet (et toute semaine
-  postérieure) est exclue, sa fenêtre d'observation n'ayant pas commencé.
-- **Issue défavorable dans [S+1, S+horizon]** (horizon en semaines, défaut 4),
+- **Point d'observation** : un couple (noeud, semaine ISO S) ou le noeud a un
+  etat d'urgence persiste dans son historique (``urgency_history``) - on prend
+  le DERNIER etat de la semaine S (``hidden_risk`` H et ``ur``). Les points
+  sans H (None) sont ignores ; la semaine COURANTE du projet (et toute semaine
+  posterieure) est exclue, sa fenetre d'observation n'ayant pas commence.
+- **Issue defavorable dans [S+1, S+horizon]** (horizon en semaines, defaut 4),
   au moins un des trois constats :
 
-  (a) **jalon RATÉ** : un jalon du nœud dont la deadline tombe dans la fenêtre
+  (a) **jalon RATE** : un jalon du noeud dont la deadline tombe dans la fenetre
       (timestamps : ``lundi(S+1) <= deadline_ts < lundi(S+horizon+1)``, heure
       locale) ET dont le statut est ABANDONED, ou ACTIVE avec la deadline
-      dépassée à la fin de la fenêtre (bornée par « maintenant » si la fenêtre
-      déborde sur le futur) — on utilise les timestamps, jamais les statuts
+      depassee a la fin de la fenetre (bornee par " maintenant " si la fenetre
+      deborde sur le futur) - on utilise les timestamps, jamais les statuts
       hebdo ;
-  (b) **nœud ABANDONNÉ** : le registre ne conservant PAS l'horodatage du
-      passage au statut ABANDONED, le statut COURANT du nœud sert de proxy —
-      un nœud aujourd'hui abandonné marque TOUS ses points d'observation
-      (limite documentée : le passage peut être postérieur à la fenêtre) ;
-  (c) **événement de gravité critique/défaut** : un événement non annulé
-      (``reverted_at`` NULL) journalisé dans une semaine de la fenêtre dont le
-      paramètre ``gravite`` vaut ``"critique"`` ou ``"defaut"``.
+  (b) **noeud ABANDONNE** : le registre ne conservant PAS l'horodatage du
+      passage au statut ABANDONED, le statut COURANT du noeud sert de proxy -
+      un noeud aujourd'hui abandonne marque TOUS ses points d'observation
+      (limite documentee : le passage peut etre posterieur a la fenetre) ;
+  (c) **evenement de gravite critique/defaut** : un evenement non annule
+      (``reverted_at`` NULL) journalise dans une semaine de la fenetre dont le
+      parametre ``gravite`` vaut ``"critique"`` ou ``"defaut"``.
 
-Limite assumée (censure à droite) : pour les semaines récentes, la fenêtre
-[S+1, S+horizon] déborde sur le futur — une issue peut encore survenir après
-« maintenant » ; le taux observé de ces points est donc une borne inférieure.
+Limite assumee (censure a droite) : pour les semaines recentes, la fenetre
+[S+1, S+horizon] deborde sur le futur - une issue peut encore survenir apres
+" maintenant " ; le taux observe de ces points est donc une borne inferieure.
 """
 
 from __future__ import annotations
@@ -50,8 +50,7 @@ from supplyscore.core.clock import iso_week
 from supplyscore.domain.milestones import MilestoneStatus
 from supplyscore.domain.models import TaskStatus
 
-# ``_lundi`` est le parseur canonique des libellés « AAAA-Sxx » (même module
-# que ``semaines_ecart``) : on le réutilise plutôt que de dupliquer le calcul.
+# ``_lundi`` est le parseur canonique des libelles " AAAA-Sxx " (meme module que ``semaines_ecart``) : on le reutilise plutot que de dupliquer le calcul.
 from supplyscore.services.weekly import _lundi, semaines_ecart
 
 if TYPE_CHECKING:
@@ -59,44 +58,43 @@ if TYPE_CHECKING:
     from supplyscore.domain.models import SupplyNode, UrgencyState
     from supplyscore.services.orchestrator import SupplyScoreService
 
-#: Gravités d'événement comptées comme issue défavorable (critère (c)).
+#: Gravites d'evenement comptees comme issue defavorable (critere (c)).
 _GRAVITES_DEFAVORABLES: frozenset[str] = frozenset({"critique", "defaut"})
 
-#: En dessous de ce nombre de points, :meth:`CalibrationService.summary`
-#: avertit explicitement que l'échantillon est trop petit pour conclure.
+#: En dessous de ce nombre de points, :meth:`CalibrationService.summary` avertit explicitement que l'echantillon est trop petit pour conclure.
 _MIN_POINTS_CONCLUSION: int = 30
 
 
 def _semaine_decalee(week: str, n: int) -> str:
-    """Libellé de la semaine ISO située ``n`` semaines après ``week``.
+    """Libelle de la semaine ISO situee ``n`` semaines apres ``week``.
 
     Args:
-        week: semaine de départ, ex. « 2026-S24 ».
-        n: décalage en semaines (peut être négatif).
+        week: semaine de depart, ex. " 2026-S24 ".
+        n: decalage en semaines (peut etre negatif).
 
     Returns:
-        Le libellé « AAAA-Sxx » de la semaine décalée, bords d'année ISO exacts.
+        Le libelle " AAAA-Sxx " de la semaine decalee, bords d'annee ISO exacts.
 
     Raises:
-        ValueError: si ``week`` n'est pas de la forme « AAAA-Sxx ».
+        ValueError: si ``week`` n'est pas de la forme " AAAA-Sxx ".
     """
     iso = (_lundi(week) + timedelta(weeks=n)).isocalendar()
     return f"{iso.year:04d}-S{iso.week:02d}"
 
 
 def _rangs_moyens(valeurs: NDArray[np.float64]) -> NDArray[np.float64]:
-    """Rangs moyens (1-indexés) de ``valeurs``, ex æquo partageant leur rang.
+    """Rangs moyens (1-indexes) de ``valeurs``, ex aequo partageant leur rang.
 
-    Implémente le rang « fractional » standard (identique à
-    ``scipy.stats.rankdata(method="average")``) sans dépendance
-    supplémentaire : les valeurs égales reçoivent la moyenne des rangs
-    bruts qu'elles occuperaient triées.
+    Implemente le rang " fractional " standard (identique a
+    ``scipy.stats.rankdata(method="average")``) sans dependance
+    supplementaire : les valeurs egales recoivent la moyenne des rangs
+    bruts qu'elles occuperaient triees.
 
     Args:
-        valeurs: tableau 1D de valeurs (peut contenir des ex æquo).
+        valeurs: tableau 1D de valeurs (peut contenir des ex aequo).
 
     Returns:
-        Un tableau de même longueur, rang moyen par position d'origine.
+        Un tableau de meme longueur, rang moyen par position d'origine.
     """
     ordre = np.argsort(valeurs, kind="mergesort")
     valeurs_triees = valeurs[ordre]
@@ -123,47 +121,47 @@ def issues_defavorables(
     now_ts: float,
     evenements: Iterable[Mapping[str, Any]],
 ) -> list[str]:
-    """Issues défavorables constatées dans la fenêtre ``[debut_ts, fin_ts[``.
+    """Issues defavorables constatees dans la fenetre ``[debut_ts, fin_ts[``.
 
-    Définition FIGÉE du lot 11.1 (voir le docstring du module), extraite ici
-    en fonction PURE et réutilisable — notamment par
+    Definition FIGEE du lot 11.1 (voir le docstring du module), extraite ici
+    en fonction PURE et reutilisable - notamment par
     :class:`~supplyscore.services.interventions.InterventionJournal` pour le
-    résultat opérationnel des interventions (docs/modele_mathematique.md,
-    §13) — de sorte qu'il n'existe qu'UNE SEULE définition de la rupture
-    dans tout le système. :meth:`CalibrationService._causes` délègue à cette
-    fonction pour les fenêtres ISO-semaine qu'elle calcule elle-même.
+    resultat operationnel des interventions (docs/modele_mathematique.md,
+    section 13) - de sorte qu'il n'existe qu'UNE SEULE definition de la rupture
+    dans tout le systeme. :meth:`CalibrationService._causes` delegue a cette
+    fonction pour les fenetres ISO-semaine qu'elle calcule elle-meme.
 
     Args:
-        node: nœud observé (son statut COURANT sert de proxy pour le critère
-            « nœud abandonné », limite documentée ci-dessous).
-        debut_ts: borne inférieure de la fenêtre, incluse (epoch s).
-        fin_ts: borne supérieure de la fenêtre, EXCLUE (epoch s).
-        milestones: jalons courants du nœud (ordre quelconque).
-        now_ts: instant courant de l'horloge du projet — borne les jalons
-            ACTIVE dont l'échéance est dans la fenêtre mais qui pourrait
-            encore être livrée si ``now_ts`` ne l'a pas encore dépassée.
-        evenements: lignes d'événements CANDIDATES (même forme que
-            :meth:`~supplyscore.data.db.ClientDatabase.list_events` — dicts
+        node: noeud observe (son statut COURANT sert de proxy pour le critere
+            " noeud abandonne ", limite documentee ci-dessous).
+        debut_ts: borne inferieure de la fenetre, incluse (epoch s).
+        fin_ts: borne superieure de la fenetre, EXCLUE (epoch s).
+        milestones: jalons courants du noeud (ordre quelconque).
+        now_ts: instant courant de l'horloge du projet - borne les jalons
+            ACTIVE dont l'echeance est dans la fenetre mais qui pourrait
+            encore etre livree si ``now_ts`` ne l'a pas encore depassee.
+        evenements: lignes d'evenements CANDIDATES (meme forme que
+            :meth:`~supplyscore.data.db.ClientDatabase.list_events` - dicts
             avec ``occurred_at``, ``reverted_at``, ``event_type``,
             ``params_json``) ; seules celles dont ``occurred_at`` tombe dans
-            la fenêtre sont retenues, les autres sont ignorées (l'appelant
-            peut donc fournir un sur-ensemble sans filtrage préalable).
+            la fenetre sont retenues, les autres sont ignorees (l'appelant
+            peut donc fournir un sur-ensemble sans filtrage prealable).
 
     Returns:
-        Les descriptions françaises des issues constatées (``[]`` sinon) :
+        Les descriptions francaises des issues constatees (``[]`` sinon) :
 
-        (a) un jalon dont l'échéance tombe dans la fenêtre est ABANDONED, ou
-            ACTIVE avec l'échéance dépassée à la fin de la fenêtre (bornée
-            par ``now_ts`` si la fenêtre déborde sur le futur) ;
-        (b) le statut COURANT du nœud est ABANDONED (proxy — l'horodatage du
-            passage n'est pas persisté, limite documentée) ;
-        (c) un événement non annulé (``reverted_at`` NULL), dont
-            ``occurred_at`` tombe dans la fenêtre, de gravité ``"critique"``
+        (a) un jalon dont l'echeance tombe dans la fenetre est ABANDONED, ou
+            ACTIVE avec l'echeance depassee a la fin de la fenetre (bornee
+            par ``now_ts`` si la fenetre deborde sur le futur) ;
+        (b) le statut COURANT du noeud est ABANDONED (proxy - l'horodatage du
+            passage n'est pas persiste, limite documentee) ;
+        (c) un evenement non annule (``reverted_at`` NULL), dont
+            ``occurred_at`` tombe dans la fenetre, de gravite ``"critique"``
             ou ``"defaut"``.
     """
     causes: list[str] = []
 
-    # (a) jalon raté : deadline dans la fenêtre, jamais livré.
+    # (a) jalon rate : deadline dans la fenetre, jamais livre.
     for milestone in milestones:
         if not debut_ts <= milestone.deadline_ts < fin_ts:
             continue
@@ -175,20 +173,19 @@ def issues_defavorables(
         ):
             causes.append(f"jalon « {milestone.name} » non livré à son échéance ({echeance})")
 
-    # (b) nœud abandonné — l'horodatage du passage n'étant pas persisté, le
-    # statut COURANT sert de proxy (limite documentée dans le module).
+    # (b) noeud abandonne - l'horodatage du passage n'etant pas persiste, le statut COURANT sert de proxy (limite documentee dans le module).
     if node.status is TaskStatus.ABANDONED:
         causes.append(
             "nœud au statut « abandonné » (statut courant utilisé comme proxy :"
             " horodatage du passage indisponible)"
         )
 
-    # (c) événement non annulé de gravité critique/défaut dans la fenêtre.
+    # (c) evenement non annule de gravite critique/defaut dans la fenetre.
     for row in evenements:
         if not debut_ts <= row["occurred_at"] < fin_ts:
             continue
         if row["reverted_at"] is not None:
-            continue  # événement annulé : déclaré par erreur
+            continue  # evenement annule : declare par erreur
         gravite = json.loads(row["params_json"]).get("gravite")
         if gravite in _GRAVITES_DEFAVORABLES:
             causes.append(
@@ -200,18 +197,18 @@ def issues_defavorables(
 
 @dataclass(frozen=True)
 class OutcomePoint:
-    """Point d'observation calibré : prédiction H d'une semaine vs issue constatée.
+    """Point d'observation calibre : prediction H d'une semaine vs issue constatee.
 
     Attributes:
-        node_id: identifiant du nœud observé.
-        node_name: nom du nœud (pour l'affichage des rapports).
-        iso_week: semaine ISO « AAAA-Sxx » de l'observation (semaine S).
-        hidden_risk: risque caché H persisté en fin de semaine S (None si
-            jamais calculé — ces points sont ignorés par ``outcomes``).
-        ur: urgence réelle propagée Ur persistée en fin de semaine S.
-        issue_defavorable: True si au moins une issue défavorable a été
-            constatée dans la fenêtre [S+1, S+horizon].
-        causes: descriptions françaises des issues constatées (``[]`` sinon).
+        node_id: identifiant du noeud observe.
+        node_name: nom du noeud (pour l'affichage des rapports).
+        iso_week: semaine ISO " AAAA-Sxx " de l'observation (semaine S).
+        hidden_risk: risque cache H persiste en fin de semaine S (None si
+            jamais calcule - ces points sont ignores par ``outcomes``).
+        ur: urgence reelle propagee Ur persistee en fin de semaine S.
+        issue_defavorable: True si au moins une issue defavorable a ete
+            constatee dans la fenetre [S+1, S+horizon].
+        causes: descriptions francaises des issues constatees (``[]`` sinon).
     """
 
     node_id: str
@@ -225,14 +222,14 @@ class OutcomePoint:
 
 @dataclass(frozen=True)
 class ConfusionMatrix:
-    """Matrice de confusion de la prédiction « H > seuil » contre les issues.
+    """Matrice de confusion de la prediction " H > seuil " contre les issues.
 
     Attributes:
-        seuil: seuil de décision sur H (prédiction positive si H > seuil).
-        vp: vrais positifs — H > seuil ET issue défavorable constatée.
-        fp: faux positifs — H > seuil, aucune issue constatée (fausse alerte).
-        fn: faux négatifs — H <= seuil mais issue constatée (rupture ratée).
-        vn: vrais négatifs — H <= seuil et aucune issue.
+        seuil: seuil de decision sur H (prediction positive si H > seuil).
+        vp: vrais positifs - H > seuil ET issue defavorable constatee.
+        fp: faux positifs - H > seuil, aucune issue constatee (fausse alerte).
+        fn: faux negatifs - H <= seuil mais issue constatee (rupture ratee).
+        vn: vrais negatifs - H <= seuil et aucune issue.
     """
 
     seuil: float
@@ -243,26 +240,26 @@ class ConfusionMatrix:
 
     @property
     def precision(self) -> float | None:
-        """Précision ``vp / (vp + fp)``, None si aucune prédiction positive."""
+        """Precision ``vp / (vp + fp)``, None si aucune prediction positive."""
         denominateur = self.vp + self.fp
         return self.vp / denominateur if denominateur else None
 
     @property
     def rappel(self) -> float | None:
-        """Rappel ``vp / (vp + fn)``, None si aucune issue défavorable."""
+        """Rappel ``vp / (vp + fn)``, None si aucune issue defavorable."""
         denominateur = self.vp + self.fn
         return self.vp / denominateur if denominateur else None
 
 
 def _score_youden(matrice: ConfusionMatrix) -> float | None:
-    """Indice de Youden (sensibilité + spécificité − 1) d'une matrice de confusion.
+    """Indice de Youden (sensibilite + specificite - 1) d'une matrice de confusion.
 
     Args:
-        matrice: matrice de confusion à un seuil donné.
+        matrice: matrice de confusion a un seuil donne.
 
     Returns:
-        L'indice, ou None si le rappel (sensibilité) ou la spécificité n'est
-        pas défini (classe unique parmi les points considérés).
+        L'indice, ou None si le rappel (sensibilite) ou la specificite n'est
+        pas defini (classe unique parmi les points consideres).
     """
     if matrice.rappel is None:
         return None
@@ -274,13 +271,13 @@ def _score_youden(matrice: ConfusionMatrix) -> float | None:
 
 
 def _score_f1(matrice: ConfusionMatrix) -> float | None:
-    """Score F1 (moyenne harmonique précision/rappel) d'une matrice de confusion.
+    """Score F1 (moyenne harmonique precision/rappel) d'une matrice de confusion.
 
     Args:
-        matrice: matrice de confusion à un seuil donné.
+        matrice: matrice de confusion a un seuil donne.
 
     Returns:
-        Le score F1, ou None si la précision ou le rappel n'est pas défini.
+        Le score F1, ou None si la precision ou le rappel n'est pas defini.
     """
     if matrice.precision is None or matrice.rappel is None:
         return None
@@ -291,43 +288,43 @@ def _score_f1(matrice: ConfusionMatrix) -> float | None:
 
 
 class CalibrationService:
-    """Calibration du score H contre les issues réellement constatées.
+    """Calibration du score H contre les issues reellement constatees.
 
-    S'appuie sur la façade :class:`SupplyScoreService` : le registre fournit
-    les nœuds, leurs jalons et leur statut courant, ``clock_for`` l'horloge
-    effective du projet (réelle ou de jeu), et les bases CLIENT l'historique
-    d'urgence (``urgency_series``) et le journal d'événements (``list_events``).
-    Service en LECTURE SEULE : rien n'est jamais écrit.
+    S'appuie sur la facade :class:`SupplyScoreService` : le registre fournit
+    les noeuds, leurs jalons et leur statut courant, ``clock_for`` l'horloge
+    effective du projet (reelle ou de jeu), et les bases CLIENT l'historique
+    d'urgence (``urgency_series``) et le journal d'evenements (``list_events``).
+    Service en LECTURE SEULE : rien n'est jamais ecrit.
     """
 
     def __init__(self, service: SupplyScoreService) -> None:
-        """Initialise le service de calibration au-dessus de la façade.
+        """Initialise le service de calibration au-dessus de la facade.
 
         Args:
-            service: façade applicative (registre, bases client, horloges).
+            service: facade applicative (registre, bases client, horloges).
         """
         self._service = service
 
-    # -- construction des points d'observation --
+    # construction des points d'observation
 
     def outcomes(self, project_id: str, horizon_weeks: int = 4) -> list[OutcomePoint]:
-        """Points d'observation du projet, confrontés aux issues de leur fenêtre.
+        """Points d'observation du projet, confrontes aux issues de leur fenetre.
 
-        Pour chaque nœud du projet et chaque semaine ISO S de son historique
-        d'urgence, le DERNIER état persisté de la semaine fournit (H, Ur), et
-        la fenêtre [S+1, S+horizon] est balayée pour constater les issues
-        défavorables (jalon raté, nœud abandonné, événement critique/défaut —
-        voir le module). Les points sans H (None) sont ignorés ; la semaine
-        courante du projet et les semaines postérieures sont exclues (fenêtre
-        non commencée).
+        Pour chaque noeud du projet et chaque semaine ISO S de son historique
+        d'urgence, le DERNIER etat persiste de la semaine fournit (H, Ur), et
+        la fenetre [S+1, S+horizon] est balayee pour constater les issues
+        defavorables (jalon rate, noeud abandonne, evenement critique/defaut -
+        voir le module). Les points sans H (None) sont ignores ; la semaine
+        courante du projet et les semaines posterieures sont exclues (fenetre
+        non commencee).
 
         Args:
             project_id: identifiant du projet.
-            horizon_weeks: longueur de la fenêtre d'observation, en semaines
-                (défaut 4).
+            horizon_weeks: longueur de la fenetre d'observation, en semaines
+                (defaut 4).
 
         Returns:
-            Les :class:`OutcomePoint`, triés par (semaine, nom de nœud).
+            Les :class:`OutcomePoint`, tries par (semaine, nom de noeud).
 
         Raises:
             ValueError: si ``horizon_weeks < 1``.
@@ -340,8 +337,7 @@ class CalibrationService:
         for node in self._service.registry.list_nodes(project_id):
             derniers: dict[str, UrgencyState] = {}
             for state in self._service.client_db(node.id).urgency_series(node.id):
-                # Série croissante par timestamp : le dernier état de chaque
-                # semaine écrase les précédents.
+                # Serie croissante par timestamp : le dernier etat de chaque semaine ecrase les precedents.
                 derniers[iso_week(state.timestamp)] = state
             if not derniers:
                 continue
@@ -350,7 +346,7 @@ class CalibrationService:
                 if state.hidden_risk is None:
                     continue  # point sans H : inutilisable pour la calibration
                 if semaines_ecart(semaine, semaine_courante) < 1:
-                    continue  # fenêtre [S+1, S+horizon] pas encore commencée
+                    continue  # fenetre [S+1, S+horizon] pas encore commencee
                 causes = self._causes(node, semaine, horizon_weeks, milestones, now_ts)
                 points.append(
                     OutcomePoint(
@@ -374,24 +370,24 @@ class CalibrationService:
         milestones: list[Milestone],
         now_ts: float,
     ) -> list[str]:
-        """Issues défavorables constatées dans la fenêtre [S+1, S+horizon] du nœud.
+        """Issues defavorables constatees dans la fenetre [S+1, S+horizon] du noeud.
 
-        Calcule la fenêtre ISO-semaine puis délègue à la définition FIGÉE et
-        partagée :func:`issues_defavorables` (jalon raté, nœud abandonné,
-        événement critique/défaut) — voir son docstring pour le détail des
-        trois critères. Les événements sont rassemblés semaine par semaine
-        (sert l'index ``idx_events_node_week``) puis filtrés par la fonction
-        partagée sur leur ``occurred_at`` réel.
+        Calcule la fenetre ISO-semaine puis delegue a la definition FIGEE et
+        partagee :func:`issues_defavorables` (jalon rate, noeud abandonne,
+        evenement critique/defaut) - voir son docstring pour le detail des
+        trois criteres. Les evenements sont rassembles semaine par semaine
+        (sert l'index ``idx_events_node_week``) puis filtres par la fonction
+        partagee sur leur ``occurred_at`` reel.
 
         Args:
-            node: nœud observé (lecture fraîche du registre).
+            node: noeud observe (lecture fraiche du registre).
             semaine: semaine ISO S du point d'observation.
-            horizon_weeks: longueur de la fenêtre, en semaines.
-            milestones: jalons courants du nœud.
+            horizon_weeks: longueur de la fenetre, en semaines.
+            milestones: jalons courants du noeud.
             now_ts: instant courant de l'horloge du projet (epoch s).
 
         Returns:
-            Les descriptions françaises des issues constatées (``[]`` sinon).
+            Les descriptions francaises des issues constatees (``[]`` sinon).
         """
         lundi_s = _lundi(semaine)
         debut_ts = (lundi_s + timedelta(weeks=1)).timestamp()
@@ -410,20 +406,20 @@ class CalibrationService:
             evenements=evenements,
         )
 
-    # -- agrégats --
+    # agregats
 
     def confusion(self, points: list[OutcomePoint], seuil: float = 0.5) -> ConfusionMatrix:
-        """Matrice de confusion des points : prédiction positive si ``H > seuil``.
+        """Matrice de confusion des points : prediction positive si ``H > seuil``.
 
-        Les points sans H (None) sont ignorés — :meth:`outcomes` n'en produit
-        jamais, le garde-fou couvre les listes construites à la main.
+        Les points sans H (None) sont ignores - :meth:`outcomes` n'en produit
+        jamais, le garde-fou couvre les listes construites a la main.
 
         Args:
             points: points d'observation (typiquement :meth:`outcomes`).
-            seuil: seuil de décision sur H (strict : H > seuil).
+            seuil: seuil de decision sur H (strict : H > seuil).
 
         Returns:
-            La :class:`ConfusionMatrix` (vp, fp, fn, vn) au seuil donné.
+            La :class:`ConfusionMatrix` (vp, fp, fn, vn) au seuil donne.
         """
         vp = fp = fn = vn = 0
         for point in points:
@@ -443,21 +439,21 @@ class CalibrationService:
     def calibration_curve(
         self, points: list[OutcomePoint], n_bins: int = 5
     ) -> list[tuple[float, float, int]]:
-        """Courbe de calibration : taux d'issues observées par tranche de H.
+        """Courbe de calibration : taux d'issues observees par tranche de H.
 
-        Les valeurs de H sont réparties dans ``n_bins`` tranches régulières de
-        [0, 1] (la borne H = 1 rejoint la dernière tranche). Chaque tranche
-        non vide produit ``(H moyen, taux d'issues observées, effectif)`` —
-        l'effectif est TOUJOURS retourné : sur de petits échantillons, un taux
+        Les valeurs de H sont reparties dans ``n_bins`` tranches regulieres de
+        [0, 1] (la borne H = 1 rejoint la derniere tranche). Chaque tranche
+        non vide produit ``(H moyen, taux d'issues observees, effectif)`` -
+        l'effectif est TOUJOURS retourne : sur de petits echantillons, un taux
         sans son n ne veut rien dire. Les tranches vides sont omises ; les
-        points sans H (None) sont ignorés.
+        points sans H (None) sont ignores.
 
         Args:
             points: points d'observation (typiquement :meth:`outcomes`).
-            n_bins: nombre de tranches régulières sur [0, 1] (défaut 5).
+            n_bins: nombre de tranches regulieres sur [0, 1] (defaut 5).
 
         Returns:
-            Une liste ``[(H moyen, taux d'issues, effectif), ...]`` ordonnée
+            Une liste ``[(H moyen, taux d'issues, effectif), ...]`` ordonnee
             par tranche croissante, tranches vides omises.
 
         Raises:
@@ -481,24 +477,24 @@ class CalibrationService:
             if effectifs[i]
         ]
 
-    # -- discrimination et calibration probabiliste --
+    # discrimination et calibration probabiliste
 
     def auc(self, points: list[OutcomePoint]) -> float | None:
         """Aire sous la courbe ROC, via la statistique de rang de Mann-Whitney.
 
-        Équivaut à la probabilité qu'un point avec issue défavorable ait un H
-        strictement plus élevé qu'un point sans issue, tirés au hasard parmi
-        les points exploitables (les ex æquo comptant pour moitié) — calculée
-        à partir de la somme des rangs moyens de H chez les points positifs,
+        Equivaut a la probabilite qu'un point avec issue defavorable ait un H
+        strictement plus eleve qu'un point sans issue, tires au hasard parmi
+        les points exploitables (les ex aequo comptant pour moitie) - calculee
+        a partir de la somme des rangs moyens de H chez les points positifs,
         sans balayer de seuils.
 
         Args:
             points: points d'observation (typiquement :meth:`outcomes`). Les
-                points sans H (None) sont ignorés.
+                points sans H (None) sont ignores.
 
         Returns:
             L'AUC dans [0, 1], ou None si une seule classe (positive ou
-            négative) est présente parmi les points exploitables.
+            negative) est presente parmi les points exploitables.
         """
         utilisables = [point for point in points if point.hidden_risk is not None]
         if not utilisables:
@@ -520,20 +516,20 @@ class CalibrationService:
     def auc_ci(
         self, points: list[OutcomePoint], n_boot: int = 1000, seed: int = 0
     ) -> tuple[float, float] | None:
-        """Intervalle de confiance à 95 % de l'AUC, par bootstrap en grappes de nœuds.
+        """Intervalle de confiance a 95 % de l'AUC, par bootstrap en grappes de noeuds.
 
-        Chaque tirage rééchantillonne AVEC REMISE les identifiants de nœuds
-        distincts (même effectif de nœuds que l'original), préservant ainsi
-        la corrélation entre les points d'un même nœud, puis concatène les
-        points des nœuds tirés et recalcule l'AUC (:meth:`auc`) ; les tirages
-        où une seule classe subsiste sont ignorés. Déterministe à ``seed``
-        fixé (générateur numpy dédié).
+        Chaque tirage reechantillonne AVEC REMISE les identifiants de noeuds
+        distincts (meme effectif de noeuds que l'original), preservant ainsi
+        la correlation entre les points d'un meme noeud, puis concatene les
+        points des noeuds tires et recalcule l'AUC (:meth:`auc`) ; les tirages
+        ou une seule classe subsiste sont ignores. Deterministe a ``seed``
+        fixe (generateur numpy dedie).
 
         Args:
             points: points d'observation (typiquement :meth:`outcomes`). Les
-                points sans H (None) sont ignorés.
-            n_boot: nombre de tirages bootstrap (défaut 1000).
-            seed: graine du générateur, pour la reproductibilité.
+                points sans H (None) sont ignores.
+            n_boot: nombre de tirages bootstrap (defaut 1000).
+            seed: graine du generateur, pour la reproductibilite.
 
         Returns:
             Le couple (percentile 2.5, percentile 97.5) des AUC bootstrap, ou
@@ -560,21 +556,21 @@ class CalibrationService:
         return float(bas), float(haut)
 
     def pr_auc(self, points: list[OutcomePoint]) -> float | None:
-        """Précision moyenne (average precision), aire sous la courbe précision-rappel.
+        """Precision moyenne (average precision), aire sous la courbe precision-rappel.
 
-        Intégration en escalier de la courbe précision-rappel obtenue en
-        balayant les valeurs de H par ordre décroissant, les ex æquo étant
-        regroupés au même palier avant de calculer précision et rappel
-        (définition « sklearn-style » de l'average precision, insensible à
-        l'ordre de tri arbitraire des ex æquo).
+        Integration en escalier de la courbe precision-rappel obtenue en
+        balayant les valeurs de H par ordre decroissant, les ex aequo etant
+        regroupes au meme palier avant de calculer precision et rappel
+        (definition " sklearn-style " de l'average precision, insensible a
+        l'ordre de tri arbitraire des ex aequo).
 
         Args:
             points: points d'observation (typiquement :meth:`outcomes`). Les
-                points sans H (None) sont ignorés.
+                points sans H (None) sont ignores.
 
         Returns:
             L'average precision dans [0, 1], ou None si aucune issue
-            défavorable n'est présente parmi les points exploitables.
+            defavorable n'est presente parmi les points exploitables.
         """
         utilisables = [point for point in points if point.hidden_risk is not None]
         if not utilisables:
@@ -605,25 +601,25 @@ class CalibrationService:
         return float(np.sum((rappel - rappel_precedent) * precision))
 
     def brier(self, points: list[OutcomePoint]) -> tuple[float, float] | None:
-        """Score de Brier de H contre l'issue constatée, et sa skill score de climatologie.
+        """Score de Brier de H contre l'issue constatee, et sa skill score de climatologie.
 
         Le score de Brier est l'erreur quadratique moyenne de H comme
-        prévision probabiliste de l'issue défavorable (0 = parfait). La
-        climatologie prédit pour CHAQUE point le taux de base observé
-        (moyenne des issues, prévision constante) ; la skill score
-        ``1 − brier / brier_climatologie`` mesure le gain de H par rapport à
-        cette référence triviale (positif = H fait mieux que la
-        climatologie, négatif = moins bien).
+        prevision probabiliste de l'issue defavorable (0 = parfait). La
+        climatologie predit pour CHAQUE point le taux de base observe
+        (moyenne des issues, prevision constante) ; la skill score
+        ``1 - brier / brier_climatologie`` mesure le gain de H par rapport a
+        cette reference triviale (positif = H fait mieux que la
+        climatologie, negatif = moins bien).
 
         Args:
             points: points d'observation (typiquement :meth:`outcomes`). Les
-                points sans H (None) sont ignorés.
+                points sans H (None) sont ignores.
 
         Returns:
             Le couple (score de Brier, skill score), ou None si aucun point
-            n'est exploitable. Convention : skill score à 0.0 si la
-            climatologie est déjà parfaite (brier climatologique nul, taux
-            de base à 0 ou 1).
+            n'est exploitable. Convention : skill score a 0.0 si la
+            climatologie est deja parfaite (brier climatologique nul, taux
+            de base a 0 ou 1).
         """
         utilisables = [point for point in points if point.hidden_risk is not None]
         if not utilisables:
@@ -643,18 +639,18 @@ class CalibrationService:
     def sweep(
         self, points: list[OutcomePoint], seuils: list[float] | None = None
     ) -> list[ConfusionMatrix]:
-        """Matrices de confusion balayées sur une liste de seuils.
+        """Matrices de confusion balayees sur une liste de seuils.
 
         Args:
             points: points d'observation (typiquement :meth:`outcomes`).
-            seuils: seuils à évaluer (:meth:`confusion` pour chacun) ; par
-                défaut les valeurs de H distinctes observées parmi les
-                points (triées croissant), soit le balayage exhaustif des
+            seuils: seuils a evaluer (:meth:`confusion` pour chacun) ; par
+                defaut les valeurs de H distinctes observees parmi les
+                points (triees croissant), soit le balayage exhaustif des
                 seuils qui changent effectivement la matrice de confusion.
 
         Returns:
             Une :class:`ConfusionMatrix` par seuil, dans l'ordre de
-            ``seuils`` (ou de H croissant si par défaut).
+            ``seuils`` (ou de H croissant si par defaut).
         """
         valeurs = (
             seuils
@@ -666,14 +662,14 @@ class CalibrationService:
     def seuil_optimal(
         self, points: list[OutcomePoint], critere: str = "youden"
     ) -> tuple[float, ConfusionMatrix] | None:
-        """Seuil de décision maximisant un critère, parmi les seuils observés.
+        """Seuil de decision maximisant un critere, parmi les seuils observes.
 
         Balaie les valeurs de H distinctes (:meth:`sweep`, seuils par
-        défaut) et retient celle qui maximise le critère choisi :
-        ``"youden"`` (sensibilité + spécificité − 1) ou ``"f1"`` (moyenne
-        harmonique précision/rappel). En cas d'égalité, le premier seuil
-        rencontré est conservé (le plus petit, l'ordre de :meth:`sweep` par
-        défaut étant croissant).
+        defaut) et retient celle qui maximise le critere choisi :
+        ``"youden"`` (sensibilite + specificite - 1) ou ``"f1"`` (moyenne
+        harmonique precision/rappel). En cas d'egalite, le premier seuil
+        rencontre est conserve (le plus petit, l'ordre de :meth:`sweep` par
+        defaut etant croissant).
 
         Args:
             points: points d'observation (typiquement :meth:`outcomes`).
@@ -681,7 +677,7 @@ class CalibrationService:
 
         Returns:
             Le couple (seuil optimal, sa :class:`ConfusionMatrix`), ou None
-            si le critère n'est défini pour aucun seuil (classe unique parmi
+            si le critere n'est defini pour aucun seuil (classe unique parmi
             les points exploitables).
 
         Raises:
@@ -706,23 +702,23 @@ class CalibrationService:
         return meilleure_matrice.seuil, meilleure_matrice
 
     def summary(self, project_id: str, horizon_weeks: int = 4, seuil: float = 0.5) -> str:
-        """Résumé français de la calibration du projet, prudence statistique incluse.
+        """Resume francais de la calibration du projet, prudence statistique incluse.
 
         Construit les points (:meth:`outcomes`), la matrice (:meth:`confusion`)
-        puis restitue : nombre de points, matrice, précision et rappel avec
+        puis restitue : nombre de points, matrice, precision et rappel avec
         leurs effectifs, AUC avec son IC95 bootstrap (:meth:`auc`,
         :meth:`auc_ci`), score de Brier et skill score (:meth:`brier`), seuil
-        optimal au sens de Youden avec sa précision/son rappel
-        (:meth:`seuil_optimal`), et un avertissement explicite (« échantillon
-        trop petit pour conclure ») sous :data:`_MIN_POINTS_CONCLUSION` points.
+        optimal au sens de Youden avec sa precision/son rappel
+        (:meth:`seuil_optimal`), et un avertissement explicite (" echantillon
+        trop petit pour conclure ") sous :data:`_MIN_POINTS_CONCLUSION` points.
 
         Args:
             project_id: identifiant du projet.
-            horizon_weeks: longueur de la fenêtre d'observation, en semaines.
-            seuil: seuil de décision sur H (prédiction positive si H > seuil).
+            horizon_weeks: longueur de la fenetre d'observation, en semaines.
+            seuil: seuil de decision sur H (prediction positive si H > seuil).
 
         Returns:
-            Le résumé multi-lignes en français.
+            Le resume multi-lignes en francais.
 
         Raises:
             ValueError: si ``horizon_weeks < 1``.

@@ -1,21 +1,21 @@
-"""Page « Pondération » : poids FBWM des 6 blocs KPI de l'urgence réelle Ur.
+"""Page " Ponderation " : poids FBWM des 6 blocs KPI de l'urgence reelle Ur.
 
-Questionnaire FBWM (Guo & Zhao 2017) en 2n−3 comparaisons : le décideur
-désigne le bloc le PLUS important (Meilleur) et le MOINS important (Pire),
-puis juge « Meilleur contre chaque autre » et « chaque autre contre le
-Pire » sur l'échelle linguistique de :data:`ECHELLE_LINGUISTIQUE`. Un aperçu
-en direct montre les poids résolus, ξ* et le ratio de cohérence CR ;
-l'enregistrement (par projet, rattaché à la semaine ISO de SON horloge)
-exige des jugements cohérents (CR < :data:`SEUIL_CR`) puis réévalue tous
+Questionnaire FBWM (Guo & Zhao 2017) en 2n-3 comparaisons : le decideur
+designe le bloc le PLUS important (Meilleur) et le MOINS important (Pire),
+puis juge " Meilleur contre chaque autre " et " chaque autre contre le
+Pire " sur l'echelle linguistique de :data:`ECHELLE_LINGUISTIQUE`. Un apercu
+en direct montre les poids resolus, xi* et le ratio de coherence CR ;
+l'enregistrement (par projet, rattache a la semaine ISO de SON horloge)
+exige des jugements coherents (CR < :data:`SEUIL_CR`) puis reevalue tous
 les scores.
 
-FRONTIÈRE MÉTHODOLOGIQUE (PLAN.md, E12) : le FBWM pondère les blocs KPI
-d'Ur ; l'AHP du questionnaire reste dédié aux 4 critères du besoin déclaré
-Ud — les deux pondérations ne se mélangent jamais.
+FRONTIERE METHODOLOGIQUE (PLAN.md, E12) : le FBWM pondere les blocs KPI
+d'Ur ; l'AHP du questionnaire reste dedie aux 4 criteres du besoin declare
+Ud - les deux ponderations ne se melangent jamais.
 
-Convention de saisie alignée sur :func:`resoudre_fbwm` : le jugement a_BW
-(Meilleur contre Pire) n'est saisi qu'UNE fois, côté Best→Autres — le
-groupe Autres→Pire omet donc le Meilleur ET le Pire.
+Convention de saisie alignee sur :func:`resoudre_fbwm` : le jugement a_BW
+(Meilleur contre Pire) n'est saisi qu'UNE fois, cote Best->Autres - le
+groupe Autres->Pire omet donc le Meilleur ET le Pire.
 """
 
 from __future__ import annotations
@@ -43,7 +43,7 @@ from supplyscore.web_ui.components.layout import (
     labelled,
 )
 
-#: Libellés français lisibles des jugements linguistiques de l'échelle FBWM.
+#: Libelles francais lisibles des jugements linguistiques de l'echelle FBWM.
 JUGEMENTS_FR: dict[str, str] = {
     "egalement_important": "Également important",
     "faiblement_plus_important": "Faiblement plus important",
@@ -52,13 +52,13 @@ JUGEMENTS_FR: dict[str, str] = {
     "absolument_plus_important": "Absolument plus important",
 }
 
-#: Poids uniformes de repli : 1/6 par bloc (bouton « Revenir aux poids uniformes »).
+#: Poids uniformes de repli : 1/6 par bloc (bouton " Revenir aux poids uniformes ").
 POIDS_UNIFORMES: dict[str, float] = {bloc: 1.0 / len(BLOCKS) for bloc in BLOCKS}
 
-#: Nombre total de jugements FBWM attendus : 2n−3 (9 pour les 6 blocs).
+#: Nombre total de jugements FBWM attendus : 2n-3 (9 pour les 6 blocs).
 NB_JUGEMENTS: int = 2 * len(BLOCKS) - 3
 
-#: Badge vert : jugements cohérents (CR < SEUIL_CR).
+#: Badge vert : jugements coherents (CR < SEUIL_CR).
 _BADGE_OK_STYLE = {
     "backgroundColor": "#e4f3e9",
     "color": COLORS["ok"],
@@ -70,27 +70,27 @@ _BADGE_OK_STYLE = {
     "marginRight": "10px",
 }
 
-#: Badge rouge : jugements incohérents ou solveur en échec.
+#: Badge rouge : jugements incoherents ou solveur en echec.
 _BADGE_ALERT_STYLE = {**_BADGE_OK_STYLE, "backgroundColor": "#f9e6e4", "color": COLORS["alert"]}
 
 #: Texte secondaire (consignes, rappels de convention).
 _MUTED_STYLE = {"fontSize": "13px", "color": COLORS["muted"], "margin": "4px 0 10px"}
 
-#: Message initial de l'aperçu, avant toute sélection Meilleur/Pire complète.
+#: Message initial de l'apercu, avant toute selection Meilleur/Pire complete.
 _MSG_APERCU_VIDE = "Choisissez deux critères distincts (Meilleur et Pire) puis les 2n−3 jugements."
 
 
 def _nombre_fr(valeur: float, decimales: int = 3) -> str:
-    """Nombre en notation française (virgule décimale) pour les TEXTES affichés."""
+    """Nombre en notation francaise (virgule decimale) pour les TEXTES affiches."""
     return f"{valeur:.{decimales}f}".replace(".", ",")
 
 
 def compte_jugements_saisis(valeurs) -> int:
-    """Nombre de jugements renseignés (valeurs non vides) — fonction PURE (Lot 16.3).
+    """Nombre de jugements renseignes (valeurs non vides) - fonction PURE (Lot 16.3).
 
     Args:
-        valeurs: valeurs des dropdowns de jugement (Best→Autres puis
-            Autres→Pire, ordre indifférent).
+        valeurs: valeurs des dropdowns de jugement (Best->Autres puis
+            Autres->Pire, ordre indifferent).
 
     Returns:
         Le nombre de valeurs non vides (None et "" ne comptent pas).
@@ -99,12 +99,12 @@ def compte_jugements_saisis(valeurs) -> int:
 
 
 def _compteur_jugements(saisis: int) -> html.Div:
-    """Indicateur « x/N jugements saisis » affiché sous les dropdowns (Lot 16.3).
+    """Indicateur " x/N jugements saisis " affiche sous les dropdowns (Lot 16.3).
 
-    CHOIX DOCUMENTÉ : le compteur est rendu par ``render_judgments_callback``
-    (PAS de callback dédié — le contrat des tests existants fige la page à
+    CHOIX DOCUMENTE : le compteur est rendu par ``render_judgments_callback``
+    (PAS de callback dedie - le contrat des tests existants fige la page a
     5 callbacks). C'est exact en continu : les dropdowns de jugement sont
-    ``clearable=False`` et pré-remplis, leur valeur ne peut jamais redevenir
+    ``clearable=False`` et pre-remplis, leur valeur ne peut jamais redevenir
     vide une fois le groupe rendu.
     """
     return html.Div(
@@ -115,21 +115,21 @@ def _compteur_jugements(saisis: int) -> html.Div:
 
 
 def _bloc_options() -> list[dict]:
-    """Options de dropdown des 6 blocs KPI (libellés français, ordre canonique)."""
+    """Options de dropdown des 6 blocs KPI (libelles francais, ordre canonique)."""
     return [{"label": BLOCK_LABELS_FR.get(bloc, bloc), "value": bloc} for bloc in BLOCKS]
 
 
 def _jugement_options() -> list[dict]:
-    """Options de dropdown de l'échelle linguistique FBWM (libellés français)."""
+    """Options de dropdown de l'echelle linguistique FBWM (libelles francais)."""
     return [{"label": JUGEMENTS_FR.get(cle, cle), "value": cle} for cle in ECHELLE_LINGUISTIQUE]
 
 
 def _collecter_jugements(values: list, ids: list) -> dict[str, str] | None:
-    """Reconstruit ``{bloc: jugement}`` depuis les dropdowns à id composite.
+    """Reconstruit ``{bloc: jugement}`` depuis les dropdowns a id composite.
 
     Args:
         values: valeurs des dropdowns (pattern-matching ``ALL``).
-        ids: ids composites ``{"type": ..., "index": bloc}`` alignés.
+        ids: ids composites ``{"type": ..., "index": bloc}`` alignes.
 
     Returns:
         Le dictionnaire des jugements, ou None si une valeur manque.
@@ -150,20 +150,20 @@ def _resultat_depuis_saisie(
     ow_values: list,
     ow_ids: list,
 ) -> ResultatFBWM | None:
-    """Résout le FBWM depuis l'état brut des dropdowns de la page.
+    """Resout le FBWM depuis l'etat brut des dropdowns de la page.
 
     Args:
-        best: bloc Meilleur sélectionné (ou None).
-        worst: bloc Pire sélectionné (ou None).
-        bo_values: valeurs des dropdowns Best→Autres.
-        bo_ids: ids composites des dropdowns Best→Autres.
-        ow_values: valeurs des dropdowns Autres→Pire.
-        ow_ids: ids composites des dropdowns Autres→Pire.
+        best: bloc Meilleur selectionne (ou None).
+        worst: bloc Pire selectionne (ou None).
+        bo_values: valeurs des dropdowns Best->Autres.
+        bo_ids: ids composites des dropdowns Best->Autres.
+        ow_values: valeurs des dropdowns Autres->Pire.
+        ow_ids: ids composites des dropdowns Autres->Pire.
 
     Returns:
-        Le :class:`ResultatFBWM`, ou None si la saisie est incomplète
-        (sélection manquante, best == worst, jugement vide ou couverture
-        partielle des 2n−3 comparaisons).
+        Le :class:`ResultatFBWM`, ou None si la saisie est incomplete
+        (selection manquante, best == worst, jugement vide ou couverture
+        partielle des 2n-3 comparaisons).
     """
     if not best or not worst or best == worst:
         return None
@@ -171,7 +171,7 @@ def _resultat_depuis_saisie(
     ow = _collecter_jugements(ow_values, ow_ids)
     if bo is None or ow is None:
         return None
-    # Couverture attendue : a_BW saisi UNE fois côté Best→Autres (cf. resoudre_fbwm).
+    # Couverture attendue : a_BW saisi UNE fois cote Best->Autres (cf. resoudre_fbwm).
     if set(bo) != set(BLOCKS) - {best} or set(ow) != set(BLOCKS) - {best, worst}:
         return None
     try:
@@ -181,13 +181,13 @@ def _resultat_depuis_saisie(
 
 
 def poids_bars_figure(poids: dict[str, float]) -> go.Figure:
-    """Barres horizontales des poids FBWM des blocs (ordre canonique, libellés FR).
+    """Barres horizontales des poids FBWM des blocs (ordre canonique, libelles FR).
 
     Args:
         poids: poids par nom de bloc (somme = 1).
 
     Returns:
-        Figure Plotly homogène avec les autres barres de poids de l'UI.
+        Figure Plotly homogene avec les autres barres de poids de l'UI.
     """
     blocs = [bloc for bloc in BLOCKS if bloc in poids]
     values = [poids[bloc] for bloc in blocs]
@@ -213,14 +213,14 @@ def poids_bars_figure(poids: dict[str, float]) -> go.Figure:
 
 
 def _badges_resultat(resultat: ResultatFBWM) -> html.Div:
-    """Badges ξ*/CR de l'aperçu : vert si cohérent, rouge sinon.
+    """Badges xi*/CR de l'apercu : vert si coherent, rouge sinon.
 
     Args:
         resultat: sortie du solveur FBWM.
 
     Returns:
-        ``html.Div`` portant le badge de cohérence et, si le solveur a
-        échoué (``converge=False``), l'avertissement de repli uniforme.
+        ``html.Div`` portant le badge de coherence et, si le solveur a
+        echoue (``converge=False``), l'avertissement de repli uniforme.
     """
     if not resultat.converge:
         return html.Div(
@@ -245,15 +245,15 @@ def _badges_resultat(resultat: ResultatFBWM) -> html.Div:
 
 
 def _affichage_poids_actuels(service, project_id) -> html.Div:
-    """Ligne « poids actuels du projet » du bandeau pédagogique.
+    """Ligne " poids actuels du projet " du bandeau pedagogique.
 
     Args:
-        service: service SupplyScore partagé.
+        service: service SupplyScore partage.
         project_id: projet actif, ou None/vide.
 
     Returns:
-        ``html.Div`` : poids stockés formatés, « uniformes » si aucun poids
-        n'est enregistré, ou invite à choisir un projet.
+        ``html.Div`` : poids stockes formates, " uniformes " si aucun poids
+        n'est enregistre, ou invite a choisir un projet.
     """
     if not project_id:
         return html.Div(
@@ -264,9 +264,7 @@ def _affichage_poids_actuels(service, project_id) -> html.Div:
     if poids is None:
         texte = "Poids actuels du projet : uniformes (aucune pondération enregistrée)."
     else:
-        # CHOIX DOCUMENTÉ (Lot 16.2) : les poids restent en notation POINT,
-        # alignés sur les étiquettes des figures de poids (poids_bars_figure)
-        # et sur le format contractuel des tests existants de la page.
+        # CHOIX DOCUMENTE (Lot 16.2) : les poids restent en notation POINT, alignes sur les etiquettes des figures de poids (poids_bars_figure) et sur le format contractuel des tests existants de la page.
         detail = " · ".join(
             f"{BLOCK_LABELS_FR.get(bloc, bloc)} {poids[bloc]:.3f}"
             for bloc in BLOCKS
@@ -277,7 +275,7 @@ def _affichage_poids_actuels(service, project_id) -> html.Div:
 
 
 def layout() -> html.Div:
-    """Construit la page « Pondération des critères d'urgence (FBWM) »."""
+    """Construit la page " Ponderation des criteres d'urgence (FBWM) "."""
     return html.Div(
         [
             html.H2("Pondération des critères d'urgence (FBWM)", style={"margin": "6px 0 12px"}),
@@ -331,8 +329,7 @@ def layout() -> html.Div:
             card(
                 "3. Aperçu des poids résolus",
                 [
-                    # dcc.Loading ENVELOPPE l'aperçu : les ids internes
-                    # (badges + figure) restent posés sur les composants.
+                    # dcc.Loading ENVELOPPE l'apercu : les ids internes (badges + figure) restent poses sur les composants.
                     dcc.Loading(
                         [
                             html.Div(id="pond-preview-badges"),
@@ -374,22 +371,22 @@ def layout() -> html.Div:
     )
 
 
-# --- Callbacks (fonctions nommées, testables sans serveur) -----------------------
+# Callbacks (fonctions nommees, testables sans serveur)
 
 
 def current_weights_callback(project_data):
-    """Affiche les poids actuellement stockés pour le projet actif."""
+    """Affiche les poids actuellement stockes pour le projet actif."""
     service = get_service()
     pid = (project_data or {}).get("project_id")
     return _affichage_poids_actuels(service, pid)
 
 
 def render_judgments_callback(best, worst):
-    """Rend les 2n−3 dropdowns de jugement une fois Meilleur et Pire choisis.
+    """Rend les 2n-3 dropdowns de jugement une fois Meilleur et Pire choisis.
 
-    Convention alignée sur :func:`resoudre_fbwm` : le groupe Best→Autres
+    Convention alignee sur :func:`resoudre_fbwm` : le groupe Best->Autres
     couvre tous les blocs sauf le Meilleur (le jugement a_BW y est saisi) ;
-    le groupe Autres→Pire omet le Meilleur ET le Pire.
+    le groupe Autres->Pire omet le Meilleur ET le Pire.
     """
     if not best or not worst:
         return html.Div(
@@ -458,8 +455,7 @@ def render_judgments_callback(best, worst):
                 style=_MUTED_STYLE,
             ),
             html.Div(ow_rows),
-            # Dropdowns non effaçables pré-remplis : tous les jugements sont
-            # saisis dès le rendu du groupe (cf. _compteur_jugements).
+            # Dropdowns non effacables pre-remplis : tous les jugements sont saisis des le rendu du groupe (cf. _compteur_jugements).
             _compteur_jugements(
                 compte_jugements_saisis(["egalement_important"] * (len(bo_rows) + len(ow_rows)))
             ),
@@ -468,7 +464,7 @@ def render_judgments_callback(best, worst):
 
 
 def preview_callback(best, worst, bo_values, ow_values, bo_ids, ow_ids):
-    """Aperçu live : barres des poids résolus + badge ξ*/CR."""
+    """Apercu live : barres des poids resolus + badge xi*/CR."""
     resultat = _resultat_depuis_saisie(best, worst, bo_values, bo_ids, ow_values, ow_ids)
     if resultat is None:
         return empty_figure(_MSG_APERCU_VIDE), html.Div()
@@ -476,7 +472,7 @@ def preview_callback(best, worst, bo_values, ow_values, bo_ids, ow_ids):
 
 
 def save_callback(n_clicks, best, worst, bo_values, ow_values, bo_ids, ow_ids, project_data):
-    """Persiste les poids FBWM du projet actif (exige cohérence CR < 0.10)."""
+    """Persiste les poids FBWM du projet actif (exige coherence CR < 0.10)."""
     if not n_clicks:
         raise PreventUpdate
     service = get_service()
@@ -524,7 +520,7 @@ def save_callback(n_clicks, best, worst, bo_values, ow_values, bo_ids, ow_ids, p
 
 
 def reset_callback(n_clicks, project_data):
-    """Rétablit les poids uniformes (1/6 par bloc) pour le projet actif."""
+    """Retablit les poids uniformes (1/6 par bloc) pour le projet actif."""
     if not n_clicks:
         raise PreventUpdate
     service = get_service()
@@ -552,7 +548,7 @@ def reset_callback(n_clicks, project_data):
 
 
 def register_callbacks(app) -> None:
-    """Enregistre les callbacks de la page Pondération sur l'application Dash."""
+    """Enregistre les callbacks de la page Ponderation sur l'application Dash."""
     app.callback(
         Output("pond-current-weights", "children"),
         Input("store-project", "data"),
@@ -587,10 +583,7 @@ def register_callbacks(app) -> None:
         State({"type": "pond-ow", "index": ALL}, "id"),
         State("store-project", "data"),
         prevent_initial_call=True,
-        # Anti double-clic (Lot 16.3) : running= est supporté par Dash 4.2,
-        # y compris en enregistrement différé app.callback(...)(fn) — le
-        # bouton est désactivé pendant le traitement, et le résultat
-        # (succès/refus) s'affiche toujours dans pond-save-msg.
+        # Anti double-clic (Lot 16.3) : running= est supporte par Dash 4.2, y compris en enregistrement differe app.callback(...)(fn) - le bouton est desactive pendant le traitement, et le resultat (succes/refus) s'affiche toujours dans pond-save-msg.
         running=[(Output("pond-save-btn", "disabled"), True, False)],
     )(save_callback)
 

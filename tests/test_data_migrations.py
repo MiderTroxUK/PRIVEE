@@ -1,8 +1,8 @@
-"""Tests des migrations de schéma (supplyscore.data.migrations) et du cycle de vie.
+"""Tests des migrations de schema (supplyscore.data.migrations) et du cycle de vie.
 
-Couvre : migrations sur base neuve et sur base v1 héritée, redémarrage complet
-du service (restauration des UrgencyState), accès concurrents, fermeture
-propre (WAL) et réglages par projet.
+Couvre : migrations sur base neuve et sur base v1 heritee, redemarrage complet
+du service (restauration des UrgencyState), acces concurrents, fermeture
+propre (WAL) et reglages par projet.
 """
 
 from __future__ import annotations
@@ -22,9 +22,9 @@ from supplyscore.domain.models import TaskStatus, UrgencyState
 from supplyscore.graph import PropagationEngine
 from supplyscore.services import SupplyScoreService
 
-# --- Helpers --------------------------------------------------------------------
+# Helpers
 
-# Schéma v1 historique BRUT (tel que créé par l'ancien code, user_version = 0).
+# Schema v1 historique BRUT (tel que cree par l'ancien code, user_version = 0).
 _LEGACY_REGISTRY_SCHEMA = """
 CREATE TABLE projects (
     id TEXT PRIMARY KEY,
@@ -70,7 +70,7 @@ _URGENCY_FIELDS = (
 
 
 def _build_legacy_registry(path) -> None:
-    """Construit une base registre v1 réelle avec données (et incohérences)."""
+    """Construit une base registre v1 reelle avec donnees (et incoherences)."""
     conn = sqlite3.connect(str(path))
     conn.executescript(_LEGACY_REGISTRY_SCHEMA)
     conn.execute(
@@ -80,7 +80,7 @@ def _build_legacy_registry(path) -> None:
     nodes = [
         ("n1", "Client", "Client", "node", 0, "p1", "Lyon", 45.7, 4.8, "active", "{}"),
         ("n2", "Usine", "Factory", "node", 1, "p1", None, None, None, "active", "{}"),
-        # project_id pendant (projet jamais créé) : doit être remis à NULL.
+        # project_id pendant (projet jamais cree) : doit etre remis a NULL.
         ("n3", "Errant", "Workshop", "node", 1, "ghost-project", None, None, None, "done", "{}"),
     ]
     conn.executemany(
@@ -91,7 +91,7 @@ def _build_legacy_registry(path) -> None:
         "INSERT INTO arcs VALUES (?, ?, ?, ?, ?, ?, ?)",
         [
             ("n2", "n1", "Truck", 0.4, 0.6, 1.0, "{}"),
-            # arc orphelin (source jamais créée) : doit être purgé.
+            # arc orphelin (source jamais creee) : doit etre purge.
             ("ghost-node", "n1", "Ship", 0.5, 0.5, 1.0, "{}"),
         ],
     )
@@ -109,7 +109,7 @@ def _index_names(conn: sqlite3.Connection) -> set[str]:
     return {row[0] for row in rows}
 
 
-# --- Migrations : base neuve -------------------------------------------------------
+# Migrations : base neuve
 
 
 class TestFreshDatabase:
@@ -137,7 +137,7 @@ class TestFreshDatabase:
         conn.close()
 
 
-# --- Migrations : base v1 héritée ----------------------------------------------------
+# Migrations : base v1 heritee
 
 
 class TestLegacyV1Database:
@@ -150,7 +150,7 @@ class TestLegacyV1Database:
         version = apply_migrations(conn, "registry")
         assert version == 5
 
-        # Données préservées.
+        # Donnees preservees.
         assert conn.execute("SELECT COUNT(*) FROM projects").fetchone()[0] == 1
         node_ids = {r[0] for r in conn.execute("SELECT id FROM nodes").fetchall()}
         assert node_ids == {"n1", "n2", "n3"}
@@ -159,14 +159,14 @@ class TestLegacyV1Database:
         ).fetchone()
         assert row == ("Client", 0, "p1", "active")
 
-        # Arc orphelin purgé, arc valide conservé.
+        # Arc orphelin purge, arc valide conserve.
         arcs = conn.execute("SELECT source_id, target_id FROM arcs").fetchall()
         assert arcs == [("n2", "n1")]
 
-        # project_id pendant remis à NULL (FK ON DELETE SET NULL posée).
+        # project_id pendant remis a NULL (FK ON DELETE SET NULL posee).
         assert conn.execute("SELECT project_id FROM nodes WHERE id = 'n3'").fetchone()[0] is None
 
-        # FK actives : aucune violation référentielle.
+        # FK actives : aucune violation referentielle.
         assert conn.execute("PRAGMA foreign_key_check").fetchall() == []
         # Les nouvelles tables et l'index existent.
         assert {"node_urgency", "project_settings"} <= _table_names(conn)
@@ -179,7 +179,7 @@ class TestLegacyV1Database:
         conn = sqlite3.connect(str(db_file))
 
         assert apply_migrations(conn, "registry") == 5
-        # Re-application : no-op, données intactes.
+        # Re-application : no-op, donnees intactes.
         assert apply_migrations(conn, "registry") == 5
         assert conn.execute("PRAGMA user_version").fetchone()[0] == 5
         assert conn.execute("SELECT COUNT(*) FROM nodes").fetchone()[0] == 3
@@ -198,28 +198,25 @@ class TestLegacyV1Database:
                 assert getattr(node.urgency, field) is None
 
 
-# --- Migrations : base client v6 existante (U16 — journal des interventions) --------
+# Migrations : base client v6 existante (U16 - journal des interventions)
 
 
 class TestClientV6ToV7:
     def test_migration_v6_to_v7_ajoute_interventions_sans_perte(self, tmp_path):
-        """Une base client réellement en v6 migre proprement vers v7 (open -> migrate -> reopen)."""
+        """Une base client reellement en v6 migre proprement vers v7 (open -> migrate -> reopen)."""
         db_file = tmp_path / "client.sqlite"
 
-        # Construit une base v6 réelle en rejouant UNIQUEMENT les vraies
-        # migrations v1..v6 du module (pas une copie à la main du schéma).
+        # Construit une base v6 reelle en rejouant UNIQUEMENT les vraies migrations v1..v6 du module (pas une copie a la main du schema).
         conn = sqlite3.connect(str(db_file))
         with pytest.MonkeyPatch.context() as mp:
-            # ``apply_migrations`` lit ``_MIGRATIONS_BY_KIND["client"]`` (pas
-            # ``_CLIENT_MIGRATIONS`` directement) : c'est CETTE entrée qu'il
-            # faut patcher pour que la troncature soit effective.
+            # ``apply_migrations`` lit ``_MIGRATIONS_BY_KIND["client"]`` (pas ``_CLIENT_MIGRATIONS`` directement) : c'est CETTE entree qu'il faut patcher pour que la troncature soit effective.
             sliced = [t for t in migrations._CLIENT_MIGRATIONS if t[0] <= 6]
             mp.setitem(migrations._MIGRATIONS_BY_KIND, "client", sliced)
             version = apply_migrations(conn, "client")
         assert version == 6
         assert "interventions" not in _table_names(conn)
 
-        # Données antérieures, pour vérifier qu'elles survivent à la migration v7.
+        # Donnees anterieures, pour verifier qu'elles survivent a la migration v7.
         conn.execute(
             """
             INSERT INTO events (id, node_id, event_type, iso_week, occurred_at,
@@ -230,7 +227,7 @@ class TestClientV6ToV7:
         conn.commit()
         conn.close()
 
-        # Réouverture : migration réelle jusqu'à v7 (liste NON monkeypatchée).
+        # Reouverture : migration reelle jusqu'a v7 (liste NON monkeypatchee).
         conn2 = sqlite3.connect(str(db_file))
         version2 = apply_migrations(conn2, "client")
         assert version2 == 7
@@ -246,8 +243,7 @@ class TestClientV6ToV7:
         assert conn3.execute("PRAGMA user_version").fetchone()[0] == 7
         conn3.close()
 
-        # Le chemin normal (ClientDatabase) migre aussi proprement et la table
-        # interventions est immédiatement utilisable (round-trip minimal).
+        # Le chemin normal (ClientDatabase) migre aussi proprement et la table interventions est immediatement utilisable (round-trip minimal).
         with ClientDatabase(tmp_path, "client") as db:
             assert db.schema_version == 7
             row_id = db.insert_intervention(
@@ -276,7 +272,7 @@ class TestClientV6ToV7:
             assert [row["id"] for row in db.list_interventions("n1")] == ["iv-1"]
 
 
-# --- Redémarrage du service (test pivot) ---------------------------------------------
+# Redemarrage du service (test pivot)
 
 
 def test_restart_restores_identical_urgency_states(tmp_path):
@@ -285,7 +281,7 @@ def test_restart_restores_identical_urgency_states(tmp_path):
         service.seed_demo(n_ranks=2, seed=3)
         states = service.evaluate_all(persist=True)
         captured = {nid: dataclasses.replace(state) for nid, state in states.items()}
-    assert captured  # le seed a bien produit des nœuds
+    assert captured  # le seed a bien produit des noeuds
 
     with SupplyScoreService(db_dir=store) as reloaded:
         reloaded.load_graph_from_registry()
@@ -300,7 +296,7 @@ def test_restart_restores_identical_urgency_states(tmp_path):
                 )
 
 
-# --- Accès concurrents -----------------------------------------------------------------
+# Acces concurrents
 
 
 def test_threaded_access_keeps_databases_intact(tmp_path):
@@ -311,7 +307,7 @@ def test_threaded_access_keeps_databases_intact(tmp_path):
     project = service.seed_demo(n_ranks=2, seed=3)
     node_ids = [n.id for n in service.repo.nodes()]
 
-    # Assessments générés À L'AVANCE (le générateur n'est pas thread-safe).
+    # Assessments generes A L'AVANCE (le generateur n'est pas thread-safe).
     gen = RandomSupplyChainGenerator(seed=123)
     plans = [
         [
@@ -349,7 +345,7 @@ def test_threaded_access_keeps_databases_intact(tmp_path):
         conn.close()
 
 
-# --- Fermeture propre (WAL) --------------------------------------------------------------
+# Fermeture propre (WAL)
 
 
 def test_close_leaves_no_wal_or_shm_files(tmp_path):
@@ -364,7 +360,7 @@ def test_close_leaves_no_wal_or_shm_files(tmp_path):
     assert (store / "registry.sqlite").exists()
 
 
-# --- set_status : une seule propagation ----------------------------------------------------
+# set_status : une seule propagation
 
 
 def test_set_status_propagates_exactly_once(tmp_path, monkeypatch):
@@ -390,20 +386,19 @@ def test_set_status_propagates_exactly_once(tmp_path, monkeypatch):
         monkeypatch.setattr(PropagationEngine, "propagate_incremental", spy_incremental)
         states = service.set_status(deepest.id, TaskStatus.DONE)
 
-        # Exactement UNE propagation par set_status — INCRÉMENTALE depuis E14.4
-        # (rien de structurel n'a changé : pas de délégation au complet).
+        # Exactement UNE propagation par set_status - INCREMENTALE depuis E14.4 (rien de structurel n'a change : pas de delegation au complet).
         assert calls == ["incremental"]
         after = states[deepest.id].ur
-        # DONE : nœud le plus profond (sans fournisseur) -> son Ur tombe à 0.
+        # DONE : noeud le plus profond (sans fournisseur) -> son Ur tombe a 0.
         assert after is not None
         assert after == pytest.approx(0.0)
         assert after < before
-        # Statut persisté dans le registre.
+        # Statut persiste dans le registre.
         registry_node = service.registry.get_node(deepest.id)
         assert registry_node is not None and registry_node.status is TaskStatus.DONE
 
 
-# --- Réglages par projet ----------------------------------------------------------------
+# Reglages par projet
 
 
 def test_settings_round_trip(tmp_path):
@@ -422,7 +417,7 @@ def test_settings_round_trip(tmp_path):
         assert db.get_setting("p1", "mode") == "lenient"
 
 
-# --- Robustesse de kpis_from_json ----------------------------------------------------------
+# Robustesse de kpis_from_json
 
 
 def test_kpis_from_json_ignores_unknown_keys():

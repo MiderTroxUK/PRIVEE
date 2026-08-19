@@ -1,4 +1,4 @@
-"""Tests in-process du CLI de restauration (couverture E9 — le subprocess est aveugle)."""
+"""Tests in-process du CLI de restauration (couverture E9 - le subprocess est aveugle)."""
 
 import pytest
 
@@ -38,10 +38,10 @@ def test_main_zip_inexistant(tmp_path, capsys):
 def test_main_refuse_repertoire_occupe_sans_force(backup_zip, tmp_path, capsys):
     cible = tmp_path / "cible"
     assert main([str(backup_zip), "--db-dir", str(cible)]) == 0
-    # second passage sans --force : refus français
+    # second passage sans --force : refus francais
     assert main([str(backup_zip), "--db-dir", str(cible)]) == 1
     assert "force" in capsys.readouterr().err.lower()
-    # avec --force : les anciennes bases sont mises à l'abri
+    # avec --force : les anciennes bases sont mises a l'abri
     assert main([str(backup_zip), "--db-dir", str(cible), "--force"]) == 0
     abris = list(cible.glob("avant_restauration_*"))
     assert abris, "les bases existantes doivent être déplacées, jamais détruites"

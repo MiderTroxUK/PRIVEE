@@ -1,16 +1,16 @@
-"""Formulaires d'événements générés depuis la calibration déclarative (Lot 6.4).
+"""Formulaires d'evenements generes depuis la calibration declarative (Lot 6.4).
 
-Composant PUREMENT présentationnel pour le volet « Événements » de la page
-hebdomadaire : tout est généré depuis
-:data:`supplyscore.domain.events.EVENT_CALIBRATION` (déclaratif — champs,
-bornes, unités, choix). Aucune IO et aucun import des services : les impacts
-(:func:`impacts_preview_table`) et les événements (:func:`events_list`) sont
-reçus en duck-typing (attributs lus via ``getattr`` avec défaut), le moteur
-d'événements étant développé en parallèle.
+Composant PUREMENT presentationnel pour le volet " Evenements " de la page
+hebdomadaire : tout est genere depuis
+:data:`supplyscore.domain.events.EVENT_CALIBRATION` (declaratif - champs,
+bornes, unites, choix). Aucune IO et aucun import des services : les impacts
+(:func:`impacts_preview_table`) et les evenements (:func:`events_list`) sont
+recus en duck-typing (attributs lus via ``getattr`` avec defaut), le moteur
+d'evenements etant developpe en parallele.
 
-Les ids sont préfixés par un contexte ``ctx`` (``"ev"`` par défaut) :
+Les ids sont prefixes par un contexte ``ctx`` (``"ev"`` par defaut) :
 
-- champs de paramètres : ``{"type": f"{ctx}-param", "index": nom_du_champ}`` ;
+- champs de parametres : ``{"type": f"{ctx}-param", "index": nom_du_champ}`` ;
 - boutons d'annulation : ``{"type": f"{ctx}-revert", "index": id_evenement}``.
 
 Le parseur pattern-matching (:func:`parse_event_params`) trie TOUJOURS par
@@ -39,18 +39,16 @@ from supplyscore.web_ui.components.layout import (
     labelled,
 )
 
-#: Message gris par défaut quand aucun impact n'est calculable (liste vide).
+#: Message gris par defaut quand aucun impact n'est calculable (liste vide).
 NO_IMPACT_MSG_DEFAULT: str = "Aucun impact calculable pour cet événement."
 
-#: Borne HTML ``min`` des champs strictement positifs : la borne domaine
-#: ``minimum=0`` est EXCLUSIVE (cf. ``_STRICTLY_POSITIVE_FIELDS``) alors que
-#: l'attribut HTML ``min`` est inclusif — un petit epsilon exclut le zéro.
+#: Borne HTML ``min`` des champs strictement positifs : la borne domaine ``minimum=0`` est EXCLUSIVE (cf. ``_STRICTLY_POSITIVE_FIELDS``) alors que l'attribut HTML ``min`` est inclusif - un petit epsilon exclut le zero.
 _STRICT_POSITIVE_MIN: float = 1e-6
 
-#: En-têtes français du tableau de prévisualisation des impacts.
+#: En-tetes francais du tableau de previsualisation des impacts.
 _IMPACT_HEADERS: tuple[str, ...] = ("KPI", "Avant", "Après", "Règle appliquée")
 
-# --- Styles (alignés sur layout.py / history.py) --------------------------------------
+# Styles (alignes sur layout.py / history.py)
 
 _DESCRIPTION_STYLE = {"fontSize": "13px", "color": COLORS["muted"], "margin": "0 0 12px"}
 
@@ -96,7 +94,7 @@ _EVENT_NOTES_STYLE = {
     "margin": "4px 0 0",
 }
 
-#: Badge pilule gris « Annulé » (même gamme que les badges hebdo).
+#: Badge pilule gris " Annule " (meme gamme que les badges hebdo).
 _REVERTED_BADGE_STYLE = {
     "display": "inline-block",
     "padding": "2px 10px",
@@ -116,15 +114,15 @@ _REVERT_BUTTON_STYLE = {
 }
 
 
-# --- Sélecteur de type ----------------------------------------------------------------
+# Selecteur de type
 
 
 def event_type_options() -> list[dict]:
-    """Options du dropdown des types d'événement, triées par libellé français.
+    """Options du dropdown des types d'evenement, triees par libelle francais.
 
     Returns:
-        ``[{"label": label_fr, "value": event_type}, ...]`` — une entrée par
-        type de :data:`EVENT_CALIBRATION`, triée par ``label_fr``.
+        ``[{"label": label_fr, "value": event_type}, ...]`` - une entree par
+        type de :data:`EVENT_CALIBRATION`, triee par ``label_fr``.
     """
     return [
         {"label": spec.label_fr, "value": spec.event_type}
@@ -132,15 +130,15 @@ def event_type_options() -> list[dict]:
     ]
 
 
-# --- Champs de paramètres -------------------------------------------------------------
+# Champs de parametres
 
 
 def _html_min(field: EventField) -> float | None:
-    """Borne ``min`` HTML d'un champ numérique.
+    """Borne ``min`` HTML d'un champ numerique.
 
     La borne domaine ``minimum=0`` des champs strictement positifs est
     EXCLUSIVE alors que l'attribut HTML ``min`` est inclusif : un epsilon
-    exclut le zéro dès la saisie (la validation domaine reste la référence).
+    exclut le zero des la saisie (la validation domaine reste la reference).
     """
     if field.name in _STRICTLY_POSITIVE_FIELDS:
         return max(field.minimum if field.minimum is not None else 0.0, _STRICT_POSITIVE_MIN)
@@ -148,15 +146,15 @@ def _html_min(field: EventField) -> float | None:
 
 
 def _field_label(field: EventField) -> str:
-    """Libellé affiché d'un champ : ``label_fr``, unité entre parenthèses si présente."""
+    """Libelle affiche d'un champ : ``label_fr``, unite entre parentheses si presente."""
     return f"{field.label_fr} ({field.unit})" if field.unit else field.label_fr
 
 
 def _param_input(field: EventField, ctx: str) -> Any:
-    """Composant de saisie d'un champ : Dropdown pour « choice », Input number sinon.
+    """Composant de saisie d'un champ : Dropdown pour " choice ", Input number sinon.
 
-    ``step="any"`` évite le pas implicite de 1 des inputs HTML number (une
-    durée de 1.5 h ou un ratio de 0.35 doivent rester valides).
+    ``step="any"`` evite le pas implicite de 1 des inputs HTML number (une
+    duree de 1.5 h ou un ratio de 0.35 doivent rester valides).
     """
     field_id = {"type": f"{ctx}-param", "index": field.name}
     if field.kind == "choice":
@@ -177,25 +175,25 @@ def _param_input(field: EventField, ctx: str) -> Any:
 
 
 def event_param_fields(event_type: str, ctx: str = "ev") -> html.Div:
-    """Champs de saisie des paramètres d'un événement, générés depuis sa calibration.
+    """Champs de saisie des parametres d'un evenement, generes depuis sa calibration.
 
     Chaque :class:`~supplyscore.domain.events.EventField` de
     ``EVENT_CALIBRATION[event_type].fields`` devient un champ :
-    ``dcc.Input(type="number", min=, max=)`` pour les kinds « number » et
-    « ratio » (unité reprise dans le libellé), ``dcc.Dropdown`` pour
-    « choice ». La description française de l'événement est affichée en
+    ``dcc.Input(type="number", min=, max=)`` pour les kinds " number " et
+    " ratio " (unite reprise dans le libelle), ``dcc.Dropdown`` pour
+    " choice ". La description francaise de l'evenement est affichee en
     sous-titre.
 
     Args:
-        event_type: clé de :data:`EVENT_CALIBRATION`.
-        ctx: préfixe de contexte des ids pattern-matching
+        event_type: cle de :data:`EVENT_CALIBRATION`.
+        ctx: prefixe de contexte des ids pattern-matching
             (``{"type": f"{ctx}-param", "index": nom_du_champ}``).
 
     Returns:
-        ``html.Div`` prêt à monter dans le volet événements de la page hebdo.
+        ``html.Div`` pret a monter dans le volet evenements de la page hebdo.
 
     Raises:
-        ValueError: type d'événement inconnu.
+        ValueError: type d'evenement inconnu.
     """
     spec = EVENT_CALIBRATION.get(event_type)
     if spec is None:
@@ -208,19 +206,19 @@ def event_param_fields(event_type: str, ctx: str = "ev") -> html.Div:
 
 
 def parse_event_params(values: list, ids: list[dict]) -> dict:
-    """Paramètres saisis ``{nom_du_champ: valeur}`` depuis un callback ``ALL``.
+    """Parametres saisis ``{nom_du_champ: valeur}`` depuis un callback ``ALL``.
 
-    Les champs vides (None ou ``""``) sont ignorés, les valeurs numériques
-    converties en float (les choix restent des chaînes). Trie par
-    ``id["index"]`` — l'ordre DOM des composants pattern-matching n'est pas
+    Les champs vides (None ou ``""``) sont ignores, les valeurs numeriques
+    converties en float (les choix restent des chaines). Trie par
+    ``id["index"]`` - l'ordre DOM des composants pattern-matching n'est pas
     garanti par Dash.
 
     Args:
-        values: valeurs des champs de paramètres (callback ``ALL``).
-        ids: ids pattern-matching alignés sur ``values``.
+        values: valeurs des champs de parametres (callback ``ALL``).
+        ids: ids pattern-matching alignes sur ``values``.
 
     Returns:
-        Dict ordonné par nom de champ, prêt pour
+        Dict ordonne par nom de champ, pret pour
         :func:`supplyscore.domain.events.compute_impacts`.
     """
     out: dict[str, float | str] = {}
@@ -233,11 +231,11 @@ def parse_event_params(values: list, ids: list[dict]) -> dict:
     return out
 
 
-# --- Prévisualisation des impacts -----------------------------------------------------
+# Previsualisation des impacts
 
 
 def _fmt_kpi_value(value: Any) -> str:
-    """Formate une valeur de KPI : « non renseigné » si None, 4 décimales utiles sinon."""
+    """Formate une valeur de KPI : " non renseigne " si None, 4 decimales utiles sinon."""
     if value is None:
         return "non renseigné"
     if isinstance(value, int | float):
@@ -246,17 +244,17 @@ def _fmt_kpi_value(value: Any) -> str:
 
 
 def impacts_preview_table(impacts: list, no_impact_msg: str = NO_IMPACT_MSG_DEFAULT) -> html.Div:
-    """Tableau de prévisualisation « KPI | avant | après | règle appliquée ».
+    """Tableau de previsualisation " KPI | avant | apres | regle appliquee ".
 
     Duck-typing volontaire : tout objet exposant ``kpi_path``, ``old``,
     ``new`` et ``rule`` convient (la dataclass ``KpiImpact`` du domaine comme
-    un substitut de test) ; un attribut manquant s'affiche vide. ``old`` à
-    None s'affiche « non renseigné » ; les valeurs numériques sont formatées
-    à 4 décimales utiles (``:.4g``).
+    un substitut de test) ; un attribut manquant s'affiche vide. ``old`` a
+    None s'affiche " non renseigne " ; les valeurs numeriques sont formatees
+    a 4 decimales utiles (``:.4g``).
 
     Args:
-        impacts: impacts calculés (``compute_impacts`` ou équivalent).
-        no_impact_msg: message gris affiché si la liste est vide.
+        impacts: impacts calcules (``compute_impacts`` ou equivalent).
+        no_impact_msg: message gris affiche si la liste est vide.
 
     Returns:
         ``html.Div`` contenant le tableau, ou le message si aucun impact.
@@ -280,15 +278,15 @@ def impacts_preview_table(impacts: list, no_impact_msg: str = NO_IMPACT_MSG_DEFA
     return html.Div(html.Table([header, body], style=_TABLE_STYLE))
 
 
-# --- Liste des événements -------------------------------------------------------------
+# Liste des evenements
 
 
 def _params_summary(spec: EventSpec | None, params: Any) -> str:
-    """Résumé français des paramètres : « Libellé : valeur unité », séparés par « · ».
+    """Resume francais des parametres : " Libelle : valeur unite ", separes par " - ".
 
-    Les paramètres connus de la spec sont libellés en français (unité
-    incluse) et affichés dans l'ordre de déclaration des champs ; les
-    paramètres inconnus suivent, sous leur nom brut.
+    Les parametres connus de la spec sont libelles en francais (unite
+    incluse) et affiches dans l'ordre de declaration des champs ; les
+    parametres inconnus suivent, sous leur nom brut.
     """
     if not isinstance(params, Mapping) or not params:
         return ""
@@ -308,7 +306,7 @@ def _params_summary(spec: EventSpec | None, params: Any) -> str:
 
 
 def _event_row(event: Any, ctx: str) -> html.Div:
-    """Ligne d'un événement : libellé FR, semaine, params résumés, badge/bouton."""
+    """Ligne d'un evenement : libelle FR, semaine, params resumes, badge/bouton."""
     event_type = str(getattr(event, "event_type", ""))
     spec = EVENT_CALIBRATION.get(event_type)
     label = spec.label_fr if spec is not None else event_type
@@ -340,20 +338,20 @@ def _event_row(event: Any, ctx: str) -> html.Div:
 
 
 def events_list(events: list, ctx: str = "ev") -> html.Div:
-    """Liste des événements de la semaine, avec annulation des événements actifs.
+    """Liste des evenements de la semaine, avec annulation des evenements actifs.
 
     Duck-typing volontaire : tout objet exposant ``id``, ``event_type``,
     ``iso_week``, ``params``, ``notes`` et ``reverted_at`` convient (la
-    dataclass du service est développée en parallèle et n'est PAS importée).
-    Chaque ligne affiche le libellé français du type (via
-    :data:`EVENT_CALIBRATION`, type inconnu affiché brut), la semaine, les
-    paramètres résumés et les notes ; un événement reverté porte le badge
-    « Annulé », un événement actif porte le bouton « Annuler »
+    dataclass du service est developpee en parallele et n'est PAS importee).
+    Chaque ligne affiche le libelle francais du type (via
+    :data:`EVENT_CALIBRATION`, type inconnu affiche brut), la semaine, les
+    parametres resumes et les notes ; un evenement reverte porte le badge
+    " Annule ", un evenement actif porte le bouton " Annuler "
     (``{"type": f"{ctx}-revert", "index": event.id}``).
 
     Args:
-        events: événements à afficher, dans l'ordre fourni par l'appelant.
-        ctx: préfixe de contexte des ids des boutons d'annulation.
+        events: evenements a afficher, dans l'ordre fourni par l'appelant.
+        ctx: prefixe de contexte des ids des boutons d'annulation.
 
     Returns:
         ``html.Div`` des lignes, ou message gris si la liste est vide.

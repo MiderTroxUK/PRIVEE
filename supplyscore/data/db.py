@@ -1,12 +1,12 @@
 """Persistance SQLite de supplyscore.
 
-Principe métier : CHAQUE CLIENT (nœud, quel que soit son rang) possède sa
-propre base de données (:class:`ClientDatabase`, fichier ``<client_id>.sqlite``)
-qui contient ses évaluations AHP hebdomadaires, ses snapshots KPI et son
-historique d'urgence. Le graphe (projets, nœuds, arcs) est partagé et vit dans
+Principe metier : CHAQUE CLIENT (noeud, quel que soit son rang) possede sa
+propre base de donnees (:class:`ClientDatabase`, fichier ``<client_id>.sqlite``)
+qui contient ses evaluations AHP hebdomadaires, ses snapshots KPI et son
+historique d'urgence. Le graphe (projets, noeuds, arcs) est partage et vit dans
 le registre global (:class:`RegistryDatabase`, fichier ``registry.sqlite``).
 
-Toutes les requêtes sont paramétrées par "?" — aucun SQL construit par f-string.
+Toutes les requetes sont parametrees par "?" - aucun SQL construit par f-string.
 """
 
 from __future__ import annotations
@@ -43,7 +43,7 @@ from supplyscore.domain.models import (
 )
 from supplyscore.domain.tags import Tag, TagCategory
 
-# --- Sérialisation KPIBundle <-> JSON ----------------------------------------
+# Serialisation KPIBundle <-> JSON
 
 _KPI_BLOCK_TYPES: dict[str, type] = {
     "network": NetworkKPIs,
@@ -57,20 +57,20 @@ _KPI_BLOCK_TYPES: dict[str, type] = {
 
 
 def kpis_to_json(kpis: KPIBundle) -> str:
-    """Sérialise un :class:`KPIBundle` en JSON.
+    """Serialise un :class:`KPIBundle` en JSON.
 
-    ``dataclasses.asdict`` n'embarque que les champs déclarés : les propriétés
-    calculées (``oee``, ``total_g_h``, ``remaining_*``...) ne sont PAS
-    sérialisées et se recalculent à la reconstruction.
+    ``dataclasses.asdict`` n'embarque que les champs declares : les proprietes
+    calculees (``oee``, ``total_g_h``, ``remaining_*``...) ne sont PAS
+    serialisees et se recalculent a la reconstruction.
     """
     return json.dumps(dataclasses.asdict(kpis), sort_keys=True)
 
 
 def kpis_from_json(payload: str | None) -> KPIBundle:
-    """Reconstruit un :class:`KPIBundle` depuis son JSON (tolère None/vide).
+    """Reconstruit un :class:`KPIBundle` depuis son JSON (tolere None/vide).
 
-    Robuste à l'évolution de schéma : les clés inconnues d'un bloc (champs
-    ajoutés par une version plus récente, ou retirés depuis) sont ignorées.
+    Robuste a l'evolution de schema : les cles inconnues d'un bloc (champs
+    ajoutes par une version plus recente, ou retires depuis) sont ignorees.
     """
     if not payload:
         return KPIBundle()
@@ -84,7 +84,7 @@ def kpis_from_json(payload: str | None) -> KPIBundle:
 
 
 def _comparisons_to_json(comparisons: dict[tuple[int, int], float]) -> str:
-    """dict[tuple[int, int], float] -> JSON avec clés "i-j"."""
+    """dict[tuple[int, int], float] -> JSON avec cles "i-j"."""
     return json.dumps(
         {f"{i}-{j}": value for (i, j), value in comparisons.items()},
         sort_keys=True,
@@ -92,7 +92,7 @@ def _comparisons_to_json(comparisons: dict[tuple[int, int], float]) -> str:
 
 
 def _comparisons_from_json(payload: str | None) -> dict[tuple[int, int], float]:
-    """JSON avec clés "i-j" -> dict[tuple[int, int], float]."""
+    """JSON avec cles "i-j" -> dict[tuple[int, int], float]."""
     if not payload:
         return {}
     raw: dict[str, float] = json.loads(payload)
@@ -103,19 +103,19 @@ def _comparisons_from_json(payload: str | None) -> dict[tuple[int, int], float]:
     return result
 
 
-# --- Base commune --------------------------------------------------------------
+# Base commune
 
 
 class _SQLiteDatabase:
     """Connexion SQLite avec WAL, migrations, verrou et context manager.
 
     La connexion est ouverte avec ``check_same_thread=False`` : le serveur web
-    sert chaque requête dans un thread distinct. En contrepartie, CHAQUE
-    méthode publique (lecture comme écriture) doit prendre ``self._lock``
-    (un :class:`threading.RLock` par instance, donc réentrant).
+    sert chaque requete dans un thread distinct. En contrepartie, CHAQUE
+    methode publique (lecture comme ecriture) doit prendre ``self._lock``
+    (un :class:`threading.RLock` par instance, donc reentrant).
     """
 
-    #: famille de migrations à appliquer (surclassé : "registry" ou "client").
+    #: famille de migrations a appliquer (surclasse : "registry" ou "client").
     MIGRATION_KIND: Literal["registry", "client"]
 
     def __init__(self, db_path: Path) -> None:
@@ -125,42 +125,33 @@ class _SQLiteDatabase:
         self._conn = sqlite3.connect(str(self.db_path), check_same_thread=False)
         self._conn.row_factory = sqlite3.Row
         self._conn.execute("PRAGMA journal_mode=WAL")
-        # COMPROMIS DOCUMENTÉ (faiblesse #14) : avec le journal WAL,
-        # synchronous=NORMAL ne force le fsync qu'au CHECKPOINT (plus à chaque
-        # COMMIT) — gain massif en écriture. En cas de coupure brutale, les
-        # dernières transactions commitées depuis le dernier checkpoint peuvent
-        # être perdues (durabilité au niveau du checkpoint), mais l'INTÉGRITÉ de
-        # la base reste garantie par le WAL (jamais de corruption, atomicité
-        # conservée) ; :meth:`close` checkpointe explicitement à la fermeture.
+        # COMPROMIS DOCUMENTE (faiblesse #14) : avec le journal WAL, synchronous=NORMAL ne force le fsync qu'au CHECKPOINT (plus a chaque COMMIT) - gain massif en ecriture. En cas de coupure brutale, les dernieres transactions commitees depuis le dernier checkpoint peuvent etre perdues (durabilite au niveau du checkpoint), mais l'INTEGRITE de la base reste garantie par le WAL (jamais de corruption, atomicite conservee) ; :meth:`close` checkpointe explicitement a la fermeture.
         self._conn.execute("PRAGMA synchronous=NORMAL")
         self.schema_version = apply_migrations(self._conn, self.MIGRATION_KIND)
-        # Les contraintes FK du schéma (v2) restent vérifiables à la demande via
-        # PRAGMA foreign_key_check, mais leur APPLICATION est laissée désactivée
-        # sur la connexion : les appelants historiques insèrent "enfant avant
-        # parent" (nœud avant son projet, arc avant ses nœuds).
+        # Les contraintes FK du schema (v2) restent verifiables a la demande via PRAGMA foreign_key_check, mais leur APPLICATION est laissee desactivee sur la connexion : les appelants historiques inserent "enfant avant parent" (noeud avant son projet, arc avant ses noeuds).
         self._conn.execute("PRAGMA foreign_keys=OFF")
 
-    # -- accès partagés (couches data) --
+    # acces partages (couches data)
 
     @property
     def conn(self) -> sqlite3.Connection:
-        """Connexion SQLite de l'instance — réservé aux couches data (AuditTrail).
+        """Connexion SQLite de l'instance - reserve aux couches data (AuditTrail).
 
-        Permet à un ``AuditTrail`` externe de journaliser dans la MÊME base que
-        l'instance, en se plaçant sous le MÊME verrou (voir :attr:`lock`).
+        Permet a un ``AuditTrail`` externe de journaliser dans la MEME base que
+        l'instance, en se placant sous le MEME verrou (voir :attr:`lock`).
         """
         return self._conn
 
     @property
     def lock(self) -> threading.RLock:
-        """Verrou réentrant de l'instance — réservé aux couches data (AuditTrail).
+        """Verrou reentrant de l'instance - reserve aux couches data (AuditTrail).
 
         Toute utilisation de :attr:`conn` hors de cette classe doit se faire
-        sous ce verrou (``with db.lock: ...``), comme les méthodes publiques.
+        sous ce verrou (``with db.lock: ...``), comme les methodes publiques.
         """
         return self._lock
 
-    # -- context manager --
+    # context manager
     def __enter__(self) -> Self:
         return self
 
@@ -182,13 +173,13 @@ class _SQLiteDatabase:
                 self._conn = None  # type: ignore[assignment]
 
 
-# --- Registre global -----------------------------------------------------------
+# Registre global
 
 
 class RegistryDatabase(_SQLiteDatabase):
-    """Registre global partagé : projets, nœuds et arcs du graphe logistique.
+    """Registre global partage : projets, noeuds et arcs du graphe logistique.
 
-    Fichier : ``db_dir/registry.sqlite``. Les évaluations restent par client
+    Fichier : ``db_dir/registry.sqlite``. Les evaluations restent par client
     (voir :class:`ClientDatabase`).
     """
 
@@ -196,13 +187,13 @@ class RegistryDatabase(_SQLiteDatabase):
     MIGRATION_KIND: Literal["registry", "client"] = "registry"
 
     def __init__(self, db_dir: Path) -> None:
-        """Ouvre (ou crée) le fichier ``registry.sqlite`` dans ``db_dir``."""
+        """Ouvre (ou cree) le fichier ``registry.sqlite`` dans ``db_dir``."""
         super().__init__(Path(db_dir) / self.FILENAME)
 
-    # -- projets --
+    # projets
 
     def save_project(self, project: Project) -> None:
-        """Insère ou met à jour le projet (upsert sur son id)."""
+        """Insere ou met a jour le projet (upsert sur son id)."""
         with self._lock, self._conn:
             self._conn.execute(
                 """
@@ -234,7 +225,7 @@ class RegistryDatabase(_SQLiteDatabase):
             return self._row_to_project(row) if row else None
 
     def list_projects(self) -> list[Project]:
-        """Liste tous les projets, ordonnés par date de création."""
+        """Liste tous les projets, ordonnes par date de creation."""
         with self._lock:
             rows = self._conn.execute("SELECT * FROM projects ORDER BY created_at").fetchall()
             return [self._row_to_project(row) for row in rows]
@@ -250,13 +241,13 @@ class RegistryDatabase(_SQLiteDatabase):
             t0_ts=row["t0_ts"],
         )
 
-    # -- nœuds --
+    # noeuds
 
     def save_node(self, node: SupplyNode) -> None:
-        """Insère ou met à jour le nœud, son état d'urgence ET ses liens de tags.
+        """Insere ou met a jour le noeud, son etat d'urgence ET ses liens de tags.
 
-        La table ``node_tags`` est resynchronisée sur ``node.tags`` (DELETE des
-        liens du nœud puis INSERT des ids) dans la MÊME transaction que l'upsert.
+        La table ``node_tags`` est resynchronisee sur ``node.tags`` (DELETE des
+        liens du noeud puis INSERT des ids) dans la MEME transaction que l'upsert.
         """
         with self._lock, self._conn:
             self._conn.execute(
@@ -297,13 +288,13 @@ class RegistryDatabase(_SQLiteDatabase):
             self._sync_node_tags(node.id, node.tags)
 
     def get_node(self, node_id: str) -> SupplyNode | None:
-        """Retourne le nœud (urgence incluse) ou None s'il est inconnu."""
+        """Retourne le noeud (urgence incluse) ou None s'il est inconnu."""
         with self._lock:
             row = self._conn.execute("SELECT * FROM nodes WHERE id = ?", (node_id,)).fetchone()
             return self._row_to_node(row) if row else None
 
     def list_nodes(self, project_id: str | None = None) -> list[SupplyNode]:
-        """Liste les nœuds (filtrés par projet si ``project_id`` est fourni)."""
+        """Liste les noeuds (filtres par projet si ``project_id`` est fourni)."""
         with self._lock:
             if project_id is None:
                 rows = self._conn.execute("SELECT * FROM nodes ORDER BY rank, id").fetchall()
@@ -315,12 +306,12 @@ class RegistryDatabase(_SQLiteDatabase):
             return [self._row_to_node(row) for row in rows]
 
     def delete_node(self, node_id: str) -> None:
-        """Supprime un nœud et tout ce qui s'y rattache (arcs, urgence, jalons, tags...).
+        """Supprime un noeud et tout ce qui s'y rattache (arcs, urgence, jalons, tags...).
 
-        Les FK ``ON DELETE CASCADE`` du schéma ne sont pas APPLIQUÉES sur cette
+        Les FK ``ON DELETE CASCADE`` du schema ne sont pas APPLIQUEES sur cette
         connexion (``PRAGMA foreign_keys=OFF``, cf. ``__init__``) : les cascades
         vers ``node_tags``, ``milestones`` et ``onboarding_progress`` sont donc
-        exécutées explicitement, dans la même transaction.
+        executees explicitement, dans la meme transaction.
         """
         with self._lock, self._conn:
             self._conn.execute(
@@ -334,7 +325,7 @@ class RegistryDatabase(_SQLiteDatabase):
             self._conn.execute("DELETE FROM nodes WHERE id = ?", (node_id,))
 
     def set_node_status(self, node_id: str, status: TaskStatus | str) -> None:
-        """Met à jour le statut du nœud (valide la valeur via :class:`TaskStatus`)."""
+        """Met a jour le statut du noeud (valide la valeur via :class:`TaskStatus`)."""
         with self._lock, self._conn:
             self._conn.execute(
                 "UPDATE nodes SET status = ? WHERE id = ?",
@@ -359,9 +350,9 @@ class RegistryDatabase(_SQLiteDatabase):
             onboarding_state=row["onboarding_state"],
         )
 
-    # -- état d'urgence courant --
+    # etat d'urgence courant
 
-    #: upsert de node_urgency, partagé par le chemin unitaire et le chemin par lot.
+    #: upsert de node_urgency, partage par le chemin unitaire et le chemin par lot.
     _URGENCY_UPSERT_SQL = """
         INSERT INTO node_urgency (node_id, ud_local, ur_local, ud, ur,
                                   adequation, false_urgency, hidden_risk, timestamp)
@@ -379,7 +370,7 @@ class RegistryDatabase(_SQLiteDatabase):
 
     @staticmethod
     def _urgency_row(node_id: str, state: UrgencyState) -> tuple[str | float | None, ...]:
-        """Ligne de paramètres de :data:`_URGENCY_UPSERT_SQL` pour un nœud."""
+        """Ligne de parametres de :data:`_URGENCY_UPSERT_SQL` pour un noeud."""
         return (
             node_id,
             state.ud_local,
@@ -393,20 +384,20 @@ class RegistryDatabase(_SQLiteDatabase):
         )
 
     def save_urgency(self, node_id: str, state: UrgencyState) -> None:
-        """Insère ou met à jour l'état d'urgence courant du nœud (table node_urgency)."""
+        """Insere ou met a jour l'etat d'urgence courant du noeud (table node_urgency)."""
         with self._lock, self._conn:
             self._upsert_urgency(node_id, state)
 
     def save_urgencies(self, states: dict[str, UrgencyState]) -> None:
-        """Upsert PAR LOT des états d'urgence courants, en UNE transaction.
+        """Upsert PAR LOT des etats d'urgence courants, en UNE transaction.
 
-        Équivalent champ à champ à N appels :meth:`save_urgency`, mais en un
+        Equivalent champ a champ a N appels :meth:`save_urgency`, mais en un
         seul ``executemany`` sous le verrou : une transaction (un seul couple
-        BEGIN/COMMIT) pour tout le réseau au lieu d'une par nœud
-        (faiblesse #14 — O(N) commits dans ``evaluate_all``).
+        BEGIN/COMMIT) pour tout le reseau au lieu d'une par noeud
+        (faiblesse #14 - O(N) commits dans ``evaluate_all``).
 
         Args:
-            states: états d'urgence courants par id de nœud.
+            states: etats d'urgence courants par id de noeud.
         """
         with self._lock, self._conn:
             self._conn.executemany(
@@ -419,7 +410,7 @@ class RegistryDatabase(_SQLiteDatabase):
         self._conn.execute(self._URGENCY_UPSERT_SQL, self._urgency_row(node_id, state))
 
     def _load_urgency(self, node_id: str) -> UrgencyState:
-        """Restaure l'UrgencyState du nœud (UrgencyState() vierge si absent)."""
+        """Restaure l'UrgencyState du noeud (UrgencyState() vierge si absent)."""
         row = self._conn.execute(
             "SELECT * FROM node_urgency WHERE node_id = ?", (node_id,)
         ).fetchone()
@@ -438,10 +429,10 @@ class RegistryDatabase(_SQLiteDatabase):
             state.timestamp = row["timestamp"]
         return state
 
-    # -- réglages par projet --
+    # reglages par projet
 
     def set_setting(self, project_id: str, key: str, value: Any) -> None:
-        """Pose (ou remplace) un réglage du projet, sérialisé en JSON."""
+        """Pose (ou remplace) un reglage du projet, serialise en JSON."""
         with self._lock, self._conn:
             self._conn.execute(
                 """
@@ -454,7 +445,7 @@ class RegistryDatabase(_SQLiteDatabase):
             )
 
     def get_setting(self, project_id: str, key: str) -> Any | None:
-        """Retourne la valeur du réglage (désérialisée du JSON) ou None si absent."""
+        """Retourne la valeur du reglage (deserialisee du JSON) ou None si absent."""
         with self._lock:
             row = self._conn.execute(
                 "SELECT value_json FROM project_settings WHERE project_id = ? AND key = ?",
@@ -462,10 +453,10 @@ class RegistryDatabase(_SQLiteDatabase):
             ).fetchone()
             return json.loads(row["value_json"]) if row else None
 
-    # -- arcs --
+    # arcs
 
     def save_arc(self, arc: SupplyArc) -> None:
-        """Insère ou met à jour l'arc (upsert sur (source_id, target_id))."""
+        """Insere ou met a jour l'arc (upsert sur (source_id, target_id))."""
         with self._lock, self._conn:
             self._conn.execute(
                 """
@@ -502,7 +493,7 @@ class RegistryDatabase(_SQLiteDatabase):
             return self._row_to_arc(row) if row else None
 
     def list_arcs(self) -> list[SupplyArc]:
-        """Liste tous les arcs, ordonnés par (source_id, target_id)."""
+        """Liste tous les arcs, ordonnes par (source_id, target_id)."""
         with self._lock:
             rows = self._conn.execute("SELECT * FROM arcs ORDER BY source_id, target_id").fetchall()
             return [self._row_to_arc(row) for row in rows]
@@ -528,13 +519,13 @@ class RegistryDatabase(_SQLiteDatabase):
             kpis=kpis_from_json(row["kpis_json"]),
         )
 
-    # -- jalons (milestones) --
+    # jalons (milestones)
 
     def save_milestone(self, milestone: Milestone) -> None:
-        """Insère ou met à jour le jalon (upsert sur son id).
+        """Insere ou met a jour le jalon (upsert sur son id).
 
-        ``created_at``/``updated_at`` sont gérés ici : posés tous deux à
-        maintenant à l'insertion, seul ``updated_at`` bouge à la mise à jour.
+        ``created_at``/``updated_at`` sont geres ici : poses tous deux a
+        maintenant a l'insertion, seul ``updated_at`` bouge a la mise a jour.
         """
         now = time.time()
         with self._lock, self._conn:
@@ -578,7 +569,7 @@ class RegistryDatabase(_SQLiteDatabase):
             return self._row_to_milestone(row) if row else None
 
     def list_milestones(self, node_id: str) -> list[Milestone]:
-        """Liste les jalons du nœud, ordonnés par position croissante."""
+        """Liste les jalons du noeud, ordonnes par position croissante."""
         with self._lock:
             rows = self._conn.execute(
                 "SELECT * FROM milestones WHERE node_id = ? ORDER BY position, id",
@@ -605,10 +596,10 @@ class RegistryDatabase(_SQLiteDatabase):
             position=row["position"],
         )
 
-    # -- tags et catégories --
+    # tags et categories
 
     def save_tag_category(self, category: TagCategory) -> None:
-        """Insère ou met à jour la catégorie de tags (upsert sur son id)."""
+        """Insere ou met a jour la categorie de tags (upsert sur son id)."""
         with self._lock, self._conn:
             self._conn.execute(
                 """
@@ -623,7 +614,7 @@ class RegistryDatabase(_SQLiteDatabase):
             )
 
     def list_tag_categories(self, project_id: str) -> list[TagCategory]:
-        """Liste les catégories de tags du projet, ordonnées par nom."""
+        """Liste les categories de tags du projet, ordonnees par nom."""
         with self._lock:
             rows = self._conn.execute(
                 "SELECT * FROM tag_categories WHERE project_id = ? ORDER BY name, id",
@@ -640,7 +631,7 @@ class RegistryDatabase(_SQLiteDatabase):
             ]
 
     def save_tag(self, tag: Tag) -> None:
-        """Insère ou met à jour le tag (upsert sur son id)."""
+        """Insere ou met a jour le tag (upsert sur son id)."""
         with self._lock, self._conn:
             self._conn.execute(
                 """
@@ -655,7 +646,7 @@ class RegistryDatabase(_SQLiteDatabase):
             )
 
     def list_tags(self, project_id: str) -> list[Tag]:
-        """Liste les tags du projet, ordonnés par nom."""
+        """Liste les tags du projet, ordonnes par nom."""
         with self._lock:
             rows = self._conn.execute(
                 "SELECT * FROM tags WHERE project_id = ? ORDER BY name, id",
@@ -664,12 +655,12 @@ class RegistryDatabase(_SQLiteDatabase):
             return [self._row_to_tag(row) for row in rows]
 
     def set_node_tags(self, node_id: str, tag_ids: list[str]) -> None:
-        """Remplace les liens de tags du nœud par ``tag_ids`` (transaction unique)."""
+        """Remplace les liens de tags du noeud par ``tag_ids`` (transaction unique)."""
         with self._lock, self._conn:
             self._sync_node_tags(node_id, tag_ids)
 
     def tags_of_node(self, node_id: str) -> list[Tag]:
-        """Retourne les tags liés au nœud, dans l'ordre d'association."""
+        """Retourne les tags lies au noeud, dans l'ordre d'association."""
         with self._lock:
             rows = self._conn.execute(
                 """
@@ -691,7 +682,7 @@ class RegistryDatabase(_SQLiteDatabase):
         )
 
     def _node_tag_ids(self, node_id: str) -> list[str]:
-        """Ids des tags liés au nœud, dans l'ordre d'association."""
+        """Ids des tags lies au noeud, dans l'ordre d'association."""
         rows = self._conn.execute(
             "SELECT tag_id FROM node_tags WHERE node_id = ? ORDER BY rowid",
             (node_id,),
@@ -707,7 +698,7 @@ class RegistryDatabase(_SQLiteDatabase):
             category_id=row["category_id"],
         )
 
-    # -- progression d'onboarding --
+    # progression d'onboarding
 
     def save_onboarding(
         self,
@@ -716,7 +707,7 @@ class RegistryDatabase(_SQLiteDatabase):
         draft: dict[str, Any],
         current_step: int,
     ) -> None:
-        """Insère ou met à jour la progression du wizard d'onboarding du nœud."""
+        """Insere ou met a jour la progression du wizard d'onboarding du noeud."""
         with self._lock, self._conn:
             self._conn.execute(
                 """
@@ -754,11 +745,11 @@ class RegistryDatabase(_SQLiteDatabase):
             }
 
     def delete_onboarding(self, node_id: str) -> None:
-        """Supprime la progression d'onboarding du nœud (silencieux si absente)."""
+        """Supprime la progression d'onboarding du noeud (silencieux si absente)."""
         with self._lock, self._conn:
             self._conn.execute("DELETE FROM onboarding_progress WHERE node_id = ?", (node_id,))
 
-    # -- scénarios nommés --
+    # scenarios nommes
 
     def save_scenario(
         self,
@@ -768,25 +759,25 @@ class RegistryDatabase(_SQLiteDatabase):
         payload_json: str,
         now: float,
     ) -> None:
-        """Insère ou met à jour le scénario nommé (upsert sur son id).
+        """Insere ou met a jour le scenario nomme (upsert sur son id).
 
         Le contenu ``payload_json`` est OPAQUE pour la couche data (aucune
-        interprétation), mais sa syntaxe JSON est validée AVANT toute écriture.
-        À l'insertion, ``created_at`` et ``updated_at`` valent ``now`` ; à la
-        mise à jour, seul ``updated_at`` est rafraîchi (``created_at`` est
-        préservé). Le nom est unique PAR projet : un doublon de
-        ``(project_id, nom)`` porté par un AUTRE id est refusé.
+        interpretation), mais sa syntaxe JSON est validee AVANT toute ecriture.
+        A l'insertion, ``created_at`` et ``updated_at`` valent ``now`` ; a la
+        mise a jour, seul ``updated_at`` est rafraichi (``created_at`` est
+        preserve). Le nom est unique PAR projet : un doublon de
+        ``(project_id, nom)`` porte par un AUTRE id est refuse.
 
         Args:
-            scenario_id: identifiant du scénario (clé d'upsert).
-            project_id: projet auquel le scénario est rattaché.
-            nom: nom du scénario, unique au sein du projet.
-            payload_json: contenu du scénario, déjà sérialisé en JSON.
-            now: timestamp courant, fourni par l'appelant (testabilité).
+            scenario_id: identifiant du scenario (cle d'upsert).
+            project_id: projet auquel le scenario est rattache.
+            nom: nom du scenario, unique au sein du projet.
+            payload_json: contenu du scenario, deja serialise en JSON.
+            now: timestamp courant, fourni par l'appelant (testabilite).
 
         Raises:
             ValueError: si ``payload_json`` n'est pas du JSON valide, ou si un
-                scénario de ce nom existe déjà dans le projet sous un autre id.
+                scenario de ce nom existe deja dans le projet sous un autre id.
         """
         try:
             json.loads(payload_json)
@@ -813,10 +804,10 @@ class RegistryDatabase(_SQLiteDatabase):
                 ) from exc
 
     def get_scenario(self, scenario_id: str) -> dict[str, Any] | None:
-        """Retourne le scénario ou None s'il est inconnu.
+        """Retourne le scenario ou None s'il est inconnu.
 
-        Le dict retourné contient ``id``, ``project_id``, ``nom``, ``payload``
-        (désérialisé du JSON), ``created_at`` et ``updated_at``.
+        Le dict retourne contient ``id``, ``project_id``, ``nom``, ``payload``
+        (deserialise du JSON), ``created_at`` et ``updated_at``.
         """
         with self._lock:
             row = self._conn.execute(
@@ -825,10 +816,10 @@ class RegistryDatabase(_SQLiteDatabase):
             return self._row_to_scenario(row) if row else None
 
     def list_scenarios(self, project_id: str) -> list[dict[str, Any]]:
-        """Liste les scénarios du projet, les plus récemment modifiés d'abord.
+        """Liste les scenarios du projet, les plus recemment modifies d'abord.
 
-        Tri par ``updated_at`` décroissant (départage par id pour un ordre
-        stable). Même forme de dict que :meth:`get_scenario`. Servie par
+        Tri par ``updated_at`` decroissant (departage par id pour un ordre
+        stable). Meme forme de dict que :meth:`get_scenario`. Servie par
         l'index ``idx_scenarios_project``.
         """
         with self._lock:
@@ -842,13 +833,13 @@ class RegistryDatabase(_SQLiteDatabase):
             return [self._row_to_scenario(row) for row in rows]
 
     def delete_scenario(self, scenario_id: str) -> None:
-        """Supprime le scénario (silencieux s'il est absent)."""
+        """Supprime le scenario (silencieux s'il est absent)."""
         with self._lock, self._conn:
             self._conn.execute("DELETE FROM scenarios WHERE id = ?", (scenario_id,))
 
     @staticmethod
     def _row_to_scenario(row: sqlite3.Row) -> dict[str, Any]:
-        """Ligne SQL -> dict de scénario (payload désérialisé du JSON)."""
+        """Ligne SQL -> dict de scenario (payload deserialise du JSON)."""
         return {
             "id": row["id"],
             "project_id": row["project_id"],
@@ -859,36 +850,36 @@ class RegistryDatabase(_SQLiteDatabase):
         }
 
 
-# --- Base par client -------------------------------------------------------------
+# Base par client
 
 
 class ClientDatabase(_SQLiteDatabase):
-    """Base de données privée d'un client (un fichier sqlite par nœud).
+    """Base de donnees privee d'un client (un fichier sqlite par noeud).
 
     Contient l'historique hebdomadaire des questionnaires AHP, les snapshots
-    KPI et la série temporelle des états d'urgence du nœud.
+    KPI et la serie temporelle des etats d'urgence du noeud.
     """
 
     MIGRATION_KIND: Literal["registry", "client"] = "client"
 
     def __init__(self, db_dir: Path, client_id: str) -> None:
-        """Ouvre (ou crée) le fichier ``<client_id>.sqlite`` dans ``db_dir``."""
+        """Ouvre (ou cree) le fichier ``<client_id>.sqlite`` dans ``db_dir``."""
         self.client_id = client_id
         super().__init__(Path(db_dir) / f"{client_id}.sqlite")
 
-    # -- évaluations AHP --
+    # evaluations AHP
 
     def save_assessment(self, assessment: AHPAssessment, replaces_id: int | None = None) -> int:
-        """Insère l'évaluation AHP et retourne son rowid.
+        """Insere l'evaluation AHP et retourne son rowid.
 
         Garde-fou : si ``assessment.iso_week`` est vide, la semaine ISO est
-        calculée depuis ``assessment.timestamp`` et POSÉE sur l'objet avant
-        persistance (l'objet reflète alors exactement la ligne écrite).
+        calculee depuis ``assessment.timestamp`` et POSEE sur l'objet avant
+        persistance (l'objet reflete alors exactement la ligne ecrite).
 
         Args:
-            assessment: évaluation AHP à persister.
-            replaces_id: id de l'évaluation que celle-ci corrige (NULL =
-                évaluation originale). L'évaluation référencée est alors
+            assessment: evaluation AHP a persister.
+            replaces_id: id de l'evaluation que celle-ci corrige (NULL =
+                evaluation originale). L'evaluation referencee est alors
                 exclue de :meth:`latest_assessment`.
         """
         if not assessment.iso_week:
@@ -920,15 +911,15 @@ class ClientDatabase(_SQLiteDatabase):
                 ),
             )
             rowid = cursor.lastrowid
-            assert rowid is not None  # INSERT abouti : lastrowid est défini
+            assert rowid is not None  # INSERT abouti : lastrowid est defini
             return int(rowid)
 
     def latest_assessment(self, node_id: str) -> AHPAssessment | None:
-        """Retourne l'évaluation EFFECTIVE la plus récente du nœud, ou None.
+        """Retourne l'evaluation EFFECTIVE la plus recente du noeud, ou None.
 
-        Les évaluations remplacées par une correction (id référencé par le
-        ``replaces_id`` d'une autre ligne) sont exclues, même si leur
-        timestamp est plus récent que celui de la correction.
+        Les evaluations remplacees par une correction (id reference par le
+        ``replaces_id`` d'une autre ligne) sont exclues, meme si leur
+        timestamp est plus recent que celui de la correction.
         """
         with self._lock:
             row = self._conn.execute(
@@ -944,13 +935,13 @@ class ClientDatabase(_SQLiteDatabase):
             return self._row_to_assessment(row) if row else None
 
     def list_assessments(self, node_id: str, include_replaced: bool = True) -> list[AHPAssessment]:
-        """Liste les évaluations du nœud, par timestamp croissant.
+        """Liste les evaluations du noeud, par timestamp croissant.
 
         Args:
-            node_id: identifiant du nœud.
-            include_replaced: si True (défaut), l'historique COMPLET est
-                retourné (évaluations remplacées comprises) ; si False, les
-                évaluations remplacées par une correction sont exclues.
+            node_id: identifiant du noeud.
+            include_replaced: si True (defaut), l'historique COMPLET est
+                retourne (evaluations remplacees comprises) ; si False, les
+                evaluations remplacees par une correction sont exclues.
         """
         with self._lock:
             if include_replaced:
@@ -992,12 +983,12 @@ class ClientDatabase(_SQLiteDatabase):
         )
 
     def assessment_weeks(self, node_id: str) -> list[str]:
-        """Semaines ISO distinctes ayant au moins une évaluation, les plus récentes d'abord.
+        """Semaines ISO distinctes ayant au moins une evaluation, les plus recentes d'abord.
 
-        L'ordre DESC est lexicographique sur les libellés « AAAA-Sxx »
-        (zéro-paddés), ce qui coïncide avec l'ordre chronologique. Les lignes
+        L'ordre DESC est lexicographique sur les libelles " AAAA-Sxx "
+        (zero-paddes), ce qui coincide avec l'ordre chronologique. Les lignes
         sans semaine (``iso_week = ''``, jamais produites par les chemins
-        d'écriture normaux) sont ignorées. Servie par ``idx_assessments_week``.
+        d'ecriture normaux) sont ignorees. Servie par ``idx_assessments_week``.
         """
         with self._lock:
             rows = self._conn.execute(
@@ -1011,20 +1002,20 @@ class ClientDatabase(_SQLiteDatabase):
             return [row["iso_week"] for row in rows]
 
     def last_assessment_week(self, node_id: str) -> str | None:
-        """Semaine ISO de la dernière évaluation du nœud, ou None si aucune.
+        """Semaine ISO de la derniere evaluation du noeud, ou None si aucune.
 
-        « Dernière » au sens du libellé « AAAA-Sxx » maximal (équivalent à la
-        semaine de l'évaluation la plus récente).
+        " Derniere " au sens du libelle " AAAA-Sxx " maximal (equivalent a la
+        semaine de l'evaluation la plus recente).
         """
         weeks = self.assessment_weeks(node_id)
         return weeks[0] if weeks else None
 
-    # -- snapshots KPI --
+    # snapshots KPI
 
     def save_kpi_snapshot(
         self, node_id: str, kpis: KPIBundle, timestamp: float | None = None
     ) -> int:
-        """Insère un snapshot KPI (timestamp = maintenant si None) et retourne son rowid."""
+        """Insere un snapshot KPI (timestamp = maintenant si None) et retourne son rowid."""
         import time as _time
 
         ts = _time.time() if timestamp is None else timestamp
@@ -1037,15 +1028,41 @@ class ClientDatabase(_SQLiteDatabase):
                 (node_id, kpis_to_json(kpis), ts),
             )
             rowid = cursor.lastrowid
-            assert rowid is not None  # INSERT abouti : lastrowid est défini
+            assert rowid is not None  # INSERT abouti : lastrowid est defini
             return int(rowid)
 
+    def kpi_series(self, node_id: str, limite: int = 12) -> list[tuple[float, KPIBundle]]:
+        """Les ``limite`` derniers snapshots KPI du noeud, du plus ancien au plus recent.
+
+        Complement de :meth:`kpis_at`, qui ne rend qu'un instantane. Une
+        prevision qui veut distinguer un fournisseur STABLE d'un fournisseur
+        qui S'ENLISE a besoin de la serie, pas du dernier point : les deux ont
+        la meme valeur du jour et des avenirs opposes.
+
+        Args:
+            node_id: noeud dont on lit l'historique.
+            limite: nombre maximal de snapshots rendus, les plus recents.
+
+        Returns:
+            Les couples ``(timestamp, KPIBundle)`` tries chronologiquement.
+        """
+        with self._lock:
+            rows = self._conn.execute(
+                """
+                SELECT kpis_json, timestamp FROM kpi_snapshots
+                WHERE node_id = ?
+                ORDER BY timestamp DESC, id DESC LIMIT ?
+                """,
+                (node_id, int(max(limite, 0))),
+            ).fetchall()
+        return [(float(r["timestamp"]), kpis_from_json(r["kpis_json"])) for r in reversed(rows)]
+
     def kpis_at(self, node_id: str, t: float) -> KPIBundle | None:
-        """Retourne les KPI du nœud tels qu'ils étaient à l'instant ``t``.
+        """Retourne les KPI du noeud tels qu'ils etaient a l'instant ``t``.
 
         Lecture temporelle : dernier snapshot de ``kpi_snapshots`` dont le
-        timestamp est <= ``t`` (borne incluse), désérialisé en
-        :class:`KPIBundle`. None si aucun snapshot n'existait encore à ``t``.
+        timestamp est <= ``t`` (borne incluse), deserialise en
+        :class:`KPIBundle`. None si aucun snapshot n'existait encore a ``t``.
         Servie par l'index ``idx_kpi_snap_node_ts``.
         """
         with self._lock:
@@ -1059,9 +1076,9 @@ class ClientDatabase(_SQLiteDatabase):
             ).fetchone()
             return kpis_from_json(row["kpis_json"]) if row else None
 
-    # -- historique d'urgence --
+    # historique d'urgence
 
-    #: insertion dans urgency_history, partagée par le chemin unitaire et le lot.
+    #: insertion dans urgency_history, partagee par le chemin unitaire et le lot.
     _URGENCY_HISTORY_INSERT_SQL = """
         INSERT INTO urgency_history (node_id, ud_local, ur_local, ud, ur,
                                      adequation, false_urgency, hidden_risk,
@@ -1071,9 +1088,9 @@ class ClientDatabase(_SQLiteDatabase):
 
     @staticmethod
     def _urgency_history_row(node_id: str, state: UrgencyState) -> tuple[str | float | None, ...]:
-        """Ligne de paramètres de :data:`_URGENCY_HISTORY_INSERT_SQL` pour un état.
+        """Ligne de parametres de :data:`_URGENCY_HISTORY_INSERT_SQL` pour un etat.
 
-        La semaine ISO (« AAAA-Sxx ») est calculée depuis ``state.timestamp``,
+        La semaine ISO (" AAAA-Sxx ") est calculee depuis ``state.timestamp``,
         exactement comme dans le chemin unitaire historique.
         """
         return (
@@ -1090,10 +1107,10 @@ class ClientDatabase(_SQLiteDatabase):
         )
 
     def save_urgency_state(self, node_id: str, state: UrgencyState) -> int:
-        """Insère un état d'urgence dans l'historique et retourne son rowid.
+        """Insere un etat d'urgence dans l'historique et retourne son rowid.
 
-        La semaine ISO (« AAAA-Sxx ») est calculée depuis ``state.timestamp``
-        et persistée dans la colonne ``iso_week``.
+        La semaine ISO (" AAAA-Sxx ") est calculee depuis ``state.timestamp``
+        et persistee dans la colonne ``iso_week``.
         """
         with self._lock, self._conn:
             cursor = self._conn.execute(
@@ -1101,19 +1118,19 @@ class ClientDatabase(_SQLiteDatabase):
                 self._urgency_history_row(node_id, state),
             )
             rowid = cursor.lastrowid
-            assert rowid is not None  # INSERT abouti : lastrowid est défini
+            assert rowid is not None  # INSERT abouti : lastrowid est defini
             return int(rowid)
 
     def save_urgency_states(self, rows: list[tuple[str, UrgencyState]]) -> None:
-        """Insère un LOT d'états d'urgence dans l'historique, en UNE transaction.
+        """Insere un LOT d'etats d'urgence dans l'historique, en UNE transaction.
 
-        Équivalent champ à champ à N appels :meth:`save_urgency_state`
-        (``iso_week`` comprise, calculée depuis le timestamp de CHAQUE état),
-        mais en un seul ``executemany`` sous le verrou — une transaction pour
-        tout le lot au lieu d'une par état (faiblesse #14).
+        Equivalent champ a champ a N appels :meth:`save_urgency_state`
+        (``iso_week`` comprise, calculee depuis le timestamp de CHAQUE etat),
+        mais en un seul ``executemany`` sous le verrou - une transaction pour
+        tout le lot au lieu d'une par etat (faiblesse #14).
 
         Args:
-            rows: couples ``(node_id, état)`` à journaliser, dans l'ordre.
+            rows: couples ``(node_id, etat)`` a journaliser, dans l'ordre.
         """
         with self._lock, self._conn:
             self._conn.executemany(
@@ -1122,7 +1139,7 @@ class ClientDatabase(_SQLiteDatabase):
             )
 
     def urgency_series(self, node_id: str) -> list[UrgencyState]:
-        """Série temporelle des états d'urgence, ordonnée par timestamp croissant."""
+        """Serie temporelle des etats d'urgence, ordonnee par timestamp croissant."""
         with self._lock:
             rows = self._conn.execute(
                 """
@@ -1145,13 +1162,13 @@ class ClientDatabase(_SQLiteDatabase):
             for row in rows
         ]
 
-    # -- cahier des charges versionné (spec_sheet) --
+    # cahier des charges versionne (spec_sheet)
 
     def save_spec_sheet(self, node_id: str, payload_json: str, source: str) -> int:
-        """Insère une nouvelle version du cahier des charges et la retourne.
+        """Insere une nouvelle version du cahier des charges et la retourne.
 
-        La version est auto-incrémentée par nœud (max existant + 1, en
-        commençant à 1) dans la même transaction que l'INSERT.
+        La version est auto-incrementee par noeud (max existant + 1, en
+        commencant a 1) dans la meme transaction que l'INSERT.
         """
         with self._lock, self._conn:
             row = self._conn.execute(
@@ -1169,7 +1186,7 @@ class ClientDatabase(_SQLiteDatabase):
             return version
 
     def latest_spec_sheet(self, node_id: str) -> tuple[int, str] | None:
-        """Retourne (version, payload_json) de la dernière version, ou None."""
+        """Retourne (version, payload_json) de la derniere version, ou None."""
         with self._lock:
             row = self._conn.execute(
                 """
@@ -1181,7 +1198,7 @@ class ClientDatabase(_SQLiteDatabase):
             return (int(row["version"]), row["payload_json"]) if row else None
 
     def spec_sheet_versions(self, node_id: str) -> list[int]:
-        """Liste les versions du cahier des charges du nœud, croissantes."""
+        """Liste les versions du cahier des charges du noeud, croissantes."""
         with self._lock:
             rows = self._conn.execute(
                 "SELECT version FROM spec_sheet WHERE node_id = ? ORDER BY version",
@@ -1189,7 +1206,7 @@ class ClientDatabase(_SQLiteDatabase):
             ).fetchall()
             return [int(row["version"]) for row in rows]
 
-    # -- journal d'événements --
+    # journal d'evenements
 
     def save_event(
         self,
@@ -1203,7 +1220,7 @@ class ClientDatabase(_SQLiteDatabase):
         operator_id: str,
         notes: str = "",
     ) -> None:
-        """Insère un événement dans le journal (``reverted_at`` initialement NULL)."""
+        """Insere un evenement dans le journal (``reverted_at`` initialement NULL)."""
         with self._lock, self._conn:
             self._conn.execute(
                 """
@@ -1226,10 +1243,10 @@ class ClientDatabase(_SQLiteDatabase):
             )
 
     def list_events(self, node_id: str, iso_week: str | None = None) -> list[dict[str, Any]]:
-        """Liste les événements du nœud (filtrés par semaine ISO si fournie).
+        """Liste les evenements du noeud (filtres par semaine ISO si fournie).
 
-        Chaque événement est retourné comme dict (clés = colonnes de la table),
-        ordonné par ``occurred_at`` croissant.
+        Chaque evenement est retourne comme dict (cles = colonnes de la table),
+        ordonne par ``occurred_at`` croissant.
         """
         with self._lock:
             if iso_week is None:
@@ -1248,21 +1265,21 @@ class ClientDatabase(_SQLiteDatabase):
             return [dict(row) for row in rows]
 
     def mark_reverted(self, event_id: str, reverted_at: float) -> None:
-        """Marque l'événement comme annulé à la date ``reverted_at``."""
+        """Marque l'evenement comme annule a la date ``reverted_at``."""
         with self._lock, self._conn:
             self._conn.execute(
                 "UPDATE events SET reverted_at = ? WHERE id = ?",
                 (reverted_at, event_id),
             )
 
-    # -- revue hebdomadaire --
+    # revue hebdomadaire
 
     def get_weekly_review(self, node_id: str, iso_week: str) -> dict[str, Any] | None:
-        """Retourne l'état de la revue hebdomadaire du nœud pour la semaine, ou None.
+        """Retourne l'etat de la revue hebdomadaire du noeud pour la semaine, ou None.
 
-        Le dict retourné contient ``volets`` (désérialisé du JSON, ex.
+        Le dict retourne contient ``volets`` (deserialise du JSON, ex.
         ``{"ahp": 1, "kpis": 0}``), ``started_at`` et ``completed_at``
-        (timestamps, ou None tant que non posés).
+        (timestamps, ou None tant que non poses).
         """
         with self._lock:
             row = self._conn.execute(
@@ -1289,15 +1306,15 @@ class ClientDatabase(_SQLiteDatabase):
         started_at: float | None = None,
         completed_at: float | None = None,
     ) -> None:
-        """Crée la revue hebdomadaire au besoin et ne touche QUE les champs fournis.
+        """Cree la revue hebdomadaire au besoin et ne touche QUE les champs fournis.
 
-        Sémantique champ à champ (transaction unique, sous le verrou) :
+        Semantique champ a champ (transaction unique, sous le verrou) :
 
-        - ``volets`` est FUSIONNÉ clé à clé avec l'existant (les volets non
-          mentionnés sont conservés, ceux fournis sont écrasés) ;
-        - ``started_at`` n'est posé que s'il est encore NULL en base (premier
-          démarrage de la revue — les appels suivants ne l'écrasent pas) ;
-        - ``completed_at`` est écrasé chaque fois qu'il est fourni.
+        - ``volets`` est FUSIONNE cle a cle avec l'existant (les volets non
+          mentionnes sont conserves, ceux fournis sont ecrases) ;
+        - ``started_at`` n'est pose que s'il est encore NULL en base (premier
+          demarrage de la revue - les appels suivants ne l'ecrasent pas) ;
+        - ``completed_at`` est ecrase chaque fois qu'il est fourni.
         """
         with self._lock, self._conn:
             self._conn.execute(
@@ -1335,7 +1352,7 @@ class ClientDatabase(_SQLiteDatabase):
                     (completed_at, node_id, iso_week),
                 )
 
-    # -- journal des décisions --
+    # journal des decisions
 
     def save_decision(
         self,
@@ -1347,11 +1364,11 @@ class ClientDatabase(_SQLiteDatabase):
         scores_snapshot_json: str,
         created_at: float,
     ) -> None:
-        """Insère une décision dans le journal.
+        """Insere une decision dans le journal.
 
         ``scores_snapshot_json`` est le snapshot JSON des scores
-        ``{ud, ur, a, f, h}`` au moment de la décision, fourni déjà sérialisé
-        par l'appelant et stocké tel quel.
+        ``{ud, ur, a, f, h}`` au moment de la decision, fourni deja serialise
+        par l'appelant et stocke tel quel.
         """
         with self._lock, self._conn:
             self._conn.execute(
@@ -1372,11 +1389,11 @@ class ClientDatabase(_SQLiteDatabase):
             )
 
     def list_decisions(self, node_id: str, iso_week: str | None = None) -> list[dict[str, Any]]:
-        """Liste les décisions du nœud (filtrées par semaine ISO si fournie).
+        """Liste les decisions du noeud (filtrees par semaine ISO si fournie).
 
-        Chaque décision est un dict : ``id``, ``node_id``, ``iso_week``,
-        ``operator_id``, ``description``, ``scores`` (snapshot désérialisé) et
-        ``created_at``. Tri par ``created_at`` décroissant (les plus récentes
+        Chaque decision est un dict : ``id``, ``node_id``, ``iso_week``,
+        ``operator_id``, ``description``, ``scores`` (snapshot deserialise) et
+        ``created_at``. Tri par ``created_at`` decroissant (les plus recentes
         d'abord). Servie par l'index ``idx_decisions_node_week``.
         """
         with self._lock:
@@ -1409,9 +1426,9 @@ class ClientDatabase(_SQLiteDatabase):
                 for row in rows
             ]
 
-    # -- journal des interventions (contrat n°9, HÉLIOS v7) --
+    # journal des interventions (contrat no9, HELIOS v7)
 
-    #: colonnes de la table ``interventions``, dans l'ordre du contrat n°9.
+    #: colonnes de la table ``interventions``, dans l'ordre du contrat no9.
     _INTERVENTION_COLUMNS: tuple[str, ...] = (
         "id",
         "node_id",
@@ -1433,26 +1450,22 @@ class ClientDatabase(_SQLiteDatabase):
         "notes",
     )
 
-    #: colonnes modifiables par :meth:`update_intervention` (tout sauf ``id``,
-    #: la clé d'identité de la ligne) — sert de liste blanche : les noms de
-    #: colonnes de ``changes`` sont interpolés dans le SQL (impossible de les
-    #: paramétrer avec « ? »), donc validés contre cet ensemble fixe avant
-    #: toute construction de requête.
+    #: colonnes modifiables par :meth:`update_intervention` (tout sauf ``id``, la cle d'identite de la ligne) - sert de liste blanche : les noms de colonnes de ``changes`` sont interpoles dans le SQL (impossible de les parametrer avec " ? "), donc valides contre cet ensemble fixe avant toute construction de requete.
     _INTERVENTION_UPDATABLE_COLUMNS: frozenset[str] = frozenset(_INTERVENTION_COLUMNS) - {"id"}
 
     def insert_intervention(self, row: dict[str, Any]) -> str:
-        """Insère une ligne du journal des interventions et retourne son id.
+        """Insere une ligne du journal des interventions et retourne son id.
 
         ``row`` porte EXACTEMENT les colonnes de la table (voir
-        :data:`_INTERVENTION_COLUMNS`), les champs ``*_json`` déjà sérialisés
-        par l'appelant — la couche data reste opaque à leur contenu, comme
+        :data:`_INTERVENTION_COLUMNS`), les champs ``*_json`` deja serialises
+        par l'appelant - la couche data reste opaque a leur contenu, comme
         pour ``scenarios`` (:meth:`RegistryDatabase.save_scenario`).
 
         Args:
-            row: valeurs de la ligne à insérer, indexées par nom de colonne.
+            row: valeurs de la ligne a inserer, indexees par nom de colonne.
 
         Returns:
-            L'id de la ligne insérée (``row["id"]``).
+            L'id de la ligne inseree (``row["id"]``).
         """
         with self._lock, self._conn:
             self._conn.execute(
@@ -1471,16 +1484,16 @@ class ClientDatabase(_SQLiteDatabase):
         return str(row["id"])
 
     def update_intervention(self, intervention_id: str, changes: dict[str, Any]) -> None:
-        """Met à jour PARTIELLEMENT la ligne (seules les colonnes de ``changes``).
+        """Met a jour PARTIELLEMENT la ligne (seules les colonnes de ``changes``).
 
         Args:
-            intervention_id: id de la ligne à modifier.
-            changes: valeurs à écraser, indexées par nom de colonne — doit
-                être un sous-ensemble non vide des colonnes modifiables de la
+            intervention_id: id de la ligne a modifier.
+            changes: valeurs a ecraser, indexees par nom de colonne - doit
+                etre un sous-ensemble non vide des colonnes modifiables de la
                 table (:data:`_INTERVENTION_UPDATABLE_COLUMNS`).
 
         Raises:
-            ValueError: ``changes`` est vide, ou contient une clé qui n'est
+            ValueError: ``changes`` est vide, ou contient une cle qui n'est
                 pas une colonne modifiable de la table ``interventions``.
         """
         if not changes:
@@ -1488,7 +1501,7 @@ class ClientDatabase(_SQLiteDatabase):
         inconnues = sorted(set(changes) - self._INTERVENTION_UPDATABLE_COLUMNS)
         if inconnues:
             raise ValueError(f"update_intervention : colonnes inconnues {inconnues}")
-        colonnes = sorted(changes)  # ordre déterministe
+        colonnes = sorted(changes)  # ordre deterministe
         assignation = ", ".join(f"{col} = ?" for col in colonnes)
         with self._lock, self._conn:
             self._conn.execute(
@@ -1497,15 +1510,15 @@ class ClientDatabase(_SQLiteDatabase):
             )
 
     def list_interventions(self, node_id: str, only_open: bool = False) -> list[dict[str, Any]]:
-        """Liste les interventions du nœud, ordonnées par ``date_ts`` croissant.
+        """Liste les interventions du noeud, ordonnees par ``date_ts`` croissant.
 
         Args:
-            node_id: identifiant du nœud.
+            node_id: identifiant du noeud.
             only_open: si True, ne retourne que les interventions dont le
-                résultat opérationnel est encore ``'en_cours'``.
+                resultat operationnel est encore ``'en_cours'``.
 
         Returns:
-            Chaque intervention comme dict (clés = colonnes de la table).
+            Chaque intervention comme dict (cles = colonnes de la table).
         """
         with self._lock:
             if only_open:

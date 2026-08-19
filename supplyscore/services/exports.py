@@ -1,23 +1,23 @@
-"""Export complet des données d'un projet — classeur Excel ou archive CSV (E7, Lot 7.1).
+"""Export complet des donnees d'un projet - classeur Excel ou archive CSV (E7, Lot 7.1).
 
-:class:`ExportService` agrège TOUT le matériau d'un projet pour l'analyse
-post-serious-game : la fiche projet, les nœuds (état d'urgence courant et tags
-inclus), les arcs, les jalons, puis — agrégées sur l'ensemble des nœuds du
-projet, avec une colonne « nœud » — les séries des bases CLIENT : historique
-d'urgences, évaluations AHP, snapshots KPI (colonnes aplaties « bloc.champ »),
-événements, décisions, revues hebdomadaires et journal d'audit. Le journal
-d'audit du REGISTRE (global, non filtré par projet) part dans une feuille
-« audit_registre » séparée.
+:class:`ExportService` agrege TOUT le materiau d'un projet pour l'analyse
+post-serious-game : la fiche projet, les noeuds (etat d'urgence courant et tags
+inclus), les arcs, les jalons, puis - agregees sur l'ensemble des noeuds du
+projet, avec une colonne " noeud " - les series des bases CLIENT : historique
+d'urgences, evaluations AHP, snapshots KPI (colonnes aplaties " bloc.champ "),
+evenements, decisions, revues hebdomadaires et journal d'audit. Le journal
+d'audit du REGISTRE (global, non filtre par projet) part dans une feuille
+" audit_registre " separee.
 
 Deux formats :
 
 - ``fmt="xlsx"`` : UN classeur ``openpyxl`` multi-feuilles ;
-- ``fmt="csv"`` : un ZIP contenant un CSV par feuille — encodage ``utf-8-sig``
-  (BOM) et séparateur « ; », les conventions d'Excel FR.
+- ``fmt="csv"`` : un ZIP contenant un CSV par feuille - encodage ``utf-8-sig``
+  (BOM) et separateur " ; ", les conventions d'Excel FR.
 
-Les dates epoch sont rendues « JJ/MM/AAAA HH:MM » en heure locale. Le nom du
-fichier embarque le nom du projet slugifié (alphanumérique et tirets, accents
-translittérés) et l'horodatage de l'horloge du service :
+Les dates epoch sont rendues " JJ/MM/AAAA HH:MM " en heure locale. Le nom du
+fichier embarque le nom du projet slugifie (alphanumerique et tirets, accents
+translitteres) et l'horodatage de l'horloge du service :
 ``SupplyScore_<slug>_AAAAMMJJ_HHMMSS.xlsx|.zip``.
 """
 
@@ -44,10 +44,10 @@ if TYPE_CHECKING:
     from supplyscore.data.db import ClientDatabase
     from supplyscore.services.orchestrator import SupplyScoreService
 
-#: Une feuille d'export : ``(nom, en-têtes, lignes)``.
+#: Une feuille d'export : ``(nom, en-tetes, lignes)``.
 _Sheet = tuple[str, list[str], list[list[Any]]]
 
-#: Évaluations AHP d'un nœud, avec l'id de l'évaluation qui les remplace (NULL sinon).
+#: Evaluations AHP d'un noeud, avec l'id de l'evaluation qui les remplace (NULL sinon).
 _SQL_EVALUATIONS = """
     SELECT a.operator_id, a.iso_week, a.ud, a.consistency_ratio,
            a.is_consistent, a.notes,
@@ -57,14 +57,14 @@ _SQL_EVALUATIONS = """
     ORDER BY a.timestamp, a.id
 """
 
-#: Snapshots KPI d'un nœud, chronologiques.
+#: Snapshots KPI d'un noeud, chronologiques.
 _SQL_SNAPSHOTS = """
     SELECT kpis_json, timestamp FROM kpi_snapshots
     WHERE node_id = ?
     ORDER BY timestamp, id
 """
 
-#: Revues hebdomadaires d'un nœud, par semaine ISO croissante.
+#: Revues hebdomadaires d'un noeud, par semaine ISO croissante.
 _SQL_REVUES = """
     SELECT iso_week, volets_json, started_at, completed_at
     FROM weekly_reviews
@@ -80,7 +80,7 @@ _SQL_AUDIT = """
     ORDER BY timestamp, id
 """
 
-#: En-têtes du journal d'audit (sans la colonne « nœud », propre aux bases client).
+#: En-tetes du journal d'audit (sans la colonne " noeud ", propre aux bases client).
 _AUDIT_HEADERS = [
     "type entité",
     "id entité",
@@ -95,18 +95,18 @@ _AUDIT_HEADERS = [
 
 
 def _slugify(name: str) -> str:
-    """Slugifie un nom de projet pour un nom de fichier sûr.
+    """Slugifie un nom de projet pour un nom de fichier sur.
 
-    Les accents sont translittérés (décomposition NFKD puis encodage ASCII,
-    les diacritiques tombent), tout caractère non alphanumérique devient un
-    tiret et les tirets de bord sont retirés.
+    Les accents sont translitteres (decomposition NFKD puis encodage ASCII,
+    les diacritiques tombent), tout caractere non alphanumerique devient un
+    tiret et les tirets de bord sont retires.
 
     Args:
-        name: nom libre du projet (accents, espaces, « / »... tolérés).
+        name: nom libre du projet (accents, espaces, " / "... toleres).
 
     Returns:
-        Le slug « alphanumérique + tirets » correspondant, ``"projet"`` si le
-        nom ne contient aucun caractère translittérable.
+        Le slug " alphanumerique + tirets " correspondant, ``"projet"`` si le
+        nom ne contient aucun caractere translitterable.
     """
     ascii_name = unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode("ascii")
     slug = re.sub(r"[^A-Za-z0-9]+", "-", ascii_name).strip("-")
@@ -114,13 +114,13 @@ def _slugify(name: str) -> str:
 
 
 def _fmt_date(ts: float | None) -> str:
-    """Formate un epoch en « JJ/MM/AAAA HH:MM » (heure locale), ``""`` si None.
+    """Formate un epoch en " JJ/MM/AAAA HH:MM " (heure locale), ``""`` si None.
 
     Args:
         ts: instant en secondes epoch, ou ``None``.
 
     Returns:
-        La date formatée en heure locale, ou la chaîne vide.
+        La date formatee en heure locale, ou la chaine vide.
     """
     if ts is None:
         return ""
@@ -128,10 +128,10 @@ def _fmt_date(ts: float | None) -> str:
 
 
 def _kpi_columns() -> list[str]:
-    """Colonnes aplaties « bloc.champ » d'un :class:`KPIBundle`, ordre de déclaration.
+    """Colonnes aplaties " bloc.champ " d'un :class:`KPIBundle`, ordre de declaration.
 
     Returns:
-        Les chemins qualifiés de tous les champs déclarés des blocs KPI
+        Les chemins qualifies de tous les champs declares des blocs KPI
         (``network.product``, ``risk.failure_probability``...), dans l'ordre
         des dataclasses.
     """
@@ -147,11 +147,11 @@ def _kpi_values(kpis: KPIBundle, columns: list[str]) -> list[Any]:
     """Valeurs d'un bundle KPI dans l'ordre des colonnes aplaties.
 
     Args:
-        kpis: bundle à aplatir.
-        columns: chemins qualifiés « bloc.champ » (cf. :func:`_kpi_columns`).
+        kpis: bundle a aplatir.
+        columns: chemins qualifies " bloc.champ " (cf. :func:`_kpi_columns`).
 
     Returns:
-        Les valeurs (``None`` pour un KPI non renseigné), alignées sur
+        Les valeurs (``None`` pour un KPI non renseigne), alignees sur
         ``columns``.
     """
     values: list[Any] = []
@@ -162,13 +162,13 @@ def _kpi_values(kpis: KPIBundle, columns: list[str]) -> list[Any]:
 
 
 def _resume_impacts(impacts: list[dict[str, Any]]) -> str:
-    """Résumé lisible des impacts d'un événement : « bloc.champ: avant → après ».
+    """Resume lisible des impacts d'un evenement : " bloc.champ: avant -> apres ".
 
     Args:
-        impacts: impacts désérialisés de ``events.impacts_json``.
+        impacts: impacts deserialises de ``events.impacts_json``.
 
     Returns:
-        Les impacts joints par « ; », chaîne vide si l'événement n'en a aucun.
+        Les impacts joints par " ; ", chaine vide si l'evenement n'en a aucun.
     """
     return "; ".join(
         f"{impact['kpi_path']}: {impact['old']} → {impact['new']}" for impact in impacts
@@ -176,11 +176,11 @@ def _resume_impacts(impacts: list[dict[str, Any]]) -> str:
 
 
 def _write_xlsx(sheets: list[_Sheet], path: Path) -> None:
-    """Écrit les feuilles dans UN classeur openpyxl (en-têtes en ligne 1).
+    """Ecrit les feuilles dans UN classeur openpyxl (en-tetes en ligne 1).
 
     Args:
-        sheets: feuilles ``(nom, en-têtes, lignes)`` dans l'ordre du classeur.
-        path: chemin du fichier ``.xlsx`` à produire.
+        sheets: feuilles ``(nom, en-tetes, lignes)`` dans l'ordre du classeur.
+        path: chemin du fichier ``.xlsx`` a produire.
     """
     workbook = Workbook()
     default_sheet = workbook.active
@@ -195,14 +195,14 @@ def _write_xlsx(sheets: list[_Sheet], path: Path) -> None:
 
 
 def _write_csv_zip(sheets: list[_Sheet], path: Path) -> None:
-    """Écrit les feuilles dans un ZIP d'un CSV par feuille (Excel FR).
+    """Ecrit les feuilles dans un ZIP d'un CSV par feuille (Excel FR).
 
-    Chaque ``<nom>.csv`` est encodé en ``utf-8-sig`` (BOM) avec « ; » comme
-    séparateur ; les valeurs ``None`` deviennent des cellules vides.
+    Chaque ``<nom>.csv`` est encode en ``utf-8-sig`` (BOM) avec " ; " comme
+    separateur ; les valeurs ``None`` deviennent des cellules vides.
 
     Args:
-        sheets: feuilles ``(nom, en-têtes, lignes)``.
-        path: chemin de l'archive ``.zip`` à produire.
+        sheets: feuilles ``(nom, en-tetes, lignes)``.
+        path: chemin de l'archive ``.zip`` a produire.
     """
     with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
         for name, headers, rows in sheets:
@@ -215,23 +215,23 @@ def _write_csv_zip(sheets: list[_Sheet], path: Path) -> None:
 
 
 class ExportService:
-    """Export des données complètes d'un projet (classeur xlsx ou ZIP de CSV).
+    """Export des donnees completes d'un projet (classeur xlsx ou ZIP de CSV).
 
-    S'appuie sur la façade :class:`SupplyScoreService` : le registre fournit le
-    projet, ses nœuds, arcs, jalons et tags ; chaque base CLIENT fournit les
-    séries hebdomadaires de son nœud. Lecture seule — l'export n'écrit rien
+    S'appuie sur la facade :class:`SupplyScoreService` : le registre fournit le
+    projet, ses noeuds, arcs, jalons et tags ; chaque base CLIENT fournit les
+    series hebdomadaires de son noeud. Lecture seule - l'export n'ecrit rien
     dans les bases.
     """
 
     def __init__(self, service: SupplyScoreService) -> None:
-        """Initialise le service d'export au-dessus de la façade.
+        """Initialise le service d'export au-dessus de la facade.
 
         Args:
-            service: façade applicative (registre, bases client, horloge).
+            service: facade applicative (registre, bases client, horloge).
         """
         self._service = service
 
-    # --- API publique -------------------------------------------------------------
+    # API publique
 
     def export_project(
         self,
@@ -239,21 +239,21 @@ class ExportService:
         fmt: Literal["csv", "xlsx"] = "xlsx",
         dest_dir: Path | str = "exports",
     ) -> Path:
-        """Exporte toutes les données du projet dans ``dest_dir`` (créé au besoin).
+        """Exporte toutes les donnees du projet dans ``dest_dir`` (cree au besoin).
 
         Produit ``SupplyScore_<slug>_AAAAMMJJ_HHMMSS.xlsx`` (un classeur
-        multi-feuilles) ou ``....zip`` (un CSV par feuille, utf-8-sig, « ; »),
+        multi-feuilles) ou ``....zip`` (un CSV par feuille, utf-8-sig, " ; "),
         l'horodatage venant de l'horloge du service en heure locale. Feuilles,
         dans l'ordre : ``projet``, ``noeuds``, ``arcs``, ``jalons``,
         ``historique_urgences``, ``evaluations``, ``snapshots_kpi``,
         ``evenements``, ``decisions``, ``revues_hebdo``, ``audit`` (bases
-        CLIENT, colonne « nœud ») et ``audit_registre`` (journal global du
+        CLIENT, colonne " noeud ") et ``audit_registre`` (journal global du
         registre).
 
         Args:
-            project_id: identifiant du projet à exporter.
-            fmt: ``"xlsx"`` (défaut) ou ``"csv"``.
-            dest_dir: répertoire de destination, créé s'il n'existe pas.
+            project_id: identifiant du projet a exporter.
+            fmt: ``"xlsx"`` (defaut) ou ``"csv"``.
+            dest_dir: repertoire de destination, cree s'il n'existe pas.
 
         Returns:
             Le chemin du fichier produit.
@@ -281,16 +281,16 @@ class ExportService:
             _write_csv_zip(sheets, path)
         return path
 
-    # --- Construction des feuilles --------------------------------------------------
+    # Construction des feuilles
 
     def _build_sheets(self, project: Project) -> list[_Sheet]:
         """Construit toutes les feuilles de l'export, dans l'ordre du classeur.
 
         Args:
-            project: projet à exporter (déjà validé).
+            project: projet a exporter (deja valide).
 
         Returns:
-            Les feuilles ``(nom, en-têtes, lignes)``.
+            Les feuilles ``(nom, en-tetes, lignes)``.
         """
         nodes = self._service.registry.list_nodes(project.id)
         sheets: list[_Sheet] = [
@@ -304,10 +304,10 @@ class ExportService:
         return sheets
 
     def _sheet_projet(self, project: Project) -> _Sheet:
-        """Feuille « projet » : la fiche d'identité du projet (une ligne).
+        """Feuille " projet " : la fiche d'identite du projet (une ligne).
 
         Args:
-            project: projet exporté.
+            project: projet exporte.
 
         Returns:
             La feuille ``projet``.
@@ -324,10 +324,10 @@ class ExportService:
         return ("projet", headers, [row])
 
     def _sheet_noeuds(self, nodes: list[SupplyNode]) -> _Sheet:
-        """Feuille « noeuds » : identité, tags et état d'urgence courant par nœud.
+        """Feuille " noeuds " : identite, tags et etat d'urgence courant par noeud.
 
         Args:
-            nodes: nœuds du projet (ordre registre : rang puis id).
+            nodes: noeuds du projet (ordre registre : rang puis id).
 
         Returns:
             La feuille ``noeuds``.
@@ -375,10 +375,10 @@ class ExportService:
         return ("noeuds", headers, rows)
 
     def _sheet_arcs(self, nodes: list[SupplyNode]) -> _Sheet:
-        """Feuille « arcs » : les arcs dont les DEUX extrémités sont dans le projet.
+        """Feuille " arcs " : les arcs dont les DEUX extremites sont dans le projet.
 
         Args:
-            nodes: nœuds du projet (résolution des noms).
+            nodes: noeuds du projet (resolution des noms).
 
         Returns:
             La feuille ``arcs``.
@@ -400,10 +400,10 @@ class ExportService:
         return ("arcs", headers, rows)
 
     def _sheet_jalons(self, nodes: list[SupplyNode]) -> _Sheet:
-        """Feuille « jalons » : tous les jalons des nœuds du projet.
+        """Feuille " jalons " : tous les jalons des noeuds du projet.
 
         Args:
-            nodes: nœuds du projet.
+            nodes: noeuds du projet.
 
         Returns:
             La feuille ``jalons``.
@@ -426,17 +426,17 @@ class ExportService:
         return ("jalons", headers, rows)
 
     def _sheets_clients(self, nodes: list[SupplyNode]) -> list[_Sheet]:
-        """Feuilles agrégées des bases CLIENT, une colonne « nœud » chacune.
+        """Feuilles agregees des bases CLIENT, une colonne " noeud " chacune.
 
-        Un seul passage sur les nœuds du projet alimente les sept feuilles :
+        Un seul passage sur les noeuds du projet alimente les sept feuilles :
         ``historique_urgences``, ``evaluations``, ``snapshots_kpi``,
         ``evenements``, ``decisions``, ``revues_hebdo`` et ``audit``.
 
         Args:
-            nodes: nœuds du projet.
+            nodes: noeuds du projet.
 
         Returns:
-            Les sept feuilles agrégées, dans l'ordre du classeur.
+            Les sept feuilles agregees, dans l'ordre du classeur.
         """
         kpi_columns = _kpi_columns()
         urgences: list[list[Any]] = []
@@ -506,15 +506,15 @@ class ExportService:
             ("audit", ["nœud", *_AUDIT_HEADERS], audits),
         ]
 
-    # --- Lignes par nœud (bases client) -----------------------------------------------
+    # Lignes par noeud (bases client)
 
     @staticmethod
     def _rows_urgences(client: ClientDatabase, node: SupplyNode) -> list[list[Any]]:
-        """Lignes ``urgency_history`` du nœud, chronologiques.
+        """Lignes ``urgency_history`` du noeud, chronologiques.
 
         Args:
-            client: base CLIENT du nœud.
-            node: nœud exporté.
+            client: base CLIENT du noeud.
+            node: noeud exporte.
 
         Returns:
             Les lignes de la feuille ``historique_urgences``.
@@ -537,11 +537,11 @@ class ExportService:
 
     @staticmethod
     def _rows_evaluations(client: ClientDatabase, node: SupplyNode) -> list[list[Any]]:
-        """Lignes ``assessments`` du nœud (avec l'id de l'évaluation correctrice).
+        """Lignes ``assessments`` du noeud (avec l'id de l'evaluation correctrice).
 
         Args:
-            client: base CLIENT du nœud.
-            node: nœud exporté.
+            client: base CLIENT du noeud.
+            node: noeud exporte.
 
         Returns:
             Les lignes de la feuille ``evaluations``.
@@ -566,11 +566,11 @@ class ExportService:
     def _rows_snapshots(
         client: ClientDatabase, node: SupplyNode, kpi_columns: list[str]
     ) -> list[list[Any]]:
-        """Lignes ``kpi_snapshots`` du nœud, KPIs aplatis en colonnes « bloc.champ ».
+        """Lignes ``kpi_snapshots`` du noeud, KPIs aplatis en colonnes " bloc.champ ".
 
         Args:
-            client: base CLIENT du nœud.
-            node: nœud exporté.
+            client: base CLIENT du noeud.
+            node: noeud exporte.
             kpi_columns: colonnes aplaties (cf. :func:`_kpi_columns`).
 
         Returns:
@@ -590,11 +590,11 @@ class ExportService:
 
     @staticmethod
     def _rows_evenements(client: ClientDatabase, node: SupplyNode) -> list[list[Any]]:
-        """Lignes ``events`` du nœud, paramètres et impacts résumés.
+        """Lignes ``events`` du noeud, parametres et impacts resumes.
 
         Args:
-            client: base CLIENT du nœud.
-            node: nœud exporté.
+            client: base CLIENT du noeud.
+            node: noeud exporte.
 
         Returns:
             Les lignes de la feuille ``evenements``.
@@ -620,11 +620,11 @@ class ExportService:
 
     @staticmethod
     def _rows_decisions(client: ClientDatabase, node: SupplyNode) -> list[list[Any]]:
-        """Lignes ``decisions`` du nœud, chronologiques, scores du snapshot dépliés.
+        """Lignes ``decisions`` du noeud, chronologiques, scores du snapshot deplies.
 
         Args:
-            client: base CLIENT du nœud.
-            node: nœud exporté.
+            client: base CLIENT du noeud.
+            node: noeud exporte.
 
         Returns:
             Les lignes de la feuille ``decisions``.
@@ -646,11 +646,11 @@ class ExportService:
 
     @staticmethod
     def _rows_revues(client: ClientDatabase, node: SupplyNode) -> list[list[Any]]:
-        """Lignes ``weekly_reviews`` du nœud, durée en minutes si la revue est bornée.
+        """Lignes ``weekly_reviews`` du noeud, duree en minutes si la revue est bornee.
 
         Args:
-            client: base CLIENT du nœud.
-            node: nœud exporté.
+            client: base CLIENT du noeud.
+            node: noeud exporte.
 
         Returns:
             Les lignes de la feuille ``revues_hebdo``.
@@ -677,24 +677,24 @@ class ExportService:
 
     @staticmethod
     def _rows_audit(client: ClientDatabase, node: SupplyNode) -> list[list[Any]]:
-        """Lignes ``audit_log`` de la base CLIENT du nœud, chronologiques.
+        """Lignes ``audit_log`` de la base CLIENT du noeud, chronologiques.
 
         Args:
-            client: base CLIENT du nœud.
-            node: nœud exporté.
+            client: base CLIENT du noeud.
+            node: noeud exporte.
 
         Returns:
-            Les lignes de la feuille ``audit`` (préfixées du nom du nœud).
+            Les lignes de la feuille ``audit`` (prefixees du nom du noeud).
         """
         with client.lock:
             rows = client.conn.execute(_SQL_AUDIT).fetchall()
         return [[node.name, *_audit_row(row)] for row in rows]
 
     def _sheet_audit_registre(self) -> _Sheet:
-        """Feuille « audit_registre » : le journal d'audit GLOBAL du registre.
+        """Feuille " audit_registre " : le journal d'audit GLOBAL du registre.
 
-        Le registre est partagé entre projets : son journal n'est pas filtré
-        (les entités auditées — nœuds, arcs, jalons — n'y portent pas toutes
+        Le registre est partage entre projets : son journal n'est pas filtre
+        (les entites auditees - noeuds, arcs, jalons - n'y portent pas toutes
         leur projet).
 
         Returns:
@@ -707,13 +707,13 @@ class ExportService:
 
 
 def _audit_row(row: Any) -> list[Any]:
-    """Ligne d'export d'une entrée ``audit_log`` (colonnes de :data:`_AUDIT_HEADERS`).
+    """Ligne d'export d'une entree ``audit_log`` (colonnes de :data:`_AUDIT_HEADERS`).
 
     Args:
         row: ligne SQLite de la table ``audit_log``.
 
     Returns:
-        Les valeurs dans l'ordre de :data:`_AUDIT_HEADERS`, date formatée.
+        Les valeurs dans l'ordre de :data:`_AUDIT_HEADERS`, date formatee.
     """
     return [
         row["entity_type"],

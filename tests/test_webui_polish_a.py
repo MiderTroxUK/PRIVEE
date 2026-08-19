@@ -1,27 +1,27 @@
-"""Tests du polissage E16 (Lots 16.2 + 16.3) — dashboard, hebdo, pondération.
+"""Tests du polissage E16 (Lots 16.2 + 16.3) - dashboard, hebdo, ponderation.
 
 Couvre, sans serveur :
 
-* la palette du DAG (Lot 16.2) : dropdown ``dash-palette-dd`` à 3 palettes,
-  persistance PAR PROJET via ``project_settings('palette')`` (écriture quand
-  le dropdown déclenche, relecture au rendu, défaut RdYlGn), colorscale
-  réellement transmise à ``dashboard_dag_figure`` et légende cohérente ;
+* la palette du DAG (Lot 16.2) : dropdown ``dash-palette-dd`` a 3 palettes,
+  persistance PAR PROJET via ``project_settings('palette')`` (ecriture quand
+  le dropdown declenche, relecture au rendu, defaut RdYlGn), colorscale
+  reellement transmise a ``dashboard_dag_figure`` et legende coherente ;
 * les ``dcc.Loading`` autour des zones lentes (DAG, tableau, figures
-  PROMETHEE/corrélation, corps des volets hebdo, aperçu des poids) — les ids
-  internes restent posés sur les composants enveloppés ;
-* les états vides explicites : bandeau d'invitation du dashboard sans
-  projet, bandeau « Sélectionnez un nœud pour démarrer la revue. » du hebdo ;
-* les indicateurs de progression (Lot 16.3) : compteur live « x/6 paires
-  ajustées » du volet 1 (fonction de comptage PURE) et « x/9 jugements
-  saisis » sous les dropdowns FBWM ;
-* l'anti double-clic : ``running=`` désactive les boutons de sauvegarde
+  PROMETHEE/correlation, corps des volets hebdo, apercu des poids) - les ids
+  internes restent poses sur les composants enveloppes ;
+* les etats vides explicites : bandeau d'invitation du dashboard sans
+  projet, bandeau " Selectionnez un noeud pour demarrer la revue. " du hebdo ;
+* les indicateurs de progression (Lot 16.3) : compteur live " x/6 paires
+  ajustees " du volet 1 (fonction de comptage PURE) et " x/9 jugements
+  saisis " sous les dropdowns FBWM ;
+* l'anti double-clic : ``running=`` desactive les boutons de sauvegarde
   pendant le traitement (specs ``_callback_list``) ;
-* le format français des nombres dans les TEXTES (virgule décimale) ;
-* AUCUNE régression d'id : les ids consommés par les parcours e2e
-  (tests/ui/test_e2e_parcours.py) sont toujours présents dans les layouts.
+* le format francais des nombres dans les TEXTES (virgule decimale) ;
+* AUCUNE regression d'id : les ids consommes par les parcours e2e
+  (tests/ui/test_e2e_parcours.py) sont toujours presents dans les layouts.
 
-Callbacks appelés directement (fonctions module), service seedé partagé via
-``set_service`` et libéré en teardown, FixedClock.
+Callbacks appeles directement (fonctions module), service seede partage via
+``set_service`` et libere en teardown, FixedClock.
 """
 
 from __future__ import annotations
@@ -42,7 +42,7 @@ from supplyscore.web_ui.components.figures import dashboard_dag_figure
 from supplyscore.web_ui.pages import dashboard, ponderation, weekly
 from supplyscore.web_ui.pages.questionnaire import PAIRS
 
-#: Mercredi 2026-06-10 12:00 locale — semaine ISO « 2026-S24 ».
+#: Mercredi 2026-06-10 12:00 locale - semaine ISO " 2026-S24 ".
 _NOW = datetime(2026, 6, 10, 12, 0).timestamp()
 
 _OPERATOR = {"name": "testeuse"}
@@ -50,7 +50,7 @@ _OPERATOR = {"name": "testeuse"}
 
 @pytest.fixture
 def seeded(tmp_path: Path):
-    """Couple (service seedé à horloge figée, projet de démo) partagé par les callbacks."""
+    """Couple (service seede a horloge figee, projet de demo) partage par les callbacks."""
     svc = SupplyScoreService(db_dir=tmp_path / "store", clock=FixedClock(_NOW))
     project = svc.seed_demo(n_ranks=2, seed=1)
     set_service(svc)
@@ -61,7 +61,7 @@ def seeded(tmp_path: Path):
 
 @pytest.fixture
 def service_vide(tmp_path: Path):
-    """Service SANS aucun nœud (état vide intégral), partagé par les callbacks."""
+    """Service SANS aucun noeud (etat vide integral), partage par les callbacks."""
     svc = SupplyScoreService(db_dir=tmp_path / "vide", clock=FixedClock(_NOW))
     set_service(svc)
     yield svc
@@ -70,21 +70,21 @@ def service_vide(tmp_path: Path):
 
 
 def _project_data(project) -> dict:
-    """Contenu du ``dcc.Store`` « store-project » tel que posé par la page Projets."""
+    """Contenu du ``dcc.Store`` " store-project " tel que pose par la page Projets."""
     return {"project_id": project.id, "name": project.name}
 
 
 def _premier_noeud(service) -> str:
-    """Premier nœud ACTIF (ordre déterministe) du projet de démo seedé."""
+    """Premier noeud ACTIF (ordre deterministe) du projet de demo seede."""
     nodes = sorted(service.repo.nodes(), key=lambda n: n.id)
     return next(n.id for n in nodes if n.status is TaskStatus.ACTIVE)
 
 
-# --- Helpers d'inspection d'arbres de composants Dash -------------------------------
+# Helpers d'inspection d'arbres de composants Dash
 
 
 def _walk(component):
-    """Itère récursivement sur un arbre de composants Dash (children imbriqués)."""
+    """Itere recursivement sur un arbre de composants Dash (children imbriques)."""
     yield component
     children = getattr(component, "children", None)
     if children is None:
@@ -97,17 +97,17 @@ def _walk(component):
 
 
 def _ids(component) -> set:
-    """Ensemble des ids chaîne présents dans l'arbre de composants."""
+    """Ensemble des ids chaine presents dans l'arbre de composants."""
     return {c.id for c in _walk(component) if isinstance(getattr(c, "id", None), str)}
 
 
 def _texts(component) -> str:
-    """Concatène tous les textes feuilles de l'arbre de composants."""
+    """Concatene tous les textes feuilles de l'arbre de composants."""
     return " ".join(c for c in _walk(component) if isinstance(c, str))
 
 
 def _ids_sous_loading(layout) -> set:
-    """Ids des composants enveloppés par un ``dcc.Loading`` du layout."""
+    """Ids des composants enveloppes par un ``dcc.Loading`` du layout."""
     couverts: set = set()
     for c in _walk(layout):
         if isinstance(c, dcc.Loading):
@@ -116,7 +116,7 @@ def _ids_sous_loading(layout) -> set:
 
 
 def _trace_noeuds(fig):
-    """Trace des nœuds du DAG (la seule à porter une échelle de couleur)."""
+    """Trace des noeuds du DAG (la seule a porter une echelle de couleur)."""
     return next(t for t in fig.data if getattr(t, "marker", None) and t.marker.showscale)
 
 
@@ -125,7 +125,7 @@ def _specs_running(app) -> dict[str, dict]:
     return {spec["output"]: spec["running"] for spec in app._callback_list if spec.get("running")}
 
 
-# --- Palette du DAG (Lot 16.2) ---------------------------------------------------------
+# Palette du DAG (Lot 16.2)
 
 
 class TestPalette:
@@ -148,9 +148,9 @@ class TestPalette:
         )
 
         assert service.registry.get_setting(project.id, "palette") == "RdYlBu"
-        # Le dropdown se resynchronise sur la valeur persistée du projet…
+        # Le dropdown se resynchronise sur la valeur persistee du projet...
         assert dashboard.palette_value_callback(_project_data(project)) == "RdYlBu"
-        # … et la figure rendue utilise bien la palette choisie.
+        # ... et la figure rendue utilise bien la palette choisie.
         nodes, arcs = service.repo.nodes(), service.repo.arcs()
         reference = dashboard_dag_figure(nodes, arcs, colorscale="RdYlBu")
         assert _trace_noeuds(fig).marker.colorscale == _trace_noeuds(reference).marker.colorscale
@@ -159,7 +159,7 @@ class TestPalette:
         service, project = seeded
         service.registry.set_setting(project.id, "palette", "Viridis")
 
-        # Rendu SANS déclencheur dropdown (navigation) : la valeur stockée fait foi.
+        # Rendu SANS declencheur dropdown (navigation) : la valeur stockee fait foi.
         _, fig, _, _ = dashboard.update_dashboard_callback(_project_data(project), None)
 
         nodes, arcs = service.repo.nodes(), service.repo.arcs()
@@ -194,7 +194,7 @@ class TestPalette:
             assert "adéquation A" in legende
 
 
-# --- dcc.Loading autour des zones lentes ------------------------------------------------
+# dcc.Loading autour des zones lentes
 
 
 class TestLoading:
@@ -215,7 +215,7 @@ class TestLoading:
         assert "pond-preview-badges" in couverts
 
 
-# --- États vides explicites --------------------------------------------------------------
+# Etats vides explicites
 
 
 class TestEtatsVides:
@@ -249,7 +249,7 @@ class TestEtatsVides:
         assert "Sélectionnez un nœud pour démarrer la revue." in rendu
 
 
-# --- Indicateurs de progression (Lot 16.3) ------------------------------------------------
+# Indicateurs de progression (Lot 16.3)
 
 
 class TestCompteurPaires:
@@ -293,7 +293,7 @@ class TestCompteurJugements:
             assert "0/9 jugements saisis" in _texts(rendu)
 
 
-# --- Anti double-clic (running=) -----------------------------------------------------------
+# Anti double-clic (running=)
 
 
 class TestAntiDoubleClic:
@@ -301,7 +301,7 @@ class TestAntiDoubleClic:
         app = dash.Dash(__name__, suppress_callback_exceptions=True)
         app.layout = ponderation.layout()
         ponderation.register_callbacks(app)
-        # Contrat existant intact : la page reste à 5 callbacks.
+        # Contrat existant intact : la page reste a 5 callbacks.
         assert len(app.callback_map) == 5
         runnings = _specs_running(app)
         assert any(
@@ -328,7 +328,7 @@ class TestAntiDoubleClic:
             assert f"{bouton}.disabled" in actifs, f"{bouton} sans anti double-clic"
 
 
-# --- Format français des nombres dans les textes -------------------------------------------
+# Format francais des nombres dans les textes
 
 
 class TestFormatFrancais:
@@ -341,9 +341,8 @@ class TestFormatFrancais:
         _service, project = seeded
         cards, _, rows, _ = dashboard.update_dashboard_callback(_project_data(project), None)
         texte = " ".join(_texts(card) for card in cards)
-        assert re.search(r"\d+,\d", texte), texte  # « A moyen du projet » en virgule
-        # CHOIX DOCUMENTÉ : la DataTable reste en NOTATION POINT (colonnes
-        # numériques — tri/filtre natifs sur des floats).
+        assert re.search(r"\d+,\d", texte), texte  # " A moyen du projet " en virgule
+        # CHOIX DOCUMENTE : la DataTable reste en NOTATION POINT (colonnes numeriques - tri/filtre natifs sur des floats).
         assert all(isinstance(r["Ud"], float) for r in rows)
 
     def test_message_hebdo_ud_en_virgule(self, seeded):
@@ -365,7 +364,7 @@ class TestFormatFrancais:
         assert "CR < 0,10" in texte
 
 
-# --- Aucune régression d'id (parcours e2e) --------------------------------------------------
+# Aucune regression d'id (parcours e2e)
 
 
 class TestIdsParcours:

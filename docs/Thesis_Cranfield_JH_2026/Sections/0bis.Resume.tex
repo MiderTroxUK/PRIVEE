@@ -14,19 +14,51 @@ p\'enalit\'e asym\'etrique issue de la th\'eorie des perspectives. Le syst\`eme 
 2020 \`a 2022 sur dix-neuf tours et huit n\oe{}uds, avec un bras t\'emoin en aveugle et un
 bras de traitement assist\'e par pr\'evision, sur un sc\'enario gel\'e.
 
-Les r\'esultats sont n\'egatifs et pr\'ecis sur le plan diagnostique. La couche de
-pr\'evision ne discrimine pas mieux que le hasard et se r\'ev\`ele fortement mal
-calibr\'ee, avec un \emph{skill} de Brier compris entre $-3{,}4$ et $-6{,}9$ face \`a un
-pr\'evisionniste annon\c{c}ant le taux de base. Les pr\'evisions inf\'erieures \`a $0{,}1$
-sont bien calibr\'ees, tandis que vingt-et-une annon\c{c}ant une probabilit\'e moyenne de
-$0{,}948$ n'ont \'et\'e suivies de l'issue pr\'edite exactement z\'ero fois. Un seul bloc
-l'explique~: le bloc temporel lit une distribution de d\'elai qu'aucun choc n'atteint
-jamais. Dans le bras de traitement, au tour o\`u la pr\'evision devient visible pour la
+Les r\'esultats s\'eparent deux affirmations qu'il serait facile de confondre. L'\'ecart
+porte bien de l'information sur le fournisseur qui va d\'efaillir~: sur les six tours
+pr\'ec\'edant l'irruption publique de la crise, les n\oe{}uds qu'il signale sont, sans une
+seule fausse alerte, des n\oe{}uds qui rateront un engagement de livraison, trois des quatre
+qui finiront par le faire, et le plus mal not\'e est signal\'e huit tours avant son \'echec
+alors que son propre responsable d\'eclare une urgence de $0{,}001$. Le signal s'affaiblit
+ensuite pour une raison structurelle et non par d\'efaut~: quand la crise devient visible,
+l'urgence d\'eclar\'ee converge vers l'urgence calcul\'ee et une mesure d\'efinie comme leur
+diff\'erence se referme par construction. L'instrument est donc born\'e \`a l'alerte
+pr\'ecoce, l\`a o\`u une alerte vaut le plus.
+
+Convertir ce signal en probabilit\'e calibr\'ee attach\'ee \`a une semaine nomm\'ee est une
+\'etape de plus, et elle a \'echou\'e au premier essai, de fa\c{c}on pr\'ecise et
+diagnosticable. La couche de pr\'evision ne discriminait pas mieux que le hasard sous la
+d\'efinition d'issue de production et se r\'ev\'elait fortement mal calibr\'ee, avec un
+\emph{skill} de Brier compris entre $-3{,}4$ et $-6{,}9$ face \`a un pr\'evisionniste
+annon\c{c}ant le taux de base. Les pr\'evisions inf\'erieures \`a $0{,}1$ \'etaient bien
+calibr\'ees, tandis que vingt-et-une annon\c{c}ant une probabilit\'e moyenne de $0{,}948$
+n'ont \'et\'e suivies de l'issue pr\'edite exactement z\'ero fois. Un seul bloc l'expliquait~:
+le bloc temporel lisait une distribution de d\'elai qu'aucun choc n'atteignait jamais. Dans le bras de traitement, au tour o\`u la pr\'evision devient visible pour la
 premi\`ere fois, les huit d\'eclarants ont tous revu leur urgence \`a la baisse ou l'ont
 maintenue, aucun ne l'a revue \`a la hausse, deux tours avant l'\'ev\'enement critique du
 sc\'enario. Les deux bras portent des pr\'evisions identiques~: l'effet tient donc \`a
-l'affichage. Substituer une d\'efinition d'issue plausible mais na\"ive multiplie par cinq
-le \emph{skill} apparent sans modifier la discrimination.
+l'affichage. La d\'efinition de l'issue d\'eplace la r\'eponse davantage qu'aucune d\'ecision
+de mod\'elisation prise ici~: une d\'efinition na\"ive multiplie par cinq le \emph{skill}
+apparent sans modifier la discrimination, et juger un jalon sur l'\'ech\'eance initialement
+engag\'ee plut\^ot que sur celle qu'il porte aujourd'hui fait passer l'aire sous la courbe
+ROC \`a quatre semaines de $0{,}485$ \`a $0{,}654$.
+
+Ce diagnostic a ensuite \'et\'e trait\'e et re-mesur\'e sur les m\^emes pr\'evisions
+gel\'ees. Le correctif \'evident, faire \'ecrire aux \'ev\'enements un impact sur le d\'elai
+d'approvisionnement, s'est r\'ev\'el\'e faux \`a la mesure~: le temps perdu doit s'ajouter
+\`a la date d'ach\`evement et non s'y multiplier, faute de quoi le choc s'att\'enue jusqu'\`a
+dispara\^itre sur les jalons les plus proches de leur \'ech\'eance. Apr\`es correction, le
+d\'eficit de Brier est divis\'e par deux \`a chaque horizon, de $-0{,}553$ \`a $-0{,}216$ \`a
+quatre semaines, et demeure n\'egatif. Une campagne en boucle ferm\'ee sur le syst\`eme
+r\'epar\'e, o\`u les m\^emes agents agissent sur la cha\^ine, tient cinq jalons sur onze \`a
+leur date initiale, exactement autant que la campagne gel\'ee~: elle change quel jalon est
+tenu, pas combien.
+
+Ce qui borne chacun de ces chiffres est l'\'echantillon et non la construction~: huit
+n\oe{}uds dont quatre positifs, onze jalons observables, un sc\'enario script\'e, et des
+d\'eclarants qui sont des mod\`eles de langage. L'instrument et sa m\'ethode de diagnostic se
+transposent \`a n'importe quelle cha\^ine~; les taux mesur\'es ici ne se transposent encore
+nulle part, et \'elargir cette base est le travail que ce m\'emoire transmet.
 
 \vspace{0.5cm}
 

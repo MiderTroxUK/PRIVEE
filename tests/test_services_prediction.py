@@ -1,16 +1,16 @@
-"""Tests de PredictionService + CLI predict (HÉLIOS v7, U11) — contrats 5 et 6 figés.
+"""Tests de PredictionService + CLI predict (HELIOS v7, U11) - contrats 5 et 6 figes.
 
-Couvre : le scoring numpy vérifiable à la main sur le fixture
-``artifact_v1.json`` (3 features, calibrateur identité, IC80 sur coef_boot
+Couvre : le scoring numpy verifiable a la main sur le fixture
+``artifact_v1.json`` (3 features, calibrateur identite, IC80 sur coef_boot
 artisanal) ; l'interpolation du calibrateur et l'imputation d'une feature
-manquante sur un artefact construit à la main ; les erreurs de validation de
-schéma ; le refus MIN_HISTORY_WEEKS et le mode features-only (import
-ForecastService monkeypatché absent) sur un projet construit comme
-``tests/test_calibration.py`` (chaîne à la main, historique hebdomadaire
-inséré directement) ; la variation multi-horizon quand un ForecastService
-factice est injecté ; le lazy-import gracieux d'ActionEngine (absent, présent,
-en échec) ; les cas limites (horizons vides/invalides, projet inconnu, aucun
-nœud actif) ; et le CLI en-process (tableau français, JSON, erreurs).
+manquante sur un artefact construit a la main ; les erreurs de validation de
+schema ; le refus MIN_HISTORY_WEEKS et le mode features-only (import
+ForecastService monkeypatche absent) sur un projet construit comme
+``tests/test_calibration.py`` (chaine a la main, historique hebdomadaire
+insere directement) ; la variation multi-horizon quand un ForecastService
+factice est injecte ; le lazy-import gracieux d'ActionEngine (absent, present,
+en echec) ; les cas limites (horizons vides/invalides, projet inconnu, aucun
+noeud actif) ; et le CLI en-process (tableau francais, JSON, erreurs).
 """
 
 from __future__ import annotations
@@ -49,7 +49,7 @@ from supplyscore.services.prediction import (
 )
 from supplyscore.tools.predict import build_parser, main
 
-#: Mercredi 2026-06-10 12:00 locale — semaine ISO « 2026-S24 ».
+#: Mercredi 2026-06-10 12:00 locale - semaine ISO " 2026-S24 ".
 _NOW = datetime(2026, 6, 10, 12, 0).timestamp()
 _WEEK = 604_800.0
 _PROJECT_ID = "proj-predict"
@@ -58,11 +58,11 @@ _FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
 
 def _sigmoid_ref(z: float) -> float:
-    """Sigmoïde de référence, indépendante de l'implémentation testée."""
+    """Sigmoide de reference, independante de l'implementation testee."""
     return 1.0 / (1.0 + math.exp(-z))
 
 
-# --- Fixtures partagées ---------------------------------------------------------------
+# Fixtures partagees
 
 
 @pytest.fixture
@@ -80,10 +80,10 @@ def service(tmp_path: Path) -> Iterator[SupplyScoreService]:
 def _inserer_semaines(
     service: SupplyScoreService, node_id: str, valeurs: list[tuple[float, float, float]]
 ) -> None:
-    """Insère un état hebdomadaire par valeur (ur_local, hidden_risk, ud_local).
+    """Insere un etat hebdomadaire par valeur (ur_local, hidden_risk, ud_local).
 
-    La DERNIÈRE valeur de la liste tombe dans la semaine ISO de ``_NOW`` ; les
-    précédentes reculent d'une semaine chacune (même motif que la fixture
+    La DERNIERE valeur de la liste tombe dans la semaine ISO de ``_NOW`` ; les
+    precedentes reculent d'une semaine chacune (meme motif que la fixture
     ``partie`` de ``tests/test_calibration.py``).
     """
     n = len(valeurs)
@@ -104,18 +104,18 @@ def _inserer_semaines(
 
 @pytest.fixture
 def projet_controle(service: SupplyScoreService) -> tuple[str, str, str, str]:
-    """Projet à la main (motif ``chaine`` de test_services_criticite.py) : B -> A, C isolé.
+    """Projet a la main (motif ``chaine`` de test_services_criticite.py) : B -> A, C isole.
 
-    - A (rang 0) : 4 semaines ISO d'historique, dernier état (ur_local=1.0,
-      hidden_risk=1.0) — avec le fixture artifact_v1.json (feature_names
+    - A (rang 0) : 4 semaines ISO d'historique, dernier etat (ur_local=1.0,
+      hidden_risk=1.0) - avec le fixture artifact_v1.json (feature_names
       ["ur_local", "hidden_risk", "rang"], rang de A = 0), le vecteur
-      standardisé exact est [1, 1, -1] : z = 3.0, p = sigmoid(3.0), IC80 =
-      (sigmoid(2.0), sigmoid(4.0)) — vérifiable à la main (cf. module
-      prediction.py et le test dédié).
-    - B (rang 1, fournisseur de A) : 2 semaines seulement — exclu par
+      standardise exact est [1, 1, -1] : z = 3.0, p = sigmoid(3.0), IC80 =
+      (sigmoid(2.0), sigmoid(4.0)) - verifiable a la main (cf. module
+      prediction.py et le test dedie).
+    - B (rang 1, fournisseur de A) : 2 semaines seulement - exclu par
       MIN_HISTORY_WEEKS.
-    - C (rang 0, isolé) : 4 semaines à valeurs CONSTANTES et basses — probabilité
-      nettement plus faible que A (vérifie le tri décroissant) et
+    - C (rang 0, isole) : 4 semaines a valeurs CONSTANTES et basses - probabilite
+      nettement plus faible que A (verifie le tri decroissant) et
       delta_vs_last_week == 0.0 exact.
     """
     node_a = SupplyNode(id="A", name="Nœud A", rank=0, project_id=_PROJECT_ID, kpis=KPIBundle())
@@ -143,11 +143,11 @@ def _bloquer_forecast_et_actions(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setitem(sys.modules, "supplyscore.services.action_engine", None)
 
 
-# --- Scoring numpy : hand-checkable sur le fixture -------------------------------------
+# Scoring numpy : hand-checkable sur le fixture
 
 
 class TestArtifactHandCheckable:
-    """Le fixture artifact_v1.json (3 features, calibrateur identité) à la main."""
+    """Le fixture artifact_v1.json (3 features, calibrateur identite) a la main."""
 
     def test_probabilite_et_ic80_calcules_a_la_main(self, artifact_path: Path) -> None:
         artifact = _charger_artifact(artifact_path)
@@ -164,8 +164,7 @@ class TestArtifactHandCheckable:
         assert p == pytest.approx(_sigmoid_ref(3.0), abs=1e-9)
         assert ic80 is not None
         lo, hi = ic80
-        # Les 5 lignes de coef_boot donnent z ∈ {3, 2, 4, 2, 4} : les 10e/90e
-        # percentiles retombent EXACTEMENT sur les valeurs dupliquées aux bornes.
+        # Les 5 lignes de coef_boot donnent z  dans  {3, 2, 4, 2, 4} : les 10e/90e percentiles retombent EXACTEMENT sur les valeurs dupliquees aux bornes.
         assert lo == pytest.approx(_sigmoid_ref(2.0), abs=1e-9)
         assert hi == pytest.approx(_sigmoid_ref(4.0), abs=1e-9)
 
@@ -197,11 +196,10 @@ class TestArtifactHandCheckable:
 
 
 class TestCalibrateur:
-    """Interpolation du calibrateur isotonique, isolée du reste du scoring."""
+    """Interpolation du calibrateur isotonique, isolee du reste du scoring."""
 
     def test_interpolation_lineaire_par_morceaux(self) -> None:
-        # coef nul + intercept = logit(0.25) : p_raw = 0.25 quel que soit x
-        # (feature absente -> imputée, valeur sans incidence puisque coef=0).
+        # coef nul + intercept = logit(0.25) : p_raw = 0.25 quel que soit x (feature absente -> imputee, valeur sans incidence puisque coef=0).
         artifact = _ModelArtifact(
             feature_names=("x",),
             scaler_mean=np.array([0.0]),
@@ -219,7 +217,7 @@ class TestCalibrateur:
         assert ic80 is None
 
 
-# --- Validation de schéma (contrat 5) ---------------------------------------------------
+# Validation de schema (contrat 5)
 
 
 class TestValidationArtefact:
@@ -297,7 +295,7 @@ class TestValidationArtefact:
             _charger_artifact(self._ecrire(tmp_path, coef_boot=[]))
 
 
-# --- MIN_HISTORY_WEEKS + mode features-only + tri ---------------------------------------
+# MIN_HISTORY_WEEKS + mode features-only + tri
 
 
 class TestPredictMinHistoryEtFeaturesOnly:
@@ -361,13 +359,12 @@ class TestPredictMinHistoryEtFeaturesOnly:
         point_a = next(p for p in points if p.node_id == node_a)
         point_c = next(p for p in points if p.node_id == node_c)
 
-        # coef = [1, 1, -1], x_std(A) = [1, 1, -1] : les 3 contributions valent 1.0
-        # (égalité) -> ordre d'origine conservé par le tri stable.
+        # coef = [1, 1, -1], x_std(A) = [1, 1, -1] : les 3 contributions valent 1.0 (egalite) -> ordre d'origine conserve par le tri stable.
         assert [nom for nom, _ in point_a.drivers] == ["ur_local", "hidden_risk", "rang"]
         assert all(valeur == pytest.approx(1.0) for _, valeur in point_a.drivers)
         assert point_a.delta_vs_last_week == pytest.approx(1.0 - 0.6)
 
-        # C : 4 semaines à valeurs constantes -> delta nul exact.
+        # C : 4 semaines a valeurs constantes -> delta nul exact.
         assert point_c.delta_vs_last_week == pytest.approx(0.0)
 
     def test_tri_par_probabilite_decroissante(
@@ -421,7 +418,7 @@ class TestPredictMinHistoryEtFeaturesOnly:
         assert "imputation" in avert.lower()
 
 
-# --- Rollout injecté : variation multi-horizon -------------------------------------------
+# Rollout injecte : variation multi-horizon
 
 
 @dataclass
@@ -441,7 +438,7 @@ class _FakeForecastResult:
 
 
 class TestRolloutPresent:
-    """ForecastService injecté (module factice) : p_rollout/spread varient par horizon."""
+    """ForecastService injecte (module factice) : p_rollout/spread varient par horizon."""
 
     def test_probabilite_varie_par_horizon_et_incertitudes_transmises(
         self,
@@ -482,10 +479,7 @@ class TestRolloutPresent:
         monkeypatch.setitem(sys.modules, "supplyscore.services.forecast", fake_module)
 
         pred = PredictionService(service, artifact_path)
-        # Bascule l'artefact sur un modèle "p_rollout only" pour isoler l'effet du
-        # rollout du reste des features (artifact_v1.json n'utilise pas p_rollout).
-        # Accès direct à l'attribut interne : bascule l'artefact chargé sans
-        # dépendre d'un second fichier fixture pour isoler l'effet du rollout.
+        # Bascule l'artefact sur un modele "p_rollout only" pour isoler l'effet du rollout du reste des features (artifact_v1.json n'utilise pas p_rollout). Acces direct a l'attribut interne : bascule l'artefact charge sans dependre d'un second fichier fixture pour isoler l'effet du rollout.
         pred._artifact = _ModelArtifact(
             feature_names=("p_rollout", "spread"),
             scaler_mean=np.array([0.0, 0.0]),
@@ -507,13 +501,12 @@ class TestRolloutPresent:
             assert point_a.incertitude_param is not None
             assert point_a.incertitude_param[h] == pytest.approx(math.sqrt(0.0004))
 
-        # p_jalon_rate/p_impact_client repris à l'horizon de référence (max = 3).
+        # p_jalon_rate/p_impact_client repris a l'horizon de reference (max = 3).
         assert point_a.p_jalon_rate == pytest.approx(0.05 * 3)
         assert point_a.p_impact_client == pytest.approx(0.02 * 3)
         assert not any("features-only" in a for a in pred.avertissements)
 
-        # C n'a pas de prévision dans le rollout factice (dict vide) -> imputé,
-        # mais reste un nœud éligible (historique suffisant) : pas d'exception.
+        # C n'a pas de prevision dans le rollout factice (dict vide) -> impute, mais reste un noeud eligible (historique suffisant) : pas d'exception.
         assert any(p.node_id == node_c for p in points)
 
     def test_rollout_qui_leve_degrade_en_features_only(
@@ -542,7 +535,7 @@ class TestRolloutPresent:
         assert any("features-only" in a and "échec du rollout" in a for a in pred.avertissements)
 
 
-# --- ActionEngine : lazy import gracieux --------------------------------------------------
+# ActionEngine : lazy import gracieux
 
 
 class TestActionEngineLazyImport:
@@ -643,7 +636,7 @@ class TestActionEngineLazyImport:
         assert point_a.recommandation is None
 
 
-# --- Cas limites et erreurs ---------------------------------------------------------------
+# Cas limites et erreurs
 
 
 class TestErreursEtCasLimites:
@@ -692,7 +685,7 @@ class TestErreursEtCasLimites:
         assert set(point_a.proba_by_horizon) == {1, 2}
 
 
-# --- CLI en-process -------------------------------------------------------------------------
+# CLI en-process
 
 
 class TestCliPredict:
@@ -770,10 +763,7 @@ class TestCliPredictAvecProjet:
         try:
             project = svc.seed_demo(n_ranks=1, seed=2)
             svc.set_clock_mode(project.id, "game")
-            # Un appel PAR semaine (n=3 en un seul appel ne produirait qu'un
-            # unique bond de 3 semaines, donc 2 semaines ISO distinctes au
-            # total) — même motif que la fixture ``partie`` de
-            # tests/test_calibration.py : 4 semaines d'historique au total.
+            # Un appel PAR semaine (n=3 en un seul appel ne produirait qu'un unique bond de 3 semaines, donc 2 semaines ISO distinctes au total) - meme motif que la fixture ``partie`` de tests/test_calibration.py : 4 semaines d'historique au total.
             for _ in range(3):
                 svc.advance_week(project.id)
         finally:

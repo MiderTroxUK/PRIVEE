@@ -1,17 +1,17 @@
-"""Page « Onboarding » : wizard 4 étapes pour intégrer un nouveau nœud (E5).
+"""Page " Onboarding " : wizard 4 etapes pour integrer un nouveau noeud (E5).
 
 La page s'appuie sur :class:`~supplyscore.services.onboarding.OnboardingService`
-(brouillon persisté EN BASE, table ``onboarding_progress``) et sur les
-form-builders partagés de :mod:`supplyscore.web_ui.components.forms_node`
-montés en contexte ``ctx="onb"``. Le ``dcc.Store(id="store-onb")`` ne porte
-QUE la position du wizard (``{"node_id", "step"}``) — JAMAIS le brouillon,
+(brouillon persiste EN BASE, table ``onboarding_progress``) et sur les
+form-builders partages de :mod:`supplyscore.web_ui.components.forms_node`
+montes en contexte ``ctx="onb"``. Le ``dcc.Store(id="store-onb")`` ne porte
+QUE la position du wizard (``{"node_id", "step"}``) - JAMAIS le brouillon,
 qui vit en base.
 
-Tous les callbacks sont des fonctions nommées au niveau module, enregistrées
-dans :func:`register_callbacks` — elles restent donc testables sans serveur.
-Piège Dash géré partout : les ``State`` pattern-matching des formulaires NON
-montés renvoient des listes vides (et les ids simples absents valent None) ;
-seuls les états de l'étape courante sont parsés.
+Tous les callbacks sont des fonctions nommees au niveau module, enregistrees
+dans :func:`register_callbacks` - elles restent donc testables sans serveur.
+Piege Dash gere partout : les ``State`` pattern-matching des formulaires NON
+montes renvoient des listes vides (et les ids simples absents valent None) ;
+seuls les etats de l'etape courante sont parses.
 """
 
 from __future__ import annotations
@@ -54,7 +54,7 @@ from supplyscore.web_ui.components.operator import current_operator
 from supplyscore.web_ui.pages.projects import label_metier_options
 from supplyscore.web_ui.pages.questionnaire import pair_label_callback, score_label_callback
 
-#: Titres français des 4 étapes, alignés sur :data:`SECTION_KEYS`.
+#: Titres francais des 4 etapes, alignes sur :data:`SECTION_KEYS`.
 STEP_TITLES: tuple[str, str, str, str] = (
     "Identité",
     "Cahier des charges",
@@ -85,16 +85,16 @@ _DRAFT_ROW_STYLE = {
 }
 
 
-# --- Aides internes -------------------------------------------------------------
+# Aides internes
 
 
 def _wizard() -> OnboardingService:
-    """Instancie le service d'onboarding au-dessus du service partagé."""
+    """Instancie le service d'onboarding au-dessus du service partage."""
     return OnboardingService(get_service())
 
 
 def _clamp_step(value) -> int:
-    """Étape bornée dans [1, 4] (valeur absente ou invalide -> 1)."""
+    """Etape bornee dans [1, 4] (valeur absente ou invalide -> 1)."""
     try:
         step = int(value)
     except (TypeError, ValueError):
@@ -103,7 +103,7 @@ def _clamp_step(value) -> int:
 
 
 def _ok(text: str) -> html.Span:
-    """Message de succès (vert)."""
+    """Message de succes (vert)."""
     return html.Span(text, style=MSG_OK_STYLE)
 
 
@@ -113,7 +113,7 @@ def _alert(text: str) -> html.Span:
 
 
 def _errors(errors: list[str]) -> html.Ul:
-    """Liste à puces des erreurs françaises retournées par le service."""
+    """Liste a puces des erreurs francaises retournees par le service."""
     return html.Ul(
         [html.Li(e) for e in errors],
         style={**MSG_ALERT_STYLE, "paddingLeft": "20px"},
@@ -121,8 +121,8 @@ def _errors(errors: list[str]) -> html.Ul:
 
 
 def _triggered_index() -> str | None:
-    """Index pattern-matching du déclencheur, ou None hors requête Dash."""
-    try:  # ctx indisponible hors requête Dash (appel direct en test)
+    """Index pattern-matching du declencheur, ou None hors requete Dash."""
+    try:  # ctx indisponible hors requete Dash (appel direct en test)
         from dash import ctx
 
         triggered = ctx.triggered_id
@@ -134,9 +134,9 @@ def _triggered_index() -> str | None:
 
 
 def _clicked_index(n_clicks_list, ids) -> str | None:
-    """Index du bouton pattern-matching cliqué.
+    """Index du bouton pattern-matching clique.
 
-    Utilise ``ctx.triggered_id`` quand le contexte de requête existe ; en
+    Utilise ``ctx.triggered_id`` quand le contexte de requete existe ; en
     appel direct (tests), retombe sur le dernier bouton dont ``n_clicks``
     est truthy.
     """
@@ -152,10 +152,10 @@ def _clicked_index(n_clicks_list, ids) -> str | None:
 
 
 def _stepper(step: int, sections_done: dict[str, int]) -> html.Div:
-    """Bandeau des 4 étapes : ✓ sur les sections validées, étape courante en avant.
+    """Bandeau des 4 etapes : [ok] sur les sections validees, etape courante en avant.
 
-    Les étapes DÉJÀ validées sont cliquables (retour en arrière via
-    ``goto_step_callback``) ; les autres restent désactivées.
+    Les etapes DEJA validees sont cliquables (retour en arriere via
+    ``goto_step_callback``) ; les autres restent desactivees.
     """
     items: list = []
     for pos, (key, title) in enumerate(zip(SECTION_KEYS, STEP_TITLES, strict=True), start=1):
@@ -192,12 +192,12 @@ def _stepper(step: int, sections_done: dict[str, int]) -> html.Div:
 
 
 def _step_form(service, node, state, step: int) -> html.Div:
-    """Formulaire ``ctx="onb"`` de l'étape, pré-rempli depuis brouillon/base.
+    """Formulaire ``ctx="onb"`` de l'etape, pre-rempli depuis brouillon/base.
 
-    Étape 1 : draft « identity » s'il existe, SINON l'état réel du nœud
-    (tags portés, arcs sortants). Étape 2 : dernière version du cahier des
-    charges (``latest_spec_sheet`` désérialisé) + jalons du registre.
-    Étape 3 : KPIs courants du nœud. Étape 4 : questionnaire AHP vierge.
+    Etape 1 : draft " identity " s'il existe, SINON l'etat reel du noeud
+    (tags portes, arcs sortants). Etape 2 : derniere version du cahier des
+    charges (``latest_spec_sheet`` deserialise) + jalons du registre.
+    Etape 3 : KPIs courants du noeud. Etape 4 : questionnaire AHP vierge.
     """
     registry = service.registry
     project_id = node.project_id or ""
@@ -278,10 +278,10 @@ def _section_payload(
 ) -> dict:
     """Payload de section depuis les States des 4 formulaires (ordre _FORM_STATES).
 
-    Seuls les états de l'étape ``step`` sont parsés : les formulaires non
-    montés renvoient des listes vides (pattern-matching) ou None (ids
-    simples) et sont ignorés. Les payloads suivent les contrats de
-    ``OnboardingService.save_section`` — notamment ``tag_names`` (section 1)
+    Seuls les etats de l'etape ``step`` sont parses : les formulaires non
+    montes renvoient des listes vides (pattern-matching) ou None (ids
+    simples) et sont ignores. Les payloads suivent les contrats de
+    ``OnboardingService.save_section`` - notamment ``tag_names`` (section 1)
     et l'enveloppe ``{"cdc": ..., "milestones": ...}`` (section 2).
     """
     if step == 1:
@@ -297,7 +297,7 @@ def _section_payload(
                 "arckind": ident_arckind,
             }
         )
-        payload["tag_names"] = payload.pop("tags")  # contrat du service (tags créés par nom)
+        payload["tag_names"] = payload.pop("tags")  # contrat du service (tags crees par nom)
         return payload
     if step == 2:
         parsed = parse_cdc(
@@ -334,11 +334,11 @@ def _section_payload(
     )
 
 
-# --- Layout -----------------------------------------------------------------------
+# Layout
 
 
 def layout() -> html.Div:
-    """Construit la page Onboarding (wizard 4 étapes, brouillons en base)."""
+    """Construit la page Onboarding (wizard 4 etapes, brouillons en base)."""
     return html.Div(
         [
             dcc.Store(id="store-refresh", data=0),
@@ -387,9 +387,7 @@ def layout() -> html.Div:
             card(
                 "Assistant en 4 étapes",
                 [
-                    # E16.4 — dcc.Loading autour du contenu d'étape (re-rendu
-                    # serveur à chaque navigation du wizard) : l'id reste sur
-                    # le html.Div interne.
+                    # E16.4 - dcc.Loading autour du contenu d'etape (re-rendu serveur a chaque navigation du wizard) : l'id reste sur le html.Div interne.
                     dcc.Loading(type="circle", children=html.Div(id="onb-step-content")),
                     html.Div(
                         [
@@ -423,11 +421,11 @@ def layout() -> html.Div:
     )
 
 
-# --- Callbacks (fonctions nommées, testables sans serveur) --------------------------
+# Callbacks (fonctions nommees, testables sans serveur)
 
 
 def start_onboarding_callback(n_clicks, project_data, name, label, store):
-    """Crée IMMÉDIATEMENT le nœud en brouillon et pointe le wizard dessus."""
+    """Cree IMMEDIATEMENT le noeud en brouillon et pointe le wizard dessus."""
     if not n_clicks:
         raise PreventUpdate
     project_id = (project_data or {}).get("project_id")
@@ -442,7 +440,7 @@ def start_onboarding_callback(n_clicks, project_data, name, label, store):
 
 
 def resume_callback(n_clicks_list, ids, store):
-    """Recharge un brouillon depuis la base et restaure son étape courante."""
+    """Recharge un brouillon depuis la base et restaure son etape courante."""
     if not any(n for n in (n_clicks_list or [])):
         raise PreventUpdate
     index = _clicked_index(n_clicks_list, ids)
@@ -456,7 +454,7 @@ def resume_callback(n_clicks_list, ids, store):
 
 
 def goto_step_callback(n_clicks_list, ids, store):
-    """Retourne à une section DÉJÀ validée via le bandeau d'étapes."""
+    """Retourne a une section DEJA validee via le bandeau d'etapes."""
     if not any(n for n in (n_clicks_list or [])):
         raise PreventUpdate
     data = dict(store or {})
@@ -470,12 +468,12 @@ def goto_step_callback(n_clicks_list, ids, store):
     except KeyError as exc:
         raise PreventUpdate from exc
     if not state.sections_done.get(SECTION_KEYS[step - 1]):
-        raise PreventUpdate  # on ne revient que sur une section déjà validée
+        raise PreventUpdate  # on ne revient que sur une section deja validee
     return {**data, "step": step}
 
 
 def render_drafts_callback(project_data, refresh, store):
-    """Liste les brouillons du projet actif avec badge x/4 et bouton « Reprendre »."""
+    """Liste les brouillons du projet actif avec badge x/4 et bouton " Reprendre "."""
     pid = (project_data or {}).get("project_id")
     if not pid:
         return html.P("Sélectionnez d'abord un projet actif (page Projets).", style=_MUTED_STYLE)
@@ -508,7 +506,7 @@ def render_drafts_callback(project_data, refresh, store):
 
 
 def render_step_callback(store, refresh):
-    """Rend le bandeau d'étapes + le formulaire de l'étape courante (côté serveur)."""
+    """Rend le bandeau d'etapes + le formulaire de l'etape courante (cote serveur)."""
     data = store or {}
     node_id = data.get("node_id")
     if not node_id:
@@ -542,11 +540,11 @@ def render_step_callback(store, refresh):
 
 
 def save_section_callback(n_clicks, store, operator_data, *form_values):
-    """Valide et écrit la section courante, puis avance (ou termine après l'étape 4).
+    """Valide et ecrit la section courante, puis avance (ou termine apres l'etape 4).
 
-    Erreurs de validation : liste française dans ``onb-msg``, on RESTE sur
-    l'étape (store inchangé). Après l'étape 4 : ``complete()`` bascule le
-    nœud en ``complete`` et le store est remis à zéro.
+    Erreurs de validation : liste francaise dans ``onb-msg``, on RESTE sur
+    l'etape (store inchange). Apres l'etape 4 : ``complete()`` bascule le
+    noeud en ``complete`` et le store est remis a zero.
     """
     if not n_clicks:
         raise PreventUpdate
@@ -584,7 +582,7 @@ def save_section_callback(n_clicks, store, operator_data, *form_values):
 
 
 def save_draft_callback(n_clicks, store, *form_values):
-    """Sérialise l'étape courante en brouillon SANS valider (« quitter »)."""
+    """Serialise l'etape courante en brouillon SANS valider (" quitter ")."""
     if not n_clicks:
         raise PreventUpdate
     data = store or {}
@@ -604,7 +602,7 @@ def save_draft_callback(n_clicks, store, *form_values):
 
 
 def prev_step_callback(n_clicks, store):
-    """Recule d'une étape (minimum 1), sans aucune sauvegarde."""
+    """Recule d'une etape (minimum 1), sans aucune sauvegarde."""
     if not n_clicks:
         raise PreventUpdate
     data = dict(store or {})
@@ -613,7 +611,7 @@ def prev_step_callback(n_clicks, store):
 
 
 def add_deliverable_callback(n_clicks, children):
-    """Ajoute une ligne « livrable » vierge au cahier des charges."""
+    """Ajoute une ligne " livrable " vierge au cahier des charges."""
     if not n_clicks:
         raise PreventUpdate
     rows = list(children or [])
@@ -622,7 +620,7 @@ def add_deliverable_callback(n_clicks, children):
 
 
 def add_milestone_callback(n_clicks, children):
-    """Ajoute une ligne « jalon » vierge au cahier des charges."""
+    """Ajoute une ligne " jalon " vierge au cahier des charges."""
     if not n_clicks:
         raise PreventUpdate
     rows = list(children or [])
@@ -630,8 +628,7 @@ def add_milestone_callback(n_clicks, children):
     return rows
 
 
-#: States partagés par « Enregistrer et continuer » et « Enregistrer le brouillon » :
-#: TOUS les champs des 4 formulaires ctx="onb" (les non montés valent None / []).
+#: States partages par " Enregistrer et continuer " et " Enregistrer le brouillon " : TOUS les champs des 4 formulaires ctx="onb" (les non montes valent None / []).
 _FORM_STATES: tuple = (
     State("onb-ident-name", "value"),
     State("onb-ident-label", "value"),
@@ -745,7 +742,7 @@ def register_callbacks(app) -> None:
         prevent_initial_call=True,
     )(add_milestone_callback)
 
-    # Libellés live du questionnaire AHP, réutilisés en contexte « onb ».
+    # Libelles live du questionnaire AHP, reutilises en contexte " onb ".
     app.callback(
         Output({"type": "onb-ahp-pair-label", "index": MATCH}, "children"),
         Input({"type": "onb-ahp-pair", "index": MATCH}, "value"),

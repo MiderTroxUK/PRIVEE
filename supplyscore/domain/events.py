@@ -1,36 +1,43 @@
-"""Typologie des événements supply chain à impact calibré (phase E2, Lot 2.2).
+"""Typologie des evenements supply chain a impact calibre (phase E2, Lot 2.2).
 
-Chaque type d'événement déclaré dans :data:`EVENT_CALIBRATION` décrit :
+Chaque type d'evenement declare dans :data:`EVENT_CALIBRATION` decrit :
 
 - ses champs de saisie (:class:`EventField`, pilotera l'UI plus tard) ;
 - ses impacts sur les KPIs d'un :class:`~supplyscore.domain.models.KPIBundle`,
-  calculés par :func:`compute_impacts` sous forme de :class:`KpiImpact` auditables.
+  calcules par :func:`compute_impacts` sous forme de :class:`KpiImpact` auditables.
 
-Trois opérateurs de calibration sont utilisés :
+Trois operateurs de calibration sont utilises :
 
-- **BAYES** (:func:`bayes_update`) : révision Beta-Bernoulli de la probabilité de
-  défaillance — « cet événement équivaut à observer k défaillances sur n essais » ;
+- **BAYES** (:func:`bayes_update`) : revision Beta-Bernoulli de la probabilite de
+  defaillance - " cet evenement equivaut a observer k defaillances sur n essais " ;
 - **EMA** (:func:`ema_update`) : lissage exponentiel d'une observation continue ;
-- **DIRECT** : la valeur observée remplace l'ancienne (faits signés, ex. nouveau tarif).
+- **DIRECT** : la valeur observee remplace l'ancienne (faits signes, ex. nouveau tarif).
 
-Certains impacts en « cliquet » (max de l'ancien et du nouveau niveau) modélisent
-des expositions qui ne redescendent pas spontanément (risque politique, sévérité).
+Certains impacts en " cliquet " (max de l'ancien et du nouveau niveau) modelisent
+des expositions qui ne redescendent pas spontanement (risque politique, severite).
 
-**Chaîne causale vers le bloc temporel.** Tout choc qui immobilise la production
-route sa durée d'arrêt EFFECTIVE vers ``time.lead_time_h`` via
-:func:`_arret_impact` — panne, grève, rupture matière, accident, cyber-incident,
-en plus des retards fournisseur et transport qui l'atteignaient déjà. C'est la
-seule grandeur du bloc ``time`` qu'un événement peut déplacer, et donc le seul
-chemin par lequel un choc peut atteindre P(jalon raté).
+**Chaine causale vers le risque de jalon.** L'achevement d'un jalon est modelise
+par les trois estimateurs de P(jalon rate) comme
+``t + (1 - avancement)-time.lead_time_h + time.delay_h``. Deux familles
+de chocs l'alimentent, et il ne faut pas les confondre :
 
-Module PUR : aucune IO, aucune écriture — les impacts sont calculés et retournés,
-jamais appliqués. Chaque valeur ``new`` est bornée par
+- **allongement du CYCLE** (``time.lead_time_h``, proportionnel a ce qu'il reste
+  a faire) : retard fournisseur, perturbation transport - le processus est
+  durablement plus lent ;
+- **temps de production PERDU** (``time.delay_h``, additif et cumulatif, cf.
+  :func:`_arret_impact`) : panne, greve, rupture matiere, accident,
+  cyber-incident - quatre semaines d'arret coutent quatre semaines, qu'on soit
+  a 10 % ou a 90 % du jalon.
+
+Module PUR : aucune IO, aucune ecriture - les impacts sont calcules et retournes,
+jamais appliques. Chaque valeur ``new`` est bornee par
 :func:`supplyscore.domain.constraints.clamp_kpi_value`.
 """
 
 from __future__ import annotations
 
 import math
+import os
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from typing import cast
@@ -38,46 +45,77 @@ from typing import cast
 from supplyscore.domain.constraints import clamp_kpi_value
 from supplyscore.domain.models import KPIBundle
 
-# --- Opérateurs de calibration ------------------------------------------------------
+# Operateurs de calibration
 
-#: Poids du prior en pseudo-observations : ~6 mois d'observations hebdomadaires.
-#: Un événement isolé déplace donc la probabilité sans l'écraser (mémoire courte
-#: mais pas amnésique), et la décroissance hebdomadaire reste douce.
+#: Poids du prior en pseudo-observations : ~6 mois d'observations hebdomadaires. Un evenement isole deplace donc la probabilite sans l'ecraser (memoire courte mais pas amnesique), et la decroissance hebdomadaire reste douce.
 N0_PSEUDO_OBSERVATIONS: float = 26.0
 
-#: Prior par défaut de ``risk.failure_probability`` quand le KPI n'est pas renseigné :
-#: ordre de grandeur d'une défaillance toutes les ~50 semaines, point de départ
-#: prudent et documenté pour la révision bayésienne.
+#: Prior par defaut de ``risk.failure_probability`` quand le KPI n'est pas renseigne : ordre de grandeur d'une defaillance toutes les ~50 semaines, point de depart prudent et documente pour la revision bayesienne.
 DEFAULT_FAILURE_PRIOR: float = 0.02
 
-#: Bornes de :func:`bayes_update` — jamais 0 ni 1 : une probabilité certaine
-#: rendrait toute révision future impossible (verrou bayésien).
+#: Bornes de :func:`bayes_update` - jamais 0 ni 1 : une probabilite certaine rendrait toute revision future impossible (verrou bayesien).
 _BAYES_MIN: float = 1e-4
 _BAYES_MAX: float = 0.99
 
-#: Heures dans une semaine — normalise les durées d'arrêt en perte de
-#: disponibilité hebdomadaire (168 h d'arrêt = semaine entièrement perdue).
+#: Heures dans une semaine - normalise les durees d'arret en perte de disponibilite hebdomadaire (168 h d'arret = semaine entierement perdue).
 WEEK_HOURS: float = 168.0
 
 
-def bayes_update(p: float, k: float, n: float, n0: float = N0_PSEUDO_OBSERVATIONS) -> float:
-    """Révision Beta-Bernoulli d'une probabilité de défaillance.
+def _env_float(nom: str, defaut: float, mini: float, maxi: float) -> float:
+    """Lit un parametre de calibration depuis l'environnement, borne.
 
-    Formule : ``(p·n0 + k) / (n0 + n)``, bornée dans [1e-4, 0.99].
+    Les deux constantes de la chaine " choc -> risque de jalon " n'ont pas de
+    valeur derivable a priori : elles se calibrent en rejouant une campagne
+    dont la verite terrain est connue. Le harnais d'experience lance des
+    SOUS-PROCESSUS, donc un simple monkeypatch ne franchirait pas la frontiere
+    de processus - l'environnement est le canal qui la franchit.
 
-    Sémantique auditable : « cet événement équivaut à observer k défaillances
-    sur n essais », le prior pesant ``n0`` pseudo-observations (~6 mois
-    d'observations hebdomadaires). Si ``k/n == p``, la probabilité est un point
-    fixe : l'événement confirme le prior sans le déplacer.
+    Hors balayage de calibration, aucune variable n'est posee et les valeurs
+    par defaut s'appliquent : le comportement nominal est celui du code.
 
     Args:
-        p: probabilité a priori (typiquement ``risk.failure_probability``).
-        k: nombre (éventuellement fractionnaire) de défaillances équivalentes.
-        n: nombre d'essais équivalents.
+        nom: nom de la variable d'environnement.
+        defaut: valeur retenue si la variable est absente ou illisible.
+        mini: borne inferieure inclusive.
+        maxi: borne superieure inclusive.
+
+    Returns:
+        La valeur lue et bornee, ou ``defaut``.
+    """
+    brut = os.environ.get(nom)
+    if brut is None:
+        return defaut
+    try:
+        return min(max(float(brut), mini), maxi)
+    except ValueError:
+        return defaut
+
+
+#: Part du retard accumule (``time.delay_h``) rattrapee chaque semaine sans incident. 0.0 domine le balayage HELIOS contre 0.15 / 0.35 / 0.6 : skill -0,420 contre -0,448 et -0,490, cout diagnostique 2,00 contre 2,63 et 3,00. Reserve : le KPI ne revient alors jamais a zero. Env SUPPLYSCORE_RATTRAPAGE_HEBDO.
+RATTRAPAGE_HEBDO: float = _env_float("SUPPLYSCORE_RATTRAPAGE_HEBDO", 0.0, 0.0, 1.0)
+
+#: Part d'une duree d'arret inscrite au retard accumule (``time.delay_h``). 1.0 domine le balayage HELIOS a KPI complets : skill de Brier moyen -0,420 contre -0,489 a 0,4, AUC 0,710 contre 0,707. N'a d'effet que depuis que le retard s'accumule dans ``time.delay_h``. Env SUPPLYSCORE_LAMBDA_ARRET.
+LAMBDA_ARRET: float = _env_float("SUPPLYSCORE_LAMBDA_ARRET", 1.0, 0.0, 1.0)
+
+
+def bayes_update(p: float, k: float, n: float, n0: float = N0_PSEUDO_OBSERVATIONS) -> float:
+    """Revision Beta-Bernoulli d'une probabilite de defaillance.
+
+    Formule : ``(p-n0 + k) / (n0 + n)``, bornee dans [1e-4, 0.99].
+
+    Semantique auditable : " cet evenement equivaut a observer k defaillances
+    sur n essais ", le prior pesant ``n0`` pseudo-observations (~6 mois
+    d'observations hebdomadaires). Si ``k/n == p``, la probabilite est un point
+    fixe : l'evenement confirme le prior sans le deplacer.
+
+    Args:
+        p: probabilite a priori (typiquement ``risk.failure_probability``).
+        k: nombre (eventuellement fractionnaire) de defaillances equivalentes.
+        n: nombre d'essais equivalents.
         n0: poids du prior en pseudo-observations.
 
     Returns:
-        La probabilité révisée, bornée dans [1e-4, 0.99].
+        La probabilite revisee, bornee dans [1e-4, 0.99].
     """
     posterior = (p * n0 + k) / (n0 + n)
     return min(max(posterior, _BAYES_MIN), _BAYES_MAX)
@@ -86,37 +124,37 @@ def bayes_update(p: float, k: float, n: float, n0: float = N0_PSEUDO_OBSERVATION
 def ema_update(old: float | None, obs: float, lam: float) -> float:
     """Lissage exponentiel (EMA) d'une observation continue.
 
-    Formule : ``(1−lam)·old + lam·obs`` ; si ``old`` est None, l'observation
-    initialise directement la valeur. ``lam`` règle la réactivité : 0.3–0.5
-    selon que le KPI doit réagir lentement ou vite aux événements.
+    Formule : ``(1-lam)-old + lam-obs`` ; si ``old`` est None, l'observation
+    initialise directement la valeur. ``lam`` regle la reactivite : 0.3-0.5
+    selon que le KPI doit reagir lentement ou vite aux evenements.
 
     Args:
-        old: ancienne valeur du KPI (None si jamais renseignée).
-        obs: observation apportée par l'événement.
+        old: ancienne valeur du KPI (None si jamais renseignee).
+        obs: observation apportee par l'evenement.
         lam: poids de l'observation, dans [0, 1].
 
     Returns:
-        La valeur lissée.
+        La valeur lissee.
     """
     if old is None:
         return obs
     return (1.0 - lam) * old + lam * obs
 
 
-# --- Structure déclarative ----------------------------------------------------------
+# Structure declarative
 
 
 @dataclass(frozen=True)
 class EventField:
-    """Champ de saisie d'un événement (pilotera l'UI plus tard).
+    """Champ de saisie d'un evenement (pilotera l'UI plus tard).
 
     Attributes:
-        name: identifiant du paramètre (clé attendue dans ``params``).
-        label_fr: libellé d'affichage en français.
-        kind: nature du champ — ``"number"``, ``"ratio"`` ou ``"choice"``.
-        minimum: borne inférieure inclusive (None = pas de borne).
-        maximum: borne supérieure inclusive (None = pas de borne).
-        unit: unité d'affichage (chaîne vide si sans unité).
+        name: identifiant du parametre (cle attendue dans ``params``).
+        label_fr: libelle d'affichage en francais.
+        kind: nature du champ - ``"number"``, ``"ratio"`` ou ``"choice"``.
+        minimum: borne inferieure inclusive (None = pas de borne).
+        maximum: borne superieure inclusive (None = pas de borne).
+        unit: unite d'affichage (chaine vide si sans unite).
         choices: valeurs admises pour un champ ``"choice"``.
     """
 
@@ -131,12 +169,12 @@ class EventField:
 
 @dataclass(frozen=True)
 class EventSpec:
-    """Spécification déclarative d'un type d'événement supply chain.
+    """Specification declarative d'un type d'evenement supply chain.
 
     Attributes:
-        event_type: identifiant du type (clé de :data:`EVENT_CALIBRATION`).
-        label_fr: libellé court en français.
-        description_fr: description de l'événement et de sa calibration.
+        event_type: identifiant du type (cle de :data:`EVENT_CALIBRATION`).
+        label_fr: libelle court en francais.
+        description_fr: description de l'evenement et de sa calibration.
         fields: champs de saisie attendus.
     """
 
@@ -148,14 +186,14 @@ class EventSpec:
 
 @dataclass(frozen=True)
 class KpiImpact:
-    """Impact calibré d'un événement sur un KPI (calculé, jamais appliqué ici).
+    """Impact calibre d'un evenement sur un KPI (calcule, jamais applique ici).
 
     Attributes:
-        kpi_path: chemin qualifié du KPI, ex. ``"risk.failure_probability"``.
-        old: ancienne valeur du KPI (None si jamais renseignée).
-        new: nouvelle valeur, déjà bornée par ``clamp_kpi_value``.
-        rule: description française de la règle appliquée, avec les
-            paramètres effectifs — ex. ``"BAYES(p=0.02, k=1, n=1) : ..."``.
+        kpi_path: chemin qualifie du KPI, ex. ``"risk.failure_probability"``.
+        old: ancienne valeur du KPI (None si jamais renseignee).
+        new: nouvelle valeur, deja bornee par ``clamp_kpi_value``.
+        rule: description francaise de la regle appliquee, avec les
+            parametres effectifs - ex. ``"BAYES(p=0.02, k=1, n=1) : ..."``.
     """
 
     kpi_path: str
@@ -164,38 +202,34 @@ class KpiImpact:
     rule: str
 
 
-# --- Paramètres de gravité ----------------------------------------------------------
+# Parametres de gravite
 
-#: Équivalence bayésienne (k, n) d'une panne ou d'un accident selon la gravité :
-#: mineure = « une demi-défaillance », majeure = une défaillance franche,
-#: critique = deux défaillances sur deux essais (signal fort, prior plus dilué).
+#: Equivalence bayesienne (k, n) d'une panne ou d'un accident selon la gravite : mineure = " une demi-defaillance ", majeure = une defaillance franche, critique = deux defaillances sur deux essais (signal fort, prior plus dilue).
 _GRAVITE_PANNE_BAYES: dict[str, tuple[float, float]] = {
     "mineure": (0.5, 1.0),
     "majeure": (1.0, 1.0),
     "critique": (2.0, 2.0),
 }
 
-#: Équivalence bayésienne (k, n) d'une alerte financière fournisseur :
-#: un défaut avéré pèse trois défaillances sur trois essais.
+#: Equivalence bayesienne (k, n) d'une alerte financiere fournisseur : un defaut avere pese trois defaillances sur trois essais.
 _GRAVITE_FINANCE_BAYES: dict[str, tuple[float, float]] = {
     "surveillee": (0.5, 1.0),
     "procedure": (1.0, 1.0),
     "defaut": (3.0, 3.0),
 }
 
-#: Sévérité forfaitaire (cliquet sur ``risk.severity``) d'un accident.
+#: Severite forfaitaire (cliquet sur ``risk.severity``) d'un accident.
 _GRAVITE_ACCIDENT_SEVERITE: dict[str, float] = {"mineure": 0.4, "majeure": 0.7, "critique": 1.0}
 
-#: Sévérité forfaitaire (cliquet sur ``risk.severity``) d'une alerte financière.
+#: Severite forfaitaire (cliquet sur ``risk.severity``) d'une alerte financiere.
 _GRAVITE_FINANCE_SEVERITE: dict[str, float] = {"surveillee": 0.3, "procedure": 0.6, "defaut": 0.9}
 
-#: Champs numériques strictement positifs (la borne ``minimum=0`` est exclusive :
-#: une durée ou une demande nulle n'est pas un événement).
+#: Champs numeriques strictement positifs (la borne ``minimum=0`` est exclusive : une duree ou une demande nulle n'est pas un evenement).
 _STRICTLY_POSITIVE_FIELDS: frozenset[str] = frozenset(
     {"duree_arret_h", "retard_h", "duree_prevue_h", "nouvelle_demande"}
 )
 
-# --- Champs réutilisés --------------------------------------------------------------
+# Champs reutilises
 
 _FIELD_DUREE_ARRET = EventField(
     name="duree_arret_h",
@@ -212,7 +246,7 @@ _FIELD_GRAVITE_PANNE = EventField(
 )
 
 
-#: Typologie calibrée des 14 types d'événements supply chain.
+#: Typologie calibree des 14 types d'evenements supply chain.
 EVENT_CALIBRATION: dict[str, EventSpec] = {
     "panne_machine": EventSpec(
         event_type="panne_machine",
@@ -439,14 +473,14 @@ EVENT_CALIBRATION: dict[str, EventSpec] = {
 }
 
 
-# --- Aides internes -----------------------------------------------------------------
+# Aides internes
 
-#: Paramètres validés : nombres convertis en float, choix en str.
+#: Parametres valides : nombres convertis en float, choix en str.
 _Params = dict[str, float | str]
 
 
 def _kpi_value(kpis: KPIBundle, kpi_path: str) -> float | None:
-    """Lit la valeur d'un KPI par son chemin qualifié ``bloc.champ``."""
+    """Lit la valeur d'un KPI par son chemin qualifie ``bloc.champ``."""
     block_name, _, field_name = kpi_path.partition(".")
     return cast(float | None, getattr(getattr(kpis, block_name), field_name))
 
@@ -457,20 +491,20 @@ def _impact(kpi_path: str, old: float | None, new: float, rule: str) -> KpiImpac
 
 
 def _num(params: _Params, name: str) -> float:
-    """Paramètre numérique déjà validé."""
+    """Parametre numerique deja valide."""
     return cast(float, params[name])
 
 
 def _choice(params: _Params, name: str) -> str:
-    """Paramètre de choix déjà validé."""
+    """Parametre de choix deja valide."""
     return cast(str, params[name])
 
 
 def _bayes_impact(kpis: KPIBundle, k: float, n: float, contexte: str) -> KpiImpact:
-    """Impact bayésien sur ``risk.failure_probability``.
+    """Impact bayesien sur ``risk.failure_probability``.
 
-    Si le KPI est None, le prior par défaut :data:`DEFAULT_FAILURE_PRIOR` (0.02)
-    sert de point de départ — documenté dans la règle.
+    Si le KPI est None, le prior par defaut :data:`DEFAULT_FAILURE_PRIOR` (0.02)
+    sert de point de depart - documente dans la regle.
     """
     old = _kpi_value(kpis, "risk.failure_probability")
     prior = DEFAULT_FAILURE_PRIOR if old is None else old
@@ -480,7 +514,7 @@ def _bayes_impact(kpis: KPIBundle, k: float, n: float, contexte: str) -> KpiImpa
 
 
 def _ema_impact(kpis: KPIBundle, kpi_path: str, obs: float, lam: float, contexte: str) -> KpiImpact:
-    """Impact EMA sur un KPI (initialisation à l'observation si le KPI est None)."""
+    """Impact EMA sur un KPI (initialisation a l'observation si le KPI est None)."""
     old = _kpi_value(kpis, kpi_path)
     suffix = " — initialisation (ancienne valeur absente)" if old is None else ""
     rule = f"EMA(obs={obs:g}, λ={lam:g}) : {contexte}{suffix}"
@@ -488,50 +522,68 @@ def _ema_impact(kpis: KPIBundle, kpi_path: str, obs: float, lam: float, contexte
 
 
 def _arret_impact(kpis: KPIBundle, duree_effective_h: float, contexte: str) -> KpiImpact:
-    """Impact d'un arrêt sur le lead time : le travail non fait est repoussé d'autant.
+    """Temps de production perdu par un arret, ACCUMULE dans ``time.delay_h``.
 
-    Un nœud arrêté ``D`` heures ne produit pas pendant ``D`` heures : le
-    travail restant est décalé de ``D``, donc le lead time observé vaut
-    ``lead time courant + D``. Lissé à λ=0.4, comme
-    :func:`_retard_fournisseur` — même opérateur pour la même grandeur.
+    Un noeud arrete ``D`` heures ne produit pas pendant ``D`` heures. Ce temps
+    est perdu sechement et s'AJOUTE au retard deja accumule : deux pannes ne
+    s'annulent pas, elles se cumulent. Seule la fraction
+    :data:`LAMBDA_ARRET` de la duree s'inscrit, le reste etant repute absorbe
+    dans la semaine ; :func:`weekly_decay` rattrape ensuite une part
+    :data:`RATTRAPAGE_HEBDO` du solde.
 
-    Pourquoi cet impact existe : ``time.lead_time_h`` est la seule grandeur
-    du bloc ``time`` qu'un événement peut déplacer, et
-    :meth:`~supplyscore.core.ur_model.UrModel.u_base_jalon` (le socle de
-    P(jalon raté)) ne lit qu'elle. Sans cet impact, les chocs de CAPACITÉ
-    — panne, accident, grève, rupture, cyber — n'atteignaient que
-    ``oee.*`` et ``risk.*``, jamais le bloc temporel : la chaîne causale
-    « événement → capacité → retard → jalon » n'existait pas. Mesuré sur la
-    campagne HÉLIOS : P(jalon raté) = 0,0 % pour un nœud à l'arrêt quatre
-    semaines, dont le jalon a effectivement été raté.
+    **Pourquoi ``time.delay_h`` et pas ``risk.recovery_time_h``.** Les deux
+    champs mesurent des heures, mais pas les memes. ``recovery_time_h`` est un
+    PARAMETRE de risque - " combien de temps faudrait-il pour se remettre d'une
+    defaillance " - pose en referentiel par noeud et lu par ``u_risk`` : 26
+    semaines de requalification pour un integrateur aeronautique, 3 jours pour
+    un transitaire. ``delay_h`` est un ETAT - " combien de production a
+    REELLEMENT ete perdue a ce jour " - qui demarre a zero et s'accumule.
+
+    Les confondre declare le noeud le plus prudent comme le plus en retard : un
+    integrateur aeronautique avec 26 semaines de requalification en referentiel
+    demarrait la campagne avec 1 005 h de retard fictif et un jalon perdu
+    d'avance (mesure au tour 0 sur AvioSys, ``u_time = 1.0``).
+
+    Sans cet impact, les chocs de CAPACITE - panne, accident, greve, rupture,
+    cyber - n'atteignaient que ``oee.*`` et ``risk.*``, jamais le bloc
+    temporel : la chaine causale " evenement -> capacite -> retard -> jalon "
+    n'existait pas. Mesure sur HELIOS : P(jalon rate) = 0,0 % pour un noeud a
+    l'arret quatre semaines, dont le jalon a effectivement ete rate.
 
     Args:
-        kpis: bundle KPI du nœud.
-        duree_effective_h: heures de production effectivement perdues (déjà
-            pondérées par la part d'effectif ou la criticité s'il y a lieu).
-        contexte: libellé de la règle auditable.
+        kpis: bundle KPI du noeud.
+        duree_effective_h: heures de production effectivement perdues (deja
+            ponderees par la part d'effectif ou la criticite s'il y a lieu).
+        contexte: libelle de la regle auditable.
 
     Returns:
-        L'impact EMA sur ``time.lead_time_h``.
+        L'impact cumulatif sur ``time.delay_h``.
     """
-    old_lead = _kpi_value(kpis, "time.lead_time_h")
-    obs_lead = duree_effective_h if old_lead is None else old_lead + duree_effective_h
-    return _ema_impact(kpis, "time.lead_time_h", obs_lead, 0.4, contexte)
+    old = _kpi_value(kpis, "time.delay_h")
+    base = 0.0 if old is None else old
+    ajout = LAMBDA_ARRET * duree_effective_h
+    suffix = " — initialisation (aucun retard antérieur)" if old is None else ""
+    rule = f"CUMUL : retard + {LAMBDA_ARRET:g} x {duree_effective_h:g} h — {contexte}{suffix}"
+    return _impact("time.delay_h", old, base + ajout, rule)
 
 
 def _ratchet_impact(kpis: KPIBundle, kpi_path: str, niveau: float, contexte: str) -> KpiImpact:
-    """Impact en cliquet : ``max(ancien ou 0, niveau)`` — ne redescend jamais."""
+    """Impact en cliquet : ``max(ancien ou 0, niveau)`` - ne redescend jamais."""
     old = _kpi_value(kpis, kpi_path)
     new = max(old if old is not None else 0.0, niveau)
     rule = f"CLIQUET : max(ancien ou 0, {niveau:g}) — {contexte}"
     return _impact(kpi_path, old, new, rule)
 
 
-# --- Calibrations par type d'événement ----------------------------------------------
+# Calibrations par type d'evenement
 
 
 def _panne_machine(params: _Params, kpis: KPIBundle) -> list[KpiImpact]:
-    """Panne machine : BAYES gradué, EMA récupération (λ=0.4), disponibilité et lead time."""
+    """Panne machine : BAYES gradue, EMA recuperation (lambda=0.4), EMA disponibilite (lambda=0.3).
+
+    ``risk.recovery_time_h`` porte le temps de production perdu - cf.
+    :func:`_arret_impact` et son role dans P(jalon rate).
+    """
     duree = _num(params, "duree_arret_h")
     gravite = _choice(params, "gravite")
     k, n = _GRAVITE_PANNE_BAYES[gravite]
@@ -539,6 +591,7 @@ def _panne_machine(params: _Params, kpis: KPIBundle) -> list[KpiImpact]:
     return [
         _bayes_impact(kpis, k, n, f"panne machine {gravite}"),
         _ema_impact(kpis, "risk.recovery_time_h", duree, 0.4, "temps de récupération observé"),
+        _arret_impact(kpis, duree, f"{duree:g} h de panne"),
         _ema_impact(
             kpis,
             "oee.availability",
@@ -546,12 +599,11 @@ def _panne_machine(params: _Params, kpis: KPIBundle) -> list[KpiImpact]:
             0.3,
             f"disponibilité hebdomadaire après {duree:g} h d'arrêt",
         ),
-        _arret_impact(kpis, duree, f"production repoussée par {duree:g} h de panne"),
     ]
 
 
 def _retard_fournisseur(params: _Params, kpis: KPIBundle) -> list[KpiImpact]:
-    """Retard fournisseur : EMA du lead time décalé (λ=0.4) et de sa dispersion (λ=0.3)."""
+    """Retard fournisseur : EMA du lead time decale (lambda=0.4) et de sa dispersion (lambda=0.3)."""
     retard = _num(params, "retard_h")
     old_lead = _kpi_value(kpis, "time.lead_time_h")
     obs_lead = retard if old_lead is None else old_lead + retard
@@ -562,7 +614,7 @@ def _retard_fournisseur(params: _Params, kpis: KPIBundle) -> list[KpiImpact]:
 
 
 def _greve(params: _Params, kpis: KPIBundle) -> list[KpiImpact]:
-    """Grève : disponibilité réduite au prorata, sévérité en cliquet, lead time décalé."""
+    """Greve : disponibilite reduite au prorata, severite en cliquet, lead time decale."""
     duree = _num(params, "duree_prevue_h")
     part = _num(params, "part_effectif")
     impacts: list[KpiImpact] = []
@@ -572,20 +624,19 @@ def _greve(params: _Params, kpis: KPIBundle) -> list[KpiImpact]:
         rule = f"DIRECT : disponibilité × (1 − {part:g} × min({duree:g}/168, 1))"
         impacts.append(_impact("oee.availability", old_avail, new, rule))
     impacts.append(_ratchet_impact(kpis, "risk.severity", part, "part de l'effectif en grève"))
-    # Arrêt effectif = durée × part de l'effectif : une grève partielle ne
-    # stoppe qu'une fraction de la production.
+    # Arret effectif = duree x part de l'effectif : une greve partielle ne stoppe qu'une fraction de la production.
     impacts.append(
         _arret_impact(
             kpis,
             duree * part,
-            f"production repoussée par {duree:g} h de grève à {part:g} de l'effectif",
+            f"production perdue : {duree:g} h de grève à {part:g} de l'effectif",
         )
     )
     return impacts
 
 
 def _hausse_tarif(params: _Params, kpis: KPIBundle) -> list[KpiImpact]:
-    """Hausse de tarif : multiplicateur mis à jour directement, volatilité lissée."""
+    """Hausse de tarif : multiplicateur mis a jour directement, volatilite lissee."""
     pct = _num(params, "pct")
     old_tariff = _kpi_value(kpis, "cost.tariff")
     base = 1.0 if old_tariff is None else old_tariff
@@ -604,7 +655,7 @@ def _hausse_tarif(params: _Params, kpis: KPIBundle) -> list[KpiImpact]:
 
 
 def _rupture_matiere(params: _Params, kpis: KPIBundle) -> list[KpiImpact]:
-    """Rupture matière : débit réduit, BAYES(k=criticité), cliquet sévérité, lead time décalé."""
+    """Rupture matiere : debit reduit, BAYES(k=criticite), cliquet severite, lead time decale."""
     duree = _num(params, "duree_prevue_h")
     criticite = _num(params, "criticite")
     impacts: list[KpiImpact] = []
@@ -614,20 +665,32 @@ def _rupture_matiere(params: _Params, kpis: KPIBundle) -> list[KpiImpact]:
         impacts.append(_impact("inventory.flow_rate", old_flow, old_flow * (1.0 - criticite), rule))
     impacts.append(_bayes_impact(kpis, criticite, 1.0, "rupture matière pondérée par la criticité"))
     impacts.append(_ratchet_impact(kpis, "risk.severity", criticite, "criticité de la rupture"))
-    # Arrêt effectif = durée × criticité : le débit tombe de la criticité,
-    # donc la même fraction du temps de rupture est perdue en production.
+    # Arret effectif = duree x criticite : le debit tombe de la criticite, donc la meme fraction du temps de rupture est perdue en production.
     impacts.append(
         _arret_impact(
             kpis,
             duree * criticite,
-            f"production repoussée par {duree:g} h de rupture à {criticite:g} de criticité",
+            f"production perdue : {duree:g} h de rupture à {criticite:g} de criticité",
         )
     )
     return impacts
 
 
 def _accident(params: _Params, kpis: KPIBundle) -> list[KpiImpact]:
-    """Accident : BAYES gradué, EMA récupération (λ=0.5), sévérité forfaitaire, lead time."""
+    """Accident : BAYES gradue, temps de production perdu, severite forfaitaire.
+
+    Deux grandeurs distinctes, deux operateurs :
+
+    - ``risk.recovery_time_h`` - PARAMETRE de risque, " combien de temps
+      faudrait-il pour se remettre d'une defaillance ". Lisse a lambda=0.5 (et non
+      0.4) : un accident est plus informatif qu'une panne sur la recuperation
+      a venir. Lu par ``u_risk``.
+    - ``time.delay_h`` - ETAT, temps de production reellement perdu, cumule par
+      :func:`_arret_impact` a :data:`LAMBDA_ARRET`. Lu par les trois
+      estimateurs de P(jalon rate).
+
+    Les confondre declarait le noeud le plus prudent comme le plus en retard.
+    """
     duree = _num(params, "duree_arret_h")
     gravite = _choice(params, "gravite")
     k, n = _GRAVITE_PANNE_BAYES[gravite]
@@ -635,15 +698,15 @@ def _accident(params: _Params, kpis: KPIBundle) -> list[KpiImpact]:
     return [
         _bayes_impact(kpis, k, n, f"accident {gravite}"),
         _ema_impact(kpis, "risk.recovery_time_h", duree, 0.5, "temps de récupération observé"),
+        _arret_impact(kpis, duree, f"{duree:g} h d'arrêt accidentel"),
         _ratchet_impact(
             kpis, "risk.severity", severite, f"sévérité forfaitaire accident {gravite}"
         ),
-        _arret_impact(kpis, duree, f"production repoussée par {duree:g} h d'arrêt accidentel"),
     ]
 
 
 def _non_conformite_qualite(params: _Params, kpis: KPIBundle) -> list[KpiImpact]:
-    """Non-conformité qualité : EMA de la qualité OEE vers 1 − taux de rebut (λ=0.4)."""
+    """Non-conformite qualite : EMA de la qualite OEE vers 1 - taux de rebut (lambda=0.4)."""
     taux = _num(params, "taux_rebut_obs")
     return [
         _ema_impact(
@@ -657,7 +720,7 @@ def _non_conformite_qualite(params: _Params, kpis: KPIBundle) -> list[KpiImpact]
 
 
 def _perturbation_transport(params: _Params, kpis: KPIBundle) -> list[KpiImpact]:
-    """Perturbation transport : EMA du lead time décalé, surcoût ajouté directement."""
+    """Perturbation transport : EMA du lead time decale, surcout ajoute directement."""
     retard = _num(params, "retard_h")
     surcout = _num(params, "surcout")
     old_lead = _kpi_value(kpis, "time.lead_time_h")
@@ -673,7 +736,7 @@ def _perturbation_transport(params: _Params, kpis: KPIBundle) -> list[KpiImpact]
 
 
 def _instabilite_politique(params: _Params, kpis: KPIBundle) -> list[KpiImpact]:
-    """Instabilité politique : cliquet sur le risque politique."""
+    """Instabilite politique : cliquet sur le risque politique."""
     niveau = _num(params, "niveau")
     return [
         _ratchet_impact(
@@ -683,7 +746,7 @@ def _instabilite_politique(params: _Params, kpis: KPIBundle) -> list[KpiImpact]:
 
 
 def _cyber_incident(params: _Params, kpis: KPIBundle) -> list[KpiImpact]:
-    """Cyber-incident : défaillance franche (BAYES k=1, n=1), disponibilité et lead time."""
+    """Cyber-incident : defaillance franche (BAYES k=1, n=1), disponibilite et lead time."""
     duree = _num(params, "duree_arret_h")
     obs_avail = max(0.0, 1.0 - duree / WEEK_HOURS)
     return [
@@ -695,12 +758,12 @@ def _cyber_incident(params: _Params, kpis: KPIBundle) -> list[KpiImpact]:
             0.3,
             f"disponibilité hebdomadaire après {duree:g} h d'arrêt",
         ),
-        _arret_impact(kpis, duree, f"production repoussée par {duree:g} h d'arrêt cyber"),
+        _arret_impact(kpis, duree, f"production perdue : {duree:g} h d'arrêt cyber"),
     ]
 
 
 def _hausse_energie(params: _Params, kpis: KPIBundle) -> list[KpiImpact]:
-    """Hausse énergie : coût opérationnel mis à jour (ignoré si None), volatilité lissée."""
+    """Hausse energie : cout operationnel mis a jour (ignore si None), volatilite lissee."""
     pct = _num(params, "pct")
     impacts: list[KpiImpact] = []
     old_cost = _kpi_value(kpis, "cost.op_cost")
@@ -720,7 +783,7 @@ def _hausse_energie(params: _Params, kpis: KPIBundle) -> list[KpiImpact]:
 
 
 def _alerte_financiere_fournisseur(params: _Params, kpis: KPIBundle) -> list[KpiImpact]:
-    """Alerte financière : BAYES gradué (jusqu'à k=3, n=3) et sévérité forfaitaire."""
+    """Alerte financiere : BAYES gradue (jusqu'a k=3, n=3) et severite forfaitaire."""
     gravite = _choice(params, "gravite")
     k, n = _GRAVITE_FINANCE_BAYES[gravite]
     severite = _GRAVITE_FINANCE_SEVERITE[gravite]
@@ -731,11 +794,11 @@ def _alerte_financiere_fournisseur(params: _Params, kpis: KPIBundle) -> list[Kpi
 
 
 def _perte_capacite(params: _Params, kpis: KPIBundle) -> list[KpiImpact]:
-    """Perte de capacité : volume max réduit (ignoré si None), exposition en cliquet.
+    """Perte de capacite : volume max reduit (ignore si None), exposition en cliquet.
 
     Pas d'impact sur ``time.lead_time_h`` contrairement aux autres chocs de
-    capacité : ce qui est perdu ici est du volume de STOCKAGE, pas du temps
-    de production. La saturation qui en résulte est portée par ``u_cap``,
+    capacite : ce qui est perdu ici est du volume de STOCKAGE, pas du temps
+    de production. La saturation qui en resulte est portee par ``u_cap``,
     pas par le bloc temporel.
     """
     pct = _num(params, "pct_volume_perdu")
@@ -751,14 +814,14 @@ def _perte_capacite(params: _Params, kpis: KPIBundle) -> list[KpiImpact]:
 
 
 def _pic_demande(params: _Params, kpis: KPIBundle) -> list[KpiImpact]:
-    """Pic de demande : remplacement direct de la demande réseau (fait signé)."""
+    """Pic de demande : remplacement direct de la demande reseau (fait signe)."""
     demande = _num(params, "nouvelle_demande")
     old = _kpi_value(kpis, "network.demand")
     rule = f"DIRECT : demande remplacée par {demande:g} (fait signé)"
     return [_impact("network.demand", old, demande, rule)]
 
 
-#: Table de dispatch type d'événement -> fonction de calibration.
+#: Table de dispatch type d'evenement -> fonction de calibration.
 _HANDLERS: dict[str, Callable[[_Params, KPIBundle], list[KpiImpact]]] = {
     "panne_machine": _panne_machine,
     "retard_fournisseur": _retard_fournisseur,
@@ -778,10 +841,10 @@ _HANDLERS: dict[str, Callable[[_Params, KPIBundle], list[KpiImpact]]] = {
 
 
 def _validate_params(spec: EventSpec, params: Mapping[str, object]) -> _Params:
-    """Valide les paramètres d'un événement contre sa spécification.
+    """Valide les parametres d'un evenement contre sa specification.
 
     Raises:
-        ValueError: paramètre inconnu, manquant, non numérique, non fini,
+        ValueError: parametre inconnu, manquant, non numerique, non fini,
             hors bornes ou choix non admis.
     """
     known = {field.name for field in spec.fields}
@@ -827,30 +890,30 @@ def _validate_params(spec: EventSpec, params: Mapping[str, object]) -> _Params:
     return validated
 
 
-# --- API publique -------------------------------------------------------------------
+# API publique
 
 
 def compute_impacts(
     event_type: str, params: Mapping[str, object], kpis: KPIBundle
 ) -> list[KpiImpact]:
-    """Calcule les impacts calibrés d'un événement sur un bundle de KPIs.
+    """Calcule les impacts calibres d'un evenement sur un bundle de KPIs.
 
-    Fonction PURE : le bundle n'est jamais modifié, les impacts sont seulement
-    calculés et retournés. Chaque valeur ``new`` est bornée par
+    Fonction PURE : le bundle n'est jamais modifie, les impacts sont seulement
+    calcules et retournes. Chaque valeur ``new`` est bornee par
     :func:`supplyscore.domain.constraints.clamp_kpi_value`. Les impacts dont le
-    KPI source est None et marqués « ignorer » dans la calibration ne
+    KPI source est None et marques " ignorer " dans la calibration ne
     produisent pas de :class:`KpiImpact`.
 
     Args:
-        event_type: clé de :data:`EVENT_CALIBRATION`.
-        params: paramètres saisis, conformes aux ``fields`` de l'EventSpec.
+        event_type: cle de :data:`EVENT_CALIBRATION`.
+        params: parametres saisis, conformes aux ``fields`` de l'EventSpec.
         kpis: bundle de KPIs courant (lecture seule).
 
     Returns:
-        La liste des impacts calibrés.
+        La liste des impacts calibres.
 
     Raises:
-        ValueError: type d'événement inconnu, ou paramètre invalide/hors bornes.
+        ValueError: type d'evenement inconnu, ou parametre invalide/hors bornes.
     """
     spec = EVENT_CALIBRATION.get(event_type)
     if spec is None:
@@ -862,20 +925,38 @@ def compute_impacts(
 
 
 def weekly_decay(kpis: KPIBundle) -> list[KpiImpact]:
-    """Décroissance hebdomadaire : « semaine sans incident ».
+    """Decroissance hebdomadaire : " semaine sans incident ".
 
-    La probabilité de défaillance est révisée par ``bayes_update(p, k=0, n=1)`` :
-    une semaine écoulée sans défaillance est une observation favorable qui érode
-    doucement le risque (jamais sous la borne 1e-4).
+    Deux effets, tous deux " une semaine de plus sans incident " :
+
+    - la probabilite de defaillance est revisee par ``bayes_update(p, k=0, n=1)``
+      - observation favorable qui erode doucement le risque (jamais sous 1e-4) ;
+    - le retard accumule ``time.delay_h`` est rattrape de
+      :data:`RATTRAPAGE_HEBDO`, **si et seulement si ce taux est non nul**.
+
+    Au defaut livre (``RATTRAPAGE_HEBDO = 0.0``, calibre - cf. la constante),
+    le retard n'est PAS rattrape et aucun impact n'est emis pour lui. C'est
+    volontaire, et il ne faut pas le maquiller : emettre un impact
+    ``retard -> retard`` ferait annoncer a l'operateur un rattrapage qui n'a pas
+    eu lieu. :class:`~supplyscore.services.mutations.MutationService` filtrerait
+    bien l'ecriture (diff vide, ni audit ni instantane), mais la page hebdo
+    compte les impacts RETOURNES pour composer son message : le compte serait
+    faux. On ne retourne donc que ce qui change reellement.
 
     Args:
         kpis: bundle de KPIs courant (lecture seule).
 
     Returns:
-        Un impact sur ``risk.failure_probability``, ou ``[]`` si le KPI est None.
+        Les impacts REELLEMENT applicables - jamais d'impact sans effet ;
+        ``[]`` s'il n'y a rien a eroder ni a rattraper.
     """
+    impacts: list[KpiImpact] = []
     p = _kpi_value(kpis, "risk.failure_probability")
-    if p is None:
-        return []
-    rule = f"BAYES(p={p:g}, k=0, n=1) : semaine sans incident — décroissance hebdomadaire"
-    return [_impact("risk.failure_probability", p, bayes_update(p, 0.0, 1.0), rule)]
+    if p is not None:
+        rule = f"BAYES(p={p:g}, k=0, n=1) : semaine sans incident — décroissance hebdomadaire"
+        impacts.append(_impact("risk.failure_probability", p, bayes_update(p, 0.0, 1.0), rule))
+    retard = _kpi_value(kpis, "time.delay_h")
+    if retard is not None and retard > 0.0 and RATTRAPAGE_HEBDO > 0.0:
+        rule = f"DIRECT : retard accumulé × (1 − {RATTRAPAGE_HEBDO:g}) — semaine de rattrapage"
+        impacts.append(_impact("time.delay_h", retard, retard * (1.0 - RATTRAPAGE_HEBDO), rule))
+    return impacts

@@ -1,4 +1,4 @@
-"""Génération du graphique des trajectoires LLM Pilot & comparaison avec DryRun.
+"""Generation du graphique des trajectoires LLM Pilot & comparaison avec DryRun.
 
 Produit :
 - docs/BST_DISCO_JH_2026/Images/4.Operations/helios_llm_pilot_trajectories.png
@@ -63,7 +63,7 @@ def generate_llm_trajectories_plot(llm_data: dict):
         
         # Ur: bleu continu
         ax.plot(t, ur, label="Ur (réel, données)", color="#0e6ba8", lw=2.2, zorder=3)
-        # Ud: orange pointillés
+        # Ud: orange pointilles
         ax.plot(t, ud, label="Ud (déclaré, LLM agents)", color="#d97706", lw=2.2, ls="--", zorder=4)
         
         ax.set_title(title, fontsize=11, pad=6, color="#2d3748", fontweight="bold")
@@ -73,7 +73,7 @@ def generate_llm_trajectories_plot(llm_data: dict):
         ax.grid(True, linestyle=":", alpha=0.5, color="#cbd5e1")
         ax.tick_params(axis="both", which="major", labelsize=9.5)
 
-    # Légende unique en haut
+    # Legende unique en haut
     handles, labels = axes[0, 0].get_legend_handles_labels()
     fig.legend(handles, labels, loc="upper center", bbox_to_anchor=(0.5, 0.98),
                ncol=2, frameon=False, fontsize=12)

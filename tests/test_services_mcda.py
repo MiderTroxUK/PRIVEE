@@ -1,9 +1,9 @@
-"""Tests d'intégration service — poids FBWM par projet et classement PROMETHEE II (Lot 12.3).
+"""Tests d'integration service - poids FBWM par projet et classement PROMETHEE II (Lot 12.3).
 
 Couvre : persistance et round-trip de ``set_poids_criteres`` / ``poids_criteres``,
-validation française (bloc inconnu, poids négatif, somme nulle), effet des poids
-sur ``ur_local`` (cohérence avec ``UrModel(omega=...)`` recalculé à la main),
-``classement_promethee`` (Σφ == 0, poids stockés utilisés, < 2 actifs → ValueError)
+validation francaise (bloc inconnu, poids negatif, somme nulle), effet des poids
+sur ``ur_local`` (coherence avec ``UrModel(omega=...)`` recalcule a la main),
+``classement_promethee`` (Sigmaphi == 0, poids stockes utilises, < 2 actifs -> ValueError)
 et le cache de ``_ur_model_for``.
 """
 
@@ -22,10 +22,10 @@ from supplyscore.domain.models import Project, SupplyNode, TaskStatus
 from supplyscore.mcda.promethee import ResultatPromethee
 from supplyscore.services import SupplyScoreService
 
-#: Mercredi 2026-06-10 12:00 locale — semaine ISO « 2026-S24 ».
+#: Mercredi 2026-06-10 12:00 locale - semaine ISO " 2026-S24 ".
 _NOW = datetime(2026, 6, 10, 12, 0).timestamp()
 
-#: Poids très « time-lourds » vs très « co2-lourds » (mêmes clés, somme > 0).
+#: Poids tres " time-lourds " vs tres " co2-lourds " (memes cles, somme > 0).
 _POIDS_TIME = {"time": 5.0, "cap": 0.1, "perf": 0.1, "risk": 0.1, "cost": 0.1, "co2": 0.1}
 _POIDS_CO2 = {"time": 0.1, "cap": 0.1, "perf": 0.1, "risk": 0.1, "cost": 0.1, "co2": 5.0}
 
@@ -44,12 +44,12 @@ def service(tmp_path: Path, fixed_clock: FixedClock) -> Iterator[SupplyScoreServ
 
 @pytest.fixture
 def demo(service: SupplyScoreService) -> Project:
-    """Projet de démonstration reproductible (KPIs, jalons et questionnaires)."""
+    """Projet de demonstration reproductible (KPIs, jalons et questionnaires)."""
     return service.seed_demo(n_ranks=2, seed=7)
 
 
 def _ur_locaux(service: SupplyScoreService, project_id: str) -> dict[str, float]:
-    """ur_local courant de chaque nœud du projet."""
+    """ur_local courant de chaque noeud du projet."""
     urs: dict[str, float] = {}
     for node in service.repo.nodes_by_project(project_id):
         assert node.urgency.ur_local is not None
@@ -57,7 +57,7 @@ def _ur_locaux(service: SupplyScoreService, project_id: str) -> dict[str, float]
     return urs
 
 
-# --- set_poids_criteres / poids_criteres ------------------------------------------
+# set_poids_criteres / poids_criteres
 
 
 def test_set_poids_criteres_persiste_le_reglage(service: SupplyScoreService, demo: Project) -> None:
@@ -67,7 +67,7 @@ def test_set_poids_criteres_persiste_le_reglage(service: SupplyScoreService, dem
         "poids": _POIDS_TIME,
         "methode": "fbwm",
         "xi_star": 0.12,
-        "iso_week": iso_week(_NOW),  # semaine du projet posée automatiquement
+        "iso_week": iso_week(_NOW),  # semaine du projet posee automatiquement
     }
 
 
@@ -78,7 +78,7 @@ def test_set_poids_criteres_iso_week_explicite(service: SupplyScoreService, demo
 
 
 def test_poids_criteres_round_trip(service: SupplyScoreService, demo: Project) -> None:
-    assert service.poids_criteres(demo.id) is None  # rien de stocké au départ
+    assert service.poids_criteres(demo.id) is None  # rien de stocke au depart
     service.set_poids_criteres(demo.id, _POIDS_CO2)
     assert service.poids_criteres(demo.id) == _POIDS_CO2
 
@@ -86,7 +86,7 @@ def test_poids_criteres_round_trip(service: SupplyScoreService, demo: Project) -
 def test_poids_criteres_reglage_corrompu_sans_poids(
     service: SupplyScoreService, demo: Project
 ) -> None:
-    # Réglage présent mais sans clé « poids » exploitable : ignoré proprement.
+    # Reglage present mais sans cle " poids " exploitable : ignore proprement.
     service.registry.set_setting(demo.id, "omega_ur", {"methode": "fbwm"})
     assert service.poids_criteres(demo.id) is None
 
@@ -106,10 +106,10 @@ def test_set_poids_criteres_invalides(
 ) -> None:
     with pytest.raises(ValueError, match=motif):
         service.set_poids_criteres(demo.id, poids)
-    assert service.poids_criteres(demo.id) is None  # rien n'a été persisté
+    assert service.poids_criteres(demo.id) is None  # rien n'a ete persiste
 
 
-# --- effet des poids sur ur_local (OU probabiliste pondéré) -------------------------
+# effet des poids sur ur_local (OU probabiliste pondere)
 
 
 def test_changer_les_poids_change_ur_local(service: SupplyScoreService, demo: Project) -> None:
@@ -149,7 +149,7 @@ def test_ur_local_coherent_avec_ur_model_recalcule_a_la_main(
         assert node.urgency.ur_local == pytest.approx(attendu, abs=1e-12)
 
 
-# --- classement PROMETHEE II ------------------------------------------------------
+# classement PROMETHEE II
 
 
 def test_classement_promethee_couvre_tous_les_noeuds_actifs(
@@ -164,13 +164,13 @@ def test_classement_promethee_couvre_tous_les_noeuds_actifs(
     }
     assert set(resultat.classement) == actifs
     assert set(resultat.phi) == actifs
-    assert abs(sum(resultat.phi.values())) < 1e-9  # Σφ == 0 (propriété PROMETHEE II)
+    assert abs(sum(resultat.phi.values())) < 1e-9  # Sigmaphi == 0 (propriete PROMETHEE II)
 
 
 def test_classement_promethee_utilise_les_poids_stockes(
     service: SupplyScoreService, demo: Project
 ) -> None:
-    uniforme = service.classement_promethee(demo.id)  # aucun poids stocké : ω par défaut
+    uniforme = service.classement_promethee(demo.id)  # aucun poids stocke : omega par defaut
     service.set_poids_criteres(demo.id, _POIDS_TIME)
     pondere = service.classement_promethee(demo.id)
     diffs = [abs(uniforme.phi[nid] - pondere.phi[nid]) for nid in uniforme.phi]
@@ -181,8 +181,7 @@ def test_classement_promethee_utilise_les_poids_stockes(
 def test_classement_promethee_exclut_les_blocs_de_poids_nul(
     service: SupplyScoreService, demo: Project
 ) -> None:
-    # Poids nuls autorisés à l'écriture (somme > 0) : les blocs à 0 sont
-    # exclus du classement (PrometheeII exige des poids strictement positifs).
+    # Poids nuls autorises a l'ecriture (somme > 0) : les blocs a 0 sont exclus du classement (PrometheeII exige des poids strictement positifs).
     service.set_poids_criteres(demo.id, {"time": 1.0, "co2": 0.0})
     resultat = service.classement_promethee(demo.id)
     assert abs(sum(resultat.phi.values())) < 1e-9
@@ -205,7 +204,7 @@ def test_classement_promethee_projet_inconnu(service: SupplyScoreService) -> Non
         service.classement_promethee("projet-fantome")
 
 
-# --- _ur_model_for : défaut, fusion, cache ----------------------------------------
+# _ur_model_for : defaut, fusion, cache
 
 
 def test_ur_model_for_sans_poids_retourne_le_modele_par_defaut(
@@ -224,8 +223,8 @@ def test_ur_model_for_fusionne_les_poids_et_met_en_cache(
     assert model.omega["time"] == 2.0
     for bloc in BLOCKS:
         if bloc != "time":
-            assert model.omega[bloc] == service.ur_model.omega[bloc]  # défauts conservés
-    assert service._ur_model_for(demo.id) is model  # cache : même objet au second appel
+            assert model.omega[bloc] == service.ur_model.omega[bloc]  # defauts conserves
+    assert service._ur_model_for(demo.id) is model  # cache : meme objet au second appel
 
     service.set_poids_criteres(demo.id, {"time": 3.0})  # invalide le cache
     assert service._ur_model_for(demo.id).omega["time"] == 3.0

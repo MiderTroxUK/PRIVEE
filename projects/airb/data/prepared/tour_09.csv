@@ -1,0 +1,10 @@
+node_id,kpi_path,valeur
+compolam,time.lead_time_h,656.6
+compolam,oee.availability,0.8440
+compolam,risk.cost_volatility,0.1556
+harnetec,time.lead_time_h,418.0
+harnetec,oee.availability,0.9000
+harnetec,risk.cost_volatility,0.1111
+titanor,time.lead_time_h,1168.0
+titanor,oee.availability,0.8260
+titanor,risk.cost_volatility,0.1778

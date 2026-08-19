@@ -1,41 +1,41 @@
-"""Pipeline de préparation (U5) : séries brutes -> pack de données par tour.
+"""Pipeline de preparation (U5) : series brutes -> pack de donnees par tour.
 
 Produit sous ``data/prepared/`` :
-    - ``tour_NN.csv``        (node_id, kpi_path, valeur) — KPIs pilotés par les données ;
-    - ``events_NN.json``     événements moteur du tour (depuis scenario.EVENTS) ;
-    - ``milestones_NN.json`` progrès/statut des jalons du tour ;
+    - ``tour_NN.csv``        (node_id, kpi_path, valeur) - KPIs pilotes par les donnees ;
+    - ``events_NN.json``     evenements moteur du tour (depuis scenario.EVENTS) ;
+    - ``milestones_NN.json`` progres/statut des jalons du tour ;
     - ``HASHES.sha256``      gel du pack (aucune retouche en campagne).
 
-RÈGLE « UN SEUL PILOTE PAR (nœud, champ) » : chaque champ KPI est piloté SOIT
-par une série, SOIT par les événements calibrés — jamais les deux. Quand un
-événement écrit un champ à un tour donné, la série saute ce tour (liste
-SKIP_SERIES_ON_EVENT). C'est la parade au double comptage identifiée au PLAN.
+REGLE " UN SEUL PILOTE PAR (noeud, champ) " : chaque champ KPI est pilote SOIT
+par une serie, SOIT par les evenements calibres - jamais les deux. Quand un
+evenement ecrit un champ a un tour donne, la serie saute ce tour (liste
+SKIP_SERIES_ON_EVENT). C'est la parade au double comptage identifiee au PLAN.
 
-Table de mapping (source -> champ), toutes transformations nommées ci-dessous :
+Table de mapping (source -> champ), toutes transformations nommees ci-dessous :
 
-| Nœud       | Champ                      | Pilote                                       |
+| Noeud       | Champ                      | Pilote                                       |
 |------------|----------------------------|----------------------------------------------|
-| novafab    | network.demand             | WSTS worldwide / baseline ×100 (sauf T3, T7 : événements pic_demande) |
-| meridian   | network.demand             | WSTS worldwide / baseline ×100 (la demande de marché le frappe aussi) |
-| compodis   | inventory.flow_rate        | WSTS worldwide / baseline ×100 (volume servi) |
-| compodis   | network.demand             | événements uniquement (pic_demande T13)      |
-| compodis   | time.lead_time_h           | série reconstruite (délais constatés) sauf T5 (événement) |
-| compodis   | cost.op_cost               | IPP composants / baseline × nominal (prix catalogue — plat en réalité, et c'est informatif : la prime spot passe par l'événement hausse_tarif T14) |
-| electis    | oee.performance            | IPI NAF 26.1 lissé 3 mois / baseline × 0.90  |
-| electis    | oee.availability           | TUC interpolé mensuel / 82.6 (dernier trimestre pré-covid, borne [0,1]) |
-| electis    | cost.op_cost               | IPP industrie / baseline × nominal           |
-| silpure    | cost.op_cost               | IPP industrie / baseline × nominal (contexte ; la flambée polysilicium passe par hausse_tarif T16) |
-| novafab    | cost.op_cost               | PPI semi-conducteurs US (Kaggle/BLS, HD5 : authentique) / baseline × nominal — série arrêtée nov. 2021 : T16-T18 sans écriture (dernière valeur persiste, jamais d'invention) |
-| silpure    | risk.failure_probability   | défaillances industrie / baseline × p_base   |
-| compodis   | risk.failure_probability   | défaillances industrie / baseline × p_base   |
-| aviosys    | inventory.flow_rate        | AVIOSYS_COVERAGE_WEEKS -> capacité d'alimentation 100×min(couv/6, 1) (scripté narration — assumé) |
-| *          | risk.cost_volatility       | écart-type glissant 3 tours / moyenne de la série de coût du nœud |
+| novafab    | network.demand             | WSTS worldwide / baseline x100 (sauf T3, T7 : evenements pic_demande) |
+| meridian   | network.demand             | WSTS worldwide / baseline x100 (la demande de marche le frappe aussi) |
+| compodis   | inventory.flow_rate        | WSTS worldwide / baseline x100 (volume servi) |
+| compodis   | network.demand             | evenements uniquement (pic_demande T13)      |
+| compodis   | time.lead_time_h           | serie reconstruite (delais constates) sauf T5 (evenement) |
+| compodis   | cost.op_cost               | IPP composants / baseline x nominal (prix catalogue - plat en realite, et c'est informatif : la prime spot passe par l'evenement hausse_tarif T14) |
+| electis    | oee.performance            | IPI NAF 26.1 lisse 3 mois / baseline x 0.90  |
+| electis    | oee.availability           | TUC interpole mensuel / 82.6 (dernier trimestre pre-covid, borne [0,1]) |
+| electis    | cost.op_cost               | IPP industrie / baseline x nominal           |
+| silpure    | cost.op_cost               | IPP industrie / baseline x nominal (contexte ; la flambee polysilicium passe par hausse_tarif T16) |
+| novafab    | cost.op_cost               | PPI semi-conducteurs US (Kaggle/BLS, HD5 : authentique) / baseline x nominal - serie arretee nov. 2021 : T16-T18 sans ecriture (derniere valeur persiste, jamais d'invention) |
+| silpure    | risk.failure_probability   | defaillances industrie / baseline x p_base   |
+| compodis   | risk.failure_probability   | defaillances industrie / baseline x p_base   |
+| aviosys    | inventory.flow_rate        | AVIOSYS_COVERAGE_WEEKS -> capacite d'alimentation 100xmin(couv/6, 1) (scripte narration - assume) |
+| *          | risk.cost_volatility       | ecart-type glissant 3 tours / moyenne de la serie de cout du noeud |
 
-Note honnête sur les défaillances : la série RÉELLE BAISSE sur 2020-2021
-(soutien public « quoi qu'il en coûte ») — le facteur défaillances DIMINUE donc
+Note honnete sur les defaillances : la serie REELLE BAISSE sur 2020-2021
+(soutien public " quoi qu'il en coute ") - le facteur defaillances DIMINUE donc
 le risque externe pendant que la crise sectorielle fait rage. C'est exactement
 l'argument multi-blocs : un indicateur macro seul raconte le contraire du
-terrain. Conservé tel quel, documenté au BST.
+terrain. Conserve tel quel, documente au BST.
 """
 
 from __future__ import annotations
@@ -56,7 +56,7 @@ import scenario  # noqa: E402
 RAW = _HERE.parent / "data" / "raw"
 OUT = _HERE.parent / "data" / "prepared"
 
-#: (node, kpi_path) -> tours où un événement pilote le champ (la série saute).
+#: (node, kpi_path) -> tours ou un evenement pilote le champ (la serie saute).
 SKIP_SERIES_ON_EVENT: dict[tuple[str, str], set[int]] = {
     ("novafab", "network.demand"): {3, 7},
     ("compodis", "time.lead_time_h"): {5},
@@ -72,9 +72,9 @@ def _load_series(slug: str) -> dict[str, float]:
 def _load_kaggle_ppi_semi() -> dict[str, float]:
     """PPI semi-conducteurs US (Kaggle 'Semiconductor shortage affects', BLS).
 
-    Contrôle HD5 passé (séries FRED/BLS reconnaissables : déclin séculaire du
-    PPI, emploi sectoriel cohérent). Dates au format 01-MM-AAAA, série arrêtée
-    en novembre 2021 : les mois absents ne sont simplement pas écrits.
+    Controle HD5 passe (series FRED/BLS reconnaissables : declin seculaire du
+    PPI, emploi sectoriel coherent). Dates au format 01-MM-AAAA, serie arretee
+    en novembre 2021 : les mois absents ne sont simplement pas ecrits.
     """
     path = RAW / "Semiconductor shortage affects.csv"
     out: dict[str, float] = {}
@@ -107,12 +107,12 @@ def _load_wsts_worldwide() -> dict[str, float]:
 
 
 def _months() -> list[str]:
-    """Mois réels des tours 1..18 (T0 = baseline, pas de mois)."""
+    """Mois reels des tours 1..18 (T0 = baseline, pas de mois)."""
     return [scenario.TOUR_TO_MONTH[t] for t in range(1, scenario.N_TOURS + 1)]
 
 
 def _rolling3(series: dict[str, float], month: str, months: list[str]) -> float:
-    """Moyenne centrée 3 mois (dé-saisonnalisation légère de l'IPI)."""
+    """Moyenne centree 3 mois (de-saisonnalisation legere de l'IPI)."""
     idx = months.index(month)
     window = [series.get(months[i]) for i in range(max(0, idx - 1), min(len(months), idx + 2))]
     vals = [v for v in window if v is not None]
@@ -120,7 +120,7 @@ def _rolling3(series: dict[str, float], month: str, months: list[str]) -> float:
 
 
 def _tuc_monthly(tuc: dict[str, float]) -> dict[str, float]:
-    """Interpole la série TUC trimestrielle en mensuel (linéaire entre trimestres)."""
+    """Interpole la serie TUC trimestrielle en mensuel (lineaire entre trimestres)."""
     quarters = sorted(k for k in tuc if "Q" in k)
     points: list[tuple[str, float]] = []
     for q in quarters:
@@ -140,7 +140,7 @@ def _tuc_monthly(tuc: dict[str, float]) -> dict[str, float]:
 
 
 def _lead_time_weeks(tour: int) -> float:
-    """Lead time (semaines réelles) au tour donné, interpolé entre ancres."""
+    """Lead time (semaines reelles) au tour donne, interpole entre ancres."""
     anchors = sorted(scenario.LEAD_TIME_ANCHORS_WEEKS.items())
     if tour <= anchors[0][0]:
         return anchors[0][1]
@@ -151,7 +151,7 @@ def _lead_time_weeks(tour: int) -> float:
 
 
 def _volatility(values: list[float]) -> float:
-    """Volatilité glissante : écart-type / moyenne des 3 dernières valeurs, [0,1]."""
+    """Volatilite glissante : ecart-type / moyenne des 3 dernieres valeurs, [0,1]."""
     tail = values[-3:]
     if len(tail) < 2:
         return 0.0
@@ -163,7 +163,7 @@ def _volatility(values: list[float]) -> float:
 
 
 def build_tours() -> dict[int, list[tuple[str, str, float]]]:
-    """Construit les écritures KPI (node, path, valeur) pour chaque tour 0..18."""
+    """Construit les ecritures KPI (node, path, valeur) pour chaque tour 0..18."""
     months = _months()
     ipi = _load_series("insee_ipi_naf261")
     ipp_ind = _load_series("insee_ipp_industrie")
@@ -181,7 +181,7 @@ def build_tours() -> dict[int, list[tuple[str, str, float]]]:
     b_ipp_comp = baseline(ipp_comp)
     b_defail = baseline(defail)
     b_wsts = baseline(wsts)
-    tuc_ref = 82.6  # dernier trimestre pré-covid (2020-Q1), borne de normalisation
+    tuc_ref = 82.6  # dernier trimestre pre-covid (2020-Q1), borne de normalisation
 
     ppi_semi = _load_kaggle_ppi_semi()
     b_ppi_semi = (
@@ -196,11 +196,10 @@ def build_tours() -> dict[int, list[tuple[str, str, float]]]:
     for tour, month in enumerate(months, start=1):
         rows: list[tuple[str, str, float]] = []
         wsts_idx = 100.0 * wsts[month] / b_wsts
-        # NovaFab : demande mondiale (les délais clients sont portés par compodis).
+        # NovaFab : demande mondiale (les delais clients sont portes par compodis).
         if tour not in SKIP_SERIES_ON_EVENT[("novafab", "network.demand")]:
             rows.append(("novafab", "network.demand", round(wsts_idx, 1)))
-        # NovaFab : contexte coût PPI US (série arrêtée nov. 2021 — mois absents
-        # non écrits, la dernière valeur persiste dans le moteur).
+        # NovaFab : contexte cout PPI US (serie arretee nov. 2021 - mois absents non ecrits, la derniere valeur persiste dans le moteur).
         if b_ppi_semi is not None and month in ppi_semi:
             op_semi = round(100.0 * ppi_semi[month] / b_ppi_semi, 2)
             rows.append(("novafab", "cost.op_cost", op_semi))
@@ -209,9 +208,9 @@ def build_tours() -> dict[int, list[tuple[str, str, float]]]:
                 ("novafab", "risk.cost_volatility",
                  round(_volatility(cost_hist["novafab"]), 4))
             )
-        # Meridian : la même vague de demande le frappe (capacité flow constante).
+        # Meridian : la meme vague de demande le frappe (capacite flow constante).
         rows.append(("meridian", "network.demand", round(wsts_idx, 1)))
-        # CompoDis : volume servi (WSTS), délais constatés, prix catalogue, risque.
+        # CompoDis : volume servi (WSTS), delais constates, prix catalogue, risque.
         rows.append(("compodis", "inventory.flow_rate", round(wsts_idx, 1)))
         if tour not in SKIP_SERIES_ON_EVENT[("compodis", "time.lead_time_h")]:
             rows.append(
@@ -227,7 +226,7 @@ def build_tours() -> dict[int, list[tuple[str, str, float]]]:
             ("compodis", "risk.failure_probability",
              round(0.02 * defail[month] / b_defail, 5))
         )
-        # Électis : performance (IPI lissé), disponibilité (TUC), coût (IPP), risque.
+        # Electis : performance (IPI lisse), disponibilite (TUC), cout (IPP), risque.
         perf = 0.90 * _rolling3(ipi, month, months) / b_ipi
         rows.append(("electis", "oee.performance", round(min(max(perf, 0.0), 1.0), 4)))
         if month in tuc_m:
@@ -239,7 +238,7 @@ def build_tours() -> dict[int, list[tuple[str, str, float]]]:
         rows.append(
             ("electis", "risk.cost_volatility", round(_volatility(cost_hist["electis"]), 4))
         )
-        # SilPure : coût contexte (IPP industrie) + risque défaillances.
+        # SilPure : cout contexte (IPP industrie) + risque defaillances.
         rows.append(("silpure", "cost.op_cost", op_ind))
         cost_hist["silpure"].append(op_ind)
         rows.append(
@@ -249,8 +248,7 @@ def build_tours() -> dict[int, list[tuple[str, str, float]]]:
             ("silpure", "risk.failure_probability",
              round(0.01 * defail[month] / b_defail, 5))
         )
-        # AvioSys : couverture de stock scriptée (narration) exprimée en capacité
-        # d'alimentation des lignes : flow = 100 × min(couverture / cycle 6 sem., 1).
+        # AvioSys : couverture de stock scriptee (narration) exprimee en capacite d'alimentation des lignes : flow = 100 x min(couverture / cycle 6 sem., 1).
         cov = scenario.AVIOSYS_COVERAGE_WEEKS[tour]
         rows.append(("aviosys", "inventory.flow_rate", round(100.0 * min(cov / 6.0, 1.0), 1)))
         tours[tour] = rows
@@ -258,14 +256,14 @@ def build_tours() -> dict[int, list[tuple[str, str, float]]]:
 
 
 def build_milestones() -> dict[int, list[dict]]:
-    """Progrès/statut des jalons par tour : nominal + dérives + complétions."""
+    """Progres/statut des jalons par tour : nominal + derives + completions."""
     out: dict[int, list[dict]] = {}
     for tour in range(0, scenario.N_TOURS + 1):
         rows: list[dict] = []
         for node, name, _kind, start_wk, deadline_wk in scenario.MILESTONES:
             done_tour = scenario.MILESTONE_DONE.get((node, name))
             if done_tour is not None and tour > done_tour:
-                continue  # déjà DONE, plus rien à écrire
+                continue  # deja DONE, plus rien a ecrire
             if done_tour is not None and tour == done_tour:
                 rows.append({"node": node, "name": name, "progress": 1.0, "status": "done"})
                 continue
@@ -273,13 +271,10 @@ def build_milestones() -> dict[int, list[dict]]:
             if drift is not None:
                 progress = drift
             else:
-                # L'horloge moteur a avancé de (tour + 1) semaines à la clôture du
-                # tour N (T0 compte une avance) : le progrès nominal suit ce temps,
-                # sinon chaque jalon serait artificiellement « en retard » d'un tour.
+                # L'horloge moteur a avance de (tour + 1) semaines a la cloture du tour N (T0 compte une avance) : le progres nominal suit ce temps, sinon chaque jalon serait artificiellement " en retard " d'un tour.
                 span = max(deadline_wk - start_wk, 1)
                 progress = min(max((tour + 1 - start_wk) / span, 0.0), 1.0)
-                # Après une dérive, ne jamais « re-sauter » au nominal : reprendre
-                # la dernière valeur scriptée si elle est plus basse.
+                # Apres une derive, ne jamais " re-sauter " au nominal : reprendre la derniere valeur scriptee si elle est plus basse.
                 past = [
                     v for (n, m, t), v in scenario.MILESTONE_DRIFT.items()
                     if n == node and m == name and t < tour

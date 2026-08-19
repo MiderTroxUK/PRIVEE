@@ -8,7 +8,9 @@
 \label{sec:conclusion_objectifs}
 
 Table~\ref{tab:bilan} assesses each objective of Section~\ref{sec:objectifs} against its
-indicator. Four of five were met. The fifth was answered, and the answer was negative.
+indicator. Four of five were met. The fifth was answered in two halves: the signal does
+identify the right nodes early, and the calibrated probability built on it is measurably
+better after repair without yet being good enough to publish as a probability.
 
 \begin{table}[htbp]
 \centering
@@ -22,12 +24,19 @@ indicator. Four of five were met. The fifth was answered, and the answer was neg
 O1 & Met & Six-block aggregation with bidirectional propagation and an asymmetric adequacy
 score, each term exactly decomposable; aggregation choice justified against the compensatory
 alternative \\
-O2 & Met & SupplyScore delivered: 73 modules, 1\,779 automated tests, multi-tenant
-persistence, every write audited, operational and reloadable \\
+O2 & Met & SupplyScore delivered: 73 modules, 1\,831 automated test functions,
+multi-tenant persistence, every write audited, operational and reloadable \\
 O3 & Met & Propagation and criticality services operational, validated by dedicated
-performance benchmarks at the scale of a real programme \\
-O4 & Answered, negative & The signal does not predict recorded outcomes on this campaign. The
-cause is identified: one block is structurally unable to respond to a shock \\
+performance benchmarks at the scale of a real programme; the criticality ranking's collapse
+under network-wide saturation was identified on the campaign and repaired
+(Section~\ref{sec:reparation}) \\
+O4 & Met at node level, in progress at probability level & At node level the signal is
+right: over the six turns before the crisis is public it flags three nodes, all three of
+which later miss a commitment, with no false alarm
+(Section~\ref{sec:ciblage}). As a calibrated four-week probability it first failed, for an
+identified cause; the repair was carried out and re-measured on the frozen campaign
+(Section~\ref{sec:reparation}), roughly halving the calibration deficit at every horizon
+while leaving it negative \\
 O5 & Met & Scientific report delivered; every reported figure regenerated from raw artefacts
 by script rather than transcribed \\
 \bottomrule
@@ -35,43 +44,100 @@ by script rather than transcribed \\
 \end{table}
 
 \paragraph{Quantitatively.}
-The delivered system covers the specified scope and is measurably robust: 1\,779 automated
-tests, an auditable write path, and performance validated at the intended scale. The
-experiment produced numbers rather than impressions: an area under the ROC curve between
-$0.37$ and $0.56$, a Brier skill between $-3.4$ and $-6.9$, twenty-one confident forecasts of
-which none materialised, and an eight-of-eight one-sided response at first exposure to the
+The delivered system covers the specified scope and is measurably robust: 1\,831 automated
+test functions expanding to 2\,044 collected cases, an auditable write path, and performance
+validated at the intended scale. The experiment produced numbers rather than impressions: an
+area under the ROC curve between $0.37$ and $0.56$, a Brier skill between $-3.4$ and $-6.9$,
+twenty-one confident forecasts of which none materialised against the production definition
+of an adverse outcome, and an eight-of-eight one-sided response at first exposure to the
 displayed forecast.
+
+The repair that followed is measured on the same frozen forecasts. The Brier skill improves
+from $-1.278$ to $-0.687$ at one week and from $-0.553$ to $-0.216$ at four, roughly halving
+the calibration deficit at every horizon, while the structural half of the repair also raises
+the area under the ROC curve at every horizon. Three figures qualify that. The skill is still
+negative, so the forecast remains worse calibrated than announcing the base rate. The
+milestone probability is still binary in seventy-two percent of cases, against eighty-five
+before. And the closed-loop campaign run on the repaired system met five of eleven milestones
+on their original date, exactly as many as the frozen run: it changed which milestone was
+met, not how many.
 
 \paragraph{Qualitatively.}
 The mission set out to determine whether the declared-versus-real gap can be measured well
-enough to act on. It cannot, yet, and the work establishes precisely why. A negative result
-of this shape is more useful to the programme than a favourable score would have been,
-because it is actionable: it names one component, states the mechanism, and specifies the
-repair. A favourable score on a signal driven by a blind block would have been worse than
-useless, since it would have been trusted.
+enough to act on. On the evidence gathered it can, at the level a coordinator actually works
+at, which is deciding where to look. The gap flags the right suppliers, it flags them before
+the crisis is visible to anyone, and it does so on nodes whose own managers are declaring
+that all is well. What is not yet established is the next step up, turning that flag into a
+calibrated probability attached to a named week.
+
+The work is worth more to the programme for having failed that second step first. The failure
+was actionable: it named one component, stated the mechanism, and specified the repair, and
+the repair was then carried out and measured. A favourable score obtained on the first pass,
+on a signal driven by a block that could not see the crisis, would have been worse than
+useless, because it would have been trusted. The route from here is not a new idea but more
+data, and Section~\ref{sec:perspectives} says which data and why.
 
 \subsection{Limitations}
 \label{sec:conclusion_limites}
 
-Four limits bound what this report supports. The declarants were agents rather than human
-consultants, so every statement about declaration behaviour applies to that population.
-Results come from a single scenario, so the outcome base rate and event mix are properties of
-one script. The positive class is very small, which bounds every discrimination claim in both
-directions. And the carbon block was the least exercised of the six, for want of data to feed
-it, which is the measurement gap noted in Section~\ref{sec:rse}.
+Five limits bound what this report supports, and four of the five are limits of sample
+rather than of design. That distinction matters for what happens next: none of them calls the
+construction into question, and all of them are answered by running the instrument on more
+chains rather than by changing it.
+
+The declarants were agents rather than human consultants, so every statement about
+declaration behaviour applies to that population. Results come from a single scenario, so the
+outcome base rate and event mix are properties of one script. The positive class is very
+small, eight nodes of which four are positive and eleven observable milestones, which bounds
+every claim in both directions: it is why the precision of $1.00$ in
+Section~\ref{sec:ciblage} is reported as an encouraging observation rather than a rate, and
+why the movements in the area under the ROC curve in Section~\ref{sec:reparation} are stated
+as uninterpretable rather than as gains. And the carbon block was the least exercised of the
+six, for want of data to feed it, which is the measurement gap noted in
+Section~\ref{sec:rse}; the indicator completion of Section~\ref{sec:reparation} narrowed it
+without closing it.
+
+The fifth is methodological and does not dissolve with more data. Every score depends on
+which of the three outcome definitions of Section~\ref{sec:cible} it is read against, and no
+number in this report should be quoted without one.
 
 \subsection{Perspectives}
 \label{sec:perspectives}
 
 \paragraph{For ALTEN.}
-Four steps follow, in order. Repair the time block first, by making the calibrated events
-write a lead-time impact alongside their existing effects; nothing else should be measured
-until they do, since any campaign run against the current forecast layer will reproduce the
-same result. Add a post-hoc calibration layer, fitted on data other than the evaluation
-scenario. Make the forecast state its own ignorance, since a layer that cannot anticipate
-exogenous shocks should not present a low probability in a confident numeric format. Then run
-the campaign with human participants, which is the only run that can decide the hypotheses as
-they were written, and which should happen only after the repair.
+The binding constraint from here is data, not design. The measurement works at node level on
+the chain it was tested on; what stands between that and a deployable early-warning
+instrument is the number of chains, nodes and milestones it has been run against, and the
+steps below are ordered accordingly.
+
+The first of the four steps this report recommended has been taken, and taking it changed the
+recommendation. Repairing the time block by making the calibrated events write a lead-time
+impact, as originally proposed, does not work: routing lost time into the lead time makes it
+scale with the work remaining, so the shock vanishes on exactly the milestones nearest their
+deadline. Lost time has to be added to the completion date, not multiplied into it
+(Section~\ref{sec:reparation}). The step generalised into a rule worth keeping beyond this
+system: distinguish a parameter describing a node's recovery capability from a state
+accumulating what it has actually lost, because the two live naturally in the same units and
+mixing them is invisible until the data is complete.
+
+Four steps remain, in order. Fill the indicators before calibrating anything, since the
+campaign that produced the negative result ran on a quarter of them and half the urgency
+blocks were inert; no amount of calibration compensates for a missing input, and one real bug
+was undetectable until the database was full. Rebuild the post-hoc calibration layer's
+training label on the target the product actually displays, which first requires the
+synthetic factory's snapshots to carry milestone truth; the layer as trained today improves
+calibration and degrades ranking, and is deliberately not connected. Make the forecast state
+its own ignorance, since a layer that cannot anticipate exogenous shocks should not present a
+low probability in a confident numeric format, and smooth the milestone alarm, which today
+moves from $0.05$ to $1.00$ in a single turn and is correct but useless as advance warning.
+Then run the campaign with human participants, which is the only run that can decide the
+hypotheses as they were written.
+
+One indicator class is missing rather than empty, and several declarants named it
+independently: the forward booking horizon, how far ahead a node's capacity is already sold.
+In the real shortage that signal preceded the degradation of every flow indicator by months,
+and it is structurally invisible to the model as built. It is a general gap, not a
+semiconductor one: any capacity-constrained link holds that information.
 
 Beyond that, the adequacy layer is designed to be coupled to DISCO rather than to remain
 standalone, and the network representation work carried out in parallel on the same programme

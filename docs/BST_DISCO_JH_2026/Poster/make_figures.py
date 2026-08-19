@@ -24,14 +24,14 @@ LLM_CSV = (
 )
 OUT_DIR = Path(__file__).resolve().parent / "img"
 
-# ---- ALTEN Brand Book 2025 (EN), certified colours only --------------------
-NAVY = "#043962"        # main - navy blue, all text
-AZURE = "#008BD2"       # main - azure blue, the data series
+# ALTEN Brand Book 2025 (EN), certified colours only
+NAVY = "#043962"  # main - navy blue, all text
+AZURE = "#008BD2"  # main - azure blue, the data series
 OCHRE_SHADE = "#FFBA00"  # secondary shade, p.28: "to differentiate data"
-BG_BLUE = "#EBF3F9"      # tertiary, background bands
-LINE_GREY = "#CDCEDA"    # tertiary, grid lines
+BG_BLUE = "#EBF3F9"  # tertiary, background bands
+LINE_GREY = "#CDCEDA"  # tertiary, grid lines
 CAPTION_GREY = "#8C8C9A"  # tertiary, secondary text
-NAVY_LIGHT = "#8D9CAD"   # navy shade, axis spines
+NAVY_LIGHT = "#8D9CAD"  # navy shade, axis spines
 
 # Event labels in English (the report's figure keeps the French wording).
 EVENTS = [

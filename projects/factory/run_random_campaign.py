@@ -1,30 +1,30 @@
-"""Usine de campagnes sur chaînes ALÉATOIRES (U6) -- CLI de la campagne HÉLIOS.
+"""Usine de campagnes sur chaines ALEATOIRES (U6) -- CLI de la campagne HELIOS.
 
 Usage :
     python run_random_campaign.py --chains M --weeks N --seed S --out DIR
         [--tier {0,1,2}] [--behavior module:fonction] [--rollout]
 
-Pour chaque chaîne (un point du plan QMC de :func:`dgp.sample_regimes`) :
+Pour chaque chaine (un point du plan QMC de :func:`dgp.sample_regimes`) :
 
 1. Base SQLite temporaire (``tempfile.mkdtemp``), service ouvert dessus,
-   projet aléatoire complet via ``seed_demo(n_ranks, chain_seed)``.
+   projet aleatoire complet via ``seed_demo(n_ranks, chain_seed)``.
 2. Horloge de jeu (``advance_week`` l'exige) + mode Monte Carlo du lead time.
 3. Boucle hebdomadaire, tour 1..N :
-   a. décroissance bayésienne hebdo (« rien à signaler », tous les nœuds) ;
-   b. dérive KPI (marche AR(1) log-normale) + tirage d'évènement DGP --
-      UN SEUL appel par nœud à :func:`dgp.dynamics_week_step` (flux
+   a. decroissance bayesienne hebdo (" rien a signaler ", tous les noeuds) ;
+   b. derive KPI (marche AR(1) log-normale) + tirage d'evenement DGP --
+      UN SEUL appel par noeud a :func:`dgp.dynamics_week_step` (flux
       DYNAMIQUE, forme fixe -- condition de la paire CRN, cf. ``dgp.py``) ;
-   c. relance d'un jalon actif (règle HÉLIOS : toujours un jalon ACTIF) ;
-   d. injection des évènements déclenchés (:class:`~supplyscore.services.events.EventEngine`) ;
-   e. opérateur synthétique confondu sur le stress LATENT (décide / choisit /
-      exécute -- flux OPÉRATEUR, séparé du flux dynamique) ;
-   f. déclarations hebdomadaires (palier 0 local ancré sur ``ur_local``, ou
+   c. relance d'un jalon actif (regle HELIOS : toujours un jalon ACTIF) ;
+   d. injection des evenements declenches (:class:`~supplyscore.services.events.EventEngine`) ;
+   e. operateur synthetique confondu sur le stress LATENT (decide / choisit /
+      execute -- flux OPERATEUR, separe du flux dynamique) ;
+   f. declarations hebdomadaires (palier 0 local ancre sur ``ur_local``, ou
       ``--behavior module:fonction`` pour les paliers 1/2) ;
    g. avance du temps de jeu + snapshot JSON.
-4. Résolution des interventions en attente (paire CRN sur la fenêtre de 4
-   semaines, D18) puis écriture de ``interventions_truth.jsonl``,
+4. Resolution des interventions en attente (paire CRN sur la fenetre de 4
+   semaines, D18) puis ecriture de ``interventions_truth.jsonl``,
    ``dgp_manifest.json`` et ``variant_manifest.json`` dans le dossier de la
-   chaîne.
+   chaine.
 
 Recette E2E :
     python run_random_campaign.py --chains 2 --weeks 6 --seed 7 --out <scratch>
@@ -49,19 +49,19 @@ import numpy as np
 
 from supplyscore.domain.constraints import clamp_kpi_value
 
-# --- Aides pures (état observable, JSON) ---------------------------------------------
+# Aides pures (etat observable, JSON)
 
 
 def _kpi_value(kpis: Any, path: str) -> float | None:
-    """Lit un KPI par son chemin qualifié ``bloc.champ``."""
+    """Lit un KPI par son chemin qualifie ``bloc.champ``."""
     block, _, field_name = path.partition(".")
     return getattr(getattr(kpis, block), field_name)
 
 
 def _build_ctx(node: Any, milestones: list[Any]) -> dict[str, Any]:
-    """État OBSERVABLE d'un nœud -- JAMAIS le stress latent (cf. ``dgp`` module docstring).
+    """Etat OBSERVABLE d'un noeud -- JAMAIS le stress latent (cf. ``dgp`` module docstring).
 
-    Sert à la fois de ``ctx`` pour les préconditions d'action et de
+    Sert a la fois de ``ctx`` pour les preconditions d'action et de
     ``etat_avant`` dans ``interventions_truth.jsonl``.
     """
     from supplyscore.domain.milestones import next_active_milestone
@@ -79,7 +79,7 @@ def _build_ctx(node: Any, milestones: list[Any]) -> dict[str, Any]:
 
 
 def _to_jsonable(obj: Any) -> Any:
-    """Convertit récursivement les scalaires numpy en types Python natifs pour ``json.dumps``."""
+    """Convertit recursivement les scalaires numpy en types Python natifs pour ``json.dumps``."""
     if isinstance(obj, dict):
         return {k: _to_jsonable(v) for k, v in obj.items()}
     if isinstance(obj, list | tuple):
@@ -99,22 +99,19 @@ def _write_jsonl(path: Path, records: list[dict[str, Any]]) -> None:
             f.write(json.dumps(_to_jsonable(record), ensure_ascii=False) + "\n")
 
 
-# --- Ouverture du service, snapshot, jalons -------------------------------------------
+# Ouverture du service, snapshot, jalons
 
 
 def _open_service(db_dir: str) -> Any:
-    """Ouvre la façade SupplyScore sur ``db_dir`` (import différé, cache client généreux)."""
+    """Ouvre la facade SupplyScore sur ``db_dir`` (import differe, cache client genereux)."""
     from supplyscore.services.orchestrator import SupplyScoreService
 
-    # client_cache_size généreux : les chaînes à n_ranks élevé (jusqu'à 7,
-    # cf. dgp.N_RANKS_CHOICES) peuvent compter largement plus de nœuds que le
-    # défaut (64) -- au-delà, le cache LRU rouvrirait des connexions SQLite en
-    # boucle chaque semaine (coût I/O inutile sur une campagne longue).
+    # client_cache_size genereux : les chaines a n_ranks eleve (jusqu'a 7, cf. dgp.N_RANKS_CHOICES) peuvent compter largement plus de noeuds que le defaut (64) -- au-dela, le cache LRU rouvrirait des connexions SQLite en boucle chaque semaine (cout I/O inutile sur une campagne longue).
     return SupplyScoreService(db_dir=db_dir, client_cache_size=256)
 
 
 def write_snapshot(service: Any, project: Any, chain_dir: Path, tour: int) -> dict[str, Any]:
-    """Snapshot du réseau au tour courant -- même schéma que ``export_state.py`` (+ ``blocs``)."""
+    """Snapshot du reseau au tour courant -- meme schema que ``export_state.py`` (+ ``blocs``)."""
     from supplyscore.core.clock import project_hours
     from supplyscore.core.explain import explain_ur_local
     from supplyscore.services.criticite import ServiceCriticite
@@ -169,15 +166,15 @@ def write_snapshot(service: Any, project: Any, chain_dir: Path, tour: int) -> di
 
 
 def _nudge_milestone(service: Any, node: Any, rng: np.random.Generator) -> None:
-    """Relance hebdomadaire du jalon actif -- règle HÉLIOS : toujours un jalon ACTIF.
+    """Relance hebdomadaire du jalon actif -- regle HELIOS : toujours un jalon ACTIF.
 
     Nudge l'avancement du jalon actif courant ; s'il se termine (ou s'il n'y
-    en avait plus), ouvre immédiatement le suivant. La création d'un nouveau
-    jalon passe par une écriture DIRECTE du registre (``registry.save_milestone``),
+    en avait plus), ouvre immediatement le suivant. La creation d'un nouveau
+    jalon passe par une ecriture DIRECTE du registre (``registry.save_milestone``),
     comme le fait ``SupplyScoreService.seed_demo`` -- ``MutationService``
-    n'expose pas de création de jalon, seulement des mises à jour du jalon
+    n'expose pas de creation de jalon, seulement des mises a jour du jalon
     EXISTANT (:meth:`~supplyscore.services.mutations.MutationService.update_milestone`),
-    utilisé ici pour le nudge de progression.
+    utilise ici pour le nudge de progression.
     """
     from supplyscore.domain.milestones import Milestone, MilestoneStatus, next_active_milestone
 
@@ -212,7 +209,7 @@ def _nudge_milestone(service: Any, node: Any, rng: np.random.Generator) -> None:
         service.registry.save_milestone(_new_milestone(len(milestones) + 1))
 
 
-# --- Opérateur synthétique : sélection d'action ---------------------------------------
+# Operateur synthetique : selection d'action
 
 
 def _preconditions_ok(action: Any, ctx: dict[str, Any]) -> bool:
@@ -223,7 +220,7 @@ def _preconditions_ok(action: Any, ctx: dict[str, Any]) -> bool:
 
 
 def _choose_action(catalogue: dict[str, Any], ctx: dict[str, Any], rng: np.random.Generator) -> Any:
-    """Choisit une action dont les préconditions tiennent, ``ne_rien_faire`` à défaut."""
+    """Choisit une action dont les preconditions tiennent, ``ne_rien_faire`` a defaut."""
     eligible = [
         a for aid, a in catalogue.items() if aid != "ne_rien_faire" and _preconditions_ok(a, ctx)
     ]
@@ -234,31 +231,31 @@ def _choose_action(catalogue: dict[str, Any], ctx: dict[str, Any], rng: np.rando
 
 
 def _mitigation_now(effects: list[tuple[int, int, float]], tour: int) -> float:
-    """Réduction de stress actuellement en vigueur (somme des effets actifs, plafonnée)."""
+    """Reduction de stress actuellement en vigueur (somme des effets actifs, plafonnee)."""
     total = sum(mag for start, end, mag in effects if start <= tour < end)
     return min(total, dgp.MAX_MITIGATION)
 
 
 def _effective_window_start(date_effet: int, tour: int) -> int:
-    """Première semaine que la paire CRN peut RÉELLEMENT comparer, pour une intervention.
+    """Premiere semaine que la paire CRN peut REELLEMENT comparer, pour une intervention.
 
     Le checkpoint du flux dynamique (cf. :func:`_run_intervention`) est pris
-    APRÈS que les tirages de la semaine ``tour`` ont déjà été consommés -- la
-    première semaine que la branche fantôme peut effectivement rejouer est
-    donc ``tour + 1``, jamais ``tour`` lui-même (déjà passé au moment de la
-    décision). Quand ``date_effet <= tour`` (délai nul ou arrondi à 0), la
-    fenêtre de comparaison est donc plancherée à ``tour + 1`` plutôt que de
-    prendre ``date_effet`` brut : sans ce plancher, la fenêtre côté
-    ``issue_without`` (rejouée depuis le checkpoint, qui démarre forcément à
-    ``tour + 1``) et la fenêtre côté ``issue_with`` (relue dans
-    ``event_fired_timeline`` à partir de ``date_effet``) porteraient sur des
-    semaines DÉCALÉES d'une unité -- deux fenêtres de 4 semaines qui se
-    chevauchent sans coïncider, capables de faire diverger ``delta_u_vrai``
-    même à mitigation nulle (comparaison de deux ensembles de semaines
-    différents, pas un effet causal). Utilisé pour ancrer À LA FOIS la durée
-    de ``active_effects`` (branche réelle) et la fenêtre de
+    APRES que les tirages de la semaine ``tour`` ont deja ete consommes -- la
+    premiere semaine que la branche fantome peut effectivement rejouer est
+    donc ``tour + 1``, jamais ``tour`` lui-meme (deja passe au moment de la
+    decision). Quand ``date_effet <= tour`` (delai nul ou arrondi a 0), la
+    fenetre de comparaison est donc plancheree a ``tour + 1`` plutot que de
+    prendre ``date_effet`` brut : sans ce plancher, la fenetre cote
+    ``issue_without`` (rejouee depuis le checkpoint, qui demarre forcement a
+    ``tour + 1``) et la fenetre cote ``issue_with`` (relue dans
+    ``event_fired_timeline`` a partir de ``date_effet``) porteraient sur des
+    semaines DECALEES d'une unite -- deux fenetres de 4 semaines qui se
+    chevauchent sans coincider, capables de faire diverger ``delta_u_vrai``
+    meme a mitigation nulle (comparaison de deux ensembles de semaines
+    differents, pas un effet causal). Utilise pour ancrer A LA FOIS la duree
+    de ``active_effects`` (branche reelle) et la fenetre de
     :func:`~dgp.replay_without_action` (branche contrefactuelle) -- les deux
-    DOIVENT rester synchronisées.
+    DOIVENT rester synchronisees.
     """
     return max(date_effet, tour + 1)
 
@@ -278,31 +275,31 @@ def _run_intervention(
     regime: dgp.Regime,
     active_effects: dict[str, list[tuple[int, int, float]]],
 ) -> dict[str, Any]:
-    """Décide/exécute une intervention, calcule l'effet vrai et amorce la paire CRN (D18).
+    """Decide/execute une intervention, calcule l'effet vrai et amorce la paire CRN (D18).
 
     Retourne un enregistrement PARTIEL : ``delta_u_vrai`` et
-    ``resultat_operationnel`` sont finalisés a posteriori par
-    :func:`_resolve_interventions` une fois la chaîne entièrement simulée
-    (la fenêtre de 4 semaines peut dépasser le tour courant). Les clés
-    préfixées ``_`` sont des champs de résolution INTERNES, retirés avant
-    l'écriture finale.
+    ``resultat_operationnel`` sont finalises a posteriori par
+    :func:`_resolve_interventions` une fois la chaine entierement simulee
+    (la fenetre de 4 semaines peut depasser le tour courant). Les cles
+    prefixees ``_`` sont des champs de resolution INTERNES, retires avant
+    l'ecriture finale.
 
     ``stress_latent`` (``stress_latent_now``, la valeur ``s`` de
-    :class:`~dgp.DynStepResult` au moment de la décision) est journalisé en
-    clé de PREMIER NIVEAU de l'enregistrement -- vérité-terrain pour l'audit
+    :class:`~dgp.DynStepResult` au moment de la decision) est journalise en
+    cle de PREMIER NIVEAU de l'enregistrement -- verite-terrain pour l'audit
     et la validation de la confusion (D21/D32) -- mais JAMAIS dans
     ``etat_avant`` (``ctx``), qui reste strictement l'ensemble des grandeurs
-    OBSERVABLES sur lesquelles l'opérateur synthétique a fondé sa décision
-    (cf. :func:`_build_ctx`). Les deux règles coexistent : le latent est
-    enregistré pour permettre de VÉRIFIER après coup que la confusion opère
+    OBSERVABLES sur lesquelles l'operateur synthetique a fonde sa decision
+    (cf. :func:`_build_ctx`). Les deux regles coexistent : le latent est
+    enregistre pour permettre de VERIFIER apres coup que la confusion opere
     bien sur une variable absente de l'observable, sans jamais y fuiter.
 
-    ``ne_rien_faire`` suit EXACTEMENT le même chemin que les autres actions
-    (même tirage d'exécution -- toujours vrai puisque son
-    ``apply_to_project`` est un no-op documenté --, même calcul d'effet vrai
-    -- nécessairement 0.0 puisque ``ur_local`` ne bouge pas --, même paire
-    CRN) : c'est une PROPRIÉTÉ AUTO-VÉRIFIANTE de l'implémentation --
-    ``delta_u_vrai`` doit alors toujours ressortir exactement à 0.0, les deux
+    ``ne_rien_faire`` suit EXACTEMENT le meme chemin que les autres actions
+    (meme tirage d'execution -- toujours vrai puisque son
+    ``apply_to_project`` est un no-op documente --, meme calcul d'effet vrai
+    -- necessairement 0.0 puisque ``ur_local`` ne bouge pas --, meme paire
+    CRN) : c'est une PROPRIETE AUTO-VERIFIANTE de l'implementation --
+    ``delta_u_vrai`` doit alors toujours ressortir exactement a 0.0, les deux
     branches consommant un flux identique sans aucune mitigation.
     """
     action_id = getattr(action, "id", "?")
@@ -355,14 +352,7 @@ def _run_intervention(
     effet_vrai = min(dgp.MAX_MITIGATION, dgp.K_MITIG * reduction)
     record["effet_vrai_param"] = effet_vrai
     if effet_vrai > 0.0:
-        # Ancrée sur effective_window_start (pas le date_effet brut) : la
-        # mitigation RÉELLEMENT appliquée à la branche "avec" doit couvrir
-        # EXACTEMENT les mêmes 4 semaines que celles comparées par la paire
-        # CRN plus bas -- sinon la dernière semaine de la fenêtre comparerait
-        # une branche "avec" déjà retombée à mitigation nulle contre une
-        # branche "sans" elle aussi à mitigation nulle : un delta correct par
-        # chance, mais pour la MAUVAISE raison (fenêtre de mitigation trop
-        # courte plutôt que réel épuisement de l'effet).
+        # Ancree sur effective_window_start (pas le date_effet brut) : la mitigation REELLEMENT appliquee a la branche "avec" doit couvrir EXACTEMENT les memes 4 semaines que celles comparees par la paire CRN plus bas -- sinon la derniere semaine de la fenetre comparerait une branche "avec" deja retombee a mitigation nulle contre une branche "sans" elle aussi a mitigation nulle : un delta correct par chance, mais pour la MAUVAISE raison (fenetre de mitigation trop courte plutot que reel epuisement de l'effet).
         active_effects[node_id].append(
             (effective_window_start, effective_window_start + dgp.EFFECT_WINDOW_WEEKS, effet_vrai)
         )
@@ -378,11 +368,7 @@ def _run_intervention(
             effets_voisins[n.id] = after_ur - before_ur
     record["effets_voisins"] = effets_voisins or None
 
-    # Paire CRN (D18) : clone de l'état du flux DYNAMIQUE -- la branche
-    # réelle continue sur son propre générateur, non affectée par ce clone.
-    # ``effective_window_start`` (plancherée à tour + 1, cf. commentaire plus
-    # haut) -- PAS ``date_effet`` brut -- ancre à la fois skip_weeks et la
-    # fenêtre relue dans ``event_fired_timeline`` par ``_resolve_interventions``.
+    # Paire CRN (D18) : clone de l'etat du flux DYNAMIQUE -- la branche reelle continue sur son propre generateur, non affectee par ce clone. ``effective_window_start`` (plancheree a tour + 1, cf. commentaire plus haut) -- PAS ``date_effet`` brut -- ancre a la fois skip_weeks et la fenetre relue dans ``event_fired_timeline`` par ``_resolve_interventions``.
     skip_weeks = effective_window_start - (tour + 1)
     checkpoint = copy.deepcopy(dyn_rng.bit_generator.state)
     issue_without = dgp.replay_without_action(
@@ -405,14 +391,14 @@ def _resolve_interventions(
     ur_local_timeline: dict[str, dict[int, float | None]],
     total_weeks: int,
 ) -> list[dict[str, Any]]:
-    """Finalise ``delta_u_vrai`` et ``resultat_operationnel`` une fois la chaîne simulée.
+    """Finalise ``delta_u_vrai`` et ``resultat_operationnel`` une fois la chaine simulee.
 
-    Définition figée de ``resultat_operationnel`` (cascade, premier
-    prédicat vrai retenu) :
-        1. fenêtre tronquée (dépasse la fin de la chaîne) -> None ;
-        2. pas d'évènement indésirable sur la fenêtre ET objectif atteint -> "resolu" ;
-        3. amélioration de ur_local (même partielle) -> "partiel" ;
-        4. sinon -> "echec" (évènement survenu, ou aucune amélioration).
+    Definition figee de ``resultat_operationnel`` (cascade, premier
+    predicat vrai retenu) :
+        1. fenetre tronquee (depasse la fin de la chaine) -> None ;
+        2. pas d'evenement indesirable sur la fenetre ET objectif atteint -> "resolu" ;
+        3. amelioration de ur_local (meme partielle) -> "partiel" ;
+        4. sinon -> "echec" (evenement survenu, ou aucune amelioration).
     """
     resolved: list[dict[str, Any]] = []
     for record, action in pending:
@@ -450,7 +436,7 @@ def _resolve_interventions(
     return resolved
 
 
-# --- Boucle par chaîne -----------------------------------------------------------------
+# Boucle par chaine
 
 
 def run_chain(
@@ -461,7 +447,7 @@ def run_chain(
     tier: int,
     behavior_fn: Callable[..., dict[str, list[int]]] | None,
 ) -> Path:
-    """Exécute une chaîne complète, écrit ses artefacts dans ``out_dir/chain_<seed>/``."""
+    """Execute une chaine complete, ecrit ses artefacts dans ``out_dir/chain_<seed>/``."""
     from supplyscore.services.events import EventEngine
 
     db_dir = tempfile.mkdtemp(prefix=f"helios_factory_chain{chain_seed}_")
@@ -473,7 +459,7 @@ def run_chain(
         project = service.seed_demo(n_ranks=regime.n_ranks, seed=chain_seed)
         service.set_clock_mode(project.id, "game")
         service.set_lead_time_mode(project.id, "monte_carlo", n_tirages=2_000, graine=chain_seed)
-        service.evaluate_all(persist=True)  # ré-évalue sous MC avant le snapshot tour 0
+        service.evaluate_all(persist=True)  # re-evalue sous MC avant le snapshot tour 0
         events_engine = EventEngine(service)
 
         nodes = service.repo.nodes_by_project(project.id)
@@ -507,11 +493,11 @@ def run_chain(
             ur_local_timeline[nid][0] = node0.urgency.ur_local if node0 is not None else None
 
         for tour in range(1, weeks + 1):
-            # a. décroissance bayésienne hebdomadaire ("rien à signaler").
+            # a. decroissance bayesienne hebdomadaire ("rien a signaler").
             for nid in node_ids:
                 events_engine.apply_weekly_decay(nid, operator_id="dgp")
 
-            # b. dérive KPI + tirage d'évènement (flux DYNAMIQUE, forme fixe -- cf. dgp.py).
+            # b. derive KPI + tirage d'evenement (flux DYNAMIQUE, forme fixe -- cf. dgp.py).
             week_results: dict[str, dgp.DynStepResult] = {}
             for nid in node_ids:
                 node = service.repo.get_node(nid)
@@ -537,12 +523,12 @@ def run_chain(
                         nid, changes, source="dgp:drift", operator_id="dgp"
                     )
 
-            # c. relance d'un jalon actif (règle HÉLIOS).
+            # c. relance d'un jalon actif (regle HELIOS).
             for nid in node_ids:
                 node = service.repo.get_node(nid)
                 _nudge_milestone(service, node, op_rng[nid])
 
-            # d. injection des évènements déclenchés + vérité DGP.
+            # d. injection des evenements declenches + verite DGP.
             for nid in node_ids:
                 result = week_results[nid]
                 event_fired_timeline[nid][tour] = result.fires
@@ -558,7 +544,7 @@ def run_chain(
                         {"node": nid, "type": result.event_type, "gravite": result.gravite}
                     )
 
-            # e. opérateur synthétique confondu sur le stress LATENT (flux OPÉRATEUR).
+            # e. operateur synthetique confondu sur le stress LATENT (flux OPERATEUR).
             for nid in node_ids:
                 node = service.repo.get_node(nid)
                 milestones = service.registry.list_milestones(nid)
@@ -578,13 +564,13 @@ def run_chain(
                     dyn_rng[nid],
                     stress_kpi[nid],
                     hidden[nid],
-                    week_results[nid].s,  # vérité-terrain journalisée, JAMAIS dans ctx/etat_avant
+                    week_results[nid].s,  # verite-terrain journalisee, JAMAIS dans ctx/etat_avant
                     regime,
                     active_effects,
                 )
                 pending.append((record, action))
 
-            # f. déclarations hebdomadaires.
+            # f. declarations hebdomadaires.
             for nid in node_ids:
                 node = service.repo.get_node(nid)
                 milestones = service.registry.list_milestones(nid)
@@ -607,7 +593,7 @@ def run_chain(
                     )
                     service.submit_assessment(assessment)
                 except (ValueError, KeyError):
-                    pass  # déclaration incohérente (CR >= 0.10) : semaine sans déclaration
+                    pass  # declaration incoherente (CR >= 0.10) : semaine sans declaration
 
             # g. avance du temps de jeu + snapshot.
             service.advance_week(project.id, 1)
@@ -640,11 +626,11 @@ def run_chain(
         service.close()
 
 
-# --- CLI ---------------------------------------------------------------------------
+# CLI
 
 
 def _load_behavior(spec: str) -> Callable[..., dict[str, list[int]]]:
-    """Charge ``respond`` depuis ``module:fonction`` (contrat figé, paliers 1/2)."""
+    """Charge ``respond`` depuis ``module:fonction`` (contrat fige, paliers 1/2)."""
     module_name, sep, func_name = spec.partition(":")
     if not sep or not module_name or not func_name:
         raise SystemExit(f"--behavior doit être au format module:fonction, reçu {spec!r}")
@@ -658,7 +644,7 @@ def _load_behavior(spec: str) -> Callable[..., dict[str, list[int]]]:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Point d'entrée CLI -- échantillonne le plan QMC puis exécute chaque chaîne."""
+    """Point d'entree CLI -- echantillonne le plan QMC puis execute chaque chaine."""
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )

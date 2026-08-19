@@ -1,29 +1,29 @@
-"""Moteur d'événements supply chain — application et annulation transactionnelles (E6, Lot 6.1).
+"""Moteur d'evenements supply chain - application et annulation transactionnelles (E6, Lot 6.1).
 
-:class:`EventEngine` orchestre le cycle de vie d'un événement déclaré pendant
+:class:`EventEngine` orchestre le cycle de vie d'un evenement declare pendant
 le rituel hebdomadaire :
 
-- :meth:`EventEngine.preview` : calcul PUR des impacts calibrés
-  (:func:`~supplyscore.domain.events.compute_impacts`) — rien n'est écrit ;
-- :meth:`EventEngine.apply` : UNE opération cohérente — ligne ``events`` dans
-  la base CLIENT du nœud, mutation des KPIs via
+- :meth:`EventEngine.preview` : calcul PUR des impacts calibres
+  (:func:`~supplyscore.domain.events.compute_impacts`) - rien n'est ecrit ;
+- :meth:`EventEngine.apply` : UNE operation coherente - ligne ``events`` dans
+  la base CLIENT du noeud, mutation des KPIs via
   :class:`~supplyscore.services.mutations.MutationService`
-  (``source="event:<id>"``), puis réévaluation complète du réseau ;
-- :meth:`EventEngine.revert` : annulation tout-ou-rien — chaque KPI touché doit
-  encore valoir la valeur posée par l'événement (tolérance
+  (``source="event:<id>"``), puis reevaluation complete du reseau ;
+- :meth:`EventEngine.revert` : annulation tout-ou-rien - chaque KPI touche doit
+  encore valoir la valeur posee par l'evenement (tolerance
   :data:`REVERT_TOLERANCE`), sinon :class:`ConflictError` et AUCUNE
   restauration partielle ;
 - :meth:`EventEngine.open_events` / :meth:`EventEngine.list_week` : relecture
   pour la relance hebdomadaire et la revue de la semaine ;
-- :meth:`EventEngine.apply_weekly_decay` : « rien à signaler » — décroissance
-  bayésienne hebdomadaire (``source="weekly"``).
+- :meth:`EventEngine.apply_weekly_decay` : " rien a signaler " - decroissance
+  bayesienne hebdomadaire (``source="weekly"``).
 
-Cohérence des écritures : la ligne ``events`` (trace du déclaratif) est écrite
-d'abord ; si la mutation des KPIs échoue ensuite, la ligne est retirée par
-compensation — il ne peut donc pas exister d'événement journalisé dont les
-impacts n'auraient pas été appliqués. Un événement sans aucun impact (tous
-« ignorer ») est journalisé quand même, sans mutation de KPI. L'horodatage et
-la semaine ISO proviennent de l'horloge du PROJET du nœud (réelle ou de jeu).
+Coherence des ecritures : la ligne ``events`` (trace du declaratif) est ecrite
+d'abord ; si la mutation des KPIs echoue ensuite, la ligne est retiree par
+compensation - il ne peut donc pas exister d'evenement journalise dont les
+impacts n'auraient pas ete appliques. Un evenement sans aucun impact (tous
+" ignorer ") est journalise quand meme, sans mutation de KPI. L'horodatage et
+la semaine ISO proviennent de l'horloge du PROJET du noeud (reelle ou de jeu).
 """
 
 from __future__ import annotations
@@ -39,26 +39,26 @@ from supplyscore.core.clock import Clock, iso_week
 from supplyscore.domain.events import KpiImpact, compute_impacts, weekly_decay
 from supplyscore.domain.models import KPIBundle, SupplyNode
 
-if TYPE_CHECKING:  # import différé : évite tout cycle services.events <-> orchestrator
+if TYPE_CHECKING:  # import differe : evite tout cycle services.events <-> orchestrator
     from supplyscore.services.orchestrator import SupplyScoreService
 
-#: Tolérance absolue pour juger qu'un KPI n'a PAS été réécrit depuis l'événement.
+#: Tolerance absolue pour juger qu'un KPI n'a PAS ete reecrit depuis l'evenement.
 REVERT_TOLERANCE: float = 1e-12
 
 
 class ConflictError(Exception):
-    """Annulation impossible : des champs ont été réécrits depuis l'événement.
+    """Annulation impossible : des champs ont ete reecrits depuis l'evenement.
 
     Attributes:
-        champs: chemins qualifiés des KPIs dont la valeur courante ne
-            correspond plus à celle posée par l'événement.
+        champs: chemins qualifies des KPIs dont la valeur courante ne
+            correspond plus a celle posee par l'evenement.
     """
 
     def __init__(self, champs: list[str]) -> None:
         """Initialise l'erreur avec la liste des champs divergents.
 
         Args:
-            champs: chemins qualifiés des KPIs divergents (ex.
+            champs: chemins qualifies des KPIs divergents (ex.
                 ``"risk.failure_probability"``).
         """
         self.champs = list(champs)
@@ -69,18 +69,18 @@ class ConflictError(Exception):
 
 @dataclass(frozen=True)
 class SupplyEvent:
-    """Événement supply chain tel que journalisé dans la base CLIENT du nœud.
+    """Evenement supply chain tel que journalise dans la base CLIENT du noeud.
 
     Attributes:
         id: identifiant unique (UUID4).
-        node_id: nœud déclarant.
-        event_type: clé de :data:`~supplyscore.domain.events.EVENT_CALIBRATION`.
-        iso_week: semaine ISO de déclaration (horloge du PROJET du nœud).
-        occurred_at: instant de déclaration, en secondes epoch.
-        params: paramètres saisis (validés par ``compute_impacts``).
-        impacts: impacts calibrés appliqués aux KPIs.
-        reverted_at: instant d'annulation, ``None`` si l'événement est ouvert.
-        operator_id: opérateur déclarant.
+        node_id: noeud declarant.
+        event_type: cle de :data:`~supplyscore.domain.events.EVENT_CALIBRATION`.
+        iso_week: semaine ISO de declaration (horloge du PROJET du noeud).
+        occurred_at: instant de declaration, en secondes epoch.
+        params: parametres saisis (valides par ``compute_impacts``).
+        impacts: impacts calibres appliques aux KPIs.
+        reverted_at: instant d'annulation, ``None`` si l'evenement est ouvert.
+        operator_id: operateur declarant.
         notes: commentaire libre.
     """
 
@@ -97,7 +97,7 @@ class SupplyEvent:
 
 
 def _kpi_value(kpis: KPIBundle, kpi_path: str) -> float | None:
-    """Lit la valeur d'un KPI par son chemin qualifié ``bloc.champ``."""
+    """Lit la valeur d'un KPI par son chemin qualifie ``bloc.champ``."""
     block_name, _, field_name = kpi_path.partition(".")
     return cast(float | None, getattr(getattr(kpis, block_name), field_name))
 
@@ -119,88 +119,88 @@ def _event_from_row(row: Mapping[str, Any]) -> SupplyEvent:
 
 
 class EventEngine:
-    """Moteur d'événements : prévisualisation, application et annulation.
+    """Moteur d'evenements : previsualisation, application et annulation.
 
-    Toutes les écritures passent par :class:`~supplyscore.services.mutations.MutationService`
+    Toutes les ecritures passent par :class:`~supplyscore.services.mutations.MutationService`
     (diff + validation + audit) et par la couche db (table ``events`` de la
-    base CLIENT du nœud) ; le moteur n'écrit jamais un KPI directement.
+    base CLIENT du noeud) ; le moteur n'ecrit jamais un KPI directement.
 
-    Thread-safety : les méthodes mutantes prennent ``self._lock`` (RLock),
-    ce qui sérialise les cycles lecture-vérification-écriture du moteur
+    Thread-safety : les methodes mutantes prennent ``self._lock`` (RLock),
+    ce qui serialise les cycles lecture-verification-ecriture du moteur
     (les services sous-jacents gardent leurs propres verrous).
     """
 
     def __init__(self, service: SupplyScoreService) -> None:
-        """Initialise le moteur sur la façade de l'application.
+        """Initialise le moteur sur la facade de l'application.
 
         Args:
-            service: façade :class:`~supplyscore.services.orchestrator.SupplyScoreService`
+            service: facade :class:`~supplyscore.services.orchestrator.SupplyScoreService`
                 (registre, bases client, mutations, horloges, pipeline).
         """
         self._service = service
         self._lock = threading.RLock()
 
-    # --- Lecture / prévisualisation ---------------------------------------------------
+    # Lecture / previsualisation
 
     def preview(
         self, node_id: str, event_type: str, params: Mapping[str, object]
     ) -> list[KpiImpact]:
-        """Prévisualise les impacts d'un événement sur les KPIs courants du nœud.
+        """Previsualise les impacts d'un evenement sur les KPIs courants du noeud.
 
-        Méthode PURE : les impacts sont calculés par
+        Methode PURE : les impacts sont calcules par
         :func:`~supplyscore.domain.events.compute_impacts` sur une lecture
-        fraîche du nœud — rien n'est écrit, le bundle du nœud n'est pas
-        modifié.
+        fraiche du noeud - rien n'est ecrit, le bundle du noeud n'est pas
+        modifie.
 
         Args:
-            node_id: identifiant du nœud déclarant.
-            event_type: clé de :data:`~supplyscore.domain.events.EVENT_CALIBRATION`.
-            params: paramètres saisis, conformes aux ``fields`` de l'EventSpec.
+            node_id: identifiant du noeud declarant.
+            event_type: cle de :data:`~supplyscore.domain.events.EVENT_CALIBRATION`.
+            params: parametres saisis, conformes aux ``fields`` de l'EventSpec.
 
         Returns:
-            La liste des impacts calibrés (éventuellement vide si tous les
-            KPIs sources sont « à ignorer »).
+            La liste des impacts calibres (eventuellement vide si tous les
+            KPIs sources sont " a ignorer ").
 
         Raises:
-            KeyError: si le nœud est inconnu du registre.
-            ValueError: type d'événement inconnu ou paramètre invalide.
+            KeyError: si le noeud est inconnu du registre.
+            ValueError: type d'evenement inconnu ou parametre invalide.
         """
         node = self._node(node_id)
         return compute_impacts(event_type, params, node.kpis)
 
     def open_events(self, node_id: str) -> list[SupplyEvent]:
-        """Événements non annulés du nœud, les plus récents d'abord.
+        """Evenements non annules du noeud, les plus recents d'abord.
 
-        C'est la liste relancée à chaque revue hebdomadaire : un événement
-        reste « ouvert » tant qu'il n'a pas été annulé.
+        C'est la liste relancee a chaque revue hebdomadaire : un evenement
+        reste " ouvert " tant qu'il n'a pas ete annule.
 
         Args:
-            node_id: identifiant du nœud.
+            node_id: identifiant du noeud.
 
         Returns:
-            Les :class:`SupplyEvent` ouverts, du plus récent au plus ancien.
+            Les :class:`SupplyEvent` ouverts, du plus recent au plus ancien.
         """
         client = self._service.client_db(node_id)
         rows = [row for row in client.list_events(node_id) if row["reverted_at"] is None]
         return [_event_from_row(row) for row in reversed(rows)]
 
     def list_week(self, node_id: str, iso_week: str) -> list[SupplyEvent]:
-        """Événements du nœud déclarés pendant une semaine ISO donnée.
+        """Evenements du noeud declares pendant une semaine ISO donnee.
 
-        Annulés inclus (la revue de la semaine montre tout le déclaratif),
+        Annules inclus (la revue de la semaine montre tout le declaratif),
         en ordre chronologique.
 
         Args:
-            node_id: identifiant du nœud.
-            iso_week: semaine ISO filtrée, ex. ``"2026-S24"``.
+            node_id: identifiant du noeud.
+            iso_week: semaine ISO filtree, ex. ``"2026-S24"``.
 
         Returns:
-            Les :class:`SupplyEvent` de la semaine, du plus ancien au plus récent.
+            Les :class:`SupplyEvent` de la semaine, du plus ancien au plus recent.
         """
         client = self._service.client_db(node_id)
         return [_event_from_row(row) for row in client.list_events(node_id, iso_week)]
 
-    # --- Écriture ----------------------------------------------------------------------
+    # Ecriture
 
     def apply(
         self,
@@ -210,37 +210,37 @@ class EventEngine:
         operator_id: str = "",
         notes: str = "",
     ) -> SupplyEvent:
-        """Applique un événement : journalisation + mutation des KPIs + réévaluation.
+        """Applique un evenement : journalisation + mutation des KPIs + reevaluation.
 
-        Déroulement (une opération cohérente) :
+        Deroulement (une operation coherente) :
 
-        1. :meth:`preview` — validation des paramètres et calcul des impacts,
-           AVANT toute écriture ;
-        2. ligne ``events`` dans la base CLIENT (params/impacts sérialisés
-           JSON, ``iso_week`` et ``occurred_at`` posés par l'horloge du PROJET
-           du nœud, id UUID4), puis ``mutations.update_kpis`` avec
-           ``source="event:<id>"`` — si la mutation échoue, la ligne ``events``
-           est retirée (compensation : pas de trace orpheline) ;
-        3. ``service.evaluate_all(persist=True)`` — les scores du réseau
-           intègrent immédiatement l'événement.
+        1. :meth:`preview` - validation des parametres et calcul des impacts,
+           AVANT toute ecriture ;
+        2. ligne ``events`` dans la base CLIENT (params/impacts serialises
+           JSON, ``iso_week`` et ``occurred_at`` poses par l'horloge du PROJET
+           du noeud, id UUID4), puis ``mutations.update_kpis`` avec
+           ``source="event:<id>"`` - si la mutation echoue, la ligne ``events``
+           est retiree (compensation : pas de trace orpheline) ;
+        3. ``service.evaluate_all(persist=True)`` - les scores du reseau
+           integrent immediatement l'evenement.
 
-        Un événement sans aucun impact (tous « ignorer ») est journalisé quand
-        même — trace du déclaratif — sans mutation de KPI.
+        Un evenement sans aucun impact (tous " ignorer ") est journalise quand
+        meme - trace du declaratif - sans mutation de KPI.
 
         Args:
-            node_id: identifiant du nœud déclarant.
-            event_type: clé de :data:`~supplyscore.domain.events.EVENT_CALIBRATION`.
-            params: paramètres saisis, conformes aux ``fields`` de l'EventSpec.
-            operator_id: opérateur déclarant.
-            notes: commentaire libre journalisé avec l'événement.
+            node_id: identifiant du noeud declarant.
+            event_type: cle de :data:`~supplyscore.domain.events.EVENT_CALIBRATION`.
+            params: parametres saisis, conformes aux ``fields`` de l'EventSpec.
+            operator_id: operateur declarant.
+            notes: commentaire libre journalise avec l'evenement.
 
         Returns:
-            Le :class:`SupplyEvent` journalisé (``reverted_at=None``).
+            Le :class:`SupplyEvent` journalise (``reverted_at=None``).
 
         Raises:
-            KeyError: si le nœud est inconnu du registre.
-            ValueError: type d'événement inconnu ou paramètre invalide
-                (rien n'est alors écrit).
+            KeyError: si le noeud est inconnu du registre.
+            ValueError: type d'evenement inconnu ou parametre invalide
+                (rien n'est alors ecrit).
         """
         with self._lock:
             impacts = self.preview(node_id, event_type, params)
@@ -271,7 +271,7 @@ class EventEngine:
                         operator_id=operator_id,
                     )
             except BaseException:
-                # Compensation : aucune ligne events orpheline si la mutation échoue.
+                # Compensation : aucune ligne events orpheline si la mutation echoue.
                 with client.lock, client.conn:
                     client.conn.execute("DELETE FROM events WHERE id = ?", (event_id,))
                 raise
@@ -291,30 +291,30 @@ class EventEngine:
             )
 
     def revert(self, event_id: str, node_id: str, operator_id: str = "") -> list[KpiImpact]:
-        """Annule un événement : restauration tout-ou-rien des KPIs touchés.
+        """Annule un evenement : restauration tout-ou-rien des KPIs touches.
 
-        Pour CHAQUE impact de l'événement, la valeur courante du KPI doit
-        encore valoir ``impact.new`` (tolérance :data:`REVERT_TOLERANCE`) —
+        Pour CHAQUE impact de l'evenement, la valeur courante du KPI doit
+        encore valoir ``impact.new`` (tolerance :data:`REVERT_TOLERANCE`) -
         sinon le champ est en conflit. S'il existe NE SERAIT-CE QU'UN conflit,
-        :class:`ConflictError` est levée et RIEN n'est restauré (pas de
+        :class:`ConflictError` est levee et RIEN n'est restaure (pas de
         restauration partielle silencieuse). Sinon : les anciennes valeurs
-        sont restaurées via ``mutations.update_kpis``
-        (``source="revert:<id>"``), l'événement est marqué annulé à l'instant
-        de l'horloge du PROJET, puis le réseau est réévalué.
+        sont restaurees via ``mutations.update_kpis``
+        (``source="revert:<id>"``), l'evenement est marque annule a l'instant
+        de l'horloge du PROJET, puis le reseau est reevalue.
 
         Args:
-            event_id: identifiant de l'événement à annuler.
-            node_id: nœud porteur de l'événement.
-            operator_id: opérateur à l'origine de l'annulation.
+            event_id: identifiant de l'evenement a annuler.
+            node_id: noeud porteur de l'evenement.
+            operator_id: operateur a l'origine de l'annulation.
 
         Returns:
-            Les impacts restaurés (ceux de l'événement).
+            Les impacts restaures (ceux de l'evenement).
 
         Raises:
-            ValueError: événement inconnu pour ce nœud, ou déjà annulé.
-            ConflictError: au moins un KPI a été réécrit depuis l'événement
-                (le message liste les champs divergents) ; rien n'est restauré.
-            KeyError: si le nœud est inconnu du registre.
+            ValueError: evenement inconnu pour ce noeud, ou deja annule.
+            ConflictError: au moins un KPI a ete reecrit depuis l'evenement
+                (le message liste les champs divergents) ; rien n'est restaure.
+            KeyError: si le noeud est inconnu du registre.
         """
         with self._lock:
             client = self._service.client_db(node_id)
@@ -350,22 +350,22 @@ class EventEngine:
             return event.impacts
 
     def apply_weekly_decay(self, node_id: str, operator_id: str = "") -> list[KpiImpact]:
-        """Décroissance hebdomadaire « rien à signaler » sur les KPIs du nœud.
+        """Decroissance hebdomadaire " rien a signaler " sur les KPIs du noeud.
 
         Les impacts viennent de :func:`~supplyscore.domain.events.weekly_decay`
-        (révision bayésienne « semaine sans incident ») et sont appliqués via
-        ``mutations.update_kpis`` avec ``source="weekly"`` — aucun s'il n'y a
-        rien à éroder.
+        (revision bayesienne " semaine sans incident ") et sont appliques via
+        ``mutations.update_kpis`` avec ``source="weekly"`` - aucun s'il n'y a
+        rien a eroder.
 
         Args:
-            node_id: identifiant du nœud.
-            operator_id: opérateur à l'origine de la confirmation hebdo.
+            node_id: identifiant du noeud.
+            operator_id: operateur a l'origine de la confirmation hebdo.
 
         Returns:
-            Les impacts appliqués (``[]`` si le KPI source est non renseigné).
+            Les impacts appliques (``[]`` si le KPI source est non renseigne).
 
         Raises:
-            KeyError: si le nœud est inconnu du registre.
+            KeyError: si le noeud est inconnu du registre.
         """
         with self._lock:
             node = self._node(node_id)
@@ -379,17 +379,17 @@ class EventEngine:
                 )
             return impacts
 
-    # --- Aides internes ----------------------------------------------------------------
+    # Aides internes
 
     def _node(self, node_id: str) -> SupplyNode:
-        """Lecture fraîche du nœud depuis le registre (KeyError si inconnu)."""
+        """Lecture fraiche du noeud depuis le registre (KeyError si inconnu)."""
         node = self._service.registry.get_node(node_id)
         if node is None:
             raise KeyError(f"Nœud inconnu : {node_id!r}")
         return node
 
     def _clock_of(self, node: SupplyNode) -> Clock:
-        """Horloge effective du nœud : celle de SON projet (réelle ou de jeu)."""
+        """Horloge effective du noeud : celle de SON projet (reelle ou de jeu)."""
         if node.project_id:
             return self._service.clock_for(node.project_id)
         return self._service.clock

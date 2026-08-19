@@ -143,8 +143,11 @@ is false urgency; where the curve sits above the step line it is hidden risk.
 \label{sec:realisation_systeme}
 
 The model was delivered as SupplyScore, a standalone Python application of 73 modules across
-10 packages, covered by 1\,779 automated test functions in 106 test files, driving a
-multi-page web interface over a per-node database layer.
+10 packages, covered by 1\,831 automated test functions in 106 test files, driving a
+multi-page web interface over a per-node database layer. The suite collects 2\,044 cases once
+parameterisation is expanded, of which 2\,028 pass, 15 are skipped for want of an optional
+dependency, and one fails on two missing screenshot files referenced by a presentation
+script outside the library.
 
 Four architectural decisions carry the engineering weight. Every operation passes through a
 single orchestrating facade, so there is no second write path. Data is split into one
@@ -235,11 +238,82 @@ belongs to the act of displaying them.
 \subsection{Results}
 \label{sec:realisation_resultats}
 
-\subsubsection{The signal does not predict outcomes}
+The results divide cleanly into what the system was built to do, which it does, and the
+predictive layer built on top of it, which was diagnosed, repaired and measured as improving
+without yet being good. They are reported in that order.
 
-Scored against the outcome definition the system itself applies, meaning a missed milestone,
-an abandoned node or a critical event within four weeks, the forecast layer fails on both
-axes that matter.
+\subsubsection{The adequacy signal identifies the right nodes, and does it early}
+\label{sec:ciblage}
+
+The first result is the one the system was built for, and it is positive.
+
+A coordinator does not ask whether node $X$ will suffer an adverse event between weeks
+$t+1$ and $t+4$. They ask which of their suppliers deserves attention this week. That is a
+question about nodes, not about node-weeks, and the adequacy signal answers it. At each turn
+the eight nodes were ranked by hidden risk, the part of the gap where computed urgency
+exceeds declared urgency, and the set flagged above $0.10$ was compared with the set of nodes
+that would go on to miss a milestone at its originally committed deadline. Four of the eight
+nodes did.
+
+\begin{table}[htbp]
+\centering
+\caption{Nodes flagged by hidden risk against nodes that later missed a commitment}
+\label{tab:ciblage}
+\small
+\begin{tabularx}{\linewidth}{l >{\centering\arraybackslash}X >{\centering\arraybackslash}X >{\centering\arraybackslash}X >{\raggedright\arraybackslash}p{4.3cm}}
+\toprule
+\textbf{Turns} & \textbf{Precision} & \textbf{Recall} & \textbf{False alarms} &
+\textbf{Reading} \\
+\midrule
+T0 to T5, before the crisis is visible & 1.00 & 0.75 & 0 & Three nodes flagged, all three
+later missed \\
+T6 to T18, crisis public & 0.50 or below & 0.25 & 1 to 3 & The declared signal catches up and
+the gap closes \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Table~\ref{tab:ciblage} gives it. For six consecutive turns, from the opening turn to the one
+before the foundry freeze, the signal flags exactly three nodes, all three of which go on to
+miss a commitment, with no false alarm at any turn. The fourth is never flagged early, so
+recall stops at three of four. And on every one of those six turns the worst-scoring node of
+the eight is the satellite prime, which misses its delivery deadline at turn 8 and delivers
+at turn 14: the flag precedes the miss by eight turns, and it is raised while that node's own
+manager is declaring an urgency of $0.001$.
+
+That last detail is the whole point of the construction rather than a happy accident. Nothing
+in the flag comes from the declaration being pessimistic; it comes from the declaration being
+optimistic while the computed state is not. A system that only aggregated indicators would
+have ranked that node by its indicators. A system that only collected declarations would have
+believed it. The gap between the two is what carries the information, which is what the
+mission set out to test.
+
+The signal then degrades from turn 6 onward, and the reason is structural rather than a
+defect. Once the crisis is public every declarant raises their urgency, declared catches up
+with computed, and a signal defined as the difference between the two necessarily shrinks.
+Precision falls to $0.50$ and recall to $0.25$. This is the correct behaviour of a
+perception-gap measure and it bounds where such a measure is useful: it is an early-warning
+instrument, not a crisis-management one. Stated the other way round, the signal is at its
+sharpest exactly when a warning is still worth something.
+
+The repair of Section~\ref{sec:reparation} sharpens the same flag without changing which
+nodes it selects. On the campaign as run, the satellite prime scores $26.6$ out of $100$ at
+turn 3 against $46.0$ for the next worst node; after repair the same turn gives $2.2$ against
+$44.6$. The ordering is identical and the separation is an order of magnitude wider, which is
+what makes the flag readable on a dashboard rather than merely present in the data.
+
+One limit bounds all of this and is the reason Section~\ref{sec:perspectives} asks for more
+data before anything is generalised: eight nodes, four of which are positive, on one
+scenario. A precision of $1.00$ over six turns on three flagged nodes is an encouraging
+observation and not an established rate.
+
+\subsubsection{The forecast layer, and the definition it is scored against}
+
+The adequacy signal ranks nodes. Turning it into a probability that a named outcome occurs
+within a named window is a further step, and that step is where the campaign found its
+defect. Scored against the outcome definition the system itself applies, meaning a missed
+milestone, an abandoned node or a critical event within four weeks, the forecast layer failed
+on both axes that matter.
 
 Discrimination is indistinguishable from chance: the area under the ROC curve ranges from
 $0.37$ to $0.56$ across horizons and every confidence interval contains $0.5$. That statement
@@ -297,16 +371,30 @@ at all.
 The explainability layer localised the cause. Across all twenty-one confident forecasts, the
 four-week probability and the milestone-miss probability never differ by more than $0.020$:
 the confident tail is the milestone channel and nothing else. Set against the registry, ten
-of the eighteen campaign milestones completed, eight remained active and only one was
-actually missed. The model announced near-certain misses for six nodes that all delivered.
+of the eighteen campaign milestones completed, eight remained active and only one was still
+open past a deadline that had fallen inside the campaign.
 
-Reading the time block directly at the turn the scenario's critical event lands confirms it
-from the other side: the block reads numerically zero at six of the eight nodes in the middle
-of a crisis. The cause is structural. The block computes milestone risk from a lead-time
-distribution against a deadline, while the event engine writes to capacity, cost and failure
-probability and never to lead time. No path connects a shock to the quantity the block reads,
-so the block cannot respond to a disruption. It is blind by construction, and because it
-drives the entire confident tail, so is the forecast.
+That registry reading needs one qualification, because it is more forgiving than it looks.
+The registry holds each milestone's \emph{current} deadline, and a replanning rewrites it, so
+a milestone re-dated and then delivered counts as completed. Scored instead against the
+deadline each node originally committed to, six of the eleven milestones whose original
+deadline fell inside the campaign were missed, five of them by a delivery that arrived one to
+six turns late. Under that stricter reading five of the twenty-one confident forecasts were
+followed by a missed original commitment within four weeks, rather than none. The confident
+tail is still wrong far more often than it is right, and the diagnosis below is unaffected,
+but the difference between zero of twenty-one and five of twenty-one comes entirely from
+which deadline the truth is read against. Section~\ref{sec:cible} returns to that.
+
+Reading the time block directly at the turn the scenario's critical event lands confirms the
+diagnosis from the other side: the block reads numerically zero at six of the eight nodes in
+the middle of a crisis. The cause is structural. The block computes milestone risk from a
+lead-time distribution against a deadline, while the event engine writes to capacity, cost
+and failure probability and never to any quantity on the time axis. The strongest form of the
+evidence is a count: across the whole campaign, eight nodes and forty-one indicator snapshots
+each, the accumulated-delay field the block would need was written a non-zero value exactly
+zero times. No path connects a shock to the quantity the block reads, so the block cannot
+respond to a disruption. It is blind by construction, and because it drives the entire
+confident tail, so is the forecast.
 
 This is a defect in the model rather than a property of the scenario. Any deployment would
 inherit it, and the repair is a change to the event mapping rather than to the mathematics.
@@ -348,18 +436,206 @@ acting protectively. The effect is on the measurement, which is nonetheless the 
 whole adequacy layer consumes.
 
 \subsubsection{The outcome definition moves the answer}
+\label{sec:cible}
 
-A final measurement concerns how these results should be read at all. Scoring the identical
-forecasts against a plausible but naive outcome definition, counting any recorded event
-rather than the production definition, moves the base rate from $5.0\%$ to $38.7\%$ and
-improves the apparent Brier skill from $-3.36$ to $-0.64$, while leaving discrimination
-essentially unchanged.
+A final measurement concerns how these results should be read at all. The identical one
+hundred and twenty forecasts were scored against three definitions of an adverse outcome,
+and the three disagree by more than any modelling choice made during the mission.
+Table~\ref{tab:cibles} gives them at four weeks.
 
-The model did not change. Only the definition of truth did. An analyst choosing the easier
-target would report a system five times better calibrated without a line of code being
-touched. A calibration figure quoted without its outcome definition therefore carries little
-information, which is a methodological result worth more to the programme than the score
-itself.
+\begin{table}[htbp]
+\centering
+\caption{The same forecasts under three definitions of truth, four-week horizon}
+\label{tab:cibles}
+\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{3.9cm} >{\centering\arraybackslash}X >{\centering\arraybackslash}X >{\centering\arraybackslash}X >{\centering\arraybackslash}X}
+\toprule
+\textbf{Outcome definition} & \textbf{$n$} & \textbf{Base rate} & \textbf{AUC} &
+\textbf{Brier skill} \\
+\midrule
+Production, current deadline & 120 & 0.050 & 0.485 & $-3.36$ \\
+Naive, any recorded event & 75 & 0.387 & 0.484 & $-0.64$ \\
+Original commitment, censored points excluded & 90 & 0.289 & 0.654 & $-0.55$ \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The first is the definition the running system applies, and it is the one the negative result
+above is stated against. The second counts any recorded event regardless of gravity and
+ignores milestones entirely; it is the easy target, and choosing it would report a system
+five times better calibrated without a line of code being touched. The third keeps the
+production definition of an adverse outcome but reads a missed milestone against the deadline
+the node originally committed to rather than against whatever deadline the milestone
+currently carries, and drops the forecasts whose observation window runs past the end of the
+campaign.
+
+The model did not change between the three rows. Only the definition of truth did, and it
+moves the Brier skill by a factor of six and the area under the ROC curve from indistinguishable
+from chance to $0.654$. The third row is the one the rest of this section uses, for a reason
+that is a matter of what a forecast is for rather than of statistics: a replanning is itself
+the admission of a slip, so a truth that lets a re-dating erase the miss scores the forecast
+against an outcome the forecast was supposed to warn about. A calibration figure quoted
+without its outcome definition therefore carries close to no information, which is a
+methodological result worth more to the programme than the score itself.
+
+\subsection{The Repair, and What It Measures}
+\label{sec:reparation}
+
+The diagnosis above named one component and specified a repair. That repair was then carried
+out and re-measured on the identical frozen campaign, which is what this section reports. The
+declarations are unchanged, the scenario is unchanged, and the same one hundred and twenty
+forecasts are recomputed by the modified model, so any difference belongs to the model alone.
+
+\subsubsection{The recommended repair was the wrong one}
+
+The obvious reading of the diagnosis is that the calibrated events should write a lead-time
+impact alongside their existing effects, and that is what the first version did. Measuring it
+showed it does not work, for a reason worth stating because it generalises. A completion date
+estimated as a full production cycle starting now scales the lead time by the fraction of
+work remaining, so anything routed into the lead time is scaled by that fraction too, and a
+shock therefore evaporates precisely on the milestones closest to their deadline, which are
+the ones that matter. On the node carrying the scenario's accident, the four-week probability
+fell from $0.846$ to $0.000$ on a milestone that was in fact missed. Lost production time is
+additive, not proportional: a four-week freeze costs four weeks whether the order is a tenth
+done or nine tenths done.
+
+The completion model was rewritten accordingly, identically in the three independent
+estimators the system carries for the same quantity, the analytic time block, the Monte Carlo
+forecast rollout and the PERT lead-time simulator:
+\begin{equation}
+    \text{completion} \;=\; t \;+\; (1 - \text{progress}) \times \text{lead time}
+    \;+\; \text{lost time},
+    \label{eq:achevement}
+\end{equation}
+a proportional cycle term and an additive lost-time term. Five families of capacity-halting
+event, machine failure, accident, strike weighted by the share of the workforce involved,
+material shortage weighted by criticality and cyber incident, now accumulate their duration
+into the node's lost-time indicator. Loss of storage capacity deliberately does not, since it
+removes space rather than production hours.
+
+The mechanical effect is the one the diagnosis asked for. Where the accumulated-delay field
+had been written a non-zero value zero times across the whole campaign, the node carrying the
+accident now accumulates $154.7$ engine hours at its first shock and $371.2$ over the
+campaign, carried in twenty-seven of its forty-one snapshots.
+
+\subsubsection{Two further defects the first measurement had hidden}
+
+Repairing the first defect exposed a second. With the time block finally responsive, the
+milestone probability turned out to be almost binary: on the frozen replay it returned
+exactly zero or exactly one in eighty-five percent of cases, leaving fourteen forecasts of
+one hundred and twenty anywhere in between. That is a switch, not a probability, and two of
+the declarants had said so in their free-text notes before it was measured. The cause is that
+the rollout drew the lead time at random but took the declared progress as exact. Declared
+progress is the least reliable input the system receives, and it is precisely the kind of
+quantity the whole mission exists to doubt: the tool measures the gap between declared and
+computed urgency because self-reported figures run optimistic, and then its own forecast was
+treating one of them as certain. Progress is now drawn per replicate, with a standard
+deviation widened node by node in proportion to that node's own measured hidden risk, so the
+system uses its own adequacy measurement to calibrate its own forecast.
+
+The third defect was in the data rather than the code, and it is the one that would have
+invalidated any calibration attempted before it was found. Indicator coverage on the campaign
+database was $25.6\%$: twenty-four of the forty-two indicators were empty on all eight nodes,
+the carbon and cost blocks were inert everywhere, and only three of the six urgency blocks
+contributed anything at all. The lead time itself, the central quantity of the milestone
+channel, was present on five nodes out of eight, and the other three received a risk floor of
+zero through the documented fallback for a missing lead time, which is an absence of data
+presenting itself as a reassuring prediction. Filling the indicators from public figures of
+the real shortage raised coverage to $49.1\%$ and made all six blocks active. One further bug
+became visible only after that: a per-node recovery capability, a twenty-six-week aerospace
+requalification time, was being read as production time already lost, which pinned that
+node's time block at $1.0$ from the first turn. An empty database hides the errors in the
+model that consumes it.
+
+\subsubsection{What the re-measurement gives}
+
+Table~\ref{tab:reparation} scores the recomputed forecasts against the original-commitment
+definition of Section~\ref{sec:cible}, at all four horizons, on the same censored samples of
+112, 104, 96 and 90 observations.
+
+\begin{table}[htbp]
+\centering
+\caption{The frozen campaign rescored after repair}
+\label{tab:reparation}
+\small
+\begin{tabularx}{\linewidth}{c *{6}{>{\centering\arraybackslash}X}}
+\toprule
+& \multicolumn{3}{c}{\textbf{Brier skill}} & \multicolumn{3}{c}{\textbf{AUC}} \\
+\cmidrule(lr){2-4}\cmidrule(lr){5-7}
+\textbf{Horizon} & before & structure & + uncertainty &
+before & structure & + uncertainty \\
+\midrule
+1 week  & $-1.278$ & $-0.646$ & $-0.687$ & 0.736 & 0.793 & 0.729 \\
+2 weeks & $-0.690$ & $-0.401$ & $-0.367$ & 0.636 & 0.671 & 0.634 \\
+3 weeks & $-0.654$ & $-0.360$ & $-0.286$ & 0.641 & 0.657 & 0.602 \\
+4 weeks & $-0.553$ & $-0.272$ & $-0.216$ & 0.654 & 0.721 & 0.584 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The structural repair improves both axes at every horizon, which is the clean result: the
+calibration deficit is roughly halved and the discrimination rises, and neither had to be
+traded for the other. The progress-uncertainty term is a trade rather than a gain. It
+improves calibration further at two weeks and beyond, worsens it slightly at one week, and
+lowers the area under the ROC curve; that last movement is not interpretable, since with
+twenty-six positive observations the ninety-five percent interval on the four-week figure
+runs from $0.21$ to $0.87$ and contains every value in its row. The term was therefore kept
+on the calibration evidence and on the argument that a declared quantity should not enter a
+probabilistic forecast as a certainty, not on the discrimination figure.
+
+Three things should be said plainly against this. The Brier skill is still negative at every
+horizon, so the forecast is still worse calibrated than a forecaster that announces the base
+rate and stops. The milestone probability is still binary in seventy-two percent of cases,
+down from eighty-five, so the underlying over-confidence is reduced rather than removed. And
+a post-hoc calibration layer was trained, measured, and deliberately not connected: on the
+synthetic factory it improves the Brier skill by thirty-one percent, but on the campaign it
+improves calibration while dropping the four-week area under the ROC curve from $0.72$ to
+$0.58$, because it was trained on a target defined as an event striking the node at exactly
+one week while the product displays a missed milestone or an event cumulated over four. That
+is the trap of Section~\ref{sec:cible} met a second time from the other side: a layer
+calibrated against the wrong target degrades a system that works. Connecting it requires the
+training label to be rebuilt on the product's target, which requires the synthetic factory's
+snapshots to carry milestone truth, which they do not.
+
+\subsubsection{A third arm, and the honest reading of it}
+
+The repaired system was then run through a full nineteen-turn campaign in closed loop, in
+which the same eight declarants no longer only declared but also chose actions from a fixed
+catalogue, applied to the chain by the system and journalled: promote a backup arc, replan a
+milestone, expedite a shipment, raise capacity, revise a declaration, or do nothing. One
+hundred and fifty-two declarations were recorded with no unresolved consistency failure.
+
+The headline figure flatters the tool and should not be used. Six of eleven milestones were
+missed in the frozen scenario and none was left unfinished in the closed loop, which sounds
+like six saved. Read against the original commitments it is not: five of eleven milestones
+were met on their original date in the frozen run, and five of eleven in the closed loop. The
+loop changed which milestone was met, not how many. One was genuinely saved, an electronics
+series delivered on its original date that had slipped in the frozen truth. Four late
+deliveries became replannings announced in advance instead of slips discovered at the
+deadline, which is worth something to a customer without being a save. And one milestone was
+replanned that would have been met, which is the measurable cost of over-reaction. With
+eleven milestones neither the benefit nor the cost is established; they are facts of one
+campaign, not results.
+
+One further repair belongs here, because it touches the other half of the network layer.
+The criticality ranking, which sweeps the network by knocking out each node in turn and
+measuring the damage at the final customer, collapses when many nodes saturate at once: every
+delta clips to zero and the ranking says nothing, in exactly the crisis where it would be
+worth reading. Nine of the nineteen campaign turns were in that state. The ranking now
+carries a second sort key computed in log-survival, $\ell(p) = -\ln(1-p)$, on a regularised
+twin of the same propagation. Because $\ell$ is strictly increasing, the two keys order
+identically outside saturation, so nothing changes where the index already worked, and inside
+saturation the clip that flattens the first does not flatten the second. Measured on the same
+run, the number of turns on which the deep suppliers can be ordered at all rises from 10 to
+17 of 19, and the expected bottleneck leads on 16 of those 17.
+
+Two behavioural observations from that run do carry. The turn-four disarming of the first
+campaign reproduced exactly, eight declarants of eight. And the repair is visible in a
+declarant's own words at the turn the crisis event lands: where the first campaign's foundry
+manager wrote that the tool was holding a low position through a widely reported crisis and
+took no action, the repaired run moved the same node's four-week probability from $0.088$ to
+$0.214$ and the declarant replanned the milestone. The chain from a scripted shock to a
+displayed number to an action taken now closes, which it demonstrably did not before.
 
 \subsection{Problems Encountered and How They Were Resolved}
 \label{sec:problemes}

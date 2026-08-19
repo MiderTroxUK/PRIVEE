@@ -1,18 +1,18 @@
-"""Implémentation Neo4j du GraphRepository.
+"""Implementation Neo4j du GraphRepository.
 
-Le driver ``neo4j`` est une dépendance OPTIONNELLE : ce module doit rester
+Le driver ``neo4j`` est une dependance OPTIONNELLE : ce module doit rester
 importable sans lui. L'import du driver est donc fait paresseusement dans le
 constructeur, avec un message d'installation explicite en cas d'absence.
 
-Modèle de données :
-- nœud  (:SupplyNode {id, name, label, kind, rank, project_id, location,
+Modele de donnees :
+- noeud  (:SupplyNode {id, name, label, kind, rank, project_id, location,
                       latitude, longitude, status, kpis, urgency})
 - arc   (:SupplyNode)-[:SUPPLIES {label, gamma, beta, delta, kind_arc, kpis}]->(:SupplyNode)
-  orienté fournisseur -> client ; les KPIs sont sérialisés en JSON.
+  oriente fournisseur -> client ; les KPIs sont serialises en JSON.
 
 Les arcs de secours (kind_arc = "backup") sont purement documentaires : le
-filtrage par nature est fait en Python sur les arcs récupérés, et seuls les
-arcs nominaux comptent par défaut (voisinage, tri topologique, cycles).
+filtrage par nature est fait en Python sur les arcs recuperes, et seuls les
+arcs nominaux comptent par defaut (voisinage, tri topologique, cycles).
 """
 
 from __future__ import annotations
@@ -38,7 +38,7 @@ _INSTALL_HINT = (
 )
 
 
-# --- (Dé)sérialisation -------------------------------------------------------
+# (De)serialisation
 
 
 def _kpis_to_json(kpis: KPIBundle) -> str:
@@ -128,16 +128,16 @@ def _arc_from_record(source_id: str, target_id: str, props: dict[str, Any]) -> S
     )
 
 
-# --- Dépôt --------------------------------------------------------------------
+# Depot
 
 
 class Neo4jGraphRepository(GraphRepository):
     """Persiste le graphe supply chain dans une base Neo4j."""
 
     def __init__(self, uri: str, user: str, password: str, database: str = "neo4j") -> None:
-        """Ouvre le driver Neo4j (import paresseux : dépendance optionnelle)."""
+        """Ouvre le driver Neo4j (import paresseux : dependance optionnelle)."""
         try:
-            from neo4j import GraphDatabase  # import paresseux : dépendance optionnelle
+            from neo4j import GraphDatabase  # import paresseux : dependance optionnelle
         except ImportError as exc:
             raise ImportError(_INSTALL_HINT) from exc
         self._driver = GraphDatabase.driver(uri, auth=(user, password))
@@ -148,21 +148,21 @@ class Neo4jGraphRepository(GraphRepository):
         self._driver.close()
 
     def __enter__(self) -> Neo4jGraphRepository:
-        """Entre dans le context manager (retourne le dépôt lui-même)."""
+        """Entre dans le context manager (retourne le depot lui-meme)."""
         return self
 
     def __exit__(self, *exc_info: object) -> None:
-        """Ferme le driver à la sortie du context manager."""
+        """Ferme le driver a la sortie du context manager."""
         self.close()
 
     def _run(self, query: str, **params: Any) -> list[Any]:
         with self._driver.session(database=self._database) as session:
             return list(session.run(query, **params))
 
-    # --- Nœuds ----------------------------------------------------------
+    # Noeuds
 
     def add_node(self, node: SupplyNode) -> None:
-        """Ajoute un nœud. Lève ValueError si l'id existe déjà."""
+        """Ajoute un noeud. Leve ValueError si l'id existe deja."""
         if self.get_node(node.id) is not None:
             raise ValueError(f"Nœud déjà présent : {node.id!r}")
         self._run(
@@ -172,14 +172,14 @@ class Neo4jGraphRepository(GraphRepository):
         )
 
     def get_node(self, node_id: str) -> SupplyNode | None:
-        """Retourne le nœud ou None s'il est inconnu."""
+        """Retourne le noeud ou None s'il est inconnu."""
         records = self._run("MATCH (n:SupplyNode {id: $id}) RETURN n", id=node_id)
         if not records:
             return None
         return _node_from_props(dict(records[0]["n"]))
 
     def update_node(self, node: SupplyNode) -> None:
-        """Remplace le nœud existant. Lève KeyError si l'id est inconnu."""
+        """Remplace le noeud existant. Leve KeyError si l'id est inconnu."""
         if self.get_node(node.id) is None:
             raise KeyError(f"Nœud inconnu : {node.id!r}")
         self._run(
@@ -189,19 +189,19 @@ class Neo4jGraphRepository(GraphRepository):
         )
 
     def remove_node(self, node_id: str) -> None:
-        """Supprime le nœud et ses arcs incidents. Lève KeyError si inconnu."""
+        """Supprime le noeud et ses arcs incidents. Leve KeyError si inconnu."""
         if self.get_node(node_id) is None:
             raise KeyError(f"Nœud inconnu : {node_id!r}")
         self._run("MATCH (n:SupplyNode {id: $id}) DETACH DELETE n", id=node_id)
 
-    # --- Arcs -----------------------------------------------------------
+    # Arcs
 
     def add_arc(self, arc: SupplyArc) -> None:
-        """Ajoute un arc fournisseur -> client. Lève ValueError si invalide ou cyclique.
+        """Ajoute un arc fournisseur -> client. Leve ValueError si invalide ou cyclique.
 
         Le refus de cycle ne s'applique qu'aux arcs NOMINAUX : un arc de
         secours (backup), inerte, peut fermer un cycle apparent mais reste
-        interdit en boucle sur lui-même.
+        interdit en boucle sur lui-meme.
         """
         for node_id in (arc.source_id, arc.target_id):
             if self.get_node(node_id) is None:
@@ -222,9 +222,7 @@ class Neo4jGraphRepository(GraphRepository):
         )
 
     def _creates_cycle(self, source_id: str, target_id: str) -> bool:
-        # Cycle ssi un chemin NOMINAL target -> ... -> source existe déjà.
-        # Filtrage en Python sur les arcs récupérés : les arcs backup, inertes,
-        # ne créent pas de dépendance (cohérence avec le dépôt mémoire).
+        # Cycle ssi un chemin NOMINAL target -> ... -> source existe deja. Filtrage en Python sur les arcs recuperes : les arcs backup, inertes, ne creent pas de dependance (coherence avec le depot memoire).
         out_edges: dict[str, list[str]] = {}
         for arc in self.arcs((str(ArcKind.NOMINAL),)):
             out_edges.setdefault(arc.source_id, []).append(arc.target_id)
@@ -253,7 +251,7 @@ class Neo4jGraphRepository(GraphRepository):
         return _arc_from_record(source_id, target_id, dict(records[0]["r"]))
 
     def remove_arc(self, source_id: str, target_id: str) -> None:
-        """Supprime l'arc. Lève KeyError s'il est inconnu."""
+        """Supprime l'arc. Leve KeyError s'il est inconnu."""
         if self.get_arc(source_id, target_id) is None:
             raise KeyError(f"Arc inconnu : {source_id!r} -> {target_id!r}")
         self._run(
@@ -263,10 +261,10 @@ class Neo4jGraphRepository(GraphRepository):
             target_id=target_id,
         )
 
-    # --- Parcours ---------------------------------------------------------
+    # Parcours
 
     def nodes(self) -> list[SupplyNode]:
-        """Tous les nœuds du graphe."""
+        """Tous les noeuds du graphe."""
         records = self._run("MATCH (n:SupplyNode) RETURN n")
         return [_node_from_props(dict(rec["n"])) for rec in records]
 
@@ -288,8 +286,8 @@ class Neo4jGraphRepository(GraphRepository):
     ) -> list[SupplyNode]:
         """Fournisseurs directs : sources des arcs entrants sur node_id.
 
-        Par défaut, seuls les arcs nominaux comptent comme liens de flux ;
-        le filtrage par nature est fait en Python sur les arcs récupérés.
+        Par defaut, seuls les arcs nominaux comptent comme liens de flux ;
+        le filtrage par nature est fait en Python sur les arcs recuperes.
         """
         records = self._run(
             "MATCH (p:SupplyNode)-[r:SUPPLIES]->(:SupplyNode {id: $id}) RETURN p, r",
@@ -306,8 +304,8 @@ class Neo4jGraphRepository(GraphRepository):
     ) -> list[SupplyNode]:
         """Clients directs : cibles des arcs sortants de node_id.
 
-        Par défaut, seuls les arcs nominaux comptent comme liens de flux ;
-        le filtrage par nature est fait en Python sur les arcs récupérés.
+        Par defaut, seuls les arcs nominaux comptent comme liens de flux ;
+        le filtrage par nature est fait en Python sur les arcs recuperes.
         """
         records = self._run(
             "MATCH (:SupplyNode {id: $id})-[r:SUPPLIES]->(s:SupplyNode) RETURN s, r",
@@ -320,7 +318,7 @@ class Neo4jGraphRepository(GraphRepository):
         ]
 
     def nodes_by_project(self, project_id: str) -> list[SupplyNode]:
-        """Nœuds rattachés au projet donné."""
+        """Noeuds rattaches au projet donne."""
         records = self._run(
             "MATCH (n:SupplyNode {project_id: $project_id}) RETURN n",
             project_id=project_id,
@@ -328,10 +326,10 @@ class Neo4jGraphRepository(GraphRepository):
         return [_node_from_props(dict(rec["n"])) for rec in records]
 
     def topological_order(self) -> list[str]:
-        """Tri topologique (Kahn) calculé côté Python à partir des arcs NOMINAUX.
+        """Tri topologique (Kahn) calcule cote Python a partir des arcs NOMINAUX.
 
-        Les arcs de secours (backup) sont ignorés : ils ne créent pas de
-        dépendance d'ordre.
+        Les arcs de secours (backup) sont ignores : ils ne creent pas de
+        dependance d'ordre.
         """
         node_ids = [n.id for n in self.nodes()]
         edges = [(a.source_id, a.target_id) for a in self.arcs((str(ArcKind.NOMINAL),))]
@@ -354,5 +352,5 @@ class Neo4jGraphRepository(GraphRepository):
         return order
 
     def clear(self) -> None:
-        """Vide entièrement le graphe."""
+        """Vide entierement le graphe."""
         self._run("MATCH (n:SupplyNode) DETACH DELETE n")

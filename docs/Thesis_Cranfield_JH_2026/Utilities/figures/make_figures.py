@@ -61,7 +61,6 @@ def save(fig, name: str) -> None:
     print(f"  wrote {out.relative_to(IMAGES.parent)}")
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 def fig_reliability() -> None:
     """Reliability diagram at four weeks: announced against observed, per band.
 
@@ -104,7 +103,6 @@ def fig_reliability() -> None:
     save(fig, "armA_reliability.png")
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 def _roc(p: np.ndarray, y: np.ndarray):
     order = np.argsort(-p, kind="mergesort")
     ys = y[order]
@@ -146,7 +144,6 @@ def fig_roc() -> None:
     save(fig, "armA_roc.png")
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 def fig_arm_b() -> None:
     """Influence of the displayed forecast, turn by turn."""
     per = D["arm_b"]["declarations"]["per_turn"]
@@ -188,7 +185,6 @@ def fig_arm_b() -> None:
     save(fig, "armB_influence.png")
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 def _run_curve(name: str):
     path = VOLUME / "runs" / name / "results.csv"
     if not path.exists():
@@ -235,7 +231,6 @@ def fig_volume_training() -> None:
     save(fig, "volume_training.png")
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 def fig_volume_calibration() -> None:
     """Declared-to-geometric volume ratio over the retained, auditable corpus.
 

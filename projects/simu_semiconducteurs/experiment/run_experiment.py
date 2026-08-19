@@ -1,31 +1,31 @@
-"""Harnais d'expérience du BRAS B (HÉLIOS) : déclaration assistée par prévision.
+"""Harnais d'experience du BRAS B (HELIOS) : declaration assistee par prevision.
 
-Trois bras sont comparés sur le MÊME scénario HÉLIOS (crise des
-semi-conducteurs 2020-2022 rejouée, vérité terrain GELÉE dans
+Trois bras sont compares sur le MEME scenario HELIOS (crise des
+semi-conducteurs 2020-2022 rejouee, verite terrain GELEE dans
 ``scenario.EVENTS``) :
 
-- **bras A** — pilote LLM déjà joué (``analysis/llm_pilot_run/``) : les
-  personas lisent leur fiche et déclarent leur Ud. Rien à rejouer ici.
-- **bras B** — CE HARNAIS : fiche IDENTIQUE au bras A, plus (bras ``predict``
-  seulement) une section « ANALYSE PRÉDICTIVE (outil) » qui expose au persona
-  la prévision de SON nœud. Les personas DÉCLARENT seulement : aucune action,
-  aucune modification de la vérité terrain — KPIs, jalons et événements
-  restent pilotés par le pack gelé ``data/prepared``. La boucle est OUVERTE,
-  donc les prévisions restent scorables.
-- **bras C** — extension future (les personas agiront réellement sur la
-  chaîne) : NON IMPLÉMENTÉ, cf. :func:`appliquer_actions_bras_c`.
+- **bras A** - pilote LLM deja joue (``analysis/llm_pilot_run/``) : les
+  personas lisent leur fiche et declarent leur Ud. Rien a rejouer ici.
+- **bras B** - CE HARNAIS : fiche IDENTIQUE au bras A, plus (bras ``predict``
+  seulement) une section " ANALYSE PREDICTIVE (outil) " qui expose au persona
+  la prevision de SON noeud. Les personas DECLARENT seulement : aucune action,
+  aucune modification de la verite terrain - KPIs, jalons et evenements
+  restent pilotes par le pack gele ``data/prepared``. La boucle est OUVERTE,
+  donc les previsions restent scorables.
+- **bras C** - extension future (les personas agiront reellement sur la
+  chaine) : NON IMPLEMENTE, cf. :func:`appliquer_actions_bras_c`.
 
 L'A/B interne du bras B oppose deux sous-bras :
 
-- ``control`` : la prévision est calculée et JOURNALISÉE, jamais montrée ;
-- ``predict`` : la MÊME prévision est en plus rendue dans la fiche.
+- ``control`` : la prevision est calculee et JOURNALISEE, jamais montree ;
+- ``predict`` : la MEME prevision est en plus rendue dans la fiche.
 
-Les deux sous-bras produisent donc des prédictions prospectives comparables ;
-seule leur VISIBILITÉ diffère (``montre_au_persona`` dans
+Les deux sous-bras produisent donc des predictions prospectives comparables ;
+seule leur VISIBILITE differe (``montre_au_persona`` dans
 ``predictions_log.jsonl``). Hors ce bloc, les fiches des deux sous-bras sont
-identiques au caractère près — c'est la validité interne de l'A/B.
+identiques au caractere pres - c'est la validite interne de l'A/B.
 
-Usage (une base SQLite PERSISTÉE par sous-bras) ::
+Usage (une base SQLite PERSISTEE par sous-bras) ::
 
     python run_experiment.py init         --arm predict --db-dir D
     python run_experiment.py prepare-tour --arm predict --db-dir D --out O --tour N
@@ -34,20 +34,21 @@ Usage (une base SQLite PERSISTÉE par sous-bras) ::
     python run_experiment.py make-sandboxes --arm predict --out O
     python run_experiment.py status       --db-dir D
 
-Aucun appel LLM n'est fait ici : le harnais lit et écrit des fichiers, le
+Aucun appel LLM n'est fait ici : le harnais lit et ecrit des fichiers, le
 coordinateur fait tourner les personas (agents Haiku) sur les dossiers
 ``sandbox_<node>/`` produits par ``make-sandboxes``.
 
-Garantie ANTI-FUITE (héritée de ``make_briefings``) : une fiche n'est
-construite qu'à partir des fichiers préparés des tours <= N et des seules
-données du nœud concerné. La section prédictive n'ajoute que des nombres
-calculés SUR CE NŒUD. Le pack ``data/prepared`` est ouvert en LECTURE SEULE.
+Garantie ANTI-FUITE (heritee de ``make_briefings``) : une fiche n'est
+construite qu'a partir des fichiers prepares des tours <= N et des seules
+donnees du noeud concerne. La section predictive n'ajoute que des nombres
+calcules SUR CE NOEUD. Le pack ``data/prepared`` est ouvert en LECTURE SEULE.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
 import sys
 from dataclasses import dataclass, field
@@ -72,16 +73,58 @@ from supplyscore.core.ahp import (  # noqa: E402
     score_6_to_9,
     ud_smoothed,
 )
+from supplyscore.domain.actions import (  # noqa: E402
+    CATALOGUE_V1,
+    contexte_pour,
+)
 from supplyscore.services.forecast import MIN_HISTORY_WEEKS, ForecastService  # noqa: E402
+from supplyscore.services.interventions import InterventionJournal  # noqa: E402
 
-#: Les deux sous-bras de l'expérience B (le bras A n'est pas rejoué ici).
-ARMS: tuple[str, ...] = ("control", "predict")
+#: Sous-bras jouables. ``control``/``predict`` sont le A/B du bras B (boucle OUVERTE, previsions scorables) ; ``act`` est le bras C - meme fiche que ``predict``, mais les personas AGISSENT et la verite terrain leur repond.
+ARMS: tuple[str, ...] = ("control", "predict", "act")
 
-#: Horizon de prévision montré/journalisé, en semaines (défaut de U9).
-HORIZON_PREVISION: int = 4
+#: Sous-bras ou la fiche expose l'analyse predictive au persona.
+ARMS_AVEC_PREVISION: tuple[str, ...] = ("predict", "act")
 
-#: Budget de trajectoires Monte Carlo par défaut (compromis vitesse/précision
-#: pour un tour interactif ; U9 exige >= 20, un multiple de 20 est consommé).
+#: Sous-bras ou les actions des personas sont reellement appliquees (bras C).
+ARMS_AGISSANTS: tuple[str, ...] = ("act",)
+
+#: Secondes dans une semaine - convertit ``delai_effet_weeks`` en date d'effet.
+_SEMAINE_S: float = 7 * 24 * 3600.0
+
+def _horizon_env(defaut: int) -> int:
+    """Horizon de prevision, surchargeable par ``SUPPLYSCORE_HORIZON_PREVISION``.
+
+    Canal de calibration : les balayages lancent le harnais en sous-processus,
+    une variable d'environnement est donc le seul moyen de faire varier
+    l'horizon sans editer le code entre deux mesures - ce qui les rendrait
+    incomparables. Une valeur illisible ou hors [1, 26] retombe sur le defaut
+    en le disant, plutot que d'introduire un horizon fantaisiste en silence.
+
+    Args:
+        defaut: horizon retenu en l'absence de surcharge valide.
+
+    Returns:
+        L'horizon en semaines.
+    """
+    brut = os.environ.get("SUPPLYSCORE_HORIZON_PREVISION")
+    if brut is None:
+        return defaut
+    try:
+        valeur = int(brut)
+    except ValueError:
+        print(f"  [horizon] valeur illisible {brut!r}, défaut {defaut} conservé")
+        return defaut
+    if not 1 <= valeur <= 26:
+        print(f"  [horizon] {valeur} hors [1, 26], défaut {defaut} conservé")
+        return defaut
+    return valeur
+
+
+#: Horizon de prevision montre/journalise, en semaines (defaut de U9). Balayable via ``SUPPLYSCORE_HORIZON_PREVISION``.
+HORIZON_PREVISION: int = _horizon_env(4)
+
+#: Budget de trajectoires Monte Carlo par defaut (compromis vitesse/precision pour un tour interactif ; U9 exige >= 20, un multiple de 20 est consomme).
 N_DRAWS_DEFAUT: int = 500
 
 #: Inertie du lissage de Ud, identique au protocole du bras A.
@@ -95,34 +138,32 @@ INFLUENCES: tuple[str, ...] = (
     "revise_a_la_baisse",
 )
 
-#: Titre EXACT du bloc de traitement — seule différence entre les deux bras.
+#: Titre EXACT du bloc de traitement - seule difference entre les deux bras.
 TITRE_PREDICTIF: str = "## ANALYSE PRÉDICTIVE (outil)"
 
-#: Phrase servie quand la prévision est impossible (jamais un chiffre inventé).
+#: Phrase servie quand la prevision est impossible (jamais un chiffre invente).
 INDISPONIBLE: str = "analyse prédictive indisponible ce tour"
 
-#: Paires AHP comparées, dans l'ordre figé de l'UI (contrat 2 du plan v7) —
-#: réutilisé depuis ``inject_tour`` plutôt que redéclaré : une seule source.
+#: Paires AHP comparees, dans l'ordre fige de l'UI (contrat 2 du plan v7) - reutilise depuis ``inject_tour`` plutot que redeclare : une seule source.
 _AHP_PAIRS = inject_tour._AHP_PAIRS
 
-#: Dossier du pilote LLM (bras A) — référence des cartes de rôle. Absent d'une
-#: worktree fraîche : la vérification ci-dessous est donc au mieux-effort.
+#: Dossier du pilote LLM (bras A) - reference des cartes de role. Absent d'une worktree fraiche : la verification ci-dessous est donc au mieux-effort.
 PILOTE_BRAS_A: Path = _common.PROJECT_DIR / "analysis" / "llm_pilot_run"
 
 
 class RefusExperienceError(Exception):
-    """Refus explicite du harnais (séquence, couverture, réponse invalide).
+    """Refus explicite du harnais (sequence, couverture, reponse invalide).
 
-    Portée par un message français prêt à afficher : :func:`main` le rend tel
-    quel préfixé de « REFUS : » et sort en code 2, comme ``inject_tour.py``.
+    Portee par un message francais pret a afficher : :func:`main` le rend tel
+    quel prefixe de " REFUS : " et sort en code 2, comme ``inject_tour.py``.
     """
 
 
-# --- État d'expérience -----------------------------------------------------------------
+# Etat d'experience
 
 
 def state_path(db_dir: str) -> Path:
-    """Chemin du fichier d'état d'expérience du sous-bras.
+    """Chemin du fichier d'etat d'experience du sous-bras.
 
     Args:
         db_dir: dossier des bases SQLite du sous-bras.
@@ -134,13 +175,13 @@ def state_path(db_dir: str) -> Path:
 
 
 def load_state(db_dir: str) -> dict | None:
-    """Lit l'état d'expérience, ou None si le sous-bras n'est pas initialisé.
+    """Lit l'etat d'experience, ou None si le sous-bras n'est pas initialise.
 
     Args:
         db_dir: dossier des bases SQLite du sous-bras.
 
     Returns:
-        L'état ``{arm, last_tour, pending_tour?, phase?}``, ou None.
+        L'etat ``{arm, last_tour, pending_tour?, phase?}``, ou None.
     """
     path = state_path(db_dir)
     if not path.exists():
@@ -149,11 +190,11 @@ def load_state(db_dir: str) -> dict | None:
 
 
 def save_state(db_dir: str, state: dict) -> None:
-    """Écrit l'état d'expérience du sous-bras.
+    """Ecrit l'etat d'experience du sous-bras.
 
     Args:
         db_dir: dossier des bases SQLite du sous-bras.
-        state: état complet à persister.
+        state: etat complet a persister.
     """
     state_path(db_dir).write_text(
         json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8"
@@ -161,18 +202,18 @@ def save_state(db_dir: str, state: dict) -> None:
 
 
 def _exiger_etat(db_dir: str, arm: str) -> dict:
-    """Charge l'état et vérifie que le sous-bras demandé est bien celui de la base.
+    """Charge l'etat et verifie que le sous-bras demande est bien celui de la base.
 
     Args:
         db_dir: dossier des bases SQLite du sous-bras.
-        arm: sous-bras demandé en ligne de commande.
+        arm: sous-bras demande en ligne de commande.
 
     Returns:
-        L'état d'expérience validé.
+        L'etat d'experience valide.
 
     Raises:
-        RefusExperienceError: base non initialisée ou bras discordant — mélanger
-            deux bras dans une même base ruinerait l'A/B.
+        RefusExperienceError: base non initialisee ou bras discordant - melanger
+            deux bras dans une meme base ruinerait l'A/B.
     """
     state = load_state(db_dir)
     if state is None:
@@ -189,16 +230,16 @@ def _exiger_etat(db_dir: str, arm: str) -> dict:
 
 
 def _exiger_out(state: dict, out: str | None) -> Path:
-    """Résout ``--out`` en le verrouillant sur celui déclaré à ``prepare-tour``.
+    """Resout ``--out`` en le verrouillant sur celui declare a ``prepare-tour``.
 
     Le dossier de sortie porte l'historique du bras (``results/<node>.jsonl``,
-    d'où sort le Ud lissé du tour précédent, et ``predictions_log.jsonl``).
-    Changer de dossier en cours de route casserait SILENCIEUSEMENT la chaîne
-    de lissage — d'où le verrou : ``prepare-tour`` enregistre le dossier, les
-    étapes suivantes le reprennent ou doivent le désigner à l'identique.
+    d'ou sort le Ud lisse du tour precedent, et ``predictions_log.jsonl``).
+    Changer de dossier en cours de route casserait SILENCIEUSEMENT la chaine
+    de lissage - d'ou le verrou : ``prepare-tour`` enregistre le dossier, les
+    etapes suivantes le reprennent ou doivent le designer a l'identique.
 
     Args:
-        state: état d'expérience courant.
+        state: etat d'experience courant.
         out: valeur de ``--out``, ou None pour reprendre celle du tour ouvert.
 
     Returns:
@@ -226,19 +267,19 @@ def _exiger_out(state: dict, out: str | None) -> Path:
 
 
 def _exiger_sequence(state: dict, tour: int, phase_attendue: str | None) -> None:
-    """Vérifie que ``tour`` est bien le tour attendu dans la phase attendue.
+    """Verifie que ``tour`` est bien le tour attendu dans la phase attendue.
 
-    Discipline identique à ``inject_tour.py`` : pas de rejeu silencieux, pas
-    de saut de tour, une seule phase possible à la fois.
+    Discipline identique a ``inject_tour.py`` : pas de rejeu silencieux, pas
+    de saut de tour, une seule phase possible a la fois.
 
     Args:
-        state: état d'expérience courant.
-        tour: tour demandé.
+        state: etat d'experience courant.
+        tour: tour demande.
         phase_attendue: phase requise (``"injecte"`` avant collecte,
-            ``"collecte"`` avant clôture), ou None pour ouvrir un tour neuf.
+            ``"collecte"`` avant cloture), ou None pour ouvrir un tour neuf.
 
     Raises:
-        RefusExperienceError: tour hors séquence ou phase incompatible (français).
+        RefusExperienceError: tour hors sequence ou phase incompatible (francais).
     """
     if tour < 0 or tour > scenario.N_TOURS:
         raise RefusExperienceError(
@@ -267,29 +308,29 @@ def _exiger_sequence(state: dict, tour: int, phase_attendue: str | None) -> None
         )
 
 
-# --- Prévisions (calculées dans LES DEUX bras) ------------------------------------------
+# Previsions (calculees dans LES DEUX bras)
 
 
 @dataclass(frozen=True)
 class _PointPrevision:
-    """Point de prévision duck-typé consommé par :class:`InsightService`.
+    """Point de prevision duck-type consomme par :class:`InsightService`.
 
-    Reproduit la partie du contrat 6 (``PredictionPoint``, U11) réellement lue
-    par ``InsightService`` — le harnais n'a pas d'artefact de modèle entraîné
+    Reproduit la partie du contrat 6 (``PredictionPoint``, U11) reellement lue
+    par ``InsightService`` - le harnais n'a pas d'artefact de modele entraine
     et travaille directement sur le rollout Monte Carlo (U9).
 
     Attributes:
-        node_id: nœud concerné.
-        node_name: nom lisible du nœud.
-        proba_by_horizon: ``P(issue défavorable <= k semaines)`` par horizon k.
-        delta_vs_last_week: variation brute de ``ur_local`` sur la dernière
-            semaine ISO du nœud, None si l'historique est trop court.
-        p_jalon_rate: probabilité de jalon raté à l'horizon de référence.
-        p_impact_client: probabilité d'impact client à l'horizon de référence.
-        impact_frac: fraction des nœuds du projet touchés par le pire choc
-            local de CE nœud (criticité systématique), None si indisponible.
-        recommandation: TOUJOURS None en bras B — les personas ne peuvent
-            agir sur rien, donc aucune action n'est recommandée (couture C).
+        node_id: noeud concerne.
+        node_name: nom lisible du noeud.
+        proba_by_horizon: ``P(issue defavorable <= k semaines)`` par horizon k.
+        delta_vs_last_week: variation brute de ``ur_local`` sur la derniere
+            semaine ISO du noeud, None si l'historique est trop court.
+        p_jalon_rate: probabilite de jalon rate a l'horizon de reference.
+        p_impact_client: probabilite d'impact client a l'horizon de reference.
+        impact_frac: fraction des noeuds du projet touches par le pire choc
+            local de CE noeud (criticite systematique), None si indisponible.
+        recommandation: TOUJOURS None en bras B - les personas ne peuvent
+            agir sur rien, donc aucune action n'est recommandee (couture C).
     """
 
     node_id: str
@@ -303,11 +344,11 @@ class _PointPrevision:
 
 
 def _pct(valeur: float | None, decimales: int = 1) -> str:
-    """Formate une probabilité de [0, 1] en pourcentage français.
+    """Formate une probabilite de [0, 1] en pourcentage francais.
 
     Args:
-        valeur: probabilité à formater, ou None.
-        decimales: nombre de décimales affichées.
+        valeur: probabilite a formater, ou None.
+        decimales: nombre de decimales affichees.
 
     Returns:
         ``"27.3 %"``, ou ``"n/d"`` si ``valeur`` est None.
@@ -318,17 +359,17 @@ def _pct(valeur: float | None, decimales: int = 1) -> str:
 
 
 def _impact_frac_par_noeud(service) -> dict[str, float]:
-    """Fraction du projet impactée par le pire choc local, par nœud.
+    """Fraction du projet impactee par le pire choc local, par noeud.
 
-    Même formule que ``PredictionService`` (``nb_impactes / n_noeuds_projet``)
-    — c'est une propriété structurelle DU nœud considéré, jamais l'état d'un
-    autre nœud (cf. la garantie anti-fuite du protocole d'expérience).
+    Meme formule que ``PredictionService`` (``nb_impactes / n_noeuds_projet``)
+    - c'est une propriete structurelle DU noeud considere, jamais l'etat d'un
+    autre noeud (cf. la garantie anti-fuite du protocole d'experience).
 
     Args:
-        service: façade SupplyScore ouverte sur la base du sous-bras.
+        service: facade SupplyScore ouverte sur la base du sous-bras.
 
     Returns:
-        ``{node_id: fraction}`` ; dictionnaire vide si la criticité échoue.
+        ``{node_id: fraction}`` ; dictionnaire vide si la criticite echoue.
     """
     from supplyscore.services.criticite import ServiceCriticite
 
@@ -337,7 +378,7 @@ def _impact_frac_par_noeud(service) -> dict[str, float]:
         return {}
     try:
         points = ServiceCriticite(service).indice_criticite(PROJECT_ID)
-    except Exception as exc:  # criticité best-effort : l'insight reste produit
+    except Exception as exc:  # criticite best-effort : l'insight reste produit
         print(f"  [criticité ÉCHEC] {type(exc).__name__}: {exc}")
         return {}
     return {p.node_id: p.nb_impactes / n_noeuds for p in points}
@@ -346,21 +387,21 @@ def _impact_frac_par_noeud(service) -> dict[str, float]:
 def previsions_du_tour(
     service, n_draws: int, seed: int
 ) -> tuple[dict[str, dict], str | None]:
-    """Rollout Monte Carlo du projet + lecture en clair, nœud par nœud.
+    """Rollout Monte Carlo du projet + lecture en clair, noeud par noeud.
 
-    Enchaîne ``ForecastService.rollout`` (U9), la criticité systématique et
-    ``InsightService`` (U12, 100 % règles, aucun LLM). Aucune écriture en base.
+    Enchaine ``ForecastService.rollout`` (U9), la criticite systematique et
+    ``InsightService`` (U12, 100 % regles, aucun LLM). Aucune ecriture en base.
 
     Args:
-        service: façade SupplyScore ouverte sur la base du sous-bras.
+        service: facade SupplyScore ouverte sur la base du sous-bras.
         n_draws: budget de trajectoires du rollout.
-        seed: graine du rollout (déterminisme : même graine, mêmes chiffres).
+        seed: graine du rollout (determinisme : meme graine, memes chiffres).
 
     Returns:
-        ``(par_noeud, erreur)`` — ``par_noeud`` associe à chaque nœud simulé
+        ``(par_noeud, erreur)`` - ``par_noeud`` associe a chaque noeud simule
         ``{p_issue, ic80_h4, se_mc, spread, p_jalon_rate, p_impact_client,
-        insight}`` ; ``erreur`` est None en cas de succès, sinon le message
-        français expliquant pourquoi aucune prévision n'est disponible (et
+        insight}`` ; ``erreur`` est None en cas de succes, sinon le message
+        francais expliquant pourquoi aucune prevision n'est disponible (et
         ``par_noeud`` est alors vide).
     """
     from supplyscore.services.insights import InsightService
@@ -370,7 +411,7 @@ def previsions_du_tour(
         resultat = forecast.rollout(
             PROJECT_ID, horizon_weeks=HORIZON_PREVISION, n_draws=n_draws, seed=seed
         )
-    except Exception as exc:  # prévision best-effort : jamais un chiffre inventé
+    except Exception as exc:  # prevision best-effort : jamais un chiffre invente
         return {}, f"{type(exc).__name__}: {exc}"
 
     fractions = _impact_frac_par_noeud(service)
@@ -378,8 +419,7 @@ def previsions_du_tour(
     for node_id, par_horizon in resultat.previsions.items():
         node = service.repo.get_node(node_id)
         reference = par_horizon[HORIZON_PREVISION]
-        # Réutilise le regroupement hebdomadaire CANONIQUE du service de
-        # prévision (dernier état de chaque semaine ISO) au lieu de le redériver.
+        # Reutilise le regroupement hebdomadaire CANONIQUE du service de prevision (dernier etat de chaque semaine ISO) au lieu de le rederiver.
         _, valeurs = forecast._serie_hebdo(node_id)
         delta = float(valeurs[-1] - valeurs[-2]) if valeurs.size >= 2 else None
         point = _PointPrevision(
@@ -394,7 +434,7 @@ def previsions_du_tour(
         try:
             insights = InsightService(service).insights(PROJECT_ID, [point])
             message = insights[0].message if insights else ""
-        except Exception as exc:  # lecture en clair best-effort : chiffres conservés
+        except Exception as exc:  # lecture en clair best-effort : chiffres conserves
             print(f"  [insight ÉCHEC {node_id}] {type(exc).__name__}: {exc}")
             message = ""
         par_noeud[node_id] = {
@@ -404,6 +444,9 @@ def previsions_du_tour(
             "spread": reference.spread,
             "p_jalon_rate": reference.p_jalon_rate,
             "p_impact_client": reference.p_impact_client,
+            # Journalisees pour la couche de calibration (contrat 5) : l'artefact EMOS attend " ur_local " et " d1_ur_local " parmi ses features, et les imputait faute de les trouver dans le journal. Elles sont calculees ici de toute facon - ne pas les ecrire revenait a faire travailler la calibration sur une information partielle.
+            "ur_local": float(valeurs[-1]) if valeurs.size else None,
+            "d1_ur_local": delta,
             "insight": message,
         }
     return par_noeud, None
@@ -418,27 +461,27 @@ def journaliser_previsions(
     n_draws: int,
     seed: int,
 ) -> Path:
-    """Écrit une ligne de ``predictions_log.jsonl`` par (tour, nœud).
+    """Ecrit une ligne de ``predictions_log.jsonl`` par (tour, noeud).
 
-    C'EST LE CŒUR SCIENTIFIQUE DU DISPOSITIF : le bras ``control`` journalise
-    EXACTEMENT les mêmes prédictions que le bras ``predict``, mais avec
+    C'EST LE COEUR SCIENTIFIQUE DU DISPOSITIF : le bras ``control`` journalise
+    EXACTEMENT les memes predictions que le bras ``predict``, mais avec
     ``montre_au_persona = false``. Les deux bras produisent donc des
-    prédictions prospectives comparables ; seule leur visibilité diffère.
+    predictions prospectives comparables ; seule leur visibilite differe.
 
-    Idempotent : les lignes du même tour déjà présentes sont remplacées, pas
-    dupliquées (une reprise après incident ne fausse pas le journal).
+    Idempotent : les lignes du meme tour deja presentes sont remplacees, pas
+    dupliquees (une reprise apres incident ne fausse pas le journal).
 
     Args:
         out: dossier de sortie du sous-bras.
         arm: sous-bras (``control`` ou ``predict``).
-        tour: tour journalisé.
-        par_noeud: prévisions par nœud (vide si ``erreur`` est renseignée).
-        erreur: message d'échec de la prévision, ou None.
-        n_draws: budget de trajectoires effectivement demandé.
+        tour: tour journalise.
+        par_noeud: previsions par noeud (vide si ``erreur`` est renseignee).
+        erreur: message d'echec de la prevision, ou None.
+        n_draws: budget de trajectoires effectivement demande.
         seed: graine du rollout.
 
     Returns:
-        Le chemin du journal écrit.
+        Le chemin du journal ecrit.
     """
     chemin = out / "predictions_log.jsonl"
     anciennes = []
@@ -449,7 +492,7 @@ def journaliser_previsions(
             if json.loads(ligne).get("tour") != tour:
                 anciennes.append(ligne)
 
-    montre = arm == "predict" and erreur is None
+    montre = arm in ARMS_AVEC_PREVISION and erreur is None
     nouvelles: list[str] = []
     for spec in scenario.NODES:
         node_id = spec["id"]
@@ -462,6 +505,8 @@ def journaliser_previsions(
         entree["spread"] = donnees["spread"] if donnees else None
         entree["p_jalon_rate"] = donnees["p_jalon_rate"] if donnees else None
         entree["p_impact_client"] = donnees["p_impact_client"] if donnees else None
+        entree["ur_local"] = donnees["ur_local"] if donnees else None
+        entree["d1_ur_local"] = donnees["d1_ur_local"] if donnees else None
         entree["montre_au_persona"] = montre and donnees is not None
         entree["n_draws"] = n_draws
         entree["seed"] = seed
@@ -474,15 +519,15 @@ def journaliser_previsions(
 
 
 def section_predictive(donnees: dict | None) -> str:
-    """Bloc « ANALYSE PRÉDICTIVE (outil) » d'une fiche du bras ``predict``.
+    """Bloc " ANALYSE PREDICTIVE (outil) " d'une fiche du bras ``predict``.
 
     SEUL point de divergence entre les deux sous-bras. Ne contient QUE des
-    chiffres calculés sur le nœud de la fiche ; aucun nombre n'est inventé —
-    en l'absence de prévision exploitable, la section le dit explicitement.
+    chiffres calcules sur le noeud de la fiche ; aucun nombre n'est invente -
+    en l'absence de prevision exploitable, la section le dit explicitement.
 
     Args:
-        donnees: prévisions du nœud (cf. :func:`previsions_du_tour`), ou None
-            si la prévision a échoué ou si l'historique est insuffisant.
+        donnees: previsions du noeud (cf. :func:`previsions_du_tour`), ou None
+            si la prevision a echoue ou si l'historique est insuffisant.
 
     Returns:
         Le texte Markdown de la section (sans saut de ligne final).
@@ -544,20 +589,20 @@ def section_predictive(donnees: dict | None) -> str:
     return "\n".join(lignes)
 
 
-# --- Fiches -----------------------------------------------------------------------------
+# Fiches
 
 
 def _ecrire_fiche(out: Path, node_id: str, tour: int, texte: str) -> Path:
-    """Écrit la fiche du nœud et la recopie dans son bac à sable s'il existe.
+    """Ecrit la fiche du noeud et la recopie dans son bac a sable s'il existe.
 
     Args:
         out: dossier de sortie du sous-bras.
-        node_id: nœud concerné.
+        node_id: noeud concerne.
         tour: tour de la fiche.
         texte: contenu Markdown complet de la fiche.
 
     Returns:
-        Le chemin de la fiche de référence (``OUT/tour_NN/<node>.md``).
+        Le chemin de la fiche de reference (``OUT/tour_NN/<node>.md``).
     """
     dossier = out / f"tour_{tour:02d}"
     dossier.mkdir(parents=True, exist_ok=True)
@@ -570,23 +615,23 @@ def _ecrire_fiche(out: Path, node_id: str, tour: int, texte: str) -> Path:
     return chemin
 
 
-# --- Réponses des personas ---------------------------------------------------------------
+# Reponses des personas
 
 
 def _entier(valeur: object, contexte: str, bas: int, haut: int) -> int:
-    """Valide un entier borné venant d'un fichier de réponses.
+    """Valide un entier borne venant d'un fichier de reponses.
 
     Args:
         valeur: valeur brute lue dans le JSON.
         contexte: description du champ, pour le message d'erreur.
-        bas: borne inférieure incluse.
-        haut: borne supérieure incluse.
+        bas: borne inferieure incluse.
+        haut: borne superieure incluse.
 
     Returns:
-        L'entier validé.
+        L'entier valide.
 
     Raises:
-        RefusExperienceError: valeur non entière ou hors bornes (français).
+        RefusExperienceError: valeur non entiere ou hors bornes (francais).
     """
     if isinstance(valeur, bool) or not isinstance(valeur, int):
         raise RefusExperienceError(f"{contexte} doit être un entier, reçu {valeur!r}.")
@@ -596,25 +641,25 @@ def _entier(valeur: object, contexte: str, bas: int, haut: int) -> int:
 
 
 def lire_answers(chemin: Path, arm: str) -> dict[str, dict]:
-    """Lit et valide le fichier de réponses d'un tour (une ligne JSON par nœud).
+    """Lit et valide le fichier de reponses d'un tour (une ligne JSON par noeud).
 
-    Clés attendues : ``node_id``, ``bipolar`` (6 entiers de -8 à 8),
-    ``scores_ui`` (4 entiers de 1 à 6), ``note``, ``attempts`` (optionnel,
+    Cles attendues : ``node_id``, ``bipolar`` (6 entiers de -8 a 8),
+    ``scores_ui`` (4 entiers de 1 a 6), ``note``, ``attempts`` (optionnel,
     1 ou 2) et, en bras ``predict`` UNIQUEMENT, ``influence_prediction``.
-    Toute autre clé est ignorée : le coordinateur peut donc recopier telle
-    quelle la ligne ``results.jsonl`` écrite par le persona en y ajoutant
+    Toute autre cle est ignoree : le coordinateur peut donc recopier telle
+    quelle la ligne ``results.jsonl`` ecrite par le persona en y ajoutant
     ``node_id``.
 
     Args:
-        chemin: fichier de réponses du tour.
-        arm: sous-bras courant (contrôle la présence d'``influence_prediction``).
+        chemin: fichier de reponses du tour.
+        arm: sous-bras courant (controle la presence d'``influence_prediction``).
 
     Returns:
-        ``{node_id: réponse validée}`` couvrant EXACTEMENT les 8 nœuds.
+        ``{node_id: reponse validee}`` couvrant EXACTEMENT les 8 noeuds.
 
     Raises:
-        RefusExperienceError: fichier absent/malformé, couverture incomplète,
-            doublon, nœud inconnu ou champ invalide (messages en français).
+        RefusExperienceError: fichier absent/malforme, couverture incomplete,
+            doublon, noeud inconnu ou champ invalide (messages en francais).
     """
     if not chemin.is_file():
         raise RefusExperienceError(f"fichier de réponses introuvable : {chemin}")
@@ -650,8 +695,31 @@ def lire_answers(chemin: Path, arm: str) -> dict[str, dict]:
         ]
         attempts = _entier(brut.get("attempts", 1), f"{node_id} : attempts", 1, 2)
 
+        action_id = brut.get("action_id")
+        if arm in ARMS_AGISSANTS:
+            if action_id not in CATALOGUE_V1:
+                raise RefusExperienceError(
+                    f"{node_id} : « action_id » est obligatoire en bras act et doit "
+                    f"valoir l'une de {', '.join(sorted(CATALOGUE_V1))} "
+                    f"(reçu {action_id!r})."
+                )
+            # Controle ICI, en phase de validation, et non au moment d'agir : ``InterventionJournal.record`` refuse un objectif vide par un ValueError, qui surviendrait en phase d'ecriture - apres que les premiers noeuds ont deja ete soumis, laissant le tour a moitie declare. C'est exactement ce que l'atomicite en deux phases promet d'eviter.
+            if action_id != "ne_rien_faire" and not str(
+                brut.get("objectif_action", "")
+            ).strip():
+                raise RefusExperienceError(
+                    f"{node_id} : « objectif_action » est obligatoire en bras act "
+                    f"dès que action_id vaut autre chose que « ne_rien_faire » "
+                    f"(reçu vide ou blanc, action {action_id!r})."
+                )
+        elif action_id is not None:
+            raise RefusExperienceError(
+                f"{node_id} : « action_id » présent hors bras act — ce persona n'a "
+                "aucun levier d'action ; vérifier le bac à sable servi."
+            )
+
         influence = brut.get("influence_prediction")
-        if arm == "predict":
+        if arm in ARMS_AVEC_PREVISION:
             if influence not in INFLUENCES:
                 raise RefusExperienceError(
                     f"{node_id} : « influence_prediction » est obligatoire en bras "
@@ -670,7 +738,9 @@ def lire_answers(chemin: Path, arm: str) -> dict[str, dict]:
             "scores_ui": scores_ui,
             "attempts": attempts,
             "note": str(brut.get("note", "")),
-            "influence_prediction": influence if arm == "predict" else None,
+            "influence_prediction": influence if arm in ARMS_AVEC_PREVISION else None,
+            "action_id": action_id,
+            "objectif_action": str(brut.get("objectif_action", "")),
         }
 
     manquants = attendus - set(reponses)
@@ -683,7 +753,7 @@ def lire_answers(chemin: Path, arm: str) -> dict[str, dict]:
 
 
 def _dernier_resultat(chemin: Path) -> dict | None:
-    """Dernière ligne de résultat d'un nœud (pour le Ud lissé et le report).
+    """Derniere ligne de resultat d'un noeud (pour le Ud lisse et le report).
 
     Args:
         chemin: fichier ``OUT/results/<node_id>.jsonl``.
@@ -698,11 +768,11 @@ def _dernier_resultat(chemin: Path) -> dict | None:
 
 
 def _ecrire_resultat(chemin: Path, ligne: dict) -> None:
-    """Ajoute une ligne de résultat, en remplaçant celle du même tour si besoin.
+    """Ajoute une ligne de resultat, en remplacant celle du meme tour si besoin.
 
     Args:
         chemin: fichier ``OUT/results/<node_id>.jsonl``.
-        ligne: ligne de résultat au schéma du bras A.
+        ligne: ligne de resultat au schema du bras A.
     """
     chemin.parent.mkdir(parents=True, exist_ok=True)
     gardees: list[str] = []
@@ -714,52 +784,107 @@ def _ecrire_resultat(chemin: Path, ligne: dict) -> None:
     chemin.write_text("\n".join(gardees) + "\n", encoding="utf-8")
 
 
-# --- Couture bras C (NON IMPLÉMENTÉE) ----------------------------------------------------
+# Couture bras C (NON IMPLEMENTEE)
 
 
 def appliquer_actions_bras_c(service, node_id: str, tour: int, reponse: dict) -> None:
-    """Point d'extension « bras C » — volontairement INERTE en bras A et B.
+    """Applique l'action choisie par le persona - BRAS C, boucle FERMEE.
 
-    Le bras B est en boucle OUVERTE : les personas DÉCLARENT, ils n'agissent
-    pas ; la vérité terrain reste pilotée par le pack gelé ``data/prepared``,
-    ce qui rend les prédictions scorables. Le bras C fermera la boucle — les
-    personas choisiront une action, qui modifiera réellement la chaîne.
+    Inerte en ``control`` et ``predict`` (le champ ``action_id`` y est absent
+    ou vaut ``ne_rien_faire``) : ces deux sous-bras restent en boucle ouverte,
+    donc leurs previsions restent scorables contre le pack gele.
 
-    Quand le bras C sera implémenté, TOUT s'accroche ici, et nulle part
-    ailleurs :
+    En bras ``act``, la chaine complete documentee par le stub d'origine :
 
-    1. lire l'action choisie dans ``reponse`` (clé à ajouter au format de
-       réponse, p. ex. ``action_id`` + paramètres) ;
-    2. la résoudre dans le catalogue ``supplyscore.domain.actions.CATALOGUE_V1``
-       après vérification de sa précondition (``contexte_pour(service,
-       node_id)``) ;
-    3. l'appliquer au projet via ``ActionSpec.apply_to_project``, qui écrit
-       exclusivement par la façade/``MutationService`` (validation + audit) ;
-    4. journaliser l'intervention avec
-       ``supplyscore.services.interventions.InterventionJournal.record`` puis
-       ``marquer_executee`` — c'est ce journal qui alimentera ensuite les
-       effets causaux (U17) et le moteur de décision (U18).
+    1. lire ``action_id`` dans la reponse du persona ;
+    2. le resoudre dans ``CATALOGUE_V1`` et verifier sa precondition sur le
+       contexte courant du noeud (``contexte_pour``) ;
+    3. l'appliquer via ``ActionSpec.apply_to_project``, qui n'ecrit que par
+       le ``MutationService`` (validation + audit) ;
+    4. journaliser l'intervention (``InterventionJournal.record`` puis
+       ``marquer_executee``) - c'est ce journal qui alimente les effets
+       causaux (U17) et le moteur de decision (U18).
 
-    Attention (validité de l'expérience) : dès que cette fonction agit, la
-    vérité terrain dépend des personas et les prédictions du bras B ne sont
-    plus comparables à celles du bras C sans appariement explicite.
+    Une action dont la precondition est fausse est REFUSEE et tracee, jamais
+    appliquee en silence : le persona a le droit de se tromper de levier, mais
+    la chaine ne doit pas bouger pour autant.
+
+    Attention (validite de l'experience) : des que cette fonction agit, la
+    verite terrain depend des personas. Les previsions du bras ``act`` ne sont
+    plus comparables a celles de ``control``/``predict`` sans appariement
+    explicite - une rupture EVITEE grace a l'alerte fait passer une bonne
+    prevision pour fausse (prophetie auto-refutante). Le bras C se juge sur
+    l'ETAT FINAL de la chaine, pas sur la precision des previsions.
 
     Args:
-        service: façade SupplyScore ouverte sur la base du sous-bras.
-        node_id: nœud déclarant.
+        service: facade SupplyScore ouverte sur la base du sous-bras.
+        node_id: noeud declarant.
         tour: tour courant.
-        reponse: réponse validée du persona pour ce tour.
+        reponse: reponse validee du persona pour ce tour.
+
+    Returns:
+        Le dictionnaire de trace de l'action, ou None si rien n'a ete tente.
     """
-    return None
+    action_id = reponse.get("action_id")
+    if not action_id or action_id == "ne_rien_faire":
+        return None
+
+    trace = {"tour": tour, "node_id": node_id, "action_id": action_id}
+    spec = CATALOGUE_V1.get(action_id)
+    if spec is None:
+        trace["statut"] = "inconnue"
+        print(f"  [action] {node_id} : action inconnue {action_id!r} — ignorée")
+        return trace
+
+    contexte = contexte_pour(service, node_id)
+    if not spec.preconditions(contexte):
+        trace["statut"] = "precondition_fausse"
+        print(f"  [action] {node_id} : {action_id} refusée (précondition fausse)")
+        return trace
+
+    journal = InterventionJournal(service)
+    # L'ouverture PRECEDE l'application : ``record`` capture ``etat_avant``, qui n'a de sens que mesure avant que l'action ne deplace quoi que ce soit.
+    intervention = journal.record(
+        node_id=node_id,
+        action_id=action_id,
+        acteur=_common.OPERATORS[node_id],
+        objectif_operationnel=reponse.get("objectif_action", "")[:200],
+        notes=f"bras act — tour {tour}",
+    )
+    try:
+        spec.apply_to_project(service, node_id)
+    except Exception as exc:  # noqa: BLE001 - on referme la ligne, quelle que soit la cause
+        # L'application a echoue APRES l'ouverture de la ligne. Sans ce rattrapage, l'intervention resterait ``executee=None`` sans date d'effet : U17 (effets causaux) et U18 (moteur de decision) la liraient comme une intervention decidee et non tranchee, pour une action qui n'a jamais touche la chaine. On la referme explicitement en " ne sera pas executee ", ce qui est exactement la verite.
+        journal.marquer_executee(
+            intervention.id, node_id=node_id, executee=False, date_effet_ts=None
+        )
+        trace["statut"] = "echec_application"
+        trace["erreur"] = f"{type(exc).__name__}: {exc}"
+        trace["intervention_id"] = intervention.id
+        print(f"  [action] {node_id} : {action_id} ÉCHOUE à l'application — {exc}")
+        return trace
+    # L'action est appliquee immediatement, mais son EFFET n'est complet qu'apres ``delai_effet_weeks`` (mode de la triangulaire) : c'est cette date qui ancre la fenetre d'observation du resultat operationnel, donc l'estimateur causal.
+    delai_mode_weeks = spec.delai_effet_weeks[1]
+    journal.marquer_executee(
+        intervention.id,
+        node_id=node_id,
+        executee=True,
+        date_effet_ts=intervention.decidee_ts + delai_mode_weeks * _SEMAINE_S,
+    )
+    trace["statut"] = "appliquee"
+    trace["date_effet_ts"] = intervention.decidee_ts + delai_mode_weeks * _SEMAINE_S
+    trace["intervention_id"] = intervention.id
+    print(f"  [action] {node_id} : {action_id} APPLIQUÉE ({spec.libelle})")
+    return trace
 
 
-#: Clé supplémentaire de la ligne de résultat, bras ``predict`` uniquement.
+#: Cle supplementaire de la ligne de resultat, bras ``predict`` uniquement.
 _CLE_INFLUENCE: str = (
     ',\n   "influence_prediction": '
     '"aucune|confirme|revise_a_la_hausse|revise_a_la_baisse"'
 )
 
-#: Section d'instructions propre au bras ``predict`` (le traitement mesuré).
+#: Section d'instructions propre au bras ``predict`` (le traitement mesure).
 _SECTION_PREDICT: str = """## L'analyse prédictive de l'outil
 
 À partir du tour 4, votre fiche se termine par une section
@@ -795,17 +920,55 @@ l'a pas changée, ce qui est une réponse aussi valable que les autres.
 """
 
 
-# --- Sous-commandes ----------------------------------------------------------------------
+#: Cles supplementaires de la ligne de resultat, bras ``act`` uniquement.
+_CLE_ACTION: str = (
+    ',\n   "action_id": "<id du catalogue>"'
+    ',\n   "objectif_action": "<en une phrase, ce que vous cherchez à obtenir>"'
+)
+
+#: Section d'instructions propre au bras ``act`` (bras C - boucle fermee).
+_SECTION_ACTIONS: str = """## Vos leviers d'action
+
+Ce tour-ci, vous ne faites pas que déclarer : vous DÉCIDEZ. L'action que vous
+choisissez est réellement appliquée à la chaîne, et la suite de la campagne en
+tiendra compte — ce n'est pas un questionnaire, c'est votre semaine de travail.
+
+Choisissez UNE action par tour, celle que votre personnage prendrait vraiment,
+et reportez son identifiant dans `"action_id"` :
+
+- `"ne_rien_faire"` — la situation ne justifie pas d'engager quoi que ce soit.
+  C'est un choix légitime et souvent le bon : n'agissez pas pour agir.
+- `"promouvoir_arc_secours"` — basculer sur un fournisseur de secours. Coûteux
+  et long à porter ses fruits, mais change vraiment votre exposition amont.
+- `"replanifier_jalon"` — décaler votre jalon actif de deux semaines. Vous
+  achetez du temps, vous le payez en engagement rompu vis-à-vis de l'aval.
+- `"expedition_express"` — réduire votre lead time de 30 % en payant le transport
+  rapide. Effet quasi immédiat, sans rien régler en amont.
+- `"boost_capacite"` — renforcer la capacité (débit +30 %, volume +20 %). Utile
+  si le goulot est chez vous, inutile si vous attendez un fournisseur.
+- `"revue_declaration"` — remettre à plat votre propre évaluation. Aucun effet
+  sur le terrain, mais remet votre déclaration d'aplomb.
+
+Une action dont les conditions ne sont pas réunies chez vous sera REFUSÉE et
+tracée comme telle : ce n'est pas grave, c'est une information. Choisissez sur
+ce que votre personnage sait, pas sur ce qui « devrait marcher ».
+
+`"objectif_action"` dit en une phrase ce que vous cherchez à obtenir. Votre
+`note` doit expliquer pourquoi CETTE action plutôt qu'une autre.
+
+"""
+
+# Sous-commandes
 
 
 def cmd_init(args: argparse.Namespace) -> int:
-    """Crée la base d'un sous-bras et son état d'expérience.
+    """Cree la base d'un sous-bras et son etat d'experience.
 
     Args:
         args: arguments de la sous-commande (``arm``, ``db_dir``).
 
     Returns:
-        Code de sortie du processus (0 = succès, 2 = refus).
+        Code de sortie du processus (0 = succes, 2 = refus).
     """
     if load_state(args.db_dir) is not None:
         raise RefusExperienceError(
@@ -822,12 +985,12 @@ def cmd_init(args: argparse.Namespace) -> int:
 
 
 def cmd_prepare_tour(args: argparse.Namespace) -> int:
-    """Injecte le tour N (pack gelé) puis produit les 8 fiches et le journal.
+    """Injecte le tour N (pack gele) puis produit les 8 fiches et le journal.
 
-    Séquence : décroissance hebdomadaire (N > 0), injection KPIs/jalons/
-    événements depuis ``data/prepared`` (LECTURE SEULE), prévision (dès
-    N >= MIN_HISTORY_WEEKS, dans LES DEUX bras), journalisation, puis fiches —
-    la section prédictive n'étant ajoutée qu'en bras ``predict``.
+    Sequence : decroissance hebdomadaire (N > 0), injection KPIs/jalons/
+    evenements depuis ``data/prepared`` (LECTURE SEULE), prevision (des
+    N >= MIN_HISTORY_WEEKS, dans LES DEUX bras), journalisation, puis fiches -
+    la section predictive n'etant ajoutee qu'en bras ``predict``.
 
     Args:
         args: arguments de la sous-commande (``tour``, ``arm``, ``db_dir``,
@@ -858,13 +1021,7 @@ def cmd_prepare_tour(args: argparse.Namespace) -> int:
         print(f"  [jalons] {inject_tour._inject_milestones(service, milestones)} champ(s)")
         inject_tour._inject_events(service, events)
 
-        # Réévaluation EXPLICITE avant de prévoir. Sans elle, l'état d'urgence
-        # persisté de la semaine courante ne refléterait les KPIs/jalons du tour
-        # QUE sur les tours porteurs d'un événement (``EventEngine.apply`` est
-        # le seul des trois injecteurs à réévaluer) : la prévision serait
-        # « fraîche » aux tours 3, 5, 6, 7... et « périmée » aux tours 4, 8, 9,
-        # 11, 15, 17, 18, qui n'ont aucun événement. Un traitement inégal d'un
-        # tour à l'autre ruinerait la comparabilité des prédictions.
+        # Reevaluation EXPLICITE avant de prevoir. Sans elle, l'etat d'urgence persiste de la semaine courante ne refleterait les KPIs/jalons du tour QUE sur les tours porteurs d'un evenement (``EventEngine.apply`` est le seul des trois injecteurs a reevaluer) : la prevision serait " fraiche " aux tours 3, 5, 6, 7... et " perimee " aux tours 4, 8, 9, 11, 15, 17, 18, qui n'ont aucun evenement. Un traitement inegal d'un tour a l'autre ruinerait la comparabilite des predictions.
         service.evaluate_all(persist=True)
 
         par_noeud: dict[str, dict] = {}
@@ -875,7 +1032,7 @@ def cmd_prepare_tour(args: argparse.Namespace) -> int:
             journal = journaliser_previsions(
                 out, args.arm, args.tour, par_noeud, erreur, args.n_draws, args.seed
             )
-            montre = args.arm == "predict" and erreur is None
+            montre = args.arm in ARMS_AVEC_PREVISION and erreur is None
             print(f"  [prévision] {len(par_noeud)} nœud(s) -> {journal} (montrée : {montre})")
         else:
             print(
@@ -886,7 +1043,7 @@ def cmd_prepare_tour(args: argparse.Namespace) -> int:
         for spec in scenario.NODES:
             node_id = spec["id"]
             texte = make_briefings.briefing(node_id, args.tour)
-            if args.arm == "predict" and args.tour >= MIN_HISTORY_WEEKS:
+            if args.arm in ARMS_AVEC_PREVISION and args.tour >= MIN_HISTORY_WEEKS:
                 texte += "\n\n" + section_predictive(par_noeud.get(node_id)) + "\n"
             print(f"  [fiche] {_ecrire_fiche(out, node_id, args.tour, texte)}")
     finally:
@@ -904,13 +1061,13 @@ def cmd_prepare_tour(args: argparse.Namespace) -> int:
 
 
 def cmd_collect_tour(args: argparse.Namespace) -> int:
-    """Valide les 8 déclarations du tour N, les soumet et écrit les résultats.
+    """Valide les 8 declarations du tour N, les soumet et ecrit les resultats.
 
-    Les réponses sont d'abord TOUTES validées et converties (aucune écriture),
-    puis soumises : un fichier invalide ne laisse jamais un tour à moitié
-    déclaré. En cas d'AHP incohérent (CR >= 0.10), la règle de report du
-    protocole s'applique — la déclaration du tour précédent est reconduite et
-    consignée (``cr_echec``).
+    Les reponses sont d'abord TOUTES validees et converties (aucune ecriture),
+    puis soumises : un fichier invalide ne laisse jamais un tour a moitie
+    declare. En cas d'AHP incoherent (CR >= 0.10), la regle de report du
+    protocole s'applique - la declaration du tour precedent est reconduite et
+    consignee (``cr_echec``).
 
     Args:
         args: arguments de la sous-commande (``tour``, ``arm``, ``db_dir``,
@@ -927,7 +1084,7 @@ def cmd_collect_tour(args: argparse.Namespace) -> int:
 
     from supplyscore.services.orchestrator import SupplyScoreService
 
-    # Phase 1 — conversion et contrôle de cohérence, SANS aucune écriture.
+    # Phase 1 - conversion et controle de coherence, SANS aucune ecriture.
     prepares: list[dict] = []
     for spec in scenario.NODES:
         node_id = spec["id"]
@@ -996,8 +1153,12 @@ def cmd_collect_tour(args: argparse.Namespace) -> int:
                     notes=notes,
                 )
             )
-            # Couture bras C : inerte tant que les personas ne font que déclarer.
-            appliquer_actions_bras_c(service, node_id, args.tour, reponse)
+            # Couture bras C : inerte hors bras " act ".
+            trace_action = (
+                appliquer_actions_bras_c(service, node_id, args.tour, reponse)
+                if args.arm in ARMS_AGISSANTS
+                else None
+            )
 
             ligne: dict = {
                 "tour": args.tour,
@@ -1014,8 +1175,11 @@ def cmd_collect_tour(args: argparse.Namespace) -> int:
                 "ud_smoothed": ud_lisse,
                 "note": reponse["note"],
             }
-            if args.arm == "predict":
+            if args.arm in ARMS_AVEC_PREVISION:
                 ligne["influence_prediction"] = reponse["influence_prediction"]
+            if args.arm in ARMS_AGISSANTS:
+                ligne["action_id"] = reponse["action_id"]
+                ligne["action_trace"] = trace_action
             _ecrire_resultat(out / "results" / f"{node_id}.jsonl", ligne)
 
         a_jour, total = _couverture(service)
@@ -1031,7 +1195,7 @@ def cmd_collect_tour(args: argparse.Namespace) -> int:
 
 
 def cmd_close_tour(args: argparse.Namespace) -> int:
-    """Clôt le tour N : avance d'une semaine et écrit le snapshot.
+    """Clot le tour N : avance d'une semaine et ecrit le snapshot.
 
     Args:
         args: arguments de la sous-commande (``tour``, ``arm``, ``db_dir``,
@@ -1055,8 +1219,7 @@ def cmd_close_tour(args: argparse.Namespace) -> int:
     state.pop("pending_tour", None)
     state.pop("phase", None)
     save_state(args.db_dir, state)
-    # Garde ``campaign_state.json`` (scripts facilitateur) aligné : les deux
-    # fichiers d'état ne doivent jamais raconter deux histoires différentes.
+    # Garde ``campaign_state.json`` (scripts facilitateur) aligne : les deux fichiers d'etat ne doivent jamais raconter deux histoires differentes.
     campagne = _common.load_state(args.db_dir)
     if campagne is not None:
         campagne["last_tour"] = args.tour
@@ -1067,13 +1230,13 @@ def cmd_close_tour(args: argparse.Namespace) -> int:
 
 
 def _couverture(service) -> tuple[int, int]:
-    """Couverture hebdomadaire du projet (nœuds à jour / nœuds actifs).
+    """Couverture hebdomadaire du projet (noeuds a jour / noeuds actifs).
 
     Args:
-        service: façade SupplyScore ouverte sur la base du sous-bras.
+        service: facade SupplyScore ouverte sur la base du sous-bras.
 
     Returns:
-        Le couple ``(à jour, total actifs)``.
+        Le couple ``(a jour, total actifs)``.
     """
     from supplyscore.services.weekly import CycleHebdomadaire
 
@@ -1110,22 +1273,22 @@ def cmd_status(args: argparse.Namespace) -> int:
 
 
 def role_card_bras_a(node_id: str) -> tuple[str, str]:
-    """Carte de rôle du persona, IDENTIQUE à celle du pilote (bras A).
+    """Carte de role du persona, IDENTIQUE a celle du pilote (bras A).
 
-    Les personas du bras B SONT ceux du pilote : même affectation
-    nœud <-> persona, mêmes ``operator_id`` C1..C8 (``scenario.NODES``), même
-    voix. Rien n'est inventé ici : la carte est produite par la voie
-    officielle (``make_briefings.role_card``), puis CONFRONTÉE à celle du
-    pilote quand ce dossier est présent. En cas d'écart, c'est la carte DU
-    PILOTE qui est reprise et l'écart est signalé — les personas doivent
-    rester identiques d'un bras à l'autre.
+    Les personas du bras B SONT ceux du pilote : meme affectation
+    noeud <-> persona, memes ``operator_id`` C1..C8 (``scenario.NODES``), meme
+    voix. Rien n'est invente ici : la carte est produite par la voie
+    officielle (``make_briefings.role_card``), puis CONFRONTEE a celle du
+    pilote quand ce dossier est present. En cas d'ecart, c'est la carte DU
+    PILOTE qui est reprise et l'ecart est signale - les personas doivent
+    rester identiques d'un bras a l'autre.
 
     Args:
-        node_id: nœud du persona.
+        node_id: noeud du persona.
 
     Returns:
-        ``(texte, provenance)`` — la carte retenue et son origine
-        (``"générée"``, ``"pilote (identique)"`` ou ``"pilote (ÉCART)"``).
+        ``(texte, provenance)`` - la carte retenue et son origine
+        (``"generee"``, ``"pilote (identique)"`` ou ``"pilote (ECART)"``).
     """
     texte = make_briefings.role_card(node_id)
     reference = PILOTE_BRAS_A / f"sandbox_{node_id}" / "role_card.md"
@@ -1143,14 +1306,14 @@ def role_card_bras_a(node_id: str) -> tuple[str, str]:
 
 
 def cmd_make_sandboxes(args: argparse.Namespace) -> int:
-    """Crée les 8 bacs à sable persona du sous-bras, sur le modèle du bras A.
+    """Cree les 8 bacs a sable persona du sous-bras, sur le modele du bras A.
 
-    Chaque ``OUT/sandbox_<node>/`` reçoit ``role_card.md`` (celle du pilote,
-    cf. :func:`role_card_bras_a`), ``INSTRUCTIONS.md`` (dérivé de
+    Chaque ``OUT/sandbox_<node>/`` recoit ``role_card.md`` (celle du pilote,
+    cf. :func:`role_card_bras_a`), ``INSTRUCTIONS.md`` (derive de
     ``_INSTRUCTIONS_TEMPLATE.md``, avec la seule section propre au bras) et
     ``ahp_tool.py`` (copie EXACTE de ``supplyscore/core/ahp.py``, comme dans
-    le pilote). ``tours/`` est créé vide : ``prepare-tour`` y dépose la fiche
-    du tour, une par une — le persona ne peut donc pas anticiper.
+    le pilote). ``tours/`` est cree vide : ``prepare-tour`` y depose la fiche
+    du tour, une par une - le persona ne peut donc pas anticiper.
 
     Args:
         args: arguments de la sous-commande (``arm``, ``out``).
@@ -1163,15 +1326,16 @@ def cmd_make_sandboxes(args: argparse.Namespace) -> int:
     if not source_ahp.is_file():
         raise RefusExperienceError(f"module AHP introuvable : {source_ahp}")
 
-    section = _SECTION_PREDICT if args.arm == "predict" else ""
-    cle = _CLE_INFLUENCE if args.arm == "predict" else ""
+    section = _SECTION_PREDICT if args.arm in ARMS_AVEC_PREVISION else ""
+    section += _SECTION_ACTIONS if args.arm in ARMS_AGISSANTS else ""
+    cle = _CLE_INFLUENCE if args.arm in ARMS_AVEC_PREVISION else ""
+    cle += _CLE_ACTION if args.arm in ARMS_AGISSANTS else ""
     out = Path(args.out)
     for spec in scenario.NODES:
         node_id = spec["id"]
         bac = out / f"sandbox_{node_id}"
         (bac / "tours").mkdir(parents=True, exist_ok=True)
-        # Le nom du bras n'apparaît NULLE PART dans le bac à sable : un persona
-        # qui se saurait « en groupe témoin » ne déclarerait plus la même chose.
+        # Le nom du bras n'apparait NULLE PART dans le bac a sable : un persona qui se saurait " en groupe temoin " ne declarerait plus la meme chose.
         instructions = (
             gabarit.replace("@@NOEUD@@", node_id)
             .replace("@@SECTION_BRAS@@", section)
@@ -1181,9 +1345,7 @@ def cmd_make_sandboxes(args: argparse.Namespace) -> int:
         carte, provenance = role_card_bras_a(node_id)
         (bac / "role_card.md").write_text(carte, encoding="utf-8")
         shutil.copy2(source_ahp, bac / "ahp_tool.py")
-        # Rattrapage : si des tours ont déjà été préparés avant la création des
-        # bacs à sable, leurs fiches y sont recopiées (``prepare-tour`` ne peut
-        # alimenter que les bacs qui existaient au moment où il tournait).
+        # Rattrapage : si des tours ont deja ete prepares avant la creation des bacs a sable, leurs fiches y sont recopiees (``prepare-tour`` ne peut alimenter que les bacs qui existaient au moment ou il tournait).
         rattrapees = 0
         for fiche in sorted(out.glob(f"tour_*/{node_id}.md")):
             cible = bac / "tours" / f"{fiche.parent.name}.md"
@@ -1196,14 +1358,14 @@ def cmd_make_sandboxes(args: argparse.Namespace) -> int:
     return 0
 
 
-# --- CLI ---------------------------------------------------------------------------------
+# CLI
 
 
 def _ajouter_arm(parser: argparse.ArgumentParser) -> None:
-    """Ajoute l'option ``--arm`` obligatoire à un sous-analyseur.
+    """Ajoute l'option ``--arm`` obligatoire a un sous-analyseur.
 
     Args:
-        parser: sous-analyseur à compléter.
+        parser: sous-analyseur a completer.
     """
     parser.add_argument(
         "--arm", required=True, choices=ARMS, help="Sous-bras de l'expérience B"
@@ -1272,13 +1434,13 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Point d'entrée CLI du harnais d'expérience.
+    """Point d'entree CLI du harnais d'experience.
 
     Args:
         argv: arguments de ligne de commande, ou None pour ``sys.argv``.
 
     Returns:
-        Code de sortie du processus (0 = succès, 2 = refus explicite).
+        Code de sortie du processus (0 = succes, 2 = refus explicite).
     """
     args = build_parser().parse_args(argv)
     try:

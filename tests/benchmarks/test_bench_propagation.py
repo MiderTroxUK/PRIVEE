@@ -1,9 +1,9 @@
-"""Bancs de performance — propagation des urgences sur le DAG de stress (Lot 14.1).
+"""Bancs de performance - propagation des urgences sur le DAG de stress (Lot 14.1).
 
-Budgets du PLAN (@ 1 000 nœuds) : ``propagate_all`` < 80 ms,
-``simulate_shock`` < 30 ms, propagation incrémentale (1 nœud changé) < 5 ms
-(Lot 14.4). Assertions à marge ×3 (machines de CI lentes) : on échoue
-seulement si la moyenne mesurée dépasse budget × 3.
+Budgets du PLAN (@ 1 000 noeuds) : ``propagate_all`` < 80 ms,
+``simulate_shock`` < 30 ms, propagation incrementale (1 noeud change) < 5 ms
+(Lot 14.4). Assertions a marge x3 (machines de CI lentes) : on echoue
+seulement si la moyenne mesuree depasse budget x 3.
 """
 
 from __future__ import annotations
@@ -12,14 +12,14 @@ import pytest
 
 pytestmark = pytest.mark.benchmark_suite
 
-#: Budgets PLAN ×3 (secondes).
+#: Budgets PLAN x3 (secondes).
 BUDGET_PROPAGATE_ALL_S = 0.080 * 3
 BUDGET_SIMULATE_SHOCK_S = 0.030 * 3
 BUDGET_PROPAGATE_INCREMENTAL_S = 0.005 * 3
 
 
 def test_bench_propagate_all(benchmark, stress_service):
-    """Propagation complète Ud (descendante) + Ur (montante) @ 1 000 nœuds."""
+    """Propagation complete Ud (descendante) + Ur (montante) @ 1 000 noeuds."""
     n_nodes = len(stress_service.repo.nodes())
     states = benchmark(stress_service.propagation.propagate_all)
     assert len(states) == n_nodes == 1_000
@@ -35,14 +35,14 @@ def test_bench_simulate_shock(benchmark, stress_service):
 
 
 def test_bench_propagate_incremental(benchmark, stress_service):
-    """Propagation incrémentale : 1 nœud sale du rang le plus profond (Lot 14.4).
+    """Propagation incrementale : 1 noeud sale du rang le plus profond (Lot 14.4).
 
-    Le graphe est d'abord ENTIÈREMENT propagé (cache Ud/Ur complet et version
-    de structure synchronisée) ; chaque round marque UN nœud du rang le plus
-    profond ``dirty_ur`` puis ne recalcule que son cône aval.
+    Le graphe est d'abord ENTIEREMENT propage (cache Ud/Ur complet et version
+    de structure synchronisee) ; chaque round marque UN noeud du rang le plus
+    profond ``dirty_ur`` puis ne recalcule que son cone aval.
     """
     engine = stress_service.propagation
-    engine.propagate_all()  # « déjà propagé » : cache complet, plus rien de sale
+    engine.propagate_all()  # " deja propage " : cache complet, plus rien de sale
     deep_node = max(stress_service.repo.nodes(), key=lambda n: n.rank)
 
     def _one_dirty_node():

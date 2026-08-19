@@ -41,10 +41,10 @@ def crossed(cx: float, cy: float, r: float) -> str:
             f'stroke="{RULE}" stroke-width="5" stroke-linecap="round"/>')
 
 
-# ─────────────────────────────────────────────────────── 1. the empty column
+# 1. the empty column
 def empty_column() -> str:
-    W, H = 1600, 400          # 4:1, matches the 364 x 91 mm pane
-    LBL_R = 258               # right edge of the row-label column
+    W, H = 1600, 400  # 4:1, matches the 364 x 91 mm pane
+    LBL_R = 258  # right edge of the row-label column
     BAND_X, BAND_W = 1012, 14  # ochre band isolating the answer column
     R = 30
 
@@ -57,7 +57,7 @@ def empty_column() -> str:
     ]
     step = (BAND_X - LBL_R) / len(cols)
     cx = [LBL_R + step * (i + .5) for i in range(len(cols))]
-    ss_x = (BAND_X + BAND_W + W - 20) / 2          # SupplyScore column centre
+    ss_x = (BAND_X + BAND_W + W - 20) / 2  # SupplyScore column centre
 
     rows_y = [145, 243, 341]
     rules_y = [96, 194, 292, 390]
@@ -104,15 +104,15 @@ def empty_column() -> str:
     return "\n".join(s)
 
 
-# ────────────────────────────────────────────── 2. six detectors, one saturated
+# 2. six detectors, one saturated
 def noisy_or() -> str:
-    W, H = 1200, 786          # 1.527, matches the 180 x 118 mm pane
+    W, H = 1200, 786  # 1.527, matches the 180 x 118 mm pane
     names = ["TIME", "CAPACITY", "PERFORMANCE", "RISK", "COST", "CO"]
     n = len(names)
     step = W / n
     cx = [step * (i + .5) for i in range(n)]
     cy, R = 138, 66
-    LIT = 1                    # CAPACITY is the saturated block
+    LIT = 1  # CAPACITY is the saturated block
 
     s = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" '
          f'width="{W}" height="{H}" font-family="{FONT}">',
@@ -131,7 +131,7 @@ def noisy_or() -> str:
         s.append(f'<circle cx="{x:.1f}" cy="{cy}" r="{R}" fill="{body}"/>')
         s.append(f'<circle cx="{x:.1f}" cy="{cy}" r="{R - 11}" fill="none" '
                  f'stroke="{rim}" stroke-width="4"/>')
-        for k in (-1, 0, 1):   # vent grille across the middle
+        for k in (-1, 0, 1):  # vent grille across the middle
             s.append(f'<rect x="{x - 26 + k * 0:.1f}" y="{cy - 8 + k * 15:.1f}" width="52" '
                      f'height="7" rx="3.5" fill="{"#8a6a00" if lit else AZ_DARK}"/>')
         s.append(f'<circle cx="{x:.1f}" cy="{cy + 40}" r="7" '
@@ -145,9 +145,7 @@ def noisy_or() -> str:
     # the two chips: a mean that was rejected, and the aggregation that replaced it
     cy2, ch = 330, 118
     s.append(f'<rect x="70" y="{cy2}" width="470" height="{ch}" rx="12" fill="{GREY}"/>')
-    # the rejection mark goes UNDER the label and stays translucent: it must read
-    # as struck out, not as redacted. A solid X on top destroys the very number
-    # the figure is arguing about.
+    # the rejection mark goes UNDER the label and stays translucent: it must read as struck out, not as redacted. A solid X on top destroys the very number the figure is arguing about.
     s.append(f'<g stroke="{NAVY}" stroke-width="7" stroke-linecap="round" opacity="0.45">'
              f'<line x1="88" y1="{cy2 + 14}" x2="522" y2="{cy2 + ch - 14}"/>'
              f'<line x1="522" y1="{cy2 + 14}" x2="88" y2="{cy2 + ch - 14}"/></g>')
@@ -187,7 +185,7 @@ def noisy_or() -> str:
     return "\n".join(s)
 
 
-# ───────────────────────────────────────────── 3. two strictly opposite flows
+# 3. two strictly opposite flows
 def dag_propagation() -> str:
     W, H = 1200, 786
     NW, NH = 132, 62
@@ -244,7 +242,7 @@ def dag_propagation() -> str:
             s.append(f'<text x="{x}" y="{y + 8}" font-size="22" fill="{texts[i]}" '
                      f'font-weight="700" text-anchor="middle">{name}</text>')
 
-    # ══ the whole point: one stream right to left, one stream left to right ══
+    # the whole point: one stream right to left, one stream left to right
     s.append(f'<path d="M1120 96 C 820 40, 380 40, 74 96" fill="none" stroke="{AZURE}" '
              f'stroke-width="11" marker-end="url(#az)" stroke-linecap="round"/>')
     s.append(f'<text x="600" y="34" font-size="26" fill="{NAVY}" text-anchor="middle">'
@@ -263,7 +261,7 @@ def dag_propagation() -> str:
     return "\n".join(s)
 
 
-# ─────────────────── 4. where each signal comes from, and what the gap between them is
+# 4. where each signal comes from, and what the gap between them is
 def declared_and_gap() -> str:
     """Station 3, right slot. The bare propagation graph showed the two flows but
     not where either signal comes from, nor what the distance between them buys.
@@ -279,9 +277,7 @@ def declared_and_gap() -> str:
          f'markerHeight="6" orient="auto"><path d="M0 0 L12 6 L0 12 z" fill="{OCHRE}"/></marker>'
          f'</defs>']
 
-    # band 1: the declaration, and the end of the chain it enters from.
-    # Type is sized against the printed cell (180 mm wide), not against the
-    # viewBox, so it reads at the same weight as the poster body text.
+    # band 1: the declaration, and the end of the chain it enters from. Type is sized against the printed cell (180 mm wide), not against the viewBox, so it reads at the same weight as the poster body text.
     s.append(f'<text x="20" y="42" font-size="35" font-weight="700" fill="{NAVY}">'
              f'DECLARED  U<tspan font-size="23" dy="9">d</tspan></text>')
     s.append(f'<text x="20" y="82" font-size="28" fill="{GREY}">'
@@ -344,12 +340,11 @@ def declared_and_gap() -> str:
     return "\n".join(s)
 
 
-# ──────────────────────── 5. the crisis the campaign replays, laid out on a timeline
+# 5. the crisis the campaign replays, laid out on a timeline
 def crisis_timeline() -> str:
     """Station 5. Eighteen rounds, five acts, and the dated real events each round
     is pinned to."""
-    # the printed cell is only 144 x 57 mm, so type is large relative to the
-    # viewBox and the event list is deliberately short: four markers, not twelve
+    # the printed cell is only 144 x 57 mm, so type is large relative to the viewBox and the event list is deliberately short: four markers, not twelve
     W, H = 1200, 474
     x0, x1, ax = 80, 1130, 262
     step = (x1 - x0) / 17.0
@@ -379,8 +374,7 @@ def crisis_timeline() -> str:
         s.append(f'<line x1="{X(t):.1f}" y1="{ax - 11}" x2="{X(t):.1f}" y2="{ax + 11}" '
                  f'stroke="{NAVY}" stroke-width="2.5"/>')
 
-    # every marker sits ABOVE the axis, staggered at two heights, so nothing
-    # collides with the act names running underneath
+    # every marker sits ABOVE the axis, staggered at two heights, so nothing collides with the act names running underneath
     for k, (t, label, big) in enumerate(events):
         stem = 62 if k % 2 == 0 else 116
         ytip = ax - stem

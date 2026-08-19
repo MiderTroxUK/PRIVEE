@@ -1,61 +1,61 @@
-"""Post-traitement EMOS + entraînement + export d'artefact de risque HÉLIOS v7 (U10).
+"""Post-traitement EMOS + entrainement + export d'artefact de risque HELIOS v7 (U10).
 
-Consomme le dataset personne-période (contrat 4, produit par ``build_dataset.py``,
-unité sœur U8) et produit l'artefact numpy-only de scoring (contrat 5, consommé par
-``PredictionService`` de l'unité sœur U11) : ``OUT/models/v1/artifact.json`` +
-``model_card.md`` + ``model.joblib`` + des courbes de fiabilité PNG par axe
-d'évaluation.
+Consomme le dataset personne-periode (contrat 4, produit par ``build_dataset.py``,
+unite soeur U8) et produit l'artefact numpy-only de scoring (contrat 5, consomme par
+``PredictionService`` de l'unite soeur U11) : ``OUT/models/v1/artifact.json`` +
+``model_card.md`` + ``model.joblib`` + des courbes de fiabilite PNG par axe
+d'evaluation.
 
-Modèle PRIMAIRE — EMOS (« Ensemble Model Output Statistics », plan D8) : quand
-``p_rollout`` (issu du rollout Monte Carlo de U9) est présent dans le jeu de
-données, on ajuste::
+Modele PRIMAIRE - EMOS (" Ensemble Model Output Statistics ", plan D8) : quand
+``p_rollout`` (issu du rollout Monte Carlo de U9) est present dans le jeu de
+donnees, on ajuste::
 
-    logit(p) = a·logit(clip(p_rollout)) + b·spread + c·x_keys + d
+    logit(p) = a-logit(clip(p_rollout)) + b-spread + c-x_keys + d
 
-où ``x_keys`` (≤10 features) sont sélectionnées par régression logistique L1 sur
-le pli d'entraînement, suivi d'une calibration isotonique (repli sigmoïde si
-n_train < 5000). Quand ``p_rollout`` est absent, EMOS DÉGÉNÈRE vers le modèle
-pur-ML (régression logistique L2 sur toutes les features, puis calibration) —
-annoncé explicitement à l'écran.
+ou ``x_keys`` (<=10 features) sont selectionnees par regression logistique L1 sur
+le pli d'entrainement, suivi d'une calibration isotonique (repli sigmoide si
+n_train < 5000). Quand ``p_rollout`` est absent, EMOS DEGENERE vers le modele
+pur-ML (regression logistique L2 sur toutes les features, puis calibration) -
+annonce explicitement a l'ecran.
 
-Challengers (jamais exportés, seulement comparés dans le tableau du model card) :
-rollout brut (aucun apprentissage), régression logistique L2 complète, et
-HistGradientBoostingClassifier — tous NON calibrés (seul EMOS l'est, par
-définition).
+Challengers (jamais exportes, seulement compares dans le tableau du model card) :
+rollout brut (aucun apprentissage), regression logistique L2 complete, et
+HistGradientBoostingClassifier - tous NON calibres (seul EMOS l'est, par
+definition).
 
-Trois axes d'évaluation, hyperparamètres réglés UNIQUEMENT à l'intérieur du pli
-d'entraînement de chacun (plan D10) :
-    (i)   GroupKFold(5) par ``chain_id`` (« chaînes tenues »)
-    (ii)  hold-out par groupe ``dgp_params_id`` (« régime DGP tenu »)
+Trois axes d'evaluation, hyperparametres regles UNIQUEMENT a l'interieur du pli
+d'entrainement de chacun (plan D10) :
+    (i)   GroupKFold(5) par ``chain_id`` (" chaines tenues ")
+    (ii)  hold-out par groupe ``dgp_params_id`` (" regime DGP tenu ")
     (iii) coupure temporelle : train ``t<=12`` / test ``t>=13``
 
-Décision de conception (contrat 4 gelé n'expose PAS de colonne de tour/temps
-brute — ``build_dataset.py`` la retire avant écriture) : l'axe temporel utilise
-``beta_n`` (nombre de tours réellement observés pour le nœud jusqu'à t inclus,
-donc STRICTEMENT croissant avec t, égal à t+1 en l'absence de trou) comme proxy
-de l'ordinal temporel. Documenté ici, rappelé dans le model card.
+Decision de conception (contrat 4 gele n'expose PAS de colonne de tour/temps
+brute - ``build_dataset.py`` la retire avant ecriture) : l'axe temporel utilise
+``beta_n`` (nombre de tours reellement observes pour le noeud jusqu'a t inclus,
+donc STRICTEMENT croissant avec t, egal a t+1 en l'absence de trou) comme proxy
+de l'ordinal temporel. Documente ici, rappele dans le model card.
 
-Règle de décision (plan D8, codée) : si le rollout brut bat EMOS en Brier sur
-l'axe « chaînes tenues », l'artefact EXPORTÉ dégénère en calibration isotonique
-SEULE sur p_rollout (représentée dans le même format que le contrat 5 :
-feature_names=["logit_p_rollout"], coef=[1.0], intercept=0.0, scaler identité —
+Regle de decision (plan D8, codee) : si le rollout brut bat EMOS en Brier sur
+l'axe " chaines tenues ", l'artefact EXPORTE degenere en calibration isotonique
+SEULE sur p_rollout (representee dans le meme format que le contrat 5 :
+feature_names=["logit_p_rollout"], coef=[1.0], intercept=0.0, scaler identite -
 de sorte que sigmoid(z) = p_rollout exactement, seule la calibration agit).
 
-Reproductibilité numpy (frozen contract 5) : le score est
-``z = coef·(x−mean)/std + intercept`` puis ``p = interp(calibrateur, sigmoid(z))``
-— EXACTEMENT la formule utilisée par ``PredictionService`` (U11). Une assertion
-en fin de script compare cette reproduction numpy à la sortie native sklearn sur
-100 lignes (tolérance 1e-8) : voir :func:`assert_numpy_matches_sklearn` et la
+Reproductibilite numpy (frozen contract 5) : le score est
+``z = coef-(x-mean)/std + intercept`` puis ``p = interp(calibrateur, sigmoid(z))``
+- EXACTEMENT la formule utilisee par ``PredictionService`` (U11). Une assertion
+en fin de script compare cette reproduction numpy a la sortie native sklearn sur
+100 lignes (tolerance 1e-8) : voir :func:`assert_numpy_matches_sklearn` et la
 note de conception sur la construction de ``calibrator_x``/``calibrator_y``
-(grille = valeurs distinctes du score brut sur les données d'entraînement —
-même principe que les seuils natifs d'``IsotonicRegression``, qui garantit une
-interpolation EXACTE par ``np.interp`` à ces points, y compris pour le repli
-sigmoïde où la courbe est ré-échantillonnée à cette même grille).
+(grille = valeurs distinctes du score brut sur les donnees d'entrainement -
+meme principe que les seuils natifs d'``IsotonicRegression``, qui garantit une
+interpolation EXACTE par ``np.interp`` a ces points, y compris pour le repli
+sigmoide ou la courbe est re-echantillonnee a cette meme grille).
 
 Manquants (contrat 4 : cellule CSV vide = manquant, jamais 0 silencieux) :
-imputation par MÉDIANE (calculée sur le pli d'entraînement uniquement, jamais
-sur le pli de test) + colonne indicatrice ``<feature>_missing`` ajoutée pour
-toute feature ayant au moins une valeur manquante dans le jeu chargé — voir
+imputation par MEDIANE (calculee sur le pli d'entrainement uniquement, jamais
+sur le pli de test) + colonne indicatrice ``<feature>_missing`` ajoutee pour
+toute feature ayant au moins une valeur manquante dans le jeu charge - voir
 :class:`Imputer`.
 
 Usage::
@@ -99,7 +99,7 @@ SCHEMA_VERSION = 1
 EPS = 1e-4
 RNG_SEED = 20260724
 
-# --- Contrat 4 (gelé, produit par build_dataset.py — U8) -----------------------------
+# Contrat 4 (gele, produit par build_dataset.py - U8)
 
 GROUP_COLS = ("chain_id", "node_id", "dgp_params_id")
 LABEL_Y1 = "y1"
@@ -170,12 +170,12 @@ ECHELLE_PREUVE_T1_T4 = """\
 """
 
 
-# --- Chargement du dataset (contrat 4) -------------------------------------------------
+# Chargement du dataset (contrat 4)
 
 
 @dataclass
 class Dataset:
-    """Jeu de données personne-période chargé depuis le CSV (contrat 4)."""
+    """Jeu de donnees personne-periode charge depuis le CSV (contrat 4)."""
 
     chain_id: np.ndarray
     node_id: np.ndarray
@@ -187,7 +187,7 @@ class Dataset:
 
 
 def _parse_float_cell(raw: str) -> float:
-    """Convertit une cellule CSV en float ; chaîne vide -> NaN (manquant)."""
+    """Convertit une cellule CSV en float ; chaine vide -> NaN (manquant)."""
     if raw == "":
         return math.nan
     value = float(raw)
@@ -197,14 +197,14 @@ def _parse_float_cell(raw: str) -> float:
 
 
 def load_dataset(path: Path) -> Dataset:
-    """Charge et valide le schéma du dataset (contrat 4) depuis un CSV.
+    """Charge et valide le schema du dataset (contrat 4) depuis un CSV.
 
     Args:
         path: chemin du CSV produit par ``build_dataset.py`` (ou une fixture
-            compatible — voir ``fixtures/make_predictor_fixture.py``).
+            compatible - voir ``fixtures/make_predictor_fixture.py``).
 
     Returns:
-        Le dataset chargé (colonnes de groupe, labels, matrice de features).
+        Le dataset charge (colonnes de groupe, labels, matrice de features).
 
     Raises:
         ValueError: colonnes du contrat 4 manquantes, ou fichier vide.
@@ -239,19 +239,19 @@ def load_dataset(path: Path) -> Dataset:
     )
 
 
-# --- Imputation médiane + indicatrices de manquance -------------------------------------
+# Imputation mediane + indicatrices de manquance
 
 
 @dataclass
 class Imputer:
-    """Imputation par médiane (apprise sur train) + colonnes indicatrices de manquance.
+    """Imputation par mediane (apprise sur train) + colonnes indicatrices de manquance.
 
-    ``indicator_mask`` est une propriété STRUCTURELLE du dataset chargé (quelles
+    ``indicator_mask`` est une propriete STRUCTURELLE du dataset charge (quelles
     colonnes ont au moins une valeur manquante QUELQUE PART dans le jeu complet),
-    fixée une fois pour toutes avant tout découpage en plis — ce n'est pas une
-    fuite d'information de label, seulement une décision de forme des colonnes
-    (cohérente entre tous les plis). Les VALEURS de médiane, elles, sont
-    ré-apprises à chaque pli sur son propre train, jamais sur le test.
+    fixee une fois pour toutes avant tout decoupage en plis - ce n'est pas une
+    fuite d'information de label, seulement une decision de forme des colonnes
+    (coherente entre tous les plis). Les VALEURS de mediane, elles, sont
+    re-apprises a chaque pli sur son propre train, jamais sur le test.
     """
 
     feature_names: list[str]
@@ -260,13 +260,13 @@ class Imputer:
 
     @classmethod
     def fit(cls, x: np.ndarray, feature_names: list[str], indicator_mask: np.ndarray) -> Imputer:
-        """Apprend les médianes par colonne sur ``x`` (à appeler sur un train fold).
+        """Apprend les medianes par colonne sur ``x`` (a appeler sur un train fold).
 
-        Une colonne entièrement manquante dans ``x`` (ex. ``p_retard_jalon``,
-        réservée et toujours vide au schéma v1) fait émettre à numpy un
-        ``RuntimeWarning`` "All-NaN slice encountered" bien que le repli à 0.0
-        juste après soit correct et attendu — silencié explicitement ici pour ne
-        pas polluer la sortie d'un cas normal et documenté.
+        Une colonne entierement manquante dans ``x`` (ex. ``p_retard_jalon``,
+        reservee et toujours vide au schema v1) fait emettre a numpy un
+        ``RuntimeWarning`` "All-NaN slice encountered" bien que le repli a 0.0
+        juste apres soit correct et attendu - silencie explicitement ici pour ne
+        pas polluer la sortie d'un cas normal et documente.
         """
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=RuntimeWarning)
@@ -285,11 +285,11 @@ class Imputer:
 
 
 def compute_indicator_mask(x: np.ndarray) -> np.ndarray:
-    """Colonnes ayant au moins une valeur manquante n'importe où dans ``x``."""
+    """Colonnes ayant au moins une valeur manquante n'importe ou dans ``x``."""
     return ~np.isfinite(x).all(axis=0)
 
 
-# --- Petits utilitaires numériques -------------------------------------------------------
+# Petits utilitaires numeriques
 
 
 def _sigmoid(z: np.ndarray) -> np.ndarray:
@@ -305,7 +305,7 @@ def _clip_prob(p: np.ndarray, eps: float = EPS) -> np.ndarray:
 
 
 def _standardize_fit(x: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    """Moyenne/écart-type par colonne ; écart-type plancher pour éviter une division par 0."""
+    """Moyenne/ecart-type par colonne ; ecart-type plancher pour eviter une division par 0."""
     mean = x.mean(axis=0)
     std = x.std(axis=0, ddof=0)
     std_safe = np.where(std < 1e-12, 1.0, std)
@@ -317,7 +317,7 @@ def _standardize_apply(x: np.ndarray, mean: np.ndarray, std: np.ndarray) -> np.n
 
 
 def _inner_group_kfold(n_splits: int, groups: np.ndarray) -> GroupKFold | None:
-    """GroupKFold interne, repli à moins de plis si trop peu de groupes distincts."""
+    """GroupKFold interne, repli a moins de plis si trop peu de groupes distincts."""
     n_unique = len(np.unique(groups))
     k = min(n_splits, n_unique)
     if k < 2:
@@ -325,12 +325,12 @@ def _inner_group_kfold(n_splits: int, groups: np.ndarray) -> GroupKFold | None:
     return GroupKFold(n_splits=k)
 
 
-# --- Calibration (isotonique / sigmoïde), export en grille reproductible ---------------
+# Calibration (isotonique / sigmoide), export en grille reproductible
 
 
 @dataclass
 class Calibrator:
-    """Courbe de calibration exportable (np.interp) + modèle natif (pour l'assertion)."""
+    """Courbe de calibration exportable (np.interp) + modele natif (pour l'assertion)."""
 
     method: str  # "isotonic" | "sigmoid"
     x: np.ndarray
@@ -338,11 +338,11 @@ class Calibrator:
     model_obj: IsotonicRegression | LogisticRegression
 
     def apply(self, raw_p: np.ndarray) -> np.ndarray:
-        """Reproduction numpy-only (celle exportée dans artifact.json)."""
+        """Reproduction numpy-only (celle exportee dans artifact.json)."""
         return np.interp(raw_p, self.x, self.y)
 
     def apply_native(self, raw_p: np.ndarray) -> np.ndarray:
-        """Prédiction sklearn native (référence pour l'assertion de reproductibilité)."""
+        """Prediction sklearn native (reference pour l'assertion de reproductibilite)."""
         if self.method == "isotonic":
             return self.model_obj.predict(raw_p)
         return self.model_obj.predict_proba(raw_p.reshape(-1, 1))[:, 1]
@@ -354,18 +354,18 @@ def fit_calibrator(
     raw_grid_source: np.ndarray,
     n_train: int,
 ) -> Calibrator:
-    """Ajuste la calibration (isotonique si n_train>=5000, sinon sigmoïde/Platt).
+    """Ajuste la calibration (isotonique si n_train>=5000, sinon sigmoide/Platt).
 
     ``raw_fit``/``y_fit`` = paires (score brut, label) sur lesquelles la fonction
-    de calibration est apprise (idéalement des prédictions HORS-PLI — jamais
-    exportées telles quelles : ces scores proviennent de modèles internes à la CV,
-    jamais reproductibles par le modèle final exporté). La grille EXPORTÉE est
-    évaluée à chaque valeur DISTINCTE de ``raw_grid_source`` uniquement — comme les
-    seuils natifs d'``IsotonicRegression`` — pour garantir une reproduction EXACTE
-    (précision flottante) par ``np.interp`` de toute ligne dont le score brut est
-    calculé par le modèle final exporté (utilisé avec son score sur la totalité du
-    jeu d'entraînement, pour que l'assertion numpy-vs-sklearn en fin de script —
-    qui échantillonne parmi ces mêmes lignes — soit exacte).
+    de calibration est apprise (idealement des predictions HORS-PLI - jamais
+    exportees telles quelles : ces scores proviennent de modeles internes a la CV,
+    jamais reproductibles par le modele final exporte). La grille EXPORTEE est
+    evaluee a chaque valeur DISTINCTE de ``raw_grid_source`` uniquement - comme les
+    seuils natifs d'``IsotonicRegression`` - pour garantir une reproduction EXACTE
+    (precision flottante) par ``np.interp`` de toute ligne dont le score brut est
+    calcule par le modele final exporte (utilise avec son score sur la totalite du
+    jeu d'entrainement, pour que l'assertion numpy-vs-sklearn en fin de script -
+    qui echantillonne parmi ces memes lignes - soit exacte).
     """
     method = "isotonic" if n_train >= 5000 else "sigmoid"
     grid = np.unique(raw_grid_source)
@@ -382,12 +382,12 @@ def fit_calibrator(
     return Calibrator(method=method, x=grid, y=grid_y, model_obj=model)
 
 
-# --- Modèle linéaire standardisé + calibré (format exportable, contrat 5) --------------
+# Modele lineaire standardise + calibre (format exportable, contrat 5)
 
 
 @dataclass
 class LinearCalibratedModel:
-    """Un modèle logistique standardisé + calibré — représentation directe du contrat 5."""
+    """Un modele logistique standardise + calibre - representation directe du contrat 5."""
 
     design_feature_names: list[str]
     scaler_mean: np.ndarray
@@ -399,13 +399,13 @@ class LinearCalibratedModel:
     n_train: int
 
     def raw_proba(self, x_design: np.ndarray) -> np.ndarray:
-        """Probabilité AVANT calibration (sigmoïde du score standardisé)."""
+        """Probabilite AVANT calibration (sigmoide du score standardise)."""
         z = _standardize_apply(x_design, self.scaler_mean, self.scaler_std) @ self.coef
         z = z + self.intercept
         return _sigmoid(z)
 
     def predict_proba(self, x_design: np.ndarray) -> np.ndarray:
-        """Probabilité calibrée finale — même formule que le scoring numpy de U11."""
+        """Probabilite calibree finale - meme formule que le scoring numpy de U11."""
         return self.calibrator.apply(self.raw_proba(x_design))
 
 
@@ -417,25 +417,25 @@ def fit_linear_calibrated(
     *,
     calib_source_design: np.ndarray | None = None,
 ) -> LinearCalibratedModel:
-    """Régression logistique L2 (C=1.0) + calibration hors-pli (GroupKFold(3) par chaîne).
+    """Regression logistique L2 (C=1.0) + calibration hors-pli (GroupKFold(3) par chaine).
 
-    Réimplémentation À LA MAIN de ce que fait ``CalibratedClassifierCV(ensemble=False)``
-    (calibrateur UNIQUE appris sur des prédictions hors-pli, estimateur de base
-    ré-ajusté sur tout le train) plutôt qu'un appel direct à cette classe : le
+    Reimplementation A LA MAIN de ce que fait ``CalibratedClassifierCV(ensemble=False)``
+    (calibrateur UNIQUE appris sur des predictions hors-pli, estimateur de base
+    re-ajuste sur tout le train) plutot qu'un appel direct a cette classe : le
     contrat 5 exige un (coef, intercept, courbe de calibration) UNIQUES, alors que
-    ``CalibratedClassifierCV`` expose ses résultats via des attributs internes non
-    garantis stables entre versions de sklearn — cette implémentation manuelle
-    donne un contrôle total et vérifiable sur ce qui est exporté.
+    ``CalibratedClassifierCV`` expose ses resultats via des attributs internes non
+    garantis stables entre versions de sklearn - cette implementation manuelle
+    donne un controle total et verifiable sur ce qui est exporte.
 
     Args:
-        x_design_train: matrice de features du pli d'entraînement (déjà imputée).
-        y_train: labels y1 (0/1) du pli d'entraînement.
+        x_design_train: matrice de features du pli d'entrainement (deja imputee).
+        y_train: labels y1 (0/1) du pli d'entrainement.
         chain_train: ``chain_id`` de chaque ligne (groupes de la CV interne).
         design_feature_names: noms des colonnes de ``x_design_train``.
-        calib_source_design: lignes supplémentaires (même colonnes) dont le score
-            brut doit être couvert EXACTEMENT par la grille de calibration
-            exportée (typiquement le pli de test, ou l'ensemble du jeu pour le
-            modèle final — voir :func:`fit_calibrator`).
+        calib_source_design: lignes supplementaires (meme colonnes) dont le score
+            brut doit etre couvert EXACTEMENT par la grille de calibration
+            exportee (typiquement le pli de test, ou l'ensemble du jeu pour le
+            modele final - voir :func:`fit_calibrator`).
     """
     mean, std = _standardize_fit(x_design_train)
     x_std = _standardize_apply(x_design_train, mean, std)
@@ -459,9 +459,7 @@ def fit_linear_calibrated(
     base = LogisticRegression(C=1.0, max_iter=2000).fit(x_std, y_train)
     raw_train = _sigmoid(x_std @ base.coef_[0] + base.intercept_[0])
     if raw_oof is None:
-        # Repli : trop peu de chaînes distinctes pour une CV groupée interne —
-        # calibration apprise directement sur le train (légèrement optimiste,
-        # signalé dans le model card via n_train/nb de chaînes).
+        # Repli : trop peu de chaines distinctes pour une CV groupee interne - calibration apprise directement sur le train (legerement optimiste, signale dans le model card via n_train/nb de chaines).
         raw_oof = raw_train
 
     raw_grid_source = raw_train
@@ -484,7 +482,7 @@ def fit_linear_calibrated(
     )
 
 
-# --- Sélection L1 (x_keys d'EMOS) ---------------------------------------------------------
+# Selection L1 (x_keys d'EMOS)
 
 L1_C_SHRINK_GRID = (1.0, 0.3, 0.1, 0.03, 0.01, 0.003, 0.001)
 
@@ -492,16 +490,16 @@ L1_C_SHRINK_GRID = (1.0, 0.3, 0.1, 0.03, 0.01, 0.003, 0.001)
 def select_l1_features(
     x_std: np.ndarray, y: np.ndarray, feature_names: list[str], *, max_features: int = 10
 ) -> list[str]:
-    """Sélectionne au plus ``max_features`` par régression logistique L1 (liblinear).
+    """Selectionne au plus ``max_features`` par regression logistique L1 (liblinear).
 
-    Recherche décroissante de C (rétrécissement, cf. ``L1_C_SHRINK_GRID``) jusqu'à
+    Recherche decroissante de C (retrecissement, cf. ``L1_C_SHRINK_GRID``) jusqu'a
     obtenir au plus ``max_features`` coefficients non nuls ; si le C minimal de la
     grille laisse encore plus de survivants, on garde les ``max_features`` de plus
     grande valeur absolue.
 
-    Note API : ``penalty=`` est déprécié depuis sklearn 1.8 au profit de
-    ``l1_ratio`` (``l1_ratio=1.0`` <=> L1) — utilisé ici pour rester sans
-    avertissement sur la fourchette de version épinglée (scikit-learn>=1.5,<2).
+    Note API : ``penalty=`` est deprecie depuis sklearn 1.8 au profit de
+    ``l1_ratio`` (``l1_ratio=1.0`` <=> L1) - utilise ici pour rester sans
+    avertissement sur la fourchette de version epinglee (scikit-learn>=1.5,<2).
     """
     coefs = np.zeros(x_std.shape[1])
     for c in L1_C_SHRINK_GRID:
@@ -542,12 +540,12 @@ def fit_emos(
     *,
     extra_grid_source: np.ndarray | None = None,
 ) -> tuple[LinearCalibratedModel, list[int]]:
-    """Ajuste EMOS (plan D8) : logit(p) = a·logit(p_rollout) + b·spread + c·x_keys + d.
+    """Ajuste EMOS (plan D8) : logit(p) = a-logit(p_rollout) + b-spread + c-x_keys + d.
 
-    ``x_keys`` sont sélectionnées par L1 sur le pool de candidats = toutes les
-    features SAUF les colonnes brutes p_rollout/spread elles-mêmes (déjà des
-    termes dédiés a/b) — leurs indicatrices de manquance restent candidates
-    (signal distinct : « le rollout MC était-il disponible » n'est pas sa valeur).
+    ``x_keys`` sont selectionnees par L1 sur le pool de candidats = toutes les
+    features SAUF les colonnes brutes p_rollout/spread elles-memes (deja des
+    termes dedies a/b) - leurs indicatrices de manquance restent candidates
+    (signal distinct : " le rollout MC etait-il disponible " n'est pas sa valeur).
     """
     candidate_mask = np.ones(x_imputed_train.shape[1], dtype=bool)
     candidate_mask[p_rollout_idx] = False
@@ -575,7 +573,7 @@ def fit_emos(
     return model, x_key_indices
 
 
-# --- Challengers (jamais exportés, comparaison seulement) ------------------------------
+# Challengers (jamais exportes, comparaison seulement)
 
 
 def fit_pure_lr_l2(
@@ -583,7 +581,7 @@ def fit_pure_lr_l2(
 ) -> tuple[LogisticRegression, np.ndarray, np.ndarray, float]:
     """LogisticRegression(l2) sur TOUTES les features, C choisi par CV interne (D10).
 
-    Retourne (modèle ré-ajusté sur tout le train avec le meilleur C, mean, std,
+    Retourne (modele re-ajuste sur tout le train avec le meilleur C, mean, std,
     best_C). Le C n'est jamais choisi en regardant le pli externe.
     """
     mean, std = _standardize_fit(x_full_train)
@@ -617,7 +615,7 @@ def fit_pure_lr_l2(
 def fit_hgb(
     x_full_train: np.ndarray, y_train: np.ndarray, *, fast: bool
 ) -> HistGradientBoostingClassifier:
-    """HistGradientBoostingClassifier à hyperparamètres FIXÉS (pas de recherche)."""
+    """HistGradientBoostingClassifier a hyperparametres FIXES (pas de recherche)."""
     return HistGradientBoostingClassifier(
         max_leaf_nodes=15,
         learning_rate=0.1,
@@ -626,12 +624,12 @@ def fit_hgb(
     ).fit(x_full_train, y_train)
 
 
-# --- Métriques d'évaluation --------------------------------------------------------------
+# Metriques d'evaluation
 
 
 @dataclass
 class FoldMetrics:
-    """Métriques agrégées (pool hors-pli) d'un modèle sur un axe d'évaluation."""
+    """Metriques agregees (pool hors-pli) d'un modele sur un axe d'evaluation."""
 
     n: int
     brier: float
@@ -652,11 +650,11 @@ def evaluate_predictions(
     baseline_pred: np.ndarray,
     y4_test: np.ndarray | None,
 ) -> FoldMetrics:
-    """Brier+skill, ROC-AUC, PR-AUC, fiabilité, et comparabilité HA4 (précision/rappel).
+    """Brier+skill, ROC-AUC, PR-AUC, fiabilite, et comparabilite HA4 (precision/rappel).
 
-    ``baseline_pred`` = prédiction de climatologie (taux de base du pli
-    d'ENTRAÎNEMENT, jamais du test) pour chaque ligne — un tableau, pas un
-    scalaire, car les lignes poolées peuvent provenir de plis différents.
+    ``baseline_pred`` = prediction de climatologie (taux de base du pli
+    d'ENTRAINEMENT, jamais du test) pour chaque ligne - un tableau, pas un
+    scalaire, car les lignes poolees peuvent provenir de plis differents.
     """
     n = len(y_test)
     brier = float(np.mean((p_pred - y_test) ** 2))
@@ -707,13 +705,13 @@ def evaluate_predictions(
     )
 
 
-# --- Axes d'évaluation --------------------------------------------------------------------
+# Axes d'evaluation
 
 
 def build_axis_folds(
     chain: np.ndarray, dgp: np.ndarray, beta_n: np.ndarray, *, fast: bool
 ) -> dict[str, list[tuple[np.ndarray, np.ndarray]]]:
-    """Construit les découpages des 3 axes gelés (plan D10)."""
+    """Construit les decoupages des 3 axes geles (plan D10)."""
     n = len(chain)
     idx_all = np.arange(n)
     folds: dict[str, list[tuple[np.ndarray, np.ndarray]]] = {}
@@ -747,14 +745,14 @@ def run_fold(
     has_rollout: bool,
     fast: bool,
 ) -> tuple[dict[str, np.ndarray], HistGradientBoostingClassifier]:
-    """Ajuste les 4 modèles sur ``(x_train, y_train)``, retourne leurs prédictions sur ``x_test``.
+    """Ajuste les 4 modeles sur ``(x_train, y_train)``, retourne leurs predictions sur ``x_test``.
 
-    ``x_train``/``x_test`` doivent déjà être imputés par un :class:`Imputer` ajusté
-    UNIQUEMENT sur les lignes de ce pli (jamais sur ``x_test``) — voir l'appelant
-    :func:`run_axis`, qui les construit pli par pli pour qu'aucune médiane ne soit
-    jamais partagée entre plis (ce qui ferait fuiter, via la valeur de la médiane,
-    de l'information du test d'un pli vers son propre train par un détour via un
-    AUTRE pli où ces mêmes lignes de test seraient des lignes de train).
+    ``x_train``/``x_test`` doivent deja etre imputes par un :class:`Imputer` ajuste
+    UNIQUEMENT sur les lignes de ce pli (jamais sur ``x_test``) - voir l'appelant
+    :func:`run_axis`, qui les construit pli par pli pour qu'aucune mediane ne soit
+    jamais partagee entre plis (ce qui ferait fuiter, via la valeur de la mediane,
+    de l'information du test d'un pli vers son propre train par un detour via un
+    AUTRE pli ou ces memes lignes de test seraient des lignes de train).
     """
     base_rate_train = float(y_train.mean())
     preds: dict[str, np.ndarray] = {}
@@ -798,13 +796,13 @@ def run_fold(
 
 @dataclass
 class AxisResult:
-    """Résultat poolé (hors-pli) d'un axe d'évaluation pour les 4 modèles.
+    """Resultat poole (hors-pli) d'un axe d'evaluation pour les 4 modeles.
 
-    ``hgb_test_x_fold0``/``hgb_test_y_fold0`` matérialisent le pli 0 tel
-    qu'EFFECTIVEMENT vu par ``hgb_model_fold0`` (même matrice imputée que celle
-    utilisée pour l'entraîner) — capturés ici plutôt que ré-indexés plus tard
-    depuis une matrice imputée potentiellement différente (ex. celle du modèle
-    final, dont les médianes d'imputation ne sont pas celles de ce pli).
+    ``hgb_test_x_fold0``/``hgb_test_y_fold0`` materialisent le pli 0 tel
+    qu'EFFECTIVEMENT vu par ``hgb_model_fold0`` (meme matrice imputee que celle
+    utilisee pour l'entrainer) - captures ici plutot que re-indexes plus tard
+    depuis une matrice imputee potentiellement differente (ex. celle du modele
+    final, dont les medianes d'imputation ne sont pas celles de ce pli).
     """
 
     metrics: dict[str, FoldMetrics]
@@ -828,17 +826,17 @@ def run_axis(
     has_rollout: bool,
     fast: bool,
 ) -> AxisResult | None:
-    """Boucle un axe (K plis), poole les prédictions hors-pli, calcule les métriques.
+    """Boucle un axe (K plis), poole les predictions hors-pli, calcule les metriques.
 
-    L'imputation (médiane) est ré-ajustée INDÉPENDAMMENT à chaque pli, sur son
-    propre ``train_idx`` uniquement (jamais partagée entre plis via une matrice
-    commune : un pli B où une ligne du TEST du pli A est un TRAIN ferait sinon
-    fuiter la valeur de cette ligne dans la médiane qui sert ensuite, par
-    écrasement, à l'imputer — ``x_raw`` est donc toujours la matrice BRUTE
-    (non imputée, ``raw_feature_names`` = ses 42 noms de colonnes), tranchée et
-    imputée ici, pli par pli. ``imputed_feature_names`` (42 + indicatrices) est
-    la liste FIXE (``indicator_mask`` est global) des colonnes après imputation,
-    utilisée pour indexer/sélectionner dans les matrices déjà imputées.
+    L'imputation (mediane) est re-ajustee INDEPENDAMMENT a chaque pli, sur son
+    propre ``train_idx`` uniquement (jamais partagee entre plis via une matrice
+    commune : un pli B ou une ligne du TEST du pli A est un TRAIN ferait sinon
+    fuiter la valeur de cette ligne dans la mediane qui sert ensuite, par
+    ecrasement, a l'imputer - ``x_raw`` est donc toujours la matrice BRUTE
+    (non imputee, ``raw_feature_names`` = ses 42 noms de colonnes), tranchee et
+    imputee ici, pli par pli. ``imputed_feature_names`` (42 + indicatrices) est
+    la liste FIXE (``indicator_mask`` est global) des colonnes apres imputation,
+    utilisee pour indexer/selectionner dans les matrices deja imputees.
     """
     if not folds:
         return None
@@ -873,9 +871,7 @@ def run_axis(
         pooled_baseline[test_idx] = float(y_train.mean())
         covered[test_idx] = True
         if i == 0:
-            # Matérialisé ICI (même matrice imputée que celle vue par hgb_model
-            # pendant son entraînement) — jamais ré-indexé depuis une matrice
-            # imputée différemment plus tard.
+            # Materialise ICI (meme matrice imputee que celle vue par hgb_model pendant son entrainement) - jamais re-indexe depuis une matrice imputee differemment plus tard.
             hgb_fold0 = hgb_model
             hgb_test_x_fold0 = x_test.copy()
             hgb_test_y_fold0 = y1[test_idx].copy()
@@ -895,12 +891,12 @@ def run_axis(
     )
 
 
-# --- Règle de décision + ajustement final (contrat 5) -----------------------------------
+# Regle de decision + ajustement final (contrat 5)
 
 
 @dataclass
 class FinalArtifactResult:
-    """Le modèle exporté (EMOS, EMOS dégradé, ou dégénéré) + traçabilité de la décision."""
+    """Le modele exporte (EMOS, EMOS degrade, ou degenere) + tracabilite de la decision."""
 
     model: LinearCalibratedModel
     x_key_indices: list[int] | None
@@ -918,7 +914,7 @@ def decide_and_fit_final(
     has_rollout: bool,
     axis_chaines: AxisResult | None,
 ) -> FinalArtifactResult:
-    """Règle de décision (plan D8, gelée) + ajustement final sur TOUTES les données usables."""
+    """Regle de decision (plan D8, gelee) + ajustement final sur TOUTES les donnees usables."""
     if not has_rollout:
         model = fit_linear_calibrated(x_imputed_full, y1_full, chain_full, feature_names)
         reason = (
@@ -955,9 +951,7 @@ def decide_and_fit_final(
     if degrade:
         p_rollout_full = _clip_prob(x_imputed_full[:, p_rollout_idx])
         raw_full = p_rollout_full  # sigmoid(logit(p_rollout)) == p_rollout, coef=[1.0] intercept=0
-        # p_rollout est EXOGÈNE (produit par U9, jamais ajusté sur y1 de ce dataset) :
-        # pas de biais optimiste à corriger par une CV interne, la calibration peut
-        # être apprise directement sur (p_rollout, y1) — voir docstring du module.
+        # p_rollout est EXOGENE (produit par U9, jamais ajuste sur y1 de ce dataset) : pas de biais optimiste a corriger par une CV interne, la calibration peut etre apprise directement sur (p_rollout, y1) - voir docstring du module.
         calibrator = fit_calibrator(raw_full, y1_full, raw_full, len(y1_full))
         model = LinearCalibratedModel(
             design_feature_names=["logit_p_rollout"],
@@ -984,7 +978,7 @@ def decide_and_fit_final(
 def final_design_matrix(
     result: FinalArtifactResult, x_imputed: np.ndarray, p_rollout_idx: int, spread_idx: int
 ) -> np.ndarray:
-    """Reconstruit la matrice de design du modèle final pour un jeu de lignes quelconque."""
+    """Reconstruit la matrice de design du modele final pour un jeu de lignes quelconque."""
     if result.degenerate:
         return _logit(_clip_prob(x_imputed[:, p_rollout_idx])).reshape(-1, 1)
     if result.x_key_indices is not None:
@@ -992,7 +986,7 @@ def final_design_matrix(
     return x_imputed
 
 
-# --- Incertitude : bootstrap de chaînes (K refits) --------------------------------------
+# Incertitude : bootstrap de chaines (K refits)
 
 
 def bootstrap_coef(
@@ -1004,18 +998,17 @@ def bootstrap_coef(
     k: int,
     seed: int,
 ) -> np.ndarray:
-    """K ré-ajustements par ré-échantillonnage des CHAÎNES avec remise.
+    """K re-ajustements par re-echantillonnage des CHAINES avec remise.
 
-    Le préprocessing du modèle final (médianes déjà appliquées en amont,
-    scaler_mean/std figés) est RÉUTILISÉ tel quel : seule l'estimation des
-    coefficients varie d'une réplique à l'autre, pour isoler la variance
-    d'échantillonnage des coefficients eux-mêmes (l'intercept ré-ajusté à chaque
-    réplique n'est pas exporté — le contrat 5 ne prévoit qu'un intercept
+    Le preprocessing du modele final (medianes deja appliquees en amont,
+    scaler_mean/std figes) est REUTILISE tel quel : seule l'estimation des
+    coefficients varie d'une replique a l'autre, pour isoler la variance
+    d'echantillonnage des coefficients eux-memes (l'intercept re-ajuste a chaque
+    replique n'est pas exporte - le contrat 5 ne prevoit qu'un intercept
     ponctuel).
     """
     if final.degenerate:
-        # Branche dégénérée : coef=[1.0] est DÉFINITIONNEL (pas estimé) -> le
-        # bootstrap est trivialement constant, documenté dans le model card.
+        # Branche degeneree : coef=[1.0] est DEFINITIONNEL (pas estime) -> le bootstrap est trivialement constant, documente dans le model card.
         return np.tile(final.model.coef, (k, 1))
 
     rng = np.random.default_rng(seed)
@@ -1033,7 +1026,7 @@ def bootstrap_coef(
                 boot_idx = candidate_idx
                 break
         if boot_idx is None:
-            continue  # ligne reste à 0.0, cas extrêmement improbable, documenté
+            continue  # ligne reste a 0.0, cas extremement improbable, documente
         x_boot_std = _standardize_apply(
             x_design_full[boot_idx], final.model.scaler_mean, final.model.scaler_std
         )
@@ -1045,7 +1038,7 @@ def bootstrap_coef(
     return coef_boot
 
 
-# --- Assertion de reproductibilité numpy-vs-sklearn (contrat 5) ------------------------
+# Assertion de reproductibilite numpy-vs-sklearn (contrat 5)
 
 
 def assert_numpy_matches_sklearn(
@@ -1056,15 +1049,15 @@ def assert_numpy_matches_sklearn(
     seed: int = 0,
     tol: float = 1e-8,
 ) -> None:
-    """Vérifie que le scoring numpy (contrat 5) reproduit la sortie sklearn native.
+    """Verifie que le scoring numpy (contrat 5) reproduit la sortie sklearn native.
 
-    Formule numpy exportée (doit correspondre EXACTEMENT à celle de U11) ::
+    Formule numpy exportee (doit correspondre EXACTEMENT a celle de U11) ::
 
-        z = coef·(x−mean)/std + intercept
+        z = coef-(x-mean)/std + intercept
         p = interp(calibrateur, sigmoid(z))
 
     Raises:
-        AssertionError: écart > ``tol`` entre les deux voies de calcul.
+        AssertionError: ecart > ``tol`` entre les deux voies de calcul.
     """
     model = final.model
     rng = np.random.default_rng(seed)
@@ -1081,7 +1074,7 @@ def assert_numpy_matches_sklearn(
         x_std = _standardize_apply(x_check, model.scaler_mean, model.scaler_std)
         raw_sklearn = model.base_estimator.predict_proba(x_std)[:, 1]
     else:
-        # Branche dégénérée : pas d'estimateur sklearn, p_brut = p_rollout par définition.
+        # Branche degeneree : pas d'estimateur sklearn, p_brut = p_rollout par definition.
         raw_sklearn = raw_numpy
 
     if not np.allclose(raw_sklearn, raw_numpy, atol=tol, rtol=0.0):
@@ -1097,7 +1090,7 @@ def assert_numpy_matches_sklearn(
     print(f"  Assertion numpy vs sklearn : OK sur {len(idx)} lignes (tolérance {tol:g}).")
 
 
-# --- Assemblage et validation de l'artefact (contrat 5) ---------------------------------
+# Assemblage et validation de l'artefact (contrat 5)
 
 
 def build_artifact(model: LinearCalibratedModel, coef_boot: np.ndarray) -> dict[str, Any]:
@@ -1116,7 +1109,7 @@ def build_artifact(model: LinearCalibratedModel, coef_boot: np.ndarray) -> dict[
 
 
 def validate_contract5(artifact: dict[str, Any]) -> None:
-    """Auto-vérification du schéma exporté — échoue fort en cas d'anomalie."""
+    """Auto-verification du schema exporte - echoue fort en cas d'anomalie."""
     required = {
         "schema_version",
         "feature_names",
@@ -1155,11 +1148,11 @@ def validate_contract5(artifact: dict[str, Any]) -> None:
     print(f"  Contrat 5 validé : {n_feat} feature(s), {n_boot} réplique(s) bootstrap.")
 
 
-# --- Figures de fiabilité ------------------------------------------------------------------
+# Figures de fiabilite
 
 
 def plot_reliability(axis_name: str, axis_result: AxisResult, out_path: Path) -> None:
-    """Courbe de fiabilité (calibration_curve) des 4 modèles superposés, pour un axe."""
+    """Courbe de fiabilite (calibration_curve) des 4 modeles superposes, pour un axe."""
     fig, ax = plt.subplots(figsize=(6, 6))
     ax.plot([0, 1], [0, 1], linestyle="--", color="gray", label="Parfaitement calibré")
     for m in MODEL_NAMES:
@@ -1182,7 +1175,7 @@ def plot_reliability(axis_name: str, axis_result: AxisResult, out_path: Path) ->
     plt.close(fig)
 
 
-# --- Model card (Français) ------------------------------------------------------------------
+# Model card (Francais)
 
 
 def _fmt(v: float | None, spec: str = ".4f") -> str:
@@ -1278,7 +1271,7 @@ def render_model_card(
     fast: bool,
     elapsed_s: float,
 ) -> str:
-    """Assemble le model_card.md complet (Français)."""
+    """Assemble le model_card.md complet (Francais)."""
     rollout_note = (
         "présent (au moins une valeur non manquante)"
         if has_rollout
@@ -1345,11 +1338,11 @@ def render_model_card(
     return "\n".join(parts)
 
 
-# --- Orchestration CLI -----------------------------------------------------------------------
+# Orchestration CLI
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Point d'entrée CLI."""
+    """Point d'entree CLI."""
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
@@ -1391,15 +1384,13 @@ def main(argv: list[str] | None = None) -> int:
         print("  p_rollout ABSENT : EMOS se dégrade vers le modèle pur-ML (L2, calibré).")
     beta_n = x_raw[:, ds.feature_names.index("beta_n")]
 
-    # Imputation "structurelle" (indicatrices) fixée une fois pour toutes ; les
-    # MÉDIANES du modèle final sont apprises sur tout l'usable (le train de
-    # l'export final), celles de chaque pli d'axe sur le train de CE pli.
+    # Imputation "structurelle" (indicatrices) fixee une fois pour toutes ; les MEDIANES du modele final sont apprises sur tout l'usable (le train de l'export final), celles de chaque pli d'axe sur le train de CE pli.
     final_imputer = Imputer.fit(x_raw, ds.feature_names, indicator_mask)
     x_imputed_full, feature_names_imputed = final_imputer.transform(x_raw)
     p_rollout_idx_imp = feature_names_imputed.index(P_ROLLOUT_COL)
     spread_idx_imp = feature_names_imputed.index(SPREAD_COL)
 
-    # --- Évaluation des 3 axes (imputation ré-apprise pli par pli dans run_axis) --------
+    # Evaluation des 3 axes (imputation re-apprise pli par pli dans run_axis)
     axis_folds = build_axis_folds(chain, dgp, beta_n, fast=args.fast)
     axis_results: dict[str, AxisResult | None] = {}
     for axis_name in ("chaines", "dgp", "temporel"):
@@ -1433,7 +1424,7 @@ def main(argv: list[str] | None = None) -> int:
                     f"AUC={_fmt(fm.roc_auc, '.3f')} PR-AUC={_fmt(fm.pr_auc, '.3f')}"
                 )
 
-    # --- Décision + ajustement final sur toutes les données usables --------------------
+    # Decision + ajustement final sur toutes les donnees usables
     print("Ajustement du modèle final (toutes les données usables)...")
     final = decide_and_fit_final(
         x_imputed_full,

@@ -5,7 +5,7 @@ stoppage. Nothing on the screen says which one it is.
 That is the practical shape of the problem this mission addressed. Modern supply chains are
 monitored through indicators that each measure one dimension at a time, while the decision
 the coordinator actually faces is multi-dimensional: cost against deadline against supplier
-reliability against, increasingly, carbon. When the tooling cannot combine those dimensions,
+reliability, carbon, and more. When the tooling cannot combine those dimensions,
 the coordinator combines them by judgment. Judgment is then the real decision layer of the
 system, and it is the layer nobody measures.
 
@@ -13,23 +13,30 @@ The consequences are not evenly distributed. Declaring more urgency than a situa
 warrants consumes shared transport and production capacity that another flow needed.
 Declaring less leaves a risk that nobody is watching, and by the time it becomes visible the
 window to act on it has closed. The second error is the more expensive, and it is the harder
-one to detect, precisely because an under-declared risk generates no signal.
+one to detect, precisely because an under-declared risk generates no direct signal.
 
 This mission was carried out at the Direction de l'Innovation of ALTEN, within the Smart
-Green Supply Chain research programme, between 13 April and 16 October 2026. Its subject was
+Green Supply Chain Digital Twin research programme, between 13 April and 16 October 2026. Its subject was
 the layer that sits before any planning decision: the urgency signal itself. The question
 driving the work was whether the gap between what an operator declares and what the
 operational state actually supports can be measured well enough, inside a working digital
-twin, to be acted upon.
+twin, to be acted upon, and to make a forecast built on it useful.
 
-The answer this report reaches is a qualified no, and the value of the work lies in how
-precisely that no can be stated. A complete system was delivered and is operational. The
-signal it produces was then tested against recorded outcomes rather than asserted, and the
-test failed in a way that identifies exactly which component is responsible and what would
-repair it. A second measurement, unplanned at the outset, showed that displaying the
-system's own forecast to the person making the declaration changed that declaration, and
-changed it in the wrong direction at the worst possible moment. Both findings are more
-useful to ALTEN than a favourable score would have been.
+The answer this report reaches has two parts, and they point in different directions. The
+gap itself can be measured and it carries real information: on the campaign, the nodes the
+system flags in the six turns before the crisis becomes public are, without a single false
+alarm, nodes that go on to miss a delivery commitment, and the worst-scoring of them is
+flagged eight turns before it misses. That is the measurement the mission set out to build,
+and it works. Turning that signal into a calibrated probability of a named outcome in a named
+window is a further step, and that step did not work on the first attempt. The system was
+tested against recorded outcomes rather than asserted, and the test failed in a way that
+identifies exactly which component is responsible and what would repair it. That repair was then carried out and re-measured on the same frozen campaign,
+which halved the calibration deficit at every horizon without making the forecast good, and
+which corrected the recommendation as much as the model: the obvious fix turned out to be the
+wrong one. A second measurement, unplanned at the outset, showed that displaying the system's
+own forecast to the person making the declaration changed that declaration, and changed it in
+the wrong direction at the worst possible moment. All three findings are more useful to ALTEN
+than a favourable score would have been.
 
 The report is organised as the mission itself was. Section~\ref{sec:entreprise} presents
 ALTEN, the Direction de l'Innovation and the research programme this work sits inside,

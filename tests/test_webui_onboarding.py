@@ -1,9 +1,9 @@
-"""Tests de la page Onboarding (wizard 4 étapes) — aucun serveur lancé.
+"""Tests de la page Onboarding (wizard 4 etapes) - aucun serveur lance.
 
-Les callbacks étant des fonctions nommées au niveau module (enregistrées via
-``app.callback(...)(fn)`` dans ``register_callbacks``), ils sont appelés
-directement ici, sans contexte de requête Dash : les States des formulaires
-non montés sont simulés par None (ids simples) et listes vides
+Les callbacks etant des fonctions nommees au niveau module (enregistrees via
+``app.callback(...)(fn)`` dans ``register_callbacks``), ils sont appeles
+directement ici, sans contexte de requete Dash : les States des formulaires
+non montes sont simules par None (ids simples) et listes vides
 (pattern-matching), comme Dash le ferait.
 """
 
@@ -25,7 +25,7 @@ from supplyscore.web_ui.pages.questionnaire import PAIRS
 
 @pytest.fixture
 def service(tmp_path):
-    """Service seedé avec une petite démo, partagé par les callbacks."""
+    """Service seede avec une petite demo, partage par les callbacks."""
     svc = SupplyScoreService(db_dir=tmp_path / "store")
     svc.seed_demo(n_ranks=2, seed=1)
     set_service(svc)
@@ -35,24 +35,24 @@ def service(tmp_path):
 
 @pytest.fixture
 def project_id(service):
-    """Identifiant du projet de démo."""
+    """Identifiant du projet de demo."""
     return service.registry.list_projects()[0].id
 
 
 def _store(node_id=None, step=1):
-    """Contenu du dcc.Store « store-onb » (position du wizard uniquement)."""
+    """Contenu du dcc.Store " store-onb " (position du wizard uniquement)."""
     return {"node_id": node_id, "step": step}
 
 
 def _target_id(service, project_id, rank=0):
-    """Id d'un nœud SEEDÉ (complete) du projet, au rang demandé."""
+    """Id d'un noeud SEEDE (complete) du projet, au rang demande."""
     for node in service.registry.list_nodes(project_id):
         if node.rank == rank and node.onboarding_state == "complete":
             return node.id
     raise AssertionError(f"aucun nœud seedé de rang {rank}")
 
 
-# --- Construction des 28 States des 4 formulaires (ordre de _FORM_STATES) ----------
+# Construction des 28 States des 4 formulaires (ordre de _FORM_STATES)
 
 _DEFAULTS: dict[str, Any] = {
     "ident_name": None,
@@ -87,14 +87,14 @@ _DEFAULTS: dict[str, Any] = {
 
 
 def _form_args(**over):
-    """Tuple des 28 valeurs de formulaire, formulaires non montés par défaut."""
+    """Tuple des 28 valeurs de formulaire, formulaires non montes par defaut."""
     assert set(over) <= set(_DEFAULTS), f"clés inconnues : {set(over) - set(_DEFAULTS)}"
     data = {**_DEFAULTS, **over}
     return tuple(data[key] for key in _DEFAULTS)
 
 
 def _identity_args(service, project_id, name="Atelier Test"):
-    """States de l'étape 1 (identité valide, connectée à un nœud de rang 0)."""
+    """States de l'etape 1 (identite valide, connectee a un noeud de rang 0)."""
     return _form_args(
         ident_name=name,
         ident_label="Workshop",
@@ -108,7 +108,7 @@ def _identity_args(service, project_id, name="Atelier Test"):
 
 
 def _cdc_args():
-    """States de l'étape 2 (un livrable + un jalon valide)."""
+    """States de l'etape 2 (un livrable + un jalon valide)."""
     return _form_args(
         cdc_budget=50_000,
         cdc_unitcost=12.5,
@@ -127,7 +127,7 @@ def _cdc_args():
 
 
 def _kpi_args():
-    """States de l'étape 3 (un seul KPI renseigné)."""
+    """States de l'etape 3 (un seul KPI renseigne)."""
     return _form_args(
         kpi_values=[24.0],
         kpi_ids=[{"type": "onb-kpi", "index": "time.lead_time_h"}],
@@ -135,7 +135,7 @@ def _kpi_args():
 
 
 def _ahp_args():
-    """States de l'étape 4 (toutes paires à 0 -> Saaty 1.0 -> CR = 0)."""
+    """States de l'etape 4 (toutes paires a 0 -> Saaty 1.0 -> CR = 0)."""
     return _form_args(
         pair_values=[0] * len(PAIRS),
         pair_ids=[{"type": "onb-ahp-pair", "index": f"{i}-{j}"} for i, j in PAIRS],
@@ -145,7 +145,7 @@ def _ahp_args():
     )
 
 
-# --- Layout --------------------------------------------------------------------------
+# Layout
 
 
 def test_layout_contient_les_ids_du_wizard(service):
@@ -178,7 +178,7 @@ def test_register_callbacks_smoke(service):
     assert app.callback_map
 
 
-# --- start_onboarding_callback -------------------------------------------------------
+# start_onboarding_callback
 
 
 def test_start_onboarding_cree_un_draft_et_pointe_le_store(service, project_id):
@@ -207,7 +207,7 @@ def test_start_onboarding_exige_projet_et_nom(service, project_id):
     assert "obligatoire" in str(msg)
 
 
-# --- render_step_callback ------------------------------------------------------------
+# render_step_callback
 
 
 def test_render_step_sans_brouillon_affiche_un_message(service):
@@ -221,7 +221,7 @@ def test_render_step_1_contient_le_formulaire_identite(service, project_id):
     children = onboarding.render_step_callback(_store(node_id, 1), 0)
     tree = str(children)
     assert "onb-ident-name" in tree
-    assert "onb-step" in tree  # bandeau des 4 étapes
+    assert "onb-step" in tree  # bandeau des 4 etapes
 
 
 def test_render_step_4_contient_le_formulaire_ahp(service, project_id):
@@ -238,7 +238,7 @@ def test_render_step_2_et_3_contiennent_cdc_et_kpis(service, project_id):
     assert "onb-kpi" in str(onboarding.render_step_callback(_store(node_id, 3), 0))
 
 
-# --- save_section_callback -----------------------------------------------------------
+# save_section_callback
 
 
 def test_save_section_etape_1_valide_passe_a_l_etape_2(service, project_id):
@@ -291,13 +291,13 @@ def test_parcours_complet_1_a_4_complete_le_noeud(service, project_id):
     assert store["step"] == 4
     store, msg = onboarding.save_section_callback(1, store, None, *_ahp_args())
 
-    # Après l'étape 4 : complete() + message de succès + store remis à zéro.
+    # Apres l'etape 4 : complete() + message de succes + store remis a zero.
     assert store == {"node_id": None, "step": 1}
     assert "terminé" in str(msg)
     node = service.registry.get_node(node_id)
     assert node.onboarding_state == "complete"
     assert service.registry.get_onboarding(node_id) is None
-    # Les écritures des sections sont bien là : jalon, KPI, évaluation AHP.
+    # Les ecritures des sections sont bien la : jalon, KPI, evaluation AHP.
     assert [m.name for m in service.registry.list_milestones(node_id)] == ["Proto"]
     assert node.kpis.time.lead_time_h == pytest.approx(24.0)
     assessment = service.client_db(node_id).latest_assessment(node_id)
@@ -305,7 +305,7 @@ def test_parcours_complet_1_a_4_complete_le_noeud(service, project_id):
     assert assessment.consistency_ratio == pytest.approx(0.0)
 
 
-# --- save_draft_callback -------------------------------------------------------------
+# save_draft_callback
 
 
 def test_save_draft_restitue_le_brouillon_via_load(service, project_id):
@@ -323,7 +323,7 @@ def test_save_draft_restitue_le_brouillon_via_load(service, project_id):
     draft = state.draft["identity"]
     assert draft["name"] == "Brouillon B2"
     assert draft["tag_names"] == ["incomplet"]
-    # save_draft ne valide RIEN : aucune section marquée faite.
+    # save_draft ne valide RIEN : aucune section marquee faite.
     assert state.sections_done["identity"] == 0
 
 
@@ -332,7 +332,7 @@ def test_save_draft_sans_brouillon_affiche_une_erreur(service):
     assert "rien à enregistrer" in str(msg)
 
 
-# --- resume_callback -----------------------------------------------------------------
+# resume_callback
 
 
 def test_resume_restaure_node_id_et_etape(service, project_id):
@@ -358,7 +358,7 @@ def test_resume_sans_clic_ou_id_inconnu_ne_change_rien(service):
         onboarding.resume_callback([1], [{"type": "onb-resume", "index": "id-fantome"}], _store())
 
 
-# --- navigation : précédent / bandeau d'étapes ----------------------------------------
+# navigation : precedent / bandeau d'etapes
 
 
 def test_prev_step_recule_sans_passer_sous_1(service, project_id):
@@ -382,12 +382,12 @@ def test_goto_step_ne_revient_que_sur_une_section_validee(service, project_id):
     store = onboarding.goto_step_callback([1, None, None, None], ids, _store(node_id, 2))
     assert store == {"node_id": node_id, "step": 1}
 
-    # Section 3 jamais validée : pas de saut en avant.
+    # Section 3 jamais validee : pas de saut en avant.
     with pytest.raises(PreventUpdate):
         onboarding.goto_step_callback([None, None, 1, None], ids, _store(node_id, 2))
 
 
-# --- brouillons : liste et lignes dynamiques ------------------------------------------
+# brouillons : liste et lignes dynamiques
 
 
 def test_render_drafts_liste_les_brouillons_avec_badge(service, project_id):

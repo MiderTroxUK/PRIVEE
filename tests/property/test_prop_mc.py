@@ -1,15 +1,15 @@
-"""Propriétés Hypothesis du simulateur Monte Carlo (phase E13, Lot 13.1).
+"""Proprietes Hypothesis du simulateur Monte Carlo (phase E13, Lot 13.1).
 
-Profil LÉGER : max 20 exemples par propriété et ``deadline=None`` (chaque
-exemple exécute une vraie simulation vectorisée — pas de chronomètre
-Hypothesis). N = 2 000 (le minimum autorisé) suffit : les comparaisons
-stochastiques sont toujours tolérées à 3 erreurs-types, jamais à seuil fixe.
+Profil LEGER : max 20 exemples par propriete et ``deadline=None`` (chaque
+exemple execute une vraie simulation vectorisee - pas de chronometre
+Hypothesis). N = 2 000 (le minimum autorise) suffit : les comparaisons
+stochastiques sont toujours tolerees a 3 erreurs-types, jamais a seuil fixe.
 
-Propriétés :
-- u_time ∈ [0, 1] ou None (et ic95 cohérent, quantiles ordonnés) ;
-- monotonie stochastique : deadline2 > deadline1 ⇒ p̂2 <= p̂1 + 3·SE ;
-- ajouter un prédécesseur ne diminue pas p̂ (tolérance 3·SE) ;
-- reproductibilité bit à bit à graine égale.
+Proprietes :
+- u_time  dans  [0, 1] ou None (et ic95 coherent, quantiles ordonnes) ;
+- monotonie stochastique : deadline2 > deadline1 => p2 <= p1 + 3-SE ;
+- ajouter un predecesseur ne diminue pas p (tolerance 3-SE) ;
+- reproductibilite bit a bit a graine egale.
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ from supplyscore.domain.models import KPIBundle, SupplyArc, SupplyNode, TimeKPIs
 from supplyscore.graph import InMemoryGraphRepository
 from supplyscore.mc import SimulateurLeadTime
 
-#: N minimal autorisé — rapide, et les tolérances sont en multiples de SE.
+#: N minimal autorise - rapide, et les tolerances sont en multiples de SE.
 _N = 2_000
 
 _LEADS = st.floats(min_value=1.0, max_value=200.0, allow_nan=False, allow_infinity=False)
@@ -47,7 +47,7 @@ def _noeud(
 
 
 def _se(*p_hats: float) -> float:
-    """Erreur-type combinée des estimateurs binomiaux fournis."""
+    """Erreur-type combinee des estimateurs binomiaux fournis."""
     return math.sqrt(sum(p * (1.0 - p) / _N for p in p_hats))
 
 
@@ -72,14 +72,14 @@ class TestProprietesMC:
         famille: str,
         graine: int,
     ):
-        """Chaîne de 2 nœuds : u_time ∈ [0,1] ou None, ic95 et quantiles sains."""
+        """Chaine de 2 noeuds : u_time  dans  [0,1] ou None, ic95 et quantiles sains."""
         repo = InMemoryGraphRepository()
         repo.add_node(_noeud("a", lead=lead_a, std=std_a))  # jamais de deadline
         repo.add_node(_noeud("b", lead=lead_b, std=std_b, deadline=deadline))
         repo.add_arc(SupplyArc(source_id="a", target_id="b"))
         sim = SimulateurLeadTime(repo, n_tirages=_N, graine=graine, famille=famille)
         res = sim.executer(t=0.0)
-        assert res.u_time["a"] is None  # pas d'échéance -> pas de u_time
+        assert res.u_time["a"] is None  # pas d'echeance -> pas de u_time
         assert res.ic95["a"] == 0.0
         for node_id in ("a", "b"):
             u = res.u_time[node_id]
@@ -108,7 +108,7 @@ class TestProprietesMC:
         famille: str,
         graine: int,
     ):
-        """deadline2 > deadline1 ⇒ p̂2 <= p̂1 + 3·SE (même graine)."""
+        """deadline2 > deadline1 => p2 <= p1 + 3-SE (meme graine)."""
         d1, d2 = sorted(d_pair)
         p_hats: list[float] = []
         for d in (d1, d2):
@@ -141,11 +141,11 @@ class TestProprietesMC:
         famille: str,
         graine: int,
     ):
-        """p̂(avec prédécesseur) >= p̂(isolé) − 3·SE (+ correction 3/N).
+        """p(avec predecesseur) >= p(isole) - 3-SE (+ correction 3/N).
 
-        Le prédécesseur retarde le démarrage (S = C_pred >= t) : la date
-        d'achèvement croît stochastiquement. Les tirages du nœud diffèrent
-        entre les deux graphes (flux RNG décalé), d'où la tolérance.
+        Le predecesseur retarde le demarrage (S = C_pred >= t) : la date
+        d'achevement croit stochastiquement. Les tirages du noeud different
+        entre les deux graphes (flux RNG decale), d'ou la tolerance.
         """
         repo_isole = InMemoryGraphRepository()
         repo_isole.add_node(_noeud("n", lead=lead, std=std, deadline=deadline))
@@ -178,7 +178,7 @@ class TestProprietesMC:
         famille: str,
         graine: int,
     ):
-        """Même graine ⇒ u_time, ic95 et quantiles identiques bit à bit."""
+        """Meme graine => u_time, ic95 et quantiles identiques bit a bit."""
         repo = InMemoryGraphRepository()
         repo.add_node(_noeud("amont", lead=lead, std=std))
         repo.add_node(_noeud("n", lead=lead, std=std, deadline=deadline))

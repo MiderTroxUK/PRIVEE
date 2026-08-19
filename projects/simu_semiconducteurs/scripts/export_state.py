@@ -1,10 +1,10 @@
-"""Snapshot d'état de campagne (U6) : scores, criticité, couverture, sauvegarde.
+"""Snapshot d'etat de campagne (U6) : scores, criticite, couverture, sauvegarde.
 
 Usage :
     python export_state.py --db-dir D [--tour N]
 
-Écrit ``analysis/snapshots/tour_NN.json`` (ou ``adhoc_<ts>.json`` sans --tour)
-et une archive zip de la base après chaque tour (rétention gérée par le
+Ecrit ``analysis/snapshots/tour_NN.json`` (ou ``adhoc_<ts>.json`` sans --tour)
+et une archive zip de la base apres chaque tour (retention geree par le
 service de sauvegarde natif de SupplyScore).
 """
 
@@ -21,11 +21,11 @@ from _common import PROJECT_ID, SNAPSHOTS
 
 
 def _blocs_kpi(service, node) -> dict[str, float | None] | None:
-    """Décomposition {u_time, u_cap, ...} du Ur_local du nœud, ou None si incalculable.
+    """Decomposition {u_time, u_cap, ...} du Ur_local du noeud, ou None si incalculable.
 
-    Même contexte temporel que le pipeline (horloge du PROJET, jalons du
+    Meme contexte temporel que le pipeline (horloge du PROJET, jalons du
     registre, cf. supplyscore/services/explain.py) ; un bloc sans KPI reste
-    None — jamais imputé.
+    None - jamais impute.
     """
     from supplyscore.core.clock import project_hours
     from supplyscore.core.explain import explain_ur_local
@@ -37,23 +37,23 @@ def _blocs_kpi(service, node) -> dict[str, float | None] | None:
         milestones = service.registry.list_milestones(node.id)
         blocs = explain_ur_local(t_h, node.kpis, milestones, service.ur_model, t0_ts=t0_ts)
         return {f"u_{bloc.block}": bloc.u for bloc in blocs}
-    except Exception:  # noqa: BLE001 — snapshot best-effort : bloc absent plutôt qu'échec
+    except Exception:  # noqa: BLE001 - snapshot best-effort : bloc absent plutot qu'echec
         return None
 
 
 def snapshot(db_dir: str, service, tour: int | None, out_dir: Path | None = None) -> dict:
-    """Construit et écrit le snapshot du réseau à l'instant courant.
+    """Construit et ecrit le snapshot du reseau a l'instant courant.
 
     Args:
         db_dir: dossier des bases SQLite de la campagne (pour la sauvegarde
             zip, cf. ``ServiceSauvegarde``).
-        service: façade ``SupplyScoreService`` déjà ouverte sur ``db_dir``.
-        tour: numéro de tour (nomme le fichier ``tour_NN.json``), ou None
-            pour un instantané ad hoc (``adhoc_<horodatage>.json``).
-        out_dir: dossier de dépôt de ``tour_NN.json`` ; ``SNAPSHOTS`` (dossier
-            de campagne standard) par défaut. Redirigeable par le runner de
+        service: facade ``SupplyScoreService`` deja ouverte sur ``db_dir``.
+        tour: numero de tour (nomme le fichier ``tour_NN.json``), ou None
+            pour un instantane ad hoc (``adhoc_<horodatage>.json``).
+        out_dir: dossier de depot de ``tour_NN.json`` ; ``SNAPSHOTS`` (dossier
+            de campagne standard) par defaut. Redirigeable par le runner de
             campagne headless (``run_campaign.py``, U5) vers un dossier de run
-            dédié, sans dupliquer la logique de snapshot.
+            dedie, sans dupliquer la logique de snapshot.
     """
     from supplyscore.services.criticite import ServiceCriticite
     from supplyscore.services.weekly import CycleHebdomadaire
@@ -78,7 +78,7 @@ def snapshot(db_dir: str, service, tour: int | None, out_dir: Path | None = None
             "blocs": _blocs_kpi(service, node),
         }
 
-    # Criticité probabiliste best-effort : par nœud, None si le calcul échoue.
+    # Criticite probabiliste best-effort : par noeud, None si le calcul echoue.
     proba: dict[str, dict] = {}
     try:
         proba = {
@@ -89,7 +89,7 @@ def snapshot(db_dir: str, service, tour: int | None, out_dir: Path | None = None
             }
             for p in ServiceCriticite(service).criticite_probabiliste(PROJECT_ID)
         }
-    except Exception as exc:  # noqa: BLE001 — snapshot best-effort, consigné
+    except Exception as exc:  # noqa: BLE001 - snapshot best-effort, consigne
         print(f"  [criticité probabiliste ÉCHEC] {type(exc).__name__}: {exc}")
 
     try:
@@ -108,7 +108,7 @@ def snapshot(db_dir: str, service, tour: int | None, out_dir: Path | None = None
             }
             for p in ServiceCriticite(service).indice_criticite(PROJECT_ID)
         ]
-    except Exception as exc:  # noqa: BLE001 — snapshot best-effort, consigné
+    except Exception as exc:  # noqa: BLE001 - snapshot best-effort, consigne
         criticite = [{"erreur": f"{type(exc).__name__}: {exc}"}]
 
     a_jour, total = CycleHebdomadaire(service).couverture(PROJECT_ID)
@@ -131,7 +131,7 @@ def snapshot(db_dir: str, service, tour: int | None, out_dir: Path | None = None
 
         archive = ServiceSauvegarde(db_dir).backup_all()
         print(f"  [backup] {archive}")
-    except Exception as exc:  # noqa: BLE001 — la campagne continue, mais on le voit
+    except Exception as exc:  # noqa: BLE001 - la campagne continue, mais on le voit
         print(f"  [backup ÉCHEC] {type(exc).__name__}: {exc}")
     return data
 

@@ -1,15 +1,15 @@
-"""Score d'adéquation A ∈ [0, 100] entre urgence déclarée Ud et réelle Ur.
+"""Score d'adequation A  dans  [0, 100] entre urgence declaree Ud et reelle Ur.
 
-L'adéquation mesure l'alignement entre la perception humaine (Ud) et la
-réalité opérationnelle (Ur). Deux pathologies sont distinguées :
+L'adequation mesure l'alignement entre la perception humaine (Ud) et la
+realite operationnelle (Ur). Deux pathologies sont distinguees :
 
-- **Fausse urgence** F = [Ud − Ur]+ : panique injustifiée (sur-déclaration) ;
-- **Risque caché** H = [Ur − Ud]+ : danger invisible (sous-déclaration).
+- **Fausse urgence** F = [Ud - Ur]+ : panique injustifiee (sur-declaration) ;
+- **Risque cache** H = [Ur - Ud]+ : danger invisible (sous-declaration).
 
-Règle de gouvernance : ``lambda_under > lambda_over`` — le danger invisible
-est pire que la panique. Une équipe qui sur-réagit gaspille des ressources ;
-une équipe qui sous-estime découvre la rupture quand il est trop tard.
-Le défaut 2.25 vs 1.0 reprend le coefficient d'aversion à la perte mesuré
+Regle de gouvernance : ``lambda_under > lambda_over`` - le danger invisible
+est pire que la panique. Une equipe qui sur-reagit gaspille des ressources ;
+une equipe qui sous-estime decouvre la rupture quand il est trop tard.
+Le defaut 2.25 vs 1.0 reprend le coefficient d'aversion a la perte mesure
 par Kahneman & Tversky (Prospect Theory, 1992).
 """
 
@@ -26,13 +26,13 @@ def _clip(x: float, lo: float, hi: float) -> float:
 
 
 class AdequationEngine:
-    """Moteur de calcul du score d'adéquation Ud/Ur.
+    """Moteur de calcul du score d'adequation Ud/Ur.
 
     Attributes:
-        lambda_under: pénalité de sous-estimation (Ur > Ud), > 0.
+        lambda_under: penalite de sous-estimation (Ur > Ud), > 0.
             Doit rester > ``lambda_over`` (le danger invisible est pire
             que la panique).
-        lambda_over: pénalité de surestimation (Ud > Ur), > 0.
+        lambda_over: penalite de surestimation (Ud > Ur), > 0.
         alpha: courbure psychophysique de la fonction de valeur
             (Prospect Theory), dans (0, 1].
     """
@@ -43,7 +43,7 @@ class AdequationEngine:
         lambda_over: float = 1.0,
         alpha: float = 0.88,
     ) -> None:
-        """Initialise le moteur avec les paramètres de pénalité asymétrique.
+        """Initialise le moteur avec les parametres de penalite asymetrique.
 
         Raises:
             ValueError: si un lambda est <= 0 ou si alpha sort de (0, 1].
@@ -55,7 +55,7 @@ class AdequationEngine:
 
     @staticmethod
     def _validate(lambda_under: float, lambda_over: float, alpha: float) -> None:
-        """Valide les paramètres de la pénalité asymétrique.
+        """Valide les parametres de la penalite asymetrique.
 
         Raises:
             ValueError: si un lambda est <= 0 ou si alpha sort de (0, 1].
@@ -67,52 +67,52 @@ class AdequationEngine:
         if not 0.0 < alpha <= 1.0:
             raise ValueError(f"alpha doit être dans (0, 1], reçu {alpha}")
 
-    # --- Mesures élémentaires ---------------------------------------------------
+    # Mesures elementaires
 
     @staticmethod
     def adequation_simple(ud: float, ur: float) -> float:
-        """Adéquation naïve : 1 − |Ud − Ur|, bornée sur [0, 1].
+        """Adequation naive : 1 - |Ud - Ur|, bornee sur [0, 1].
 
-        Ur peut dépasser 1 pour une tâche en retard : l'écart est alors
-        borné à 1 avant soustraction.
+        Ur peut depasser 1 pour une tache en retard : l'ecart est alors
+        borne a 1 avant soustraction.
 
         Args:
-            ud: urgence déclarée ∈ [0, 1].
-            ur: urgence réelle (>= 0, peut dépasser 1 si retard).
+            ud: urgence declaree  dans  [0, 1].
+            ur: urgence reelle (>= 0, peut depasser 1 si retard).
 
         Returns:
-            Adéquation dans [0, 1] (1 = alignement parfait).
+            Adequation dans [0, 1] (1 = alignement parfait).
         """
         gap = min(abs(ud - ur), 1.0)
         return _clip(1.0 - gap, 0.0, 1.0)
 
     @staticmethod
     def false_urgency(ud: float, ur: float) -> float:
-        """Fausse urgence F = [Ud − Ur]+ : panique injustifiée.
+        """Fausse urgence F = [Ud - Ur]+ : panique injustifiee.
 
         Args:
-            ud: urgence déclarée.
-            ur: urgence réelle.
+            ud: urgence declaree.
+            ur: urgence reelle.
 
         Returns:
-            Excédent de déclaration, >= 0.
+            Excedent de declaration, >= 0.
         """
         return max(ud - ur, 0.0)
 
     @staticmethod
     def hidden_risk(ud: float, ur: float) -> float:
-        """Risque caché H = [Ur − Ud]+ : danger invisible.
+        """Risque cache H = [Ur - Ud]+ : danger invisible.
 
         Args:
-            ud: urgence déclarée.
-            ur: urgence réelle.
+            ud: urgence declaree.
+            ur: urgence reelle.
 
         Returns:
-            Excédent de réalité, >= 0.
+            Excedent de realite, >= 0.
         """
         return max(ur - ud, 0.0)
 
-    # --- Score asymétrique --------------------------------------------------------
+    # Score asymetrique
 
     def adequation_asym(
         self,
@@ -122,39 +122,39 @@ class AdequationEngine:
         lambda_over: float | None = None,
         alpha: float | None = None,
     ) -> float:
-        """Score d'adéquation asymétrique sur [0, 100] (Prospect Theory).
+        """Score d'adequation asymetrique sur [0, 100] (Prospect Theory).
 
-        La pénalité pondère différemment les deux pathologies :
+        La penalite pondere differemment les deux pathologies :
 
-            e_under = [Ur − Ud]+ ; e_over = [Ud − Ur]+
-            penalty = λ_under·e_under^α + λ_over·e_over^α
-            A = 100·(exp(−penalty) − exp(−max_penalty)) / (1 − exp(−max_penalty))
+            e_under = [Ur - Ud]+ ; e_over = [Ud - Ur]+
+            penalty = lambda_under-e_under^alpha + lambda_over-e_over^alpha
+            A = 100-(exp(-penalty) - exp(-max_penalty)) / (1 - exp(-max_penalty))
 
-        avec max_penalty = max(λ_under, λ_over) (pénalité d'un écart maximal
-        de 1 dans la direction la plus pénalisée). Le score est borné sur
-        [0, 100] et vaut 0.0 dès que exp(−penalty) <= exp(−max_penalty)
-        (notamment quand Ur > 1 + Ud, tâche très en retard).
+        avec max_penalty = max(lambda_under, lambda_over) (penalite d'un ecart maximal
+        de 1 dans la direction la plus penalisee). Le score est borne sur
+        [0, 100] et vaut 0.0 des que exp(-penalty) <= exp(-max_penalty)
+        (notamment quand Ur > 1 + Ud, tache tres en retard).
 
-        Règle de gouvernance : ``lambda_under > lambda_over`` — la
-        sous-estimation (risque caché) doit coûter plus cher que la
+        Regle de gouvernance : ``lambda_under > lambda_over`` - la
+        sous-estimation (risque cache) doit couter plus cher que la
         surestimation (fausse urgence) : le danger invisible est pire que
         la panique.
 
         Args:
-            ud: urgence déclarée ∈ [0, 1].
-            ur: urgence réelle (>= 0, peut dépasser 1 si retard).
-            lambda_under: surcharge ponctuelle de la pénalité de
-                sous-estimation (défaut : valeur du moteur).
-            lambda_over: surcharge ponctuelle de la pénalité de
-                surestimation (défaut : valeur du moteur).
-            alpha: surcharge ponctuelle de la courbure (défaut : moteur).
+            ud: urgence declaree  dans  [0, 1].
+            ur: urgence reelle (>= 0, peut depasser 1 si retard).
+            lambda_under: surcharge ponctuelle de la penalite de
+                sous-estimation (defaut : valeur du moteur).
+            lambda_over: surcharge ponctuelle de la penalite de
+                surestimation (defaut : valeur du moteur).
+            alpha: surcharge ponctuelle de la courbure (defaut : moteur).
 
         Returns:
-            Score d'adéquation dans [0, 100] (100 = alignement parfait).
+            Score d'adequation dans [0, 100] (100 = alignement parfait).
 
         Raises:
-            ValueError: si un lambda surchargé est <= 0 ou si alpha
-                surchargé sort de (0, 1].
+            ValueError: si un lambda surcharge est <= 0 ou si alpha
+                surcharge sort de (0, 1].
         """
         lu = self.lambda_under if lambda_under is None else lambda_under
         lo = self.lambda_over if lambda_over is None else lambda_over
@@ -173,18 +173,18 @@ class AdequationEngine:
         score = 100.0 * (value - floor) / (1.0 - floor)
         return _clip(score, 0.0, 100.0)
 
-    # --- Évaluation complète --------------------------------------------------------
+    # Evaluation complete
 
     def evaluate(self, ud: float, ur: float) -> UrgencyState:
-        """Évalue un couple (Ud, Ur) et renvoie un état d'urgence partiel.
+        """Evalue un couple (Ud, Ur) et renvoie un etat d'urgence partiel.
 
-        Remplit ``ud``, ``ur``, ``adequation`` (score asymétrique),
-        ``false_urgency`` et ``hidden_risk`` ; les champs locaux/propagés
-        restants sont laissés à None (responsabilité du module graphe).
+        Remplit ``ud``, ``ur``, ``adequation`` (score asymetrique),
+        ``false_urgency`` et ``hidden_risk`` ; les champs locaux/propages
+        restants sont laisses a None (responsabilite du module graphe).
 
         Args:
-            ud: urgence déclarée ∈ [0, 1].
-            ur: urgence réelle (>= 0, peut dépasser 1 si retard).
+            ud: urgence declaree  dans  [0, 1].
+            ur: urgence reelle (>= 0, peut depasser 1 si retard).
 
         Returns:
             :class:`supplyscore.domain.models.UrgencyState` partiellement rempli.

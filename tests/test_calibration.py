@@ -1,19 +1,19 @@
-"""Tests du Lot 11.1 : CalibrationService — le score H a-t-il prédit les ruptures ?
+"""Tests du Lot 11.1 : CalibrationService - le score H a-t-il predit les ruptures ?
 
-Couvre : le cas synthétique chiffré à la main (VP=3, FP=1, FN=1, VN=5,
-précision=rappel=0.75), la courbe de calibration sur 2 tranches connues
+Couvre : le cas synthetique chiffre a la main (VP=3, FP=1, FN=1, VN=5,
+precision=rappel=0.75), la courbe de calibration sur 2 tranches connues
 (moyennes/taux/effectifs exacts, tranches vides omises), les outcomes d'une
-vraie partie (FixedClock + seed_demo + GameClock : jalon raté, événement
-critique, événement annulé ignoré, H None ignorés, nœud abandonné en proxy),
-le résumé français (avertissement « échantillon trop petit », précision/rappel
-non définis) et les propriétés None de ConfusionMatrix sur dénominateurs nuls.
+vraie partie (FixedClock + seed_demo + GameClock : jalon rate, evenement
+critique, evenement annule ignore, H None ignores, noeud abandonne en proxy),
+le resume francais (avertissement " echantillon trop petit ", precision/rappel
+non definis) et les proprietes None de ConfusionMatrix sur denominateurs nuls.
 
-Couvre aussi les métriques de discrimination/calibration du lot en cours :
-AUC (Mann-Whitney, séparation parfaite/inversée/aléatoire, ex æquo massifs et
-partiels chiffrés à la main), son IC95 bootstrap en grappes de nœuds
-(reproductibilité à seed fixée, grappe unique à bornes exactes), average
-precision et score de Brier/skill score chiffrés à la main, le balayage de
-seuils et le seuil optimal (Youden/F1) sur des cas chiffrés à la main.
+Couvre aussi les metriques de discrimination/calibration du lot en cours :
+AUC (Mann-Whitney, separation parfaite/inversee/aleatoire, ex aequo massifs et
+partiels chiffres a la main), son IC95 bootstrap en grappes de noeuds
+(reproductibilite a seed fixee, grappe unique a bornes exactes), average
+precision et score de Brier/skill score chiffres a la main, le balayage de
+seuils et le seuil optimal (Youden/F1) sur des cas chiffres a la main.
 """
 
 from __future__ import annotations
@@ -39,7 +39,7 @@ from supplyscore.services.calibration import (
 )
 from supplyscore.services.events import EventEngine
 
-#: Mercredi 2026-06-10 12:00 locale — semaine ISO « 2026-S24 ».
+#: Mercredi 2026-06-10 12:00 locale - semaine ISO " 2026-S24 ".
 _NOW = datetime(2026, 6, 10, 12, 0).timestamp()
 _WEEK = 604_800.0
 
@@ -52,7 +52,7 @@ def _point(
     name: str = "Nœud",
     week: str = "2026-S10",
 ) -> OutcomePoint:
-    """Point d'observation synthétique (construit à la main, sans base)."""
+    """Point d'observation synthetique (construit a la main, sans base)."""
     return OutcomePoint(
         node_id=node,
         node_name=name,
@@ -64,7 +64,7 @@ def _point(
     )
 
 
-# --- Fixtures -----------------------------------------------------------------------
+# Fixtures
 
 
 @pytest.fixture
@@ -88,20 +88,18 @@ def calib(service: SupplyScoreService) -> CalibrationService:
 def partie(
     service: SupplyScoreService,
 ) -> tuple[SupplyScoreService, Project, tuple[str, str, str]]:
-    """Vraie partie : seed_demo en S24, 5 semaines de jeu, issues contrôlées.
+    """Vraie partie : seed_demo en S24, 5 semaines de jeu, issues controlees.
 
-    Scénario (semaine courante finale : 2026-S29) :
+    Scenario (semaine courante finale : 2026-S29) :
 
-    - les jalons générés par seed_demo sont repoussés hors de toute fenêtre ;
-    - nœud A : jalon « Prototype » ACTIVE, échéance en S25, jamais livré ;
-    - nœud B : panne machine de gravité critique déclarée en S26 ; plus un
-      pic de demande (sans gravité) la même semaine ;
-    - nœud C : état d'urgence SANS H inséré en S23, et un événement de
-      gravité « defaut » déclaré en S26 puis ANNULÉ aussitôt.
+    - les jalons generes par seed_demo sont repousses hors de toute fenetre ;
+    - noeud A : jalon " Prototype " ACTIVE, echeance en S25, jamais livre ;
+    - noeud B : panne machine de gravite critique declaree en S26 ; plus un
+      pic de demande (sans gravite) la meme semaine ;
+    - noeud C : etat d'urgence SANS H insere en S23, et un evenement de
+      gravite " defaut " declare en S26 puis ANNULE aussitot.
     """
-    # Correctif E11 : ``evaluate_all`` re-horodate désormais chaque état avec
-    # l'horloge effective de SON projet (mode jeu inclus) — plus aucun
-    # contournement nécessaire ici, les états tombent dans la bonne semaine.
+    # Correctif E11 : ``evaluate_all`` re-horodate desormais chaque etat avec l'horloge effective de SON projet (mode jeu inclus) - plus aucun contournement necessaire ici, les etats tombent dans la bonne semaine.
     projet = service.seed_demo(n_ranks=2, seed=1)
     nodes = sorted(
         (
@@ -114,13 +112,13 @@ def partie(
     assert len(nodes) >= 3, "le projet de démo doit contenir au moins trois nœuds actifs"
     node_a, node_b, node_c = nodes[0].id, nodes[1].id, nodes[2].id
 
-    # Jalons de seed_demo repoussés à +100 semaines : aucun « jalon raté » parasite.
+    # Jalons de seed_demo repousses a +100 semaines : aucun " jalon rate " parasite.
     for node in service.repo.nodes():
         for milestone in service.registry.list_milestones(node.id):
             milestone.deadline_ts = _NOW + 100 * _WEEK
             service.registry.save_milestone(milestone)
 
-    # Jalon raté contrôlé sur A : échéance dans la semaine S25, jamais livré.
+    # Jalon rate controle sur A : echeance dans la semaine S25, jamais livre.
     service.registry.save_milestone(
         Milestone(
             id="m-rate",
@@ -133,7 +131,7 @@ def partie(
             position=99,
         )
     )
-    # État d'urgence SANS H sur C, une semaine avant le départ (S23).
+    # Etat d'urgence SANS H sur C, une semaine avant le depart (S23).
     service.client_db(node_c).save_urgency_state(node_c, UrgencyState(timestamp=_NOW - _WEEK))
 
     service.set_clock_mode(projet.id, "game")
@@ -142,28 +140,28 @@ def partie(
 
     engine = EventEngine(service)
     engine.apply(node_b, "panne_machine", {"duree_arret_h": 24.0, "gravite": "critique"})
-    engine.apply(node_b, "pic_demande", {"nouvelle_demande": 250.0})  # sans gravité
+    engine.apply(node_b, "pic_demande", {"nouvelle_demande": 250.0})  # sans gravite
     annule = engine.apply(node_c, "alerte_financiere_fournisseur", {"gravite": "defaut"})
-    engine.revert(annule.id, node_c)  # déclaré par erreur : ne doit pas compter
+    engine.revert(annule.id, node_c)  # declare par erreur : ne doit pas compter
 
     for _ in range(3):
         service.advance_week(projet.id)  # S27, S28, S29 (semaine courante)
     return service, projet, (node_a, node_b, node_c)
 
 
-# --- Cas synthétique chiffré à la main ------------------------------------------------
+# Cas synthetique chiffre a la main
 
 
 class TestConfusionSynthetique:
     """10 points : 4 avec H>0.5 (3 issues), 6 avec H<0.5 (1 issue)."""
 
     POINTS: ClassVar[list[OutcomePoint]] = [
-        # 4 points H > 0.5 : 3 issues constatées (VP), 1 fausse alerte (FP).
+        # 4 points H > 0.5 : 3 issues constatees (VP), 1 fausse alerte (FP).
         _point(0.9, True),
         _point(0.8, True),
         _point(0.6, True),
         _point(0.7, False),
-        # 6 points H < 0.5 : 1 rupture ratée (FN), 5 calmes (VN).
+        # 6 points H < 0.5 : 1 rupture ratee (FN), 5 calmes (VN).
         _point(0.4, True),
         _point(0.1, False),
         _point(0.2, False),
@@ -185,12 +183,12 @@ class TestConfusionSynthetique:
         assert (matrice.vp, matrice.fp, matrice.fn, matrice.vn) == (3, 1, 1, 5)
 
     def test_h_egal_au_seuil_n_est_pas_positif(self, calib: CalibrationService) -> None:
-        # Prédiction positive STRICTE : H > seuil, pas >=.
+        # Prediction positive STRICTE : H > seuil, pas >=.
         matrice = calib.confusion([_point(0.5, True)], seuil=0.5)
         assert (matrice.vp, matrice.fp, matrice.fn, matrice.vn) == (0, 0, 1, 0)
 
 
-# --- ConfusionMatrix : dénominateurs nuls ---------------------------------------------
+# ConfusionMatrix : denominateurs nuls
 
 
 class TestConfusionMatrix:
@@ -210,27 +208,27 @@ class TestConfusionMatrix:
         assert matrice.rappel == 0.0
 
 
-# --- Scores internes du seuil optimal (Youden / F1) sur matrices à la main ---------------
+# Scores internes du seuil optimal (Youden / F1) sur matrices a la main
 
 
 class TestScoresInternes:
     def test_youden_valeur_definie_chiffree_a_la_main(self) -> None:
-        # rappel=6/8=0.75, spécificité=3/5=0.6 -> Youden=0.35.
+        # rappel=6/8=0.75, specificite=3/5=0.6 -> Youden=0.35.
         matrice = ConfusionMatrix(seuil=0.5, vp=6, fp=2, fn=2, vn=3)
         assert _score_youden(matrice) == pytest.approx(0.35)
 
     def test_youden_none_si_rappel_indefini(self) -> None:
-        # Aucune issue défavorable (vp+fn=0) : rappel indéfini.
+        # Aucune issue defavorable (vp+fn=0) : rappel indefini.
         matrice = ConfusionMatrix(seuil=0.5, vp=0, fp=2, fn=0, vn=3)
         assert _score_youden(matrice) is None
 
     def test_youden_none_si_specificite_indefinie(self) -> None:
-        # Aucun négatif (vn+fp=0) : spécificité indéfinie.
+        # Aucun negatif (vn+fp=0) : specificite indefinie.
         matrice = ConfusionMatrix(seuil=0.5, vp=2, fp=0, fn=1, vn=0)
         assert _score_youden(matrice) is None
 
     def test_f1_valeur_definie_chiffree_a_la_main(self) -> None:
-        # précision=2/3, rappel=2/4=0.5 -> F1=2*(2/3)*0.5/(2/3+0.5)=0.5714...
+        # precision=2/3, rappel=2/4=0.5 -> F1=2*(2/3)*0.5/(2/3+0.5)=0.5714...
         matrice = ConfusionMatrix(seuil=0.5, vp=2, fp=1, fn=2, vn=1)
         assert _score_f1(matrice) == pytest.approx(2 * (2 / 3) * 0.5 / (2 / 3 + 0.5))
 
@@ -241,15 +239,14 @@ class TestScoresInternes:
         assert _score_f1(sans_issue_defavorable) is None
 
     def test_f1_none_si_precision_et_rappel_nuls(self) -> None:
-        # vp=0 avec fp>0 ET fn>0 : précision=0, rappel=0, somme nulle ->
-        # F1 indéfini (division par zéro évitée).
+        # vp=0 avec fp>0 ET fn>0 : precision=0, rappel=0, somme nulle -> F1 indefini (division par zero evitee).
         matrice = ConfusionMatrix(seuil=0.5, vp=0, fp=2, fn=3, vn=1)
         assert matrice.precision == 0.0
         assert matrice.rappel == 0.0
         assert _score_f1(matrice) is None
 
 
-# --- Courbe de calibration -------------------------------------------------------------
+# Courbe de calibration
 
 
 class TestCalibrationCurve:
@@ -281,7 +278,7 @@ class TestCalibrationCurve:
             calib.calibration_curve([], n_bins=0)
 
 
-# --- AUC (Mann-Whitney) ------------------------------------------------------------------
+# AUC (Mann-Whitney)
 
 
 class TestAuc:
@@ -304,8 +301,7 @@ class TestAuc:
         assert calib.auc(points) == pytest.approx(0.0)
 
     def test_auc_intermediaire_chiffre_a_la_main(self, calib: CalibrationService) -> None:
-        # Paires (positif, négatif) : (0.9,0.8) concordante, (0.9,0.3) concordante,
-        # (0.2,0.8) discordante, (0.2,0.3) discordante -> 2/4 = AUC 0.5.
+        # Paires (positif, negatif) : (0.9,0.8) concordante, (0.9,0.3) concordante, (0.2,0.8) discordante, (0.2,0.3) discordante -> 2/4 = AUC 0.5.
         points = [
             _point(0.9, True, node="n-1"),
             _point(0.2, True, node="n-2"),
@@ -315,8 +311,7 @@ class TestAuc:
         assert calib.auc(points) == pytest.approx(0.5)
 
     def test_ex_aequo_massifs_toutes_valeurs_egales(self, calib: CalibrationService) -> None:
-        # Toutes les valeurs de H sont égales : chaque paire ne vaut que 0.5,
-        # quel que soit le déséquilibre des classes (2 positifs, 3 négatifs).
+        # Toutes les valeurs de H sont egales : chaque paire ne vaut que 0.5, quel que soit le desequilibre des classes (2 positifs, 3 negatifs).
         points = [
             _point(0.5, True, node="n-1"),
             _point(0.5, True, node="n-2"),
@@ -327,9 +322,7 @@ class TestAuc:
         assert calib.auc(points) == pytest.approx(0.5)
 
     def test_ex_aequo_partiels_chiffres_a_la_main(self, calib: CalibrationService) -> None:
-        # 2 positifs à H=0.7, 1 négatif ex æquo à H=0.7, 1 négatif à H=0.2.
-        # Paires : (pos,neg=0.7) ex æquo -> 0.5 chacune (x2) ; (pos,neg=0.2)
-        # concordantes -> 1 chacune (x2). Somme 3 sur 4 paires : AUC = 0.75.
+        # 2 positifs a H=0.7, 1 negatif ex aequo a H=0.7, 1 negatif a H=0.2. Paires : (pos,neg=0.7) ex aequo -> 0.5 chacune (x2) ; (pos,neg=0.2) concordantes -> 1 chacune (x2). Somme 3 sur 4 paires : AUC = 0.75.
         points = [
             _point(0.7, True, node="n-1"),
             _point(0.7, True, node="n-2"),
@@ -354,13 +347,12 @@ class TestAuc:
         assert calib.auc([]) is None
 
 
-# --- Intervalle de confiance de l'AUC (bootstrap en grappes) -----------------------------
+# Intervalle de confiance de l'AUC (bootstrap en grappes)
 
 
 class TestAucCi:
     def test_grappe_unique_bornes_exactes(self, calib: CalibrationService) -> None:
-        # Un seul nœud : chaque tirage bootstrap ré-échantillonne TOUJOURS ce
-        # même (et seul) nœud -> l'AUC est strictement identique à chaque tirage.
+        # Un seul noeud : chaque tirage bootstrap re-echantillonne TOUJOURS ce meme (et seul) noeud -> l'AUC est strictement identique a chaque tirage.
         points = [_point(0.9, True, node="n-1"), _point(0.1, False, node="n-1")]
         ic = calib.auc_ci(points, n_boot=10, seed=0)
         assert ic is not None
@@ -397,14 +389,12 @@ class TestAucCi:
         assert calib.auc_ci([]) is None
 
 
-# --- Average precision (aire sous la courbe précision-rappel) ----------------------------
+# Average precision (aire sous la courbe precision-rappel)
 
 
 class TestPrAuc:
     def test_valeur_chiffree_a_la_main(self, calib: CalibrationService) -> None:
-        # H décroissant [0.9,0.8,0.7,0.6], issues [T,F,T,F] :
-        # recall 0.5 à precision 1 (poids 0.5) + recall 1 à precision 2/3 (poids 0.5)
-        # = 0.5 + 1/3 = 5/6.
+        # H decroissant [0.9,0.8,0.7,0.6], issues [T,F,T,F] : recall 0.5 a precision 1 (poids 0.5) + recall 1 a precision 2/3 (poids 0.5) = 0.5 + 1/3 = 5/6.
         points = [
             _point(0.9, True, node="n-1"),
             _point(0.8, False, node="n-2"),
@@ -414,8 +404,7 @@ class TestPrAuc:
         assert calib.pr_auc(points) == pytest.approx(5 / 6)
 
     def test_ex_aequo_chiffre_a_la_main(self, calib: CalibrationService) -> None:
-        # Un positif et un négatif ex æquo à H=0.5 : palier unique, précision
-        # 1/2, rappel 1 -> AP = 0.5.
+        # Un positif et un negatif ex aequo a H=0.5 : palier unique, precision 1/2, rappel 1 -> AP = 0.5.
         points = [_point(0.5, True, node="n-1"), _point(0.5, False, node="n-2")]
         assert calib.pr_auc(points) == pytest.approx(0.5)
 
@@ -431,13 +420,12 @@ class TestPrAuc:
         assert calib.pr_auc([]) is None
 
 
-# --- Score de Brier et skill score --------------------------------------------------------
+# Score de Brier et skill score
 
 
 class TestBrier:
     def test_valeurs_chiffrees_a_la_main(self, calib: CalibrationService) -> None:
-        # Erreurs quadratiques : 0.01, 0.01, 0.36, 0.36 -> brier = 0.74/4 = 0.185.
-        # Taux de base 0.5 -> brier climatologique = 0.25 -> skill = 1-0.74 = 0.26.
+        # Erreurs quadratiques : 0.01, 0.01, 0.36, 0.36 -> brier = 0.74/4 = 0.185. Taux de base 0.5 -> brier climatologique = 0.25 -> skill = 1-0.74 = 0.26.
         points = [
             _point(0.9, True, node="n-1"),
             _point(0.1, False, node="n-2"),
@@ -453,8 +441,7 @@ class TestBrier:
     def test_climatologie_parfaite_skill_zero_sans_division_par_zero(
         self, calib: CalibrationService
     ) -> None:
-        # Classe unique (toujours défavorable) : brier climatologique nul ;
-        # convention documentée -> skill score à 0.0, pas de crash.
+        # Classe unique (toujours defavorable) : brier climatologique nul ; convention documentee -> skill score a 0.0, pas de crash.
         points = [_point(0.9, True, node="n-1"), _point(0.6, True, node="n-2")]
         resultat = calib.brier(points)
         assert resultat is not None
@@ -469,14 +456,14 @@ class TestBrier:
         assert calib.brier([]) is None
 
 
-# --- Balayage de seuils --------------------------------------------------------------------
+# Balayage de seuils
 
 
 class TestSweep:
     def test_longueur_egale_au_nombre_de_seuils_distincts(self, calib: CalibrationService) -> None:
         points = [
             _point(0.1, False, node="n-1"),
-            _point(0.1, True, node="n-2"),  # ex æquo avec le précédent : pas de doublon
+            _point(0.1, True, node="n-2"),  # ex aequo avec le precedent : pas de doublon
             _point(0.5, True, node="n-3"),
             _point(0.9, False, node="n-4"),
         ]
@@ -497,16 +484,14 @@ class TestSweep:
         assert calib.sweep([]) == []
 
 
-# --- Seuil optimal (Youden / F1) ------------------------------------------------------------
+# Seuil optimal (Youden / F1)
 
 
 class TestSeuilOptimal:
     def test_youden_sur_points_synthetiques_chiffre_a_la_main(
         self, calib: CalibrationService
     ) -> None:
-        # Balayage à la main des 10 seuils distincts de TestConfusionSynthetique.POINTS :
-        # l'indice de Youden (rappel + spécificité - 1) culmine à 0.667 pour
-        # seuil=0.3 (rappel 4/4=1, spécificité 4/6=0.667).
+        # Balayage a la main des 10 seuils distincts de TestConfusionSynthetique.POINTS : l'indice de Youden (rappel + specificite - 1) culmine a 0.667 pour seuil=0.3 (rappel 4/4=1, specificite 4/6=0.667).
         resultat = calib.seuil_optimal(TestConfusionSynthetique.POINTS, critere="youden")
         assert resultat is not None
         seuil, matrice = resultat
@@ -514,9 +499,7 @@ class TestSeuilOptimal:
         assert (matrice.vp, matrice.fp, matrice.fn, matrice.vn) == (4, 2, 0, 4)
 
     def test_f1_chiffre_a_la_main(self, calib: CalibrationService) -> None:
-        # Seuils distincts [0.1, 0.3, 0.8, 0.9] : F1 vaut 0.8 (seuil 0.1),
-        # 0.5 (seuil 0.3), 0.667 (seuil 0.8), indéfini (seuil 0.9, aucune
-        # prédiction positive) -> maximum à seuil=0.1.
+        # Seuils distincts [0.1, 0.3, 0.8, 0.9] : F1 vaut 0.8 (seuil 0.1), 0.5 (seuil 0.3), 0.667 (seuil 0.8), indefini (seuil 0.9, aucune prediction positive) -> maximum a seuil=0.1.
         points = [
             _point(0.9, True, node="n-1"),
             _point(0.8, False, node="n-2"),
@@ -534,27 +517,19 @@ class TestSeuilOptimal:
             calib.seuil_optimal(TestConfusionSynthetique.POINTS, critere="n_importe_quoi")
 
     def test_youden_classe_unique_none(self, calib: CalibrationService) -> None:
-        # Youden requiert rappel ET spécificité définis : classe unique, dans
-        # un sens comme dans l'autre, laisse toujours l'un des deux indéfini.
+        # Youden requiert rappel ET specificite definis : classe unique, dans un sens comme dans l'autre, laisse toujours l'un des deux indefini.
         positifs_seuls = [_point(0.9, True, node="n-1"), _point(0.1, True, node="n-2")]
         negatifs_seuls = [_point(0.9, False, node="n-1"), _point(0.1, False, node="n-2")]
         assert calib.seuil_optimal(positifs_seuls, critere="youden") is None
         assert calib.seuil_optimal(negatifs_seuls, critere="youden") is None
 
     def test_f1_sans_positifs_none(self, calib: CalibrationService) -> None:
-        # F1 requiert un rappel défini (donc au moins une issue défavorable) :
-        # aucun positif -> indéfini à tous les seuils.
+        # F1 requiert un rappel defini (donc au moins une issue defavorable) : aucun positif -> indefini a tous les seuils.
         negatifs_seuls = [_point(0.9, False, node="n-1"), _point(0.1, False, node="n-2")]
         assert calib.seuil_optimal(negatifs_seuls, critere="f1") is None
 
     def test_f1_defini_avec_positifs_seuls_youden_indefini(self, calib: CalibrationService) -> None:
-        # Asymétrie documentée : contrairement à Youden, F1 ne requiert PAS
-        # de négatifs (seulement rappel ET précision définis). Avec deux
-        # positifs à H=0.9 et H=0.1, seul le seuil 0.1 laisse une prédiction
-        # positive (H=0.9 strictement supérieur) -> vp=1, fn=1 (le point à
-        # 0.1 n'est pas strictement > 0.1) ; précision=1, rappel=0.5,
-        # F1=2*1*0.5/1.5=0.667. Le seuil 0.9 ne prédit plus rien de positif :
-        # précision indéfinie, écarté.
+        # Asymetrie documentee : contrairement a Youden, F1 ne requiert PAS de negatifs (seulement rappel ET precision definis). Avec deux positifs a H=0.9 et H=0.1, seul le seuil 0.1 laisse une prediction positive (H=0.9 strictement superieur) -> vp=1, fn=1 (le point a 0.1 n'est pas strictement > 0.1) ; precision=1, rappel=0.5, F1=2*1*0.5/1.5=0.667. Le seuil 0.9 ne predit plus rien de positif : precision indefinie, ecarte.
         points = [_point(0.9, True, node="n-1"), _point(0.1, True, node="n-2")]
         assert calib.seuil_optimal(points, critere="youden") is None
         resultat_f1 = calib.seuil_optimal(points, critere="f1")
@@ -567,7 +542,7 @@ class TestSeuilOptimal:
         assert calib.seuil_optimal([]) is None
 
 
-# --- Outcomes sur une vraie partie ------------------------------------------------------
+# Outcomes sur une vraie partie
 
 
 class TestOutcomesPartie:
@@ -577,12 +552,11 @@ class TestOutcomesPartie:
         service, projet, _ids = partie
         points = CalibrationService(service).outcomes(projet.id)
 
-        # Les semaines passées S24..S28 existent ; la semaine courante S29 est
-        # exclue, la semaine S23 (état sans H) est ignorée.
+        # Les semaines passees S24..S28 existent ; la semaine courante S29 est exclue, la semaine S23 (etat sans H) est ignoree.
         assert {p.iso_week for p in points} == {f"2026-S{w}" for w in range(24, 29)}
         assert all(p.hidden_risk is not None for p in points)
 
-        # Tri par (semaine, nom de nœud).
+        # Tri par (semaine, nom de noeud).
         cles = [(p.iso_week, p.node_name) for p in points]
         assert cles == sorted(cles)
 
@@ -592,13 +566,12 @@ class TestOutcomesPartie:
         service, projet, (node_a, _b, _c) = partie
         points = CalibrationService(service).outcomes(projet.id)
 
-        # (A, S24) : l'échéance S25 du jalon « Prototype » est dans la fenêtre
-        # S25..S28 et le jalon est toujours ACTIVE — issue constatée.
+        # (A, S24) : l'echeance S25 du jalon " Prototype " est dans la fenetre S25..S28 et le jalon est toujours ACTIVE - issue constatee.
         p24 = next(p for p in points if p.node_id == node_a and p.iso_week == "2026-S24")
         assert p24.issue_defavorable
         assert any("jalon" in cause and "Prototype" in cause for cause in p24.causes)
 
-        # (A, S25) : fenêtre S26..S29, l'échéance S25 n'y est plus — pas d'issue.
+        # (A, S25) : fenetre S26..S29, l'echeance S25 n'y est plus - pas d'issue.
         p25 = next(p for p in points if p.node_id == node_a and p.iso_week == "2026-S25")
         assert not p25.issue_defavorable
         assert p25.causes == []
@@ -609,7 +582,7 @@ class TestOutcomesPartie:
         service, projet, (_a, node_b, _c) = partie
         points = CalibrationService(service).outcomes(projet.id)
 
-        # L'événement critique de S26 tombe dans les fenêtres de S24 et S25.
+        # L'evenement critique de S26 tombe dans les fenetres de S24 et S25.
         for semaine in ("2026-S24", "2026-S25"):
             point = next(p for p in points if p.node_id == node_b and p.iso_week == semaine)
             assert point.issue_defavorable
@@ -618,7 +591,7 @@ class TestOutcomesPartie:
                 for cause in point.causes
             )
 
-        # Dès S26, la fenêtre S27..S30 ne contient plus l'événement.
+        # Des S26, la fenetre S27..S30 ne contient plus l'evenement.
         for semaine in ("2026-S26", "2026-S27", "2026-S28"):
             point = next(p for p in points if p.node_id == node_b and p.iso_week == semaine)
             assert not point.issue_defavorable
@@ -629,9 +602,7 @@ class TestOutcomesPartie:
         service, projet, (node_a, node_b, _c) = partie
         points = CalibrationService(service).outcomes(projet.id)
 
-        # Le pic de demande (sans gravité) et l'événement « defaut » ANNULÉ de
-        # C ne comptent pas : seuls le jalon raté de A et la panne critique de
-        # B produisent des issues.
+        # Le pic de demande (sans gravite) et l'evenement " defaut " ANNULE de C ne comptent pas : seuls le jalon rate de A et la panne critique de B produisent des issues.
         positifs = {(p.node_id, p.iso_week) for p in points if p.issue_defavorable}
         assert positifs == {
             (node_a, "2026-S24"),
@@ -643,8 +614,7 @@ class TestOutcomesPartie:
         self, partie: tuple[SupplyScoreService, Project, tuple[str, str, str]]
     ) -> None:
         service, projet, (_a, _b, node_c) = partie
-        # Jalon ABANDONNÉ avec échéance en S26 : compte dans les fenêtres de
-        # S24 et S25 (critère (a), branche « abandonné »).
+        # Jalon ABANDONNE avec echeance en S26 : compte dans les fenetres de S24 et S25 (critere (a), branche " abandonne ").
         service.registry.save_milestone(
             Milestone(
                 id="m-abandonne",
@@ -673,7 +643,7 @@ class TestOutcomesPartie:
             calib.outcomes("p-quelconque", horizon_weeks=0)
 
 
-# --- Résumé français ---------------------------------------------------------------------
+# Resume francais
 
 
 class TestSummary:
@@ -683,7 +653,7 @@ class TestSummary:
         service.registry.save_project(
             Project(id="p-vide", name="Vide", owner_node_id="n-0", created_at=_NOW, t0_ts=_NOW)
         )
-        # Nœud SANS aucun historique d'urgence : aucun point d'observation.
+        # Noeud SANS aucun historique d'urgence : aucun point d'observation.
         service.registry.save_node(SupplyNode(id="n-0", name="Sans histoire", project_id="p-vide"))
         texte = calib.summary("p-vide")
         assert "Points d'observation : 0." in texte
@@ -704,9 +674,7 @@ class TestSummary:
         self, partie: tuple[SupplyScoreService, Project, tuple[str, str, str]]
     ) -> None:
         service, projet, (_a, node_b, _c) = partie
-        # Dernier état de la semaine S25 de B forcé à H = 0.9 : le point
-        # (B, S25) — issue constatée — devient une prédiction positive, donc
-        # précision ET rappel sont définis.
+        # Dernier etat de la semaine S25 de B force a H = 0.9 : le point (B, S25) - issue constatee - devient une prediction positive, donc precision ET rappel sont definis.
         service.client_db(node_b).save_urgency_state(
             node_b,
             UrgencyState(hidden_risk=0.9, ur=0.9, timestamp=_NOW + _WEEK + 3600.0),
@@ -726,8 +694,7 @@ class TestSummary:
         assert f"Précision : {matrice.precision:.2f}" in texte
         assert f"Rappel : {matrice.rappel:.2f}" in texte
 
-        # La partie mélange nœuds à risque et nœuds calmes : les deux
-        # classes sont représentées, AUC/Brier/seuil optimal sont définis.
+        # La partie melange noeuds a risque et noeuds calmes : les deux classes sont representees, AUC/Brier/seuil optimal sont definis.
         auc_valeur = calib.auc(points)
         assert auc_valeur is not None
         assert f"AUC : {auc_valeur:.2f}" in texte
@@ -743,11 +710,11 @@ class TestSummary:
         valeur_seuil, _matrice_opt = seuil_opt
         assert f"Seuil optimal (Youden) : H > {valeur_seuil:g}" in texte
 
-        # L'avertissement suit STRICTEMENT la règle des 30 points.
+        # L'avertissement suit STRICTEMENT la regle des 30 points.
         assert ("échantillon trop petit" in texte) == (len(points) < 30)
 
 
-# --- Décalage de semaines ISO -------------------------------------------------------------
+# Decalage de semaines ISO
 
 
 class TestSemaineDecalee:

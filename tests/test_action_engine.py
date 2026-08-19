@@ -1,13 +1,13 @@
-"""Tests du moteur de décision U18 — ActionEngine (contrats 11 & 13, HÉLIOS v7).
+"""Tests du moteur de decision U18 - ActionEngine (contrats 11 & 13, HELIOS v7).
 
-Couvre : la définition de segment à 8 cellules, le classement hand-verifiable
-(source d'effet par priorité, valeur nette vs heuristique), le filtrage par
-préconditions et par incompatibilités, le bras ``ne_rien_faire`` comme plancher
-de référence, la robustesse aux trois a priori U17 (qui bascule quand ils sont
-en désaccord), la source causale IPW, le portefeuille glouton sous budget /
-capacité / conflits inter-nœud (arc partagé, fournisseur commun) avec raisons
+Couvre : la definition de segment a 8 cellules, le classement hand-verifiable
+(source d'effet par priorite, valeur nette vs heuristique), le filtrage par
+preconditions et par incompatibilites, le bras ``ne_rien_faire`` comme plancher
+de reference, la robustesse aux trois a priori U17 (qui bascule quand ils sont
+en desaccord), la source causale IPW, le portefeuille glouton sous budget /
+capacite / conflits inter-noeud (arc partage, fournisseur commun) avec raisons
 et avertissements de substitution, le chargement des effets depuis un fichier,
-et la dégradation complète (ni U9 ni U17) sans jamais planter.
+et la degradation complete (ni U9 ni U17) sans jamais planter.
 """
 
 from __future__ import annotations
@@ -36,7 +36,7 @@ from supplyscore.services.action_engine import (
 _SEGMENT = "proche_fluide_risque_cache"  # rang 0, ur_local 0.5, hidden_risk 0.3
 
 
-# --- Doublures duck-typées ----------------------------------------------------------
+# Doublures duck-typees
 
 
 @dataclass
@@ -101,7 +101,7 @@ class FakePaired:
 
 
 class FakeForecast:
-    """Fournisseur de prévision : renvoie une prévision canned par action.id."""
+    """Fournisseur de prevision : renvoie une prevision canned par action.id."""
 
     def __init__(
         self, node_id: str, prevs_par_action: dict[str, FakePrev], n_draws: int = 2000
@@ -113,7 +113,7 @@ class FakeForecast:
     def rollout_with_action(
         self, project_id: str, action: Any, horizon_weeks: int = 4, **_: Any
     ) -> FakePaired:
-        prev = self._prevs[action.id]  # KeyError -> le moteur dégrade proprement
+        prev = self._prevs[action.id]  # KeyError -> le moteur degrade proprement
         return FakePaired({self._node_id: {horizon_weeks: prev}}, self._n_draws)
 
 
@@ -134,7 +134,7 @@ def make_action(
         }
     elif money == "one":
         cout = {"monetaire": (500.0, 1500.0), "penalite_client_evitee": None}
-    elif money == "zero":  # bras de référence : coût et pénalité nuls (comme U15)
+    elif money == "zero":  # bras de reference : cout et penalite nuls (comme U15)
         cout = {"monetaire": (0.0, 0.0), "penalite_client_evitee": (0.0, 0.0)}
     else:
         cout = {"monetaire": None, "penalite_client_evitee": None}
@@ -153,7 +153,7 @@ def make_action(
 
 
 def catalogue_jouet() -> dict[str, FakeAction]:
-    """Catalogue jouet : 5 actions + ne_rien_faire, incompatibilités réalistes."""
+    """Catalogue jouet : 5 actions + ne_rien_faire, incompatibilites realistes."""
     return {
         "expedition_express": make_action(
             "expedition_express",
@@ -270,7 +270,7 @@ def _by_id(recos: list[ActionRecommandation]) -> dict[str, ActionRecommandation]
     return {r.action_id: r for r in recos}
 
 
-# --- Segment à 8 cellules ------------------------------------------------------------
+# Segment a 8 cellules
 
 
 class TestSegment:
@@ -292,7 +292,7 @@ class TestSegment:
         assert segment_pour_etat(etat, 3) == "profond_sature_risque_cache"
 
 
-# --- Recommandation : classement hand-verifiable -------------------------------------
+# Recommandation : classement hand-verifiable
 
 
 class TestRecommander:
@@ -301,20 +301,18 @@ class TestRecommander:
         recos = engine.recommander("p", "n1", forecast_jouet(), contexte_jouet())
         ids = [r.action_id for r in recos]
 
-        # expedition_express (valeur nette ~1050 €) domine largement les scores
-        # ordinaux ; il classe premier.
+        # expedition_express (valeur nette ~1050  EUR) domine largement les scores ordinaux ; il classe premier.
         assert ids[0] == "expedition_express"
-        # replanifier_jalon est incompatible avec expedition_express mieux classé.
+        # replanifier_jalon est incompatible avec expedition_express mieux classe.
         assert "replanifier_jalon" not in ids
-        # ne_rien_faire reste comme référence, jamais écarté.
+        # ne_rien_faire reste comme reference, jamais ecarte.
         assert "ne_rien_faire" in ids
 
     def test_valeur_nette_chiffree_a_la_main(self, service: Any) -> None:
         engine = ActionEngine(service, catalogue=catalogue_jouet())
         recos = _by_id(engine.recommander("p", "n1", forecast_jouet(), contexte_jouet()))
         exp = recos["expedition_express"]
-        # delta 0.30 ; pénalité (5000, 15000) ; coût (1000, 2000) ; décote 0.15.
-        # évité = (1500, 4500) ; net = (0.85·1500−2000, 0.85·4500−1000) = (−725, 2825).
+        # delta 0.30 ; penalite (5000, 15000) ; cout (1000, 2000) ; decote 0.15. evite = (1500, 4500) ; net = (0.85-1500-2000, 0.85-4500-1000) = (-725, 2825).
         lo, hi = exp.valeur["nette"]
         assert lo == pytest.approx(-725.0)
         assert hi == pytest.approx(2825.0)
@@ -331,11 +329,11 @@ class TestRecommander:
     def test_heuristique_vs_nette(self, service: Any) -> None:
         engine = ActionEngine(service, catalogue=catalogue_jouet())
         recos = _by_id(engine.recommander("p", "n1", forecast_jouet(), contexte_jouet()))
-        # montants des deux côtés -> nette.
+        # montants des deux cotes -> nette.
         assert "nette" in recos["expedition_express"].valeur
         # aucun montant -> heuristique.
         assert "heuristique" in recos["promouvoir_arc_secours"].valeur
-        # montant d'un seul côté (coût sans pénalité) -> heuristique, jamais des euros.
+        # montant d'un seul cote (cout sans penalite) -> heuristique, jamais des euros.
         assert "heuristique" in recos["boost_capacite"].valeur
         assert "nette" not in recos["boost_capacite"].valeur
 
@@ -350,7 +348,7 @@ class TestRecommander:
         forecast = FakeForecast("n1", dict.fromkeys(catalogue_jouet(), nul))
         engine = ActionEngine(service, catalogue=catalogue_jouet())
         recos = engine.recommander("p", "n1", forecast, contexte_jouet())
-        # Aucune action ne bat l'inaction : ne_rien_faire est en tête.
+        # Aucune action ne bat l'inaction : ne_rien_faire est en tete.
         assert recos[0].action_id == "ne_rien_faire"
 
     def test_catalogue_absent_retourne_liste_vide(self, service: Any) -> None:
@@ -358,17 +356,17 @@ class TestRecommander:
         assert engine.recommander("p", "n1", forecast_jouet(), contexte_jouet()) == []
 
     def test_contexte_none_construit_via_facade(self, service: Any) -> None:
-        # Nœud réel avec urgence dans le graphe ; contexte non fourni.
+        # Noeud reel avec urgence dans le graphe ; contexte non fourni.
         node = SupplyNode(id="n1", name="N1", project_id="p", rank=0)
         node.urgency = UrgencyState(ur_local=0.5, hidden_risk=0.3)
         proj = Project(id="p", name="P", owner_node_id="n1", created_at=0.0, t0_ts=0.0)
         service.create_project(proj, [node], [])
         engine = ActionEngine(service, catalogue=catalogue_jouet())
         recos = engine.recommander("p", "n1", forecast_jouet(), None)
-        assert recos  # préconditions permissives : au moins une recommandation
+        assert recos  # preconditions permissives : au moins une recommandation
 
 
-# --- Source causale IPW (U17) --------------------------------------------------------
+# Source causale IPW (U17)
 
 
 def _effets(
@@ -412,13 +410,13 @@ class TestSourceCausale:
             overlap={"expedition_express": True},
         )
         engine = ActionEngine(service, catalogue=catalogue_jouet())
-        engine._effets = effets  # injection directe (équivaut au chargement fichier)
+        engine._effets = effets  # injection directe (equivaut au chargement fichier)
         recos = _by_id(engine.recommander("p", "n1", forecast_jouet(), contexte_jouet()))
         exp = recos["expedition_express"]
         assert exp.delta_u["source"] == "causal_ipw"
         assert exp.delta_u["couverture_ic"] == ["causal"]
         assert exp.delta_u["est"] == pytest.approx(0.25)
-        # p1 = p0(sim) − delta_causal = 0.5 − 0.25.
+        # p1 = p0(sim) - delta_causal = 0.5 - 0.25.
         assert exp.p1["est"] == pytest.approx(0.25)
         assert exp.p1["source"] == "causal_ipw"
         # p_execution = moyenne Beta 19/(19+1) = 0.95.
@@ -441,7 +439,7 @@ class TestSourceCausale:
         assert recos["expedition_express"].delta_u["source"] == "sim"
 
 
-# --- Robustesse aux trois a priori (D27) ---------------------------------------------
+# Robustesse aux trois a priori (D27)
 
 
 class TestRobustesse:
@@ -484,34 +482,34 @@ class TestRobustesse:
         engine = ActionEngine(service, catalogue=catalogue_jouet())
         engine._effets = effets
         recos = _by_id(engine.recommander("p", "n1", None, contexte_jouet()))
-        # prior_faible désigne promouvoir, les autres expedition -> aucun robuste.
+        # prior_faible designe promouvoir, les autres expedition -> aucun robuste.
         assert recos["expedition_express"].robuste_aux_priors is False
         assert recos["promouvoir_arc_secours"].robuste_aux_priors is False
 
 
-# --- Dégradation complète ------------------------------------------------------------
+# Degradation complete
 
 
 class TestDegradation:
     def test_ni_u9_ni_u17_produit_des_recommandations_saines(self, service: Any) -> None:
         engine = ActionEngine(service, catalogue=catalogue_jouet())
         recos = engine.recommander("p", "n1", None, contexte_jouet())
-        assert recos  # jamais vide (catalogue présent)
+        assert recos  # jamais vide (catalogue present)
         for reco in recos:
             assert reco.delta_u["source"] == "absent"
             assert reco.delta_u["est"] is None
-            assert "heuristique" in reco.valeur  # jamais de valeur monétaire sans effet
+            assert "heuristique" in reco.valeur  # jamais de valeur monetaire sans effet
             assert reco.niveau_de_preuve["qualite"] == "faible"
             assert reco.robuste_aux_priors is False
-        # p_execution vient du défaut de l'ActionSpec (1 − p_echec).
+        # p_execution vient du defaut de l'ActionSpec (1 - p_echec).
         exp = _by_id(recos)["expedition_express"]
         assert exp.p_execution == pytest.approx(0.95)
         assert any("Aucune estimation quantitative" in note for note in exp.justification)
-        # Sans preuve d'effet, l'inaction reste en tête.
+        # Sans preuve d'effet, l'inaction reste en tete.
         assert recos[0].action_id == "ne_rien_faire"
 
 
-# --- Chargement des effets depuis un fichier -----------------------------------------
+# Chargement des effets depuis un fichier
 
 
 class TestChargementEffets:
@@ -524,7 +522,7 @@ class TestChargementEffets:
         chemin.write_text(json.dumps(effets), encoding="utf-8")
         engine = ActionEngine(service, action_effects_path=str(chemin), catalogue=catalogue_jouet())
         recos = _by_id(engine.recommander("p", "n1", None, contexte_jouet()))
-        # n_reel = 12 -> qualité « moyen » (>= 8, < 30).
+        # n_reel = 12 -> qualite " moyen " (>= 8, < 30).
         assert recos["expedition_express"].niveau_de_preuve["qualite"] == "moyen"
         assert recos["expedition_express"].p_resolution_op["est"] == pytest.approx(0.8)
 
@@ -539,11 +537,11 @@ class TestChargementEffets:
         assert engine._effets is None
 
 
-# --- Portefeuille (contrat 13, D30) --------------------------------------------------
+# Portefeuille (contrat 13, D30)
 
 
 def _graphe_deux_noeuds(service: Any, arc: bool) -> None:
-    """Projet à deux nœuds n1, n2 ; arc n2->n1 (n2 fournit n1) si demandé."""
+    """Projet a deux noeuds n1, n2 ; arc n2->n1 (n2 fournit n1) si demande."""
     n1 = SupplyNode(id="n1", name="N1", project_id="p", rank=0)
     n2 = SupplyNode(id="n2", name="N2", project_id="p", rank=1)
     arcs = [SupplyArc(source_id="n2", target_id="n1")] if arc else []
@@ -553,23 +551,23 @@ def _graphe_deux_noeuds(service: Any, arc: bool) -> None:
 
 class TestPortefeuille:
     def test_budget_serre_exclut_avec_raison(self, service: Any) -> None:
-        _graphe_deux_noeuds(service, arc=False)  # nœuds indépendants
+        _graphe_deux_noeuds(service, arc=False)  # noeuds independants
         engine = ActionEngine(service, catalogue=catalogue_jouet())
         recos = {
-            "n1": [make_reco("expedition_express", {"nette": (900.0, 1100.0)})],  # coût mid 1500
-            "n2": [make_reco("boost_capacite", {"heuristique": 800.0})],  # coût mid 1000
+            "n1": [make_reco("expedition_express", {"nette": (900.0, 1100.0)})],  # cout mid 1500
+            "n2": [make_reco("boost_capacite", {"heuristique": 800.0})],  # cout mid 1000
         }
         sel = engine.portefeuille("p", recos, budget=1500.0)
         assert isinstance(sel, Selection)
         retenues = {r["action_id"] for r in sel.retenues}
-        # ratio boost 0.8 > expedition 0.667 : boost retenu (coût 1000), expedition exclu.
+        # ratio boost 0.8 > expedition 0.667 : boost retenu (cout 1000), expedition exclu.
         assert retenues == {"boost_capacite"}
         assert sel.budget_consomme == pytest.approx(1000.0)
         raisons = {(e["action_id"], e["raison"]) for e in sel.exclues}
         assert any(a == "expedition_express" and "budget" in r for a, r in raisons)
 
     def test_conflit_arc_partage_inter_noeud(self, service: Any) -> None:
-        _graphe_deux_noeuds(service, arc=True)  # arc n2->n1 partagé
+        _graphe_deux_noeuds(service, arc=True)  # arc n2->n1 partage
         engine = ActionEngine(service, catalogue=catalogue_jouet())
         recos = {
             "n1": [make_reco("expedition_express", {"nette": (900.0, 1100.0)})],  # ratio 0.667
@@ -597,8 +595,7 @@ class TestPortefeuille:
     def test_incompatibilite_intra_noeud_exclut(self, service: Any) -> None:
         _graphe_deux_noeuds(service, arc=False)
         engine = ActionEngine(service, catalogue=catalogue_jouet())
-        # Deux actions incompatibles sur le MÊME nœud (contournant le filtre de
-        # recommander pour éprouver le garde-fou du portefeuille).
+        # Deux actions incompatibles sur le MEME noeud (contournant le filtre de recommander pour eprouver le garde-fou du portefeuille).
         recos = {
             "n1": [
                 make_reco("expedition_express", {"nette": (1400.0, 1600.0)}),  # ratio 1.0
@@ -607,7 +604,7 @@ class TestPortefeuille:
         }
         sel = engine.portefeuille("p", recos)
         retenues = {r["action_id"] for r in sel.retenues}
-        # replanifier (meilleur ratio) retenu, expedition exclu (incompatible intra-nœud).
+        # replanifier (meilleur ratio) retenu, expedition exclu (incompatible intra-noeud).
         assert "replanifier_jalon" in retenues
         assert any(
             e["action_id"] == "expedition_express" and "incompatible" in e["raison"]
@@ -615,8 +612,7 @@ class TestPortefeuille:
         )
 
     def test_conflit_fournisseur_cible_commun_inter_noeud(self, service: Any) -> None:
-        # n1 et n2 partagent le fournisseur n3, deux actions de réappro
-        # (promouvoir_arc_secours) : conflit de fournisseur cible commun.
+        # n1 et n2 partagent le fournisseur n3, deux actions de reappro (promouvoir_arc_secours) : conflit de fournisseur cible commun.
         n1 = SupplyNode(id="n1", name="N1", project_id="p", rank=0)
         n2 = SupplyNode(id="n2", name="N2", project_id="p", rank=0)
         n3 = SupplyNode(id="n3", name="N3", project_id="p", rank=1)
@@ -632,7 +628,7 @@ class TestPortefeuille:
             "n2": [make_reco("promouvoir_arc_secours", {"heuristique": 800.0})],
         }
         sel = engine.portefeuille("p", recos)
-        assert len(sel.retenues) == 1  # une seule des deux réappros sur n3
+        assert len(sel.retenues) == 1  # une seule des deux reappros sur n3
         assert any("fournisseur cible commun" in e["raison"] for e in sel.exclues)
 
     def test_avertissement_substitution_fournisseur_commun(self, service: Any) -> None:
@@ -669,14 +665,14 @@ class TestPortefeuille:
         assert any("n'améliore pas l'inaction" in e["raison"] for e in sel.exclues)
 
     def test_budget_non_applicable_sans_catalogue(self, service: Any) -> None:
-        engine = ActionEngine(service, catalogue={})  # aucun coût connu
+        engine = ActionEngine(service, catalogue={})  # aucun cout connu
         recos = {"n1": [make_reco("boost_capacite", {"heuristique": 5.0})]}
         sel = engine.portefeuille("p", recos, budget=100.0)
         assert any("Budget non appliqué" in a for a in sel.avertissements)
         assert {r["action_id"] for r in sel.retenues} == {"boost_capacite"}
 
 
-# --- Aides pures et dégradation fine -------------------------------------------------
+# Aides pures et degradation fine
 
 
 class TestAidesPures:
@@ -688,8 +684,7 @@ class TestAidesPures:
         assert _union_ic((None, None), 0.42) == (0.42, 0.42)
 
     def test_urgence_absente_segment_indetermine(self, service: Any) -> None:
-        # Contexte sans urgence : segment indéterminable, mais recommandations
-        # produites sans planter (effet absent, valeur heuristique).
+        # Contexte sans urgence : segment indeterminable, mais recommandations produites sans planter (effet absent, valeur heuristique).
         ctx = FakeContexte(node=FakeNode(id="n1", rank=0), urgency=None)
         engine = ActionEngine(service, catalogue=catalogue_jouet())
         recos = engine.recommander("p", "n1", None, ctx)

@@ -1,46 +1,46 @@
-"""Génère une fixture synthétique ``dataset.csv`` (contrat 4) pour tester train_predictor.py (U10).
+"""Genere une fixture synthetique ``dataset.csv`` (contrat 4) pour tester train_predictor.py (U10).
 
-U10 n'a pas accès, dans son worktree isolé, à la sortie réelle de ``build_dataset.py``
-(U8, unité sœur) : ce script fabrique donc directement une fixture CSV conforme au
-contrat 4 gelé — mêmes 47 colonnes, même ordre, mêmes conventions (cellule vide =
-manquant, jamais 0 silencieux) — mais engendrée par un DGP (« data generating process »)
-logistique CONNU, pour que les métriques d'évaluation de train_predictor.py (Brier,
-AUC, etc.) aient un sens vérifiable : un modèle correctement spécifié doit récupérer
-un AUC nettement > 0.5 sur ce jeu, un modèle mal spécifié ou un bug de pipeline doit
+U10 n'a pas acces, dans son worktree isole, a la sortie reelle de ``build_dataset.py``
+(U8, unite soeur) : ce script fabrique donc directement une fixture CSV conforme au
+contrat 4 gele - memes 47 colonnes, meme ordre, memes conventions (cellule vide =
+manquant, jamais 0 silencieux) - mais engendree par un DGP (" data generating process ")
+logistique CONNU, pour que les metriques d'evaluation de train_predictor.py (Brier,
+AUC, etc.) aient un sens verifiable : un modele correctement specifie doit recuperer
+un AUC nettement > 0.5 sur ce jeu, un modele mal specifie ou un bug de pipeline doit
 le faire chuter near 0.5.
 
-Taille délibérément petite (« tiny fixture ») : 40 chaînes × 8 nœuds × 15 tours
-(t=0..14) = 4800 lignes, réparties en 5 régimes DGP (``dgp_params_id`` = dgp_0..dgp_4,
-8 chaînes chacun) qui partagent le MÊME mécanisme causal (mêmes coefficients de pente)
-mais un niveau de base différent (intercept) — utile pour que l'axe d'évaluation
-« leave-dgp-out » de train_predictor.py soit réellement informatif (généraliser la
-FORME du risque à un régime de base inédit, pas seulement mémoriser un taux).
+Taille deliberement petite (" tiny fixture ") : 40 chaines x 8 noeuds x 15 tours
+(t=0..14) = 4800 lignes, reparties en 5 regimes DGP (``dgp_params_id`` = dgp_0..dgp_4,
+8 chaines chacun) qui partagent le MEME mecanisme causal (memes coefficients de pente)
+mais un niveau de base different (intercept) - utile pour que l'axe d'evaluation
+" leave-dgp-out " de train_predictor.py soit reellement informatif (generaliser la
+FORME du risque a un regime de base inedit, pas seulement memoriser un taux).
 
-DGP (connu, documenté) — décalage causal IMPORTANT, voir commentaire dans
-``_simulate_chain_nodes`` : p_true doit être évalué sur l'état COURANT (t) pour
-engendrer l'événement SUIVANT (t+1), jamais l'inverse, sinon aucun modèle ne peut
+DGP (connu, documente) - decalage causal IMPORTANT, voir commentaire dans
+``_simulate_chain_nodes`` : p_true doit etre evalue sur l'etat COURANT (t) pour
+engendrer l'evenement SUIVANT (t+1), jamais l'inverse, sinon aucun modele ne peut
 apprendre le label depuis les features de sa propre ligne :
-    p_true(t) = sigmoid(k0[régime] + k_ur·ur_local(t) + k_hidden·hidden_risk(t)
-                         + k_d1·d1_ur_local(t))
-    événement_à(t+1) ~ Bernoulli(p_true(t))   — « événement » = definition gelée
-    (gravité critique|defaut) du plan v7, ici un simple indicateur booléen par
-    (chaîne, nœud, tour). Donc y1(t) = événement_à(t+1) est exactement
+    p_true(t) = sigmoid(k0[regime] + k_ur-ur_local(t) + k_hidden-hidden_risk(t)
+                         + k_d1-d1_ur_local(t))
+    evenement_a(t+1) ~ Bernoulli(p_true(t))   - " evenement " = definition gelee
+    (gravite critique|defaut) du plan v7, ici un simple indicateur booleen par
+    (chaine, noeud, tour). Donc y1(t) = evenement_a(t+1) est exactement
     Bernoulli(p_true(t)) : le label de la ligne t est bien fonction des features
     DE la ligne t.
 
-Les labels y1/y4, le postérieur Beta-Bernoulli (prior partagé N0=26), les
-différences arrière d1..d4, l'EMA (rho=0.3), event_recent/weeks_since_event et le
-voisinage (arcs = chaîne linéaire nœud i → nœud i+1) répliquent EXACTEMENT la
-sémantique décrite dans feature_schema.json (U8) — voir chaque étape commentée
+Les labels y1/y4, le posterieur Beta-Bernoulli (prior partage N0=26), les
+differences arriere d1..d4, l'EMA (rho=0.3), event_recent/weeks_since_event et le
+voisinage (arcs = chaine lineaire noeud i -> noeud i+1) repliquent EXACTEMENT la
+semantique decrite dans feature_schema.json (U8) - voir chaque etape commentee
 ci-dessous. ``p_rollout``/``spread`` (bloc MC) sont un forecast VOLONTAIREMENT
-mal calibré (atténué + biaisé + bruité) dérivé de p_true : cela donne à EMOS un
-vrai travail de recalibration à faire, et permet de vérifier que la règle de
-décision (EMOS vs rollout brut) peut basculer dans les deux sens selon
-``--rollout-atten``/``--rollout-noise-sd`` — les défauts (0.75 / 0.9) donnent un
+mal calibre (attenue + biaise + bruite) derive de p_true : cela donne a EMOS un
+vrai travail de recalibration a faire, et permet de verifier que la regle de
+decision (EMOS vs rollout brut) peut basculer dans les deux sens selon
+``--rollout-atten``/``--rollout-noise-sd`` - les defauts (0.75 / 0.9) donnent un
 rollout brut nettement moins bon qu'EMOS ; ``--rollout-atten 1.0
---rollout-noise-sd 0.05`` (rollout quasi parfait) fait basculer la règle de
-décision vers la branche dégénérée (isotonique seule sur p_rollout), utilisé
-pour la vérification manuelle des deux branches de train_predictor.py.
+--rollout-noise-sd 0.05`` (rollout quasi parfait) fait basculer la regle de
+decision vers la branche degeneree (isotonique seule sur p_rollout), utilise
+pour la verification manuelle des deux branches de train_predictor.py.
 
 Usage::
 
@@ -57,7 +57,7 @@ from typing import Any
 
 import numpy as np
 
-# --- Constantes de forme (alignées sur feature_schema.json / build_dataset.py) ---------
+# Constantes de forme (alignees sur feature_schema.json / build_dataset.py)
 
 N_REGIMES = 5
 CHAINS_PER_REGIME = 8
@@ -70,14 +70,7 @@ EPS = 1e-4
 
 U_BLOC_KEYS = ("u_time", "u_cap", "u_perf", "u_risk", "u_cost", "u_co2")
 
-# Mécanisme causal PARTAGÉ entre régimes (seul l'intercept k0 varie par régime) :
-# seule la FORME du risque doit être apprise pour généraliser à un régime inédit.
-# Coefficients + persistance/bruit de l'AR(1) calibrés empiriquement (voir revue
-# manuelle) pour que le AUC « oracle » (probabilité vraie du DGP, jamais accessible
-# à un modèle réel) atteigne ≈0.83-0.87 avec des taux de base ≈16-29 % selon le
-# régime — assez séparable pour qu'un pipeline correct le recouvre nettement
-# au-dessus du hasard, et qu'un bug de pipeline (fuite de colonne, feature
-# décalée dans le temps, etc.) fasse visiblement chuter l'AUC réalisé.
+# Mecanisme causal PARTAGE entre regimes (seul l'intercept k0 varie par regime) : seule la FORME du risque doit etre apprise pour generaliser a un regime inedit. Coefficients + persistance/bruit de l'AR(1) calibres empiriquement (voir revue manuelle) pour que le AUC " oracle " (probabilite vraie du DGP, jamais accessible a un modele reel) atteigne ~=0.83-0.87 avec des taux de base ~=16-29 % selon le regime - assez separable pour qu'un pipeline correct le recouvre nettement au-dessus du hasard, et qu'un bug de pipeline (fuite de colonne, feature decalee dans le temps, etc.) fasse visiblement chuter l'AUC realise.
 K_UR = 6.0
 K_HIDDEN = 4.0
 K_D1 = 3.0
@@ -137,17 +130,17 @@ def _logit(p: float) -> float:
 def _simulate_chain_nodes(
     rng: np.random.Generator, k0: float, rollout_atten: float, rollout_noise_sd: float
 ) -> list[dict[str, Any]]:
-    """Simule les N_NODES séries temporelles brutes d'une chaîne (sans voisinage).
+    """Simule les N_NODES series temporelles brutes d'une chaine (sans voisinage).
 
-    Retourne une liste de dicts (un par nœud), chacun contenant des tableaux numpy
-    indexés par tour t=0..N_TOURS-1 : ur_local, hidden_risk, d1_ur_local (pour le
-    DGP), event_at (0/1 réalisé), et toutes les colonnes déjà calculables SANS
-    connaître les autres nœuds (le voisinage est rempli dans un second temps par
-    l'appelant, une fois tous les nœuds de la chaîne disponibles).
+    Retourne une liste de dicts (un par noeud), chacun contenant des tableaux numpy
+    indexes par tour t=0..N_TOURS-1 : ur_local, hidden_risk, d1_ur_local (pour le
+    DGP), event_at (0/1 realise), et toutes les colonnes deja calculables SANS
+    connaitre les autres noeuds (le voisinage est rempli dans un second temps par
+    l'appelant, une fois tous les noeuds de la chaine disponibles).
     """
     nodes: list[dict[str, Any]] = []
     for _n in range(N_NODES):
-        # --- risque latent AR(1) en espace logit -> ur_local -------------------
+        # risque latent AR(1) en espace logit -> ur_local
         x = np.empty(N_TOURS)
         x[0] = _logit(0.30) + rng.normal(0.0, 0.6)
         for t in range(1, N_TOURS):
@@ -168,25 +161,17 @@ def _simulate_chain_nodes(
         d1_ur_local = np.full(N_TOURS, np.nan)
         d1_ur_local[1:] = ur_local[1:] - ur_local[:-1]
 
-        # --- DGP connu : p_next_event(t) = P(événement à t+1 | état à t) --------
-        # IMPORTANT (décalage causal) : le label y1(t) = event_at(t+1) doit être
-        # engendré à partir de l'état COURANT (t), jamais de l'état futur (t+1) —
-        # sinon aucun modèle ne peut apprendre le label à partir des features de
-        # la ligne t (le seul historique disponible au moment de la prédiction) et
-        # l'AUC recouvrable reste proche de 0.5 par construction. p_next_event(t)
-        # sert donc DEUX rôles cohérents : (a) tirer event_at(t+1), (b) servir de
-        # base à p_rollout(t) (le forecast MC à la ligne t VISE la même cible que
-        # y1(t), c'est le principe même d'un rollout).
+        # DGP connu : p_next_event(t) = P(evenement a t+1 | etat a t) IMPORTANT (decalage causal) : le label y1(t) = event_at(t+1) doit etre engendre a partir de l'etat COURANT (t), jamais de l'etat futur (t+1) - sinon aucun modele ne peut apprendre le label a partir des features de la ligne t (le seul historique disponible au moment de la prediction) et l'AUC recouvrable reste proche de 0.5 par construction. p_next_event(t) sert donc DEUX roles coherents : (a) tirer event_at(t+1), (b) servir de base a p_rollout(t) (le forecast MC a la ligne t VISE la meme cible que y1(t), c'est le principe meme d'un rollout).
         d1_for_dgp = np.where(np.isnan(d1_ur_local), 0.0, d1_ur_local)
         logit_p_next = k0 + K_UR * ur_local + K_HIDDEN * hidden_risk + K_D1 * d1_for_dgp
         p_next_event = 1.0 / (1.0 + np.exp(-logit_p_next))
 
         event_at = np.zeros(N_TOURS, dtype=int)
-        event_at[0] = int(rng.uniform(0.0, 1.0) < p_next_event[0])  # amorçage, sans effet sur y1/y4
+        event_at[0] = int(rng.uniform(0.0, 1.0) < p_next_event[0])  # amorcage, sans effet sur y1/y4
         for t in range(1, N_TOURS):
             event_at[t] = int(rng.uniform(0.0, 1.0) < p_next_event[t - 1])
 
-        # --- bloc MC (p_rollout/spread) : forecast VOLONTAIREMENT mal calibré --
+        # bloc MC (p_rollout/spread) : forecast VOLONTAIREMENT mal calibre
         p_rollout = np.full(N_TOURS, np.nan)
         spread = np.full(N_TOURS, np.nan)
         for t in range(1, N_TOURS):
@@ -199,7 +184,7 @@ def _simulate_chain_nodes(
             p_rollout[t] = min(max(_sigmoid(mis_logit), EPS), 1.0 - EPS)
             spread[t] = min(max(0.06 + 0.55 * abs(noise) + rng.uniform(0.0, 0.05), 0.01), 0.95)
 
-        # --- blocs u_* (décomposition log-survie) : plausibles, ~8% manquants --
+        # blocs u_* (decomposition log-survie) : plausibles, ~8% manquants
         u_blocs = {}
         for key in U_BLOC_KEYS:
             base = rng.beta(2.0, 5.0, N_TOURS) * 0.6 + 0.25 * ur_local
@@ -209,7 +194,7 @@ def _simulate_chain_nodes(
             vals[miss] = None
             u_blocs[key] = vals
 
-        # --- MC secondaire (impact/Δℓ) : manquant au tour 0 ---------------------
+        # MC secondaire (impact/Deltal) : manquant au tour 0
         p_impact_final = np.clip(0.5 * p_next_event + rng.uniform(0.0, 0.1, N_TOURS), 0.0, 1.0)
         delta_ell_final = np.clip(rng.normal(0.3, 0.15, N_TOURS) * ur_local, 0.0, None)
         delta_ell_max = delta_ell_final + np.abs(rng.normal(0.0, 0.05, N_TOURS))
@@ -247,19 +232,19 @@ def _diff_k(arr: np.ndarray, t: int, k: int) -> float | None:
 def build_fixture_rows(
     rollout_atten: float = 0.75, rollout_noise_sd: float = 0.9, seed: int = 20260724
 ) -> list[dict[str, Any]]:
-    """Construit toutes les lignes de la fixture (dict prêt pour csv.DictWriter).
+    """Construit toutes les lignes de la fixture (dict pret pour csv.DictWriter).
 
     Args:
-        rollout_atten: coefficient d'atténuation du rollout MC vers p_true (1.0 =
-            rollout parfaitement informatif ; plus bas = plus miscalibré). Sert à
-            piloter volontairement l'issue de la règle de décision EMOS-vs-rollout.
-        rollout_noise_sd: écart-type du bruit gaussien (espace logit) ajouté au
+        rollout_atten: coefficient d'attenuation du rollout MC vers p_true (1.0 =
+            rollout parfaitement informatif ; plus bas = plus miscalibre). Sert a
+            piloter volontairement l'issue de la regle de decision EMOS-vs-rollout.
+        rollout_noise_sd: ecart-type du bruit gaussien (espace logit) ajoute au
             rollout MC.
-        seed: graine du générateur, fixe pour reproductibilité.
+        seed: graine du generateur, fixe pour reproductibilite.
     """
     rng = np.random.default_rng(seed)
 
-    # Passe 1 : simulation brute par chaîne (sans voisinage, sans label/beta).
+    # Passe 1 : simulation brute par chaine (sans voisinage, sans label/beta).
     chains: dict[str, list[dict[str, Any]]] = {}
     dgp_of_chain: dict[str, str] = {}
     for regime in range(N_REGIMES):
@@ -270,7 +255,7 @@ def build_fixture_rows(
                 rng, K0_BY_REGIME[regime], rollout_atten, rollout_noise_sd
             )
 
-    # Taux de base global (toutes chaînes/nœuds/tours confondus) -> prior Beta partagé.
+    # Taux de base global (toutes chaines/noeuds/tours confondus) -> prior Beta partage.
     total_obs = 0
     total_events = 0
     for nodes in chains.values():
@@ -281,9 +266,7 @@ def build_fixture_rows(
     alpha0 = base_rate * N0_BETA
     beta0 = (1.0 - base_rate) * N0_BETA
 
-    # Passe 2 : labels censurés, dynamique, postérieur bayésien, structurel — puis
-    # voisinage (nécessite les séries ur/beta_mean déjà calculées des AUTRES nœuds
-    # de la même chaîne, d'où une passe séparée après celle-ci).
+    # Passe 2 : labels censures, dynamique, posterieur bayesien, structurel - puis voisinage (necessite les series ur/beta_mean deja calculees des AUTRES noeuds de la meme chaine, d'ou une passe separee apres celle-ci).
     rows: list[dict[str, Any]] = []
     rows_by_chain_tour_node: dict[tuple[str, int, int], dict[str, Any]] = {}
 
@@ -294,7 +277,7 @@ def build_fixture_rows(
             node_id = f"node_{n_idx}"
             event_at = node["event_at"]
 
-            # Postérieur Beta-Bernoulli séquentiel (n_obs = t+1, jamais de trou).
+            # Posterieur Beta-Bernoulli sequentiel (n_obs = t+1, jamais de trou).
             successes_cum = np.cumsum(event_at)
 
             for t in range(N_TOURS):
@@ -305,15 +288,13 @@ def build_fixture_rows(
                 beta_mean = a_post / (a_post + b_post)
                 beta_var = (a_post * b_post) / (((a_post + b_post) ** 2) * (a_post + b_post + 1))
 
-                # y1 : événement à t+1, censuré si t+1 dépasse le dernier tour.
+                # y1 : evenement a t+1, censure si t+1 depasse le dernier tour.
                 if t + 1 <= last_tour:
                     y1: int | None = int(event_at[t + 1])
                 else:
                     y1 = None
 
-                # y{HORIZON} : fenêtre (t, t+H] — trouvé => 1 même si fenêtre
-                # partielle ; sinon 0 seulement si la fenêtre est ENTIÈREMENT
-                # observée ; censuré autrement (jamais 0 silencieux).
+                # y{HORIZON} : fenetre (t, t+H] - trouve => 1 meme si fenetre partielle ; sinon 0 seulement si la fenetre est ENTIEREMENT observee ; censure autrement (jamais 0 silencieux).
                 window = [u for u in range(t + 1, t + HORIZON + 1) if u <= last_tour]
                 found = any(bool(event_at[u]) for u in window)
                 if found:
@@ -323,15 +304,15 @@ def build_fixture_rows(
                 else:
                     yh = None
 
-                # event_recent : fenêtre arrière [t-2, t] inclusive.
+                # event_recent : fenetre arriere [t-2, t] inclusive.
                 back_start = max(0, t - 2)
                 event_recent = int(any(bool(event_at[u]) for u in range(back_start, t + 1)))
 
-                # weeks_since_event : dernier u<=t avec événement, sinon vide.
+                # weeks_since_event : dernier u<=t avec evenement, sinon vide.
                 past_events = [u for u in range(0, t + 1) if event_at[u]]
                 weeks_since_event = (t - max(past_events)) if past_events else None
 
-                # EMA(rho=0.3), jamais manquante (démarre à ur_local(0)).
+                # EMA(rho=0.3), jamais manquante (demarre a ur_local(0)).
                 if t == 0:
                     ema = float(node["ur_local"][0])
                 else:
@@ -365,7 +346,7 @@ def build_fixture_rows(
                     "beta_mean": float(beta_mean),
                     "beta_var": float(beta_var),
                     "beta_n": n_obs,
-                    "p_retard_jalon": None,  # réservée : toujours vide (schéma v1)
+                    "p_retard_jalon": None,  # reservee : toujours vide (schema v1)
                     "p_impact_final": None if t == 0 else float(node["p_impact_final"][t]),
                     "delta_ell_final": None if t == 0 else float(node["delta_ell_final"][t]),
                     "delta_ell_max": None if t == 0 else float(node["delta_ell_max"][t]),
@@ -381,7 +362,7 @@ def build_fixture_rows(
                     "max_ur_pred": None,
                     "frac_pred_satures": None,
                     "mean_beta_in": None,
-                    "_ema": ema,  # champ privé, retiré avant écriture
+                    "_ema": ema,  # champ prive, retire avant ecriture
                 }
                 for key in U_BLOC_KEYS:
                     v = node["u_blocs"][key][t]
@@ -390,7 +371,7 @@ def build_fixture_rows(
                 rows_by_chain_tour_node[(chain_id, t, n_idx)] = row
                 rows.append(row)
 
-    # Passe 3 : voisinage — chaîne linéaire nœud i -> nœud i+1 (prédécesseur = i-1).
+    # Passe 3 : voisinage - chaine lineaire noeud i -> noeud i+1 (predecesseur = i-1).
     for chain_id in chains:
         for t in range(N_TOURS):
             for n_idx in range(1, N_NODES):
@@ -419,7 +400,7 @@ def _to_csv_cell(v: Any) -> str:
 
 
 def write_fixture_csv(rows: list[dict[str, Any]], out_path: Path) -> None:
-    """Écrit les lignes au format CSV du contrat 4 (cellule vide = manquant)."""
+    """Ecrit les lignes au format CSV du contrat 4 (cellule vide = manquant)."""
     out_path.parent.mkdir(parents=True, exist_ok=True)
     with out_path.open("w", encoding="utf-8", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=COLUMNS)
@@ -429,7 +410,7 @@ def write_fixture_csv(rows: list[dict[str, Any]], out_path: Path) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Point d'entrée CLI de la génération de fixture."""
+    """Point d'entree CLI de la generation de fixture."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", required=True, help="Chemin du CSV de sortie")
     parser.add_argument(

@@ -1,51 +1,51 @@
-"""InsightService — insights décisionnels en texte clair français (HÉLIOS v7, U12).
+"""InsightService - insights decisionnels en texte clair francais (HELIOS v7, U12).
 
 :class:`InsightService` est LE contrat de fin du plan v7 : il transforme les
-sorties numériques des couches prévision (contrat 6, U11) et prescription
-(contrat 11, U18) en phrases françaises auditables, jamais un chiffre nu.
+sorties numeriques des couches prevision (contrat 6, U11) et prescription
+(contrat 11, U18) en phrases francaises auditables, jamais un chiffre nu.
 Chaque :class:`Insight` porte un ``sources`` qui reprend TOUS les nombres
-utilisés dans son ``message`` — aucune affirmation chiffrée sans trace.
+utilises dans son ``message`` - aucune affirmation chiffree sans trace.
 
-RÈGLE ABSOLUE (plan D17) : ce module est 100 % RÈGLES + GABARITS. Aucun appel
-LLM, nulle part, jamais — le texte est entièrement déterministe et rejouable
-(mêmes entrées -> même sortie), donc auditable par construction.
+REGLE ABSOLUE (plan D17) : ce module est 100 % REGLES + GABARITS. Aucun appel
+LLM, nulle part, jamais - le texte est entierement deterministe et rejouable
+(memes entrees -> meme sortie), donc auditable par construction.
 
-Duck-typing des contrats amont (aucun import direct d'un module frère
-susceptible d'être absent) :
+Duck-typing des contrats amont (aucun import direct d'un module frere
+susceptible d'etre absent) :
 
-- Contrat 6 — ``PredictionPoint`` (U11, :mod:`supplyscore.services.prediction`) :
-  consommé via ``getattr`` avec repli, jamais importé. Champs lus :
+- Contrat 6 - ``PredictionPoint`` (U11, :mod:`supplyscore.services.prediction`) :
+  consomme via ``getattr`` avec repli, jamais importe. Champs lus :
   ``node_id``, ``node_name``, ``proba_by_horizon``, ``delta_vs_last_week``,
   ``p_jalon_rate``, ``impact_frac``, ``recommandation``.
-- Contrat 11 — ``ActionRecommandation`` (U18, :mod:`supplyscore.services.action_engine`),
-  portée par ``PredictionPoint.recommandation`` : dans l'implémentation réelle
-  observée (``ActionEngine.recommander``), ce champ est une SÉQUENCE
-  ``list[ActionRecommandation]`` déjà classée (meilleure d'abord) ; ce module
-  accepte AUSSI un objet unique par tolérance duck-typing (cf.
+- Contrat 11 - ``ActionRecommandation`` (U18, :mod:`supplyscore.services.action_engine`),
+  portee par ``PredictionPoint.recommandation`` : dans l'implementation reelle
+  observee (``ActionEngine.recommander``), ce champ est une SEQUENCE
+  ``list[ActionRecommandation]`` deja classee (meilleure d'abord) ; ce module
+  accepte AUSSI un objet unique par tolerance duck-typing (cf.
   :func:`_recommandation_principale`). Les sous-champs (``p1``, ``delta_u``,
   ``p_resolution_op``, ``valeur``, ``niveau_de_preuve``) sont des mappings
-  simples, lus par clé (jamais par attribut).
+  simples, lus par cle (jamais par attribut).
 
-Données lues directement sur la façade applicative (:class:`SupplyScoreService`),
-INDÉPENDAMMENT des points fournis — ces informations n'existent pas dans le
+Donnees lues directement sur la facade applicative (:class:`SupplyScoreService`),
+INDEPENDAMMENT des points fournis - ces informations n'existent pas dans le
 contrat 6 :
 
-- criticité systématique (:class:`~supplyscore.services.criticite.ServiceCriticite`) ;
-- H (risque caché) / F (fausse urgence) : ``node.urgency.hidden_risk`` /
-  ``node.urgency.false_urgency`` (dépôt de graphe, PAS le point de prévision) ;
+- criticite systematique (:class:`~supplyscore.services.criticite.ServiceCriticite`) ;
+- H (risque cache) / F (fausse urgence) : ``node.urgency.hidden_risk`` /
+  ``node.urgency.false_urgency`` (depot de graphe, PAS le point de prevision) ;
 - arcs de secours (:class:`~supplyscore.domain.models.ArcKind.BACKUP`) :
-  MÊME convention que :func:`supplyscore.domain.actions.contexte_pour` et le
-  générateur de démo (:meth:`~supplyscore.data.generator.RandomSupplyChainGenerator.\
-generate_backup_arcs`) — un arc de secours d'un nœud est un arc ENTRANT
+  MEME convention que :func:`supplyscore.domain.actions.contexte_pour` et le
+  generateur de demo (:meth:`~supplyscore.data.generator.RandomSupplyChainGenerator.\
+generate_backup_arcs`) - un arc de secours d'un noeud est un arc ENTRANT
   (``target_id == node_id`) : ``source_id`` est le fournisseur de secours,
-  ``target_id`` le client (CE nœud), inerte dans tous les calculs de flux.
+  ``target_id`` le client (CE noeud), inerte dans tous les calculs de flux.
 
 Versionnage (jamais de rupture silencieuse d'un gabarit ou d'un seuil) :
-:data:`SEUILS_V1` fige les seuils de sévérité et de détection, et
+:data:`SEUILS_V1` fige les seuils de severite et de detection, et
 :data:`TEMPLATES_V1` fige les gabarits de phrase. Une V2 ajouterait de
 nouvelles constantes/un nouveau dict sans toucher aux existants.
 
-Service en LECTURE SEULE : aucune écriture, jamais.
+Service en LECTURE SEULE : aucune ecriture, jamais.
 """
 
 from __future__ import annotations
@@ -60,49 +60,47 @@ if TYPE_CHECKING:
     from supplyscore.domain.models import SupplyArc
     from supplyscore.services.orchestrator import SupplyScoreService
 
-# --- Constantes documentées -----------------------------------------------------------
+# Constantes documentees
 
-#: Horizon (semaines) de référence pour « P(≤4) » — même horizon par défaut que
-#: :data:`supplyscore.services.action_engine._HORIZON_DEFAUT` (U18) et le
-#: dernier horizon du défaut ``PredictionService.predict`` (U11).
+#: Horizon (semaines) de reference pour " P(<=4) " - meme horizon par defaut que :data:`supplyscore.services.action_engine._HORIZON_DEFAUT` (U18) et le dernier horizon du defaut ``PredictionService.predict`` (U11).
 HORIZON_REFERENCE: int = 4
 
-#: Libellés d'affichage des trois niveaux de sévérité, dans l'ordre de tri.
+#: Libelles d'affichage des trois niveaux de severite, dans l'ordre de tri.
 _LIBELLES_SEVERITE: dict[str, str] = {"alerte": "Alerte", "attention": "Attention", "info": "Info"}
 
-#: Rang de tri des sévérités (0 = affiché en premier).
+#: Rang de tri des severites (0 = affiche en premier).
 _RANG_SEVERITE: dict[str, int] = {"alerte": 0, "attention": 1, "info": 2}
 
 
 @dataclass(frozen=True)
 class _SeuilsV1:
-    """Seuils de sévérité et de détection, version 1 (figés — cf. :data:`SEUILS_V1`).
+    """Seuils de severite et de detection, version 1 (figes - cf. :data:`SEUILS_V1`).
 
-    Toute évolution de seuil crée une V2 distincte : les insights déjà émis
-    restent interprétables avec la version qui les a produits.
+    Toute evolution de seuil cree une V2 distincte : les insights deja emis
+    restent interpretables avec la version qui les a produits.
 
     Attributes:
-        alerte_p_le4: seuil de ``P(issue défavorable, ≤4 semaines)`` au-delà
-            duquel une alerte est posée (ET avec ``alerte_impact_frac``).
-        alerte_impact_frac: seuil de fraction du réseau impactée par le pire
-            choc local du nœud (criticité), requis EN PLUS de
+        alerte_p_le4: seuil de ``P(issue defavorable, <=4 semaines)`` au-dela
+            duquel une alerte est posee (ET avec ``alerte_impact_frac``).
+        alerte_impact_frac: seuil de fraction du reseau impactee par le pire
+            choc local du noeud (criticite), requis EN PLUS de
             ``alerte_p_le4`` pour l'alerte.
-        attention_p_le4: seuil de ``P(issue défavorable, ≤4 semaines)`` au-delà
-            duquel une attention est posée (seul, sans condition d'impact).
+        attention_p_le4: seuil de ``P(issue defavorable, <=4 semaines)`` au-dela
+            duquel une attention est posee (seul, sans condition d'impact).
         attention_delta_semaine: seuil de hausse hebdomadaire brute de
-            l'urgence locale (``delta_vs_last_week``) au-delà duquel une
-            attention est posée.
-        amelioration_delta_semaine: seuil (négatif) de baisse hebdomadaire de
-            l'urgence locale en-deçà duquel le nœud est « en voie de
-            résolution ».
-        degrade_hidden_risk: seuil H (risque caché) au-delà duquel le mode
-            dégradé suggère une revue de déclaration.
-        degrade_false_urgency: seuil F (fausse urgence) au-delà duquel le
-            mode dégradé suggère une désescalade.
-        degrade_jalon_dominant: seuil de ``p_jalon_rate`` au-delà duquel (ET
-            supérieur à P(≤4)) le mode dégradé suggère de revoir le jalon actif.
-        degrade_fournisseur_alt_p_le4: seuil de ``P(≤4)`` au-delà duquel,
-            SANS arc de secours disponible, le mode dégradé suggère de
+            l'urgence locale (``delta_vs_last_week``) au-dela duquel une
+            attention est posee.
+        amelioration_delta_semaine: seuil (negatif) de baisse hebdomadaire de
+            l'urgence locale en-deca duquel le noeud est " en voie de
+            resolution ".
+        degrade_hidden_risk: seuil H (risque cache) au-dela duquel le mode
+            degrade suggere une revue de declaration.
+        degrade_false_urgency: seuil F (fausse urgence) au-dela duquel le
+            mode degrade suggere une desescalade.
+        degrade_jalon_dominant: seuil de ``p_jalon_rate`` au-dela duquel (ET
+            superieur a P(<=4)) le mode degrade suggere de revoir le jalon actif.
+        degrade_fournisseur_alt_p_le4: seuil de ``P(<=4)`` au-dela duquel,
+            SANS arc de secours disponible, le mode degrade suggere de
             qualifier un fournisseur alternatif.
     """
 
@@ -117,16 +115,11 @@ class _SeuilsV1:
     degrade_fournisseur_alt_p_le4: float = 0.25
 
 
-#: Seuils de sévérité et de détection — version 1, figée (cf. :class:`_SeuilsV1`).
+#: Seuils de severite et de detection - version 1, figee (cf. :class:`_SeuilsV1`).
 SEUILS_V1 = _SeuilsV1()
 
 
-#: Gabarits de phrase — version 1, figée. Les clés ``reco_*`` composent LE BLOC
-#: PRESCRIPTIF COMPLET (contrat de fin) quand une recommandation est présente ;
-#: les clés ``action_*`` sont les suggestions du catalogue dégradé (recommandation
-#: absente) ; les clés ``amelioration_*`` annotent une tendance à 2 semaines.
-#: Les formulations entre guillemets du contrat sont reprises AU MOT PRÈS
-#: (casse comprise) pour rester grep-ables dans les messages produits.
+#: Gabarits de phrase - version 1, figee. Les cles ``reco_*`` composent LE BLOC PRESCRIPTIF COMPLET (contrat de fin) quand une recommandation est presente ; les cles ``action_*`` sont les suggestions du catalogue degrade (recommandation absente) ; les cles ``amelioration_*`` annotent une tendance a 2 semaines. Les formulations entre guillemets du contrat sont reprises AU MOT PRES (casse comprise) pour rester grep-ables dans les messages produits.
 TEMPLATES_V1: dict[str, str] = {
     "reco_entete": "Action recommandée : {libelle}.",
     "reco_p0": "risque sans action : {valeur}",
@@ -170,34 +163,34 @@ TEMPLATES_V1: dict[str, str] = {
 }
 
 
-# --- Contrat de sortie ------------------------------------------------------------------
+# Contrat de sortie
 
 
 @dataclass(frozen=True)
 class Insight:
-    """Insight décisionnel en texte clair français pour un nœud (LE contrat de fin).
+    """Insight decisionnel en texte clair francais pour un noeud (LE contrat de fin).
 
     Attributes:
         severite: ``"alerte"``, ``"attention"`` ou ``"info"`` (cf. :data:`SEUILS_V1`).
-        node_id: identifiant du nœud concerné.
-        node_name: nom lisible du nœud.
-        message: narratif français complet — sévérité + raisons, PUIS, si une
-            recommandation est présente, le bloc prescriptif intégral (contrat
-            de fin : p0, p1, effet et sa source, P(Δ>0), P(résolution),
-            P(exécution), P(éviter la rupture), valeur nette ou heuristique,
-            délai d'effet, niveau de preuve, robustesse, incertitude modèle),
-            PUIS, si applicable, l'annotation de tendance « en voie de
-            résolution ».
-        pourquoi: raisons de sévérité, une phrase par seuil franchi (ou
-            l'absence de seuil franchi / de donnée en mode dégradé).
-        action: suggestion d'action COURTE en français — le libellé de la
-            recommandation si ``recommandation`` était présente, sinon la
-            première règle du catalogue dégradé qui s'applique (cf.
-            :data:`TEMPLATES_V1`, clés ``action_*``), ou None si aucune ne
+        node_id: identifiant du noeud concerne.
+        node_name: nom lisible du noeud.
+        message: narratif francais complet - severite + raisons, PUIS, si une
+            recommandation est presente, le bloc prescriptif integral (contrat
+            de fin : p0, p1, effet et sa source, P(Delta>0), P(resolution),
+            P(execution), P(eviter la rupture), valeur nette ou heuristique,
+            delai d'effet, niveau de preuve, robustesse, incertitude modele),
+            PUIS, si applicable, l'annotation de tendance " en voie de
+            resolution ".
+        pourquoi: raisons de severite, une phrase par seuil franchi (ou
+            l'absence de seuil franchi / de donnee en mode degrade).
+        action: suggestion d'action COURTE en francais - le libelle de la
+            recommandation si ``recommandation`` etait presente, sinon la
+            premiere regle du catalogue degrade qui s'applique (cf.
+            :data:`TEMPLATES_V1`, cles ``action_*``), ou None si aucune ne
             s'applique.
-        sources: TOUS les nombres utilisés dans ``message``, par clé
-            explicite — auditabilité : aucune affirmation chiffrée sans trace
-            retrouvable ici. ``None`` pour un nombre référencé mais absent.
+        sources: TOUS les nombres utilises dans ``message``, par cle
+            explicite - auditabilite : aucune affirmation chiffree sans trace
+            retrouvable ici. ``None`` pour un nombre reference mais absent.
     """
 
     severite: str
@@ -209,19 +202,19 @@ class Insight:
     sources: dict[str, float | None]
 
 
-# --- Aides pures : duck-typing, nombres, formats -----------------------------------------
+# Aides pures : duck-typing, nombres, formats
 
 
 def _champ(objet: Any, nom: str, defaut: Any = None) -> Any:
-    """Lit un champ d'un objet OU d'un mapping, duck-typing tolérant.
+    """Lit un champ d'un objet OU d'un mapping, duck-typing tolerant.
 
-    Le contrat 11 mélange des dataclasses (``ActionRecommandation``, lues par
+    Le contrat 11 melange des dataclasses (``ActionRecommandation``, lues par
     attribut) et des mappings simples pour ses sous-champs (``p1``,
-    ``delta_u``..., lus par clé) : cette aide unifie les deux lectures.
+    ``delta_u``..., lus par cle) : cette aide unifie les deux lectures.
 
     Args:
-        objet: objet ou mapping à lire (peut être None).
-        nom: nom du champ/de la clé.
+        objet: objet ou mapping a lire (peut etre None).
+        nom: nom du champ/de la cle.
         defaut: valeur de repli si absent ou si ``objet`` est None.
 
     Returns:
@@ -235,14 +228,14 @@ def _champ(objet: Any, nom: str, defaut: Any = None) -> Any:
 
 
 def _flottant_ou_none(valeur: Any) -> float | None:
-    """Convertit en flottant si c'est un nombre réel (pas un booléen), sinon None.
+    """Convertit en flottant si c'est un nombre reel (pas un booleen), sinon None.
 
     Args:
-        valeur: valeur quelconque à convertir.
+        valeur: valeur quelconque a convertir.
 
     Returns:
-        Le flottant, ou None si ``valeur`` n'est pas un ``int``/``float`` réel
-        (les booléens, sous-classes d'``int`` en Python, sont explicitement
+        Le flottant, ou None si ``valeur`` n'est pas un ``int``/``float`` reel
+        (les booleens, sous-classes d'``int`` en Python, sont explicitement
         exclus).
     """
     if isinstance(valeur, bool) or not isinstance(valeur, (int, float)):
@@ -251,11 +244,11 @@ def _flottant_ou_none(valeur: Any) -> float | None:
 
 
 def _pct(valeur: float | None, decimales: int = 1) -> str:
-    """Formate une probabilité ``[0, 1]`` en pourcentage français.
+    """Formate une probabilite ``[0, 1]`` en pourcentage francais.
 
     Args:
-        valeur: probabilité à formater, ou None.
-        decimales: nombre de décimales affichées.
+        valeur: probabilite a formater, ou None.
+        decimales: nombre de decimales affichees.
 
     Returns:
         ``"27.3 %"``, ou ``"n/d"`` si ``valeur`` est None.
@@ -266,11 +259,11 @@ def _pct(valeur: float | None, decimales: int = 1) -> str:
 
 
 def _pp(valeur: float | None, decimales: int = 1) -> str:
-    """Formate un delta de probabilité en points de pourcentage SIGNÉS.
+    """Formate un delta de probabilite en points de pourcentage SIGNES.
 
     Args:
-        valeur: delta ``[-1, 1]`` à formater, ou None.
-        decimales: nombre de décimales affichées.
+        valeur: delta ``[-1, 1]`` a formater, ou None.
+        decimales: nombre de decimales affichees.
 
     Returns:
         ``"+14.0 points de pourcentage"``, ou ``"n/d"`` si ``valeur`` est None.
@@ -281,15 +274,15 @@ def _pp(valeur: float | None, decimales: int = 1) -> str:
 
 
 def _ic80(bas: float | None, haut: float | None) -> str:
-    """Formate un IC80 ``" [IC80 : a–b %]"`` (espace de tête inclus), vide si absent.
+    """Formate un IC80 ``" [IC80 : a-b %]"`` (espace de tete inclus), vide si absent.
 
     Args:
         bas: borne basse ``[0, 1]``, ou None.
         haut: borne haute ``[0, 1]``, ou None.
 
     Returns:
-        Le fragment formaté (espace de tête pour un accolement direct), ou
-        chaîne vide si une des deux bornes manque.
+        Le fragment formate (espace de tete pour un accolement direct), ou
+        chaine vide si une des deux bornes manque.
     """
     if bas is None or haut is None:
         return ""
@@ -297,10 +290,10 @@ def _ic80(bas: float | None, haut: float | None) -> str:
 
 
 def _p_le4(point: Any) -> float | None:
-    """``P(issue défavorable, ≤4 semaines)`` d'un point de prévision duck-typé.
+    """``P(issue defavorable, <=4 semaines)`` d'un point de prevision duck-type.
 
     Args:
-        point: point de prévision (contrat 6, duck-typé).
+        point: point de prevision (contrat 6, duck-type).
 
     Returns:
         ``proba_by_horizon[4]``, ou None si absent ou l'horizon 4 non fourni.
@@ -312,19 +305,19 @@ def _p_le4(point: Any) -> float | None:
 
 
 def _recommandation_principale(point: Any) -> Any | None:
-    """Recommandation « top » d'un point, quelle que soit sa forme exacte.
+    """Recommandation " top " d'un point, quelle que soit sa forme exacte.
 
-    Le contrat 6 déclare ``recommandation: object | None`` ; l'implémentation
-    réelle observée (``ActionEngine.recommander``, U18) le peuple d'une
-    SÉQUENCE ``list[ActionRecommandation]`` déjà classée meilleure d'abord.
-    Les deux formes sont acceptées par tolérance duck-typing : un objet
-    unique est retourné tel quel, une séquence rend son premier élément.
+    Le contrat 6 declare ``recommandation: object | None`` ; l'implementation
+    reelle observee (``ActionEngine.recommander``, U18) le peuple d'une
+    SEQUENCE ``list[ActionRecommandation]`` deja classee meilleure d'abord.
+    Les deux formes sont acceptees par tolerance duck-typing : un objet
+    unique est retourne tel quel, une sequence rend son premier element.
 
     Args:
-        point: point de prévision (contrat 6, duck-typé).
+        point: point de prevision (contrat 6, duck-type).
 
     Returns:
-        La recommandation « top », ou None si absente ou séquence vide.
+        La recommandation " top ", ou None si absente ou sequence vide.
     """
     rec = getattr(point, "recommandation", None)
     if rec is None:
@@ -335,11 +328,11 @@ def _recommandation_principale(point: Any) -> Any | None:
 
 
 def _trouver_point(points: Sequence[Any] | None, node_id: str) -> Any | None:
-    """Le point de la séquence portant ``node_id``, ou None si absent/aucune séquence.
+    """Le point de la sequence portant ``node_id``, ou None si absent/aucune sequence.
 
     Args:
-        points: séquence de points duck-typés (ex. semaine précédente), ou None.
-        node_id: identifiant du nœud recherché.
+        points: sequence de points duck-types (ex. semaine precedente), ou None.
+        node_id: identifiant du noeud recherche.
 
     Returns:
         Le premier point dont ``node_id`` correspond, ou None.
@@ -352,27 +345,27 @@ def _trouver_point(points: Sequence[Any] | None, node_id: str) -> Any | None:
     return None
 
 
-# --- Sévérité (SEUILS_V1) -----------------------------------------------------------------
+# Severite (SEUILS_V1)
 
 
 def _severite_et_raisons(
     p_le4: float | None, impact_frac: float | None, delta: float | None
 ) -> tuple[str, list[str], dict[str, float | None]]:
-    """Sévérité et raisons d'un point selon :data:`SEUILS_V1`.
+    """Severite et raisons d'un point selon :data:`SEUILS_V1`.
 
-    Règle de priorité (première branche qui s'applique) : alerte (P(≤4) ET
-    impact réseau), sinon attention (P(≤4) OU hausse hebdomadaire — les DEUX
-    raisons sont listées si les deux conditions tiennent), sinon info.
+    Regle de priorite (premiere branche qui s'applique) : alerte (P(<=4) ET
+    impact reseau), sinon attention (P(<=4) OU hausse hebdomadaire - les DEUX
+    raisons sont listees si les deux conditions tiennent), sinon info.
 
     Args:
-        p_le4: ``P(issue défavorable, ≤4 semaines)``, ou None si indisponible.
-        impact_frac: fraction du réseau impactée par le pire choc local du
-            nœud (criticité), ou None si indisponible.
+        p_le4: ``P(issue defavorable, <=4 semaines)``, ou None si indisponible.
+        impact_frac: fraction du reseau impactee par le pire choc local du
+            noeud (criticite), ou None si indisponible.
         delta: delta hebdomadaire brut de l'urgence locale, ou None.
 
     Returns:
-        ``(severite, raisons, sources)`` — ``sources`` porte P(≤4)/impact_frac
-        /delta ainsi que les seuils effectivement cités dans ``raisons``.
+        ``(severite, raisons, sources)`` - ``sources`` porte P(<=4)/impact_frac
+        /delta ainsi que les seuils effectivement cites dans ``raisons``.
     """
     sources: dict[str, float | None] = {
         "p_le4": p_le4,
@@ -427,15 +420,15 @@ def _severite_et_raisons(
 def _annotation_amelioration(
     point: Any, previous: Sequence[Any] | None
 ) -> tuple[str | None, dict[str, float | None]]:
-    """Annotation « en voie de résolution » si l'urgence locale recule nettement.
+    """Annotation " en voie de resolution " si l'urgence locale recule nettement.
 
     Args:
-        point: point de prévision courant (duck-typé).
-        previous: points de la semaine précédente (duck-typés), pour établir
-            la tendance à 2 semaines — None si non fournis.
+        point: point de prevision courant (duck-type).
+        previous: points de la semaine precedente (duck-types), pour etablir
+            la tendance a 2 semaines - None si non fournis.
 
     Returns:
-        ``(texte, sources)`` — ``texte`` est None si le seuil d'amélioration
+        ``(texte, sources)`` - ``texte`` est None si le seuil d'amelioration
         n'est pas franchi (``sources`` est alors vide).
     """
     delta = _flottant_ou_none(getattr(point, "delta_vs_last_week", None))
@@ -463,18 +456,18 @@ def _annotation_amelioration(
     return texte, sources
 
 
-# --- Bloc prescriptif complet (contrat de fin, recommandation présente) -------------------
+# Bloc prescriptif complet (contrat de fin, recommandation presente)
 
 
 def _texte_delai(delai: Any) -> tuple[str, tuple[float | None, float | None, float | None]]:
-    """Texte français du délai d'effet à partir du triplet ``(min, mode, max)``.
+    """Texte francais du delai d'effet a partir du triplet ``(min, mode, max)``.
 
     Args:
-        delai: ``delai_effet_weeks`` duck-typé — attendu ``(min, mode, max)``.
+        delai: ``delai_effet_weeks`` duck-type - attendu ``(min, mode, max)``.
 
     Returns:
-        ``(texte, (min, mode, max))`` — les trois flottants sont None si
-        ``delai`` n'est pas un triplet numérique exploitable.
+        ``(texte, (min, mode, max))`` - les trois flottants sont None si
+        ``delai`` n'est pas un triplet numerique exploitable.
     """
     if isinstance(delai, (tuple, list)) and len(delai) == 3:
         bornes = tuple(_flottant_ou_none(v) for v in delai)
@@ -489,19 +482,19 @@ def _texte_delai(delai: Any) -> tuple[str, tuple[float | None, float | None, flo
 
 
 def _texte_niveau_preuve(niveau: Any) -> tuple[str, float | None, float | None]:
-    """Texte français du niveau de preuve, phrasé EXACTEMENT sur ``source_prior``.
+    """Texte francais du niveau de preuve, phrase EXACTEMENT sur ``source_prior``.
 
-    Impose la formulation « a priori simulé + n observations réelles » quand
-    ``source_prior == "prior_sim"`` (a priori U17 par défaut), telle que
-    citée par le contrat de fin.
+    Impose la formulation " a priori simule + n observations reelles " quand
+    ``source_prior == "prior_sim"`` (a priori U17 par defaut), telle que
+    citee par le contrat de fin.
 
     Args:
-        niveau: ``niveau_de_preuve`` duck-typé — mapping attendu
+        niveau: ``niveau_de_preuve`` duck-type - mapping attendu
             ``{"n_reel", "n_sim", "source_prior", "qualite"}``.
 
     Returns:
-        ``(texte, n_reel, n_sim)`` — ``n_reel``/``n_sim`` flottants pour
-        ``sources`` (None si absents/non numériques).
+        ``(texte, n_reel, n_sim)`` - ``n_reel``/``n_sim`` flottants pour
+        ``sources`` (None si absents/non numeriques).
     """
     n_reel = _flottant_ou_none(_champ(niveau, "n_reel"))
     n_sim = _flottant_ou_none(_champ(niveau, "n_sim"))
@@ -524,21 +517,21 @@ def _texte_niveau_preuve(niveau: Any) -> tuple[str, float | None, float | None]:
 
 
 def _bloc_prescriptif(rec: Any) -> tuple[str, dict[str, float | None]]:
-    """Bloc prescriptif COMPLET (contrat de fin) d'une recommandation duck-typée.
+    """Bloc prescriptif COMPLET (contrat de fin) d'une recommandation duck-typee.
 
-    Rend, dans l'ordre du plan v7, TOUS les éléments exigés : p0, p1, effet
-    estimé (source nommée explicitement), P(Δ>0), P(résolution opérationnelle
-    | exécution), P(exécution), P(éviter la rupture) (produit affiché),
-    valeur nette OU heuristique (jamais confondues), délai d'effet, niveau de
-    preuve, robustesse aux trois a priori, incertitude de modèle.
+    Rend, dans l'ordre du plan v7, TOUS les elements exiges : p0, p1, effet
+    estime (source nommee explicitement), P(Delta>0), P(resolution operationnelle
+    | execution), P(execution), P(eviter la rupture) (produit affiche),
+    valeur nette OU heuristique (jamais confondues), delai d'effet, niveau de
+    preuve, robustesse aux trois a priori, incertitude de modele.
 
     Args:
-        rec: recommandation duck-typée (contrat 11 — ``ActionRecommandation``
-            ou équivalent structurel : objet ou mapping).
+        rec: recommandation duck-typee (contrat 11 - ``ActionRecommandation``
+            ou equivalent structurel : objet ou mapping).
 
     Returns:
-        ``(bloc, sources)`` — le texte français complet (clauses jointes par
-        « ; ») et TOUS les nombres qui y figurent, par clé explicite.
+        ``(bloc, sources)`` - le texte francais complet (clauses jointes par
+        " ; ") et TOUS les nombres qui y figurent, par cle explicite.
     """
     sources: dict[str, float | None] = {}
     clauses: list[str] = []
@@ -635,19 +628,19 @@ def _bloc_prescriptif(rec: Any) -> tuple[str, dict[str, float | None]]:
     return " ; ".join(clauses) + ".", sources
 
 
-# --- Catalogue dégradé (recommandation absente) --------------------------------------------
+# Catalogue degrade (recommandation absente)
 
 
 def _fournisseurs_secours(service: SupplyScoreService, node_id: str) -> list[SupplyArc]:
-    """Arcs de secours ENTRANTS du nœud (fournisseurs de secours candidats).
+    """Arcs de secours ENTRANTS du noeud (fournisseurs de secours candidats).
 
-    Même convention que :func:`supplyscore.domain.actions.contexte_pour`
-    (``arcs_backup``) et le générateur de démo : seuls les arcs BACKUP dont
-    ``target_id`` est ce nœud comptent (``source_id`` = fournisseur de secours).
+    Meme convention que :func:`supplyscore.domain.actions.contexte_pour`
+    (``arcs_backup``) et le generateur de demo : seuls les arcs BACKUP dont
+    ``target_id`` est ce noeud comptent (``source_id`` = fournisseur de secours).
 
     Args:
-        service: façade applicative (dépôt de graphe en mémoire).
-        node_id: identifiant du nœud.
+        service: facade applicative (depot de graphe en memoire).
+        node_id: identifiant du noeud.
 
     Returns:
         Les :class:`~supplyscore.domain.models.SupplyArc` de secours entrants
@@ -657,26 +650,26 @@ def _fournisseurs_secours(service: SupplyScoreService, node_id: str) -> list[Sup
 
 
 class InsightService:
-    """Assembleur d'insights décisionnels — lecture seule au-dessus de la façade.
+    """Assembleur d'insights decisionnels - lecture seule au-dessus de la facade.
 
-    LE contrat de fin du plan v7 : transforme les points de prévision
-    (contrat 6, duck-typés — jamais un import direct d'un module frère
-    susceptible d'être absent) en :class:`Insight` français audités. Les
+    LE contrat de fin du plan v7 : transforme les points de prevision
+    (contrat 6, duck-types - jamais un import direct d'un module frere
+    susceptible d'etre absent) en :class:`Insight` francais audites. Les
     signaux indisponibles sur le contrat 6 (H, F, arcs de secours) sont lus
-    EN DIRECT sur la façade fournie, jamais fabriqués.
+    EN DIRECT sur la facade fournie, jamais fabriques.
     """
 
     def __init__(self, service: SupplyScoreService) -> None:
-        """Initialise le service d'insights sur la façade de l'application.
+        """Initialise le service d'insights sur la facade de l'application.
 
         Args:
-            service: façade :class:`~supplyscore.services.orchestrator.SupplyScoreService`
-                (dépôt de graphe, registre) — utilisée pour H/F et les arcs de
-                secours, jamais pour écrire.
+            service: facade :class:`~supplyscore.services.orchestrator.SupplyScoreService`
+                (depot de graphe, registre) - utilisee pour H/F et les arcs de
+                secours, jamais pour ecrire.
         """
         self._service = service
 
-    # --- API publique ---------------------------------------------------------------
+    # API publique
 
     def insights(
         self,
@@ -684,23 +677,23 @@ class InsightService:
         points: Sequence[Any],
         previous: Sequence[Any] | None = None,
     ) -> list[Insight]:
-        """Un :class:`Insight` par point fourni, trié par sévérité puis P(≤4) décroissant.
+        """Un :class:`Insight` par point fourni, trie par severite puis P(<=4) decroissant.
 
         Args:
-            project_id: projet concerné (validé contre le registre).
-            points: points de prévision (contrat 6, duck-typés) — un insight
-                est produit par point, quelle qu'en soit la sévérité.
-            previous: points de la semaine précédente (duck-typés), pour la
-                tendance à 2 semaines de l'annotation d'amélioration — None
-                si non fournis (l'amélioration reste détectée sur 1 semaine).
+            project_id: projet concerne (valide contre le registre).
+            points: points de prevision (contrat 6, duck-types) - un insight
+                est produit par point, quelle qu'en soit la severite.
+            previous: points de la semaine precedente (duck-types), pour la
+                tendance a 2 semaines de l'annotation d'amelioration - None
+                si non fournis (l'amelioration reste detectee sur 1 semaine).
 
         Returns:
-            Les :class:`Insight`, triés (alerte > attention > info, puis
-            P(≤4) décroissant — les P(≤4) indisponibles en dernier).
+            Les :class:`Insight`, tries (alerte > attention > info, puis
+            P(<=4) decroissant - les P(<=4) indisponibles en dernier).
 
         Raises:
             ValueError: si le projet est inconnu du registre (message en
-                français).
+                francais).
         """
         if self._service.registry.get_project(project_id) is None:
             raise ValueError(f"Projet inconnu : {project_id!r}")
@@ -709,17 +702,17 @@ class InsightService:
         resultats.sort(key=self._cle_tri)
         return resultats
 
-    # --- Assemblage d'un point --------------------------------------------------------
+    # Assemblage d'un point
 
     def _insight_pour_point(self, point: Any, previous: Sequence[Any] | None) -> Insight:
-        """Assemble l'insight complet d'un point : sévérité, prescription, amélioration.
+        """Assemble l'insight complet d'un point : severite, prescription, amelioration.
 
         Args:
-            point: point de prévision (contrat 6, duck-typé).
-            previous: points de la semaine précédente (duck-typés), ou None.
+            point: point de prevision (contrat 6, duck-type).
+            previous: points de la semaine precedente (duck-types), ou None.
 
         Returns:
-            L':class:`Insight` assemblé.
+            L':class:`Insight` assemble.
         """
         node_id = str(getattr(point, "node_id", ""))
         node_name = str(getattr(point, "node_name", node_id))
@@ -756,24 +749,24 @@ class InsightService:
             sources=sources,
         )
 
-    # --- Catalogue dégradé (recommandation absente) -----------------------------------
+    # Catalogue degrade (recommandation absente)
 
     def _action_degradee(self, point: Any) -> str | None:
-        """Première règle du catalogue dégradé qui s'applique, ou None.
+        """Premiere regle du catalogue degrade qui s'applique, ou None.
 
-        Ordre FIGÉ et documenté (la première règle qui s'applique gagne) :
-        (1) arc de secours disponible -> le promouvoir ; (2) risque caché H
-        élevé -> revue de déclaration ; (3) jalon dominant -> le revoir ; (4)
-        P(≤4) élevé SANS arc de secours -> qualifier un fournisseur alternatif ;
-        (5) fausse urgence F élevée -> désescalade possible.
+        Ordre FIGE et documente (la premiere regle qui s'applique gagne) :
+        (1) arc de secours disponible -> le promouvoir ; (2) risque cache H
+        eleve -> revue de declaration ; (3) jalon dominant -> le revoir ; (4)
+        P(<=4) eleve SANS arc de secours -> qualifier un fournisseur alternatif ;
+        (5) fausse urgence F elevee -> desescalade possible.
 
         Args:
-            point: point de prévision (contrat 6, duck-typé) — utilisé pour
-                ``node_id``, ``p_jalon_rate`` et P(≤4) ; H/F et les arcs de
-                secours sont relus EN DIRECT sur la façade.
+            point: point de prevision (contrat 6, duck-type) - utilise pour
+                ``node_id``, ``p_jalon_rate`` et P(<=4) ; H/F et les arcs de
+                secours sont relus EN DIRECT sur la facade.
 
         Returns:
-            Le texte français de l'action suggérée, ou None si aucune règle
+            Le texte francais de l'action suggeree, ou None si aucune regle
             ne s'applique.
         """
         node_id = getattr(point, "node_id", None)
@@ -816,18 +809,18 @@ class InsightService:
 
         return None
 
-    # --- Tri ----------------------------------------------------------------------------
+    # Tri
 
     @staticmethod
     def _cle_tri(insight: Insight) -> tuple[int, float]:
-        """Clé de tri : sévérité (alerte > attention > info) puis P(≤4) décroissant.
+        """Cle de tri : severite (alerte > attention > info) puis P(<=4) decroissant.
 
         Args:
-            insight: insight à ordonner.
+            insight: insight a ordonner.
 
         Returns:
-            ``(rang_severite, -p_le4)`` — P(≤4) absent traité comme le plus
-            bas (trié en dernier au sein de sa sévérité).
+            ``(rang_severite, -p_le4)`` - P(<=4) absent traite comme le plus
+            bas (trie en dernier au sein de sa severite).
         """
         p_le4 = insight.sources.get("p_le4")
         return _RANG_SEVERITE.get(insight.severite, len(_RANG_SEVERITE)), -(

@@ -1,36 +1,36 @@
-r"""Orchestrateur bout-en-bout HÉLIOS v7 (U14) : prévision + prescription contrefactuelle.
+r"""Orchestrateur bout-en-bout HELIOS v7 (U14) : prevision + prescription contrefactuelle.
 
-Enchaîne, dans l'ordre, les étapes des unités sœurs U4-U13 et U15-U18 en
-appelant leurs CLI FIGÉES (chaque étape = un sous-processus
+Enchaine, dans l'ordre, les etapes des unites soeurs U4-U13 et U15-U18 en
+appelant leurs CLI FIGEES (chaque etape = un sous-processus
 ``.venv\\Scripts\\python.exe <script> <args>``). Ce module n'importe JAMAIS le
-code d'une unité sœur : il ne connaît que leurs contrats de ligne de commande,
-figés dans le plan v7. Tout maillon absent produit un échec propre nommant
-l'unité (ex. « maillon manquant : U6 — projects/factory/run_random_campaign.py »)
-et un code de sortie non nul — jamais une trace Python brute.
+code d'une unite soeur : il ne connait que leurs contrats de ligne de commande,
+figes dans le plan v7. Tout maillon absent produit un echec propre nommant
+l'unite (ex. " maillon manquant : U6 - projects/factory/run_random_campaign.py ")
+et un code de sortie non nul - jamais une trace Python brute.
 
-Étapes (dans l'ordre) :
-    opendata (U13, optionnelle) → variants (U4) → helios_runs (U5) →
-    random_chains (U6) → llm_traces (U7, optionnelle) → t1_refit (U7) →
-    amplified_runs (U5, si T1 RETENU) → dataset (U8) →
-    interventions_extract (U8) → action_effects (U17, PORTE CAUSALE) →
-    train (U10) → smoke (U6 + U11 + U12).
+Etapes (dans l'ordre) :
+    opendata (U13, optionnelle) -> variants (U4) -> helios_runs (U5) ->
+    random_chains (U6) -> llm_traces (U7, optionnelle) -> t1_refit (U7) ->
+    amplified_runs (U5, si T1 RETENU) -> dataset (U8) ->
+    interventions_extract (U8) -> action_effects (U17, PORTE CAUSALE) ->
+    train (U10) -> smoke (U6 + U11 + U12).
 
 Reprise sur panne : ``pipeline_state.json`` (dans ``--work``) consigne le
-statut de chaque étape et, pour les étapes parallélisées (helios_runs,
-random_chains, amplified_runs), la liste des items déjà terminés. Relancer la
-commande relit cet état et saute tout ce qui est déjà fait — ``--reset``
-l'efface pour repartir de zéro.
+statut de chaque etape et, pour les etapes parallelisees (helios_runs,
+random_chains, amplified_runs), la liste des items deja termines. Relancer la
+commande relit cet etat et saute tout ce qui est deja fait - ``--reset``
+l'efface pour repartir de zero.
 
 Porte de validation causale (D32) : ``fit_action_effects.py --validate``
-(U17) écrit dans un dossier de STAGING, jamais directement dans
+(U17) ecrit dans un dossier de STAGING, jamais directement dans
 ``<work>/models/``. Si le verdict global est PASS, le contenu du staging est
-copié dans ``<work>/models/`` ; sinon il y reste (jamais publié) et un message
-FR explique pourquoi — l'artefact prédictif (U10) est, lui, toujours publié.
+copie dans ``<work>/models/`` ; sinon il y reste (jamais publie) et un message
+FR explique pourquoi - l'artefact predictif (U10) est, lui, toujours publie.
 
-Voir ``PIPELINE.md`` (même dossier) pour le schéma de flux complet, les 32
-décisions du plan, la table de coûts mesurés et les hypothèses d'intégration
-prises faute des scripts réels des unités sœurs (elles sont absentes de ce
-worktree par construction — U14 est l'orchestrateur, pas un intégrateur final).
+Voir ``PIPELINE.md`` (meme dossier) pour le schema de flux complet, les 32
+decisions du plan, la table de couts mesures et les hypotheses d'integration
+prises faute des scripts reels des unites soeurs (elles sont absentes de ce
+worktree par construction - U14 est l'orchestrateur, pas un integrateur final).
 
 Usage :
     .venv\\Scripts\\python.exe projects/factory/run_pipeline.py [--full|--xl]
@@ -55,32 +55,23 @@ import time
 from pathlib import Path
 from typing import Any
 
-#: Racine du dépôt, dérivée de l'emplacement de ce fichier
-#: (``projects/factory/run_pipeline.py`` → deux niveaux au-dessus).
+#: Racine du depot, derivee de l'emplacement de ce fichier (``projects/factory/run_pipeline.py`` -> deux niveaux au-dessus).
 _DEFAULT_REPO_ROOT = Path(__file__).resolve().parents[2]
 
-#: Version du schéma de ``pipeline_state.json`` (bascule si le format change).
+#: Version du schema de ``pipeline_state.json`` (bascule si le format change).
 STATE_SCHEMA_VERSION = 1
 
-#: Coût mesuré par campagne (HÉLIOS ou chaîne aléatoire), cf. tableau de
-#: coûts de PIPELINE.md — sert uniquement à l'estimation affichée avant
-#: lancement, jamais à une décision du pipeline.
+#: Cout mesure par campagne (HELIOS ou chaine aleatoire), cf. tableau de couts de PIPELINE.md - sert uniquement a l'estimation affichee avant lancement, jamais a une decision du pipeline.
 CAMPAIGN_COST_S = 30
 
-#: Graine réservée du smoke test final (U6 --chains 1 --weeks 6), choisie
-#: loin de toute plage de graines utilisée par variants/helios_runs/
-#: random_chains/amplified_runs, même au profil --xl (2000 chaînes) — la
-#: chaîne de smoke doit être authentiquement neuve, jamais vue à l'entraînement.
+#: Graine reservee du smoke test final (U6 --chains 1 --weeks 6), choisie loin de toute plage de graines utilisee par variants/helios_runs/ random_chains/amplified_runs, meme au profil --xl (2000 chaines) - la chaine de smoke doit etre authentiquement neuve, jamais vue a l'entrainement.
 SMOKE_SEED = 9_000_000
 
-#: Décalage de graine des runs amplifiés (U5 + déclarant RidgeDeclarant),
-#: choisi loin des graines 1..N des variantes et bien en-deçà de SMOKE_SEED.
+#: Decalage de graine des runs amplifies (U5 + declarant RidgeDeclarant), choisi loin des graines 1..N des variantes et bien en-deca de SMOKE_SEED.
 AMPLIFY_SEED_OFFSET = 500_000
 
 
-# --------------------------------------------------------------------------
 # Erreurs
-# --------------------------------------------------------------------------
 
 
 class PipelineError(RuntimeError):
@@ -88,19 +79,19 @@ class PipelineError(RuntimeError):
 
 
 class MaillonManquantError(PipelineError):
-    """Un script d'une unité sœur (contrat gelé) est absent du dépôt."""
+    """Un script d'une unite soeur (contrat gele) est absent du depot."""
 
 
 class EtapeEchoueeError(PipelineError):
-    """Une étape a échoué (code de sortie non nul, sortie invalide, etc.)."""
+    """Une etape a echoue (code de sortie non nul, sortie invalide, etc.)."""
 
     def __init__(self, stage: str, unit: str, detail: str) -> None:
-        """Construit le message d'erreur standard d'une étape en échec.
+        """Construit le message d'erreur standard d'une etape en echec.
 
         Args:
-            stage: nom interne de l'étape (ex. ``"dataset"``).
-            unit: unité sœur responsable du script appelé (ex. ``"U8"``).
-            detail: détail court (code de sortie, nombre d'items en échec...).
+            stage: nom interne de l'etape (ex. ``"dataset"``).
+            unit: unite soeur responsable du script appele (ex. ``"U8"``).
+            detail: detail court (code de sortie, nombre d'items en echec...).
         """
         self.stage = stage
         self.unit = unit
@@ -108,14 +99,12 @@ class EtapeEchoueeError(PipelineError):
         super().__init__(f"étape « {stage} » ({unit}) en échec : {detail}")
 
 
-# --------------------------------------------------------------------------
 # Profils
-# --------------------------------------------------------------------------
 
 
 @dataclasses.dataclass(frozen=True)
 class Profile:
-    """Un profil de volumétrie du pipeline (nombre de campagnes, options)."""
+    """Un profil de volumetrie du pipeline (nombre de campagnes, options)."""
 
     name: str
     n_variants: int
@@ -126,8 +115,7 @@ class Profile:
     fast_training: bool
 
 
-#: Profils prédéfinis. ``default`` est le profil de développement rapide ;
-#: ``full`` et ``xl`` sont les profils de campagne réelle (cf. PIPELINE.md).
+#: Profils predefinis. ``default`` est le profil de developpement rapide ; ``full`` et ``xl`` sont les profils de campagne reelle (cf. PIPELINE.md).
 PROFILES: dict[str, Profile] = {
     "default": Profile(
         "default",
@@ -159,14 +147,12 @@ PROFILES: dict[str, Profile] = {
 }
 
 
-# --------------------------------------------------------------------------
 # Configuration
-# --------------------------------------------------------------------------
 
 
 @dataclasses.dataclass
 class Config:
-    """Configuration résolue d'une exécution du pipeline (issue de argparse)."""
+    """Configuration resolue d'une execution du pipeline (issue de argparse)."""
 
     repo_root: Path
     work_dir: Path
@@ -177,21 +163,21 @@ class Config:
     state_path: Path = dataclasses.field(init=False)
 
     def __post_init__(self) -> None:
-        """Dérive les chemins qui découlent de ``work_dir``."""
+        """Derive les chemins qui decoulent de ``work_dir``."""
         self.state_path = self.work_dir / "pipeline_state.json"
 
     @property
     def runs_dir(self) -> Path:
-        """Dossier commun des runs HÉLIOS + chaînes aléatoires + amplifiés."""
+        """Dossier commun des runs HELIOS + chaines aleatoires + amplifies."""
         return self.work_dir / "runs"
 
     @property
     def models_dir(self) -> Path:
-        """Dossier final des modèles publiés (artefact prédictif + effets)."""
+        """Dossier final des modeles publies (artefact predictif + effets)."""
         return self.work_dir / "models"
 
     def script(self, *parts: str) -> Path:
-        """Chemin absolu d'un script sœur, relatif à la racine du dépôt."""
+        """Chemin absolu d'un script soeur, relatif a la racine du depot."""
         return self.repo_root.joinpath(*parts)
 
 
@@ -199,7 +185,7 @@ def build_parser() -> argparse.ArgumentParser:
     """Construit l'analyseur d'arguments de l'orchestrateur.
 
     Returns:
-        L'analyseur configuré (voir le docstring du module pour l'usage).
+        L'analyseur configure (voir le docstring du module pour l'usage).
     """
     parser = argparse.ArgumentParser(
         prog="run_pipeline.py",
@@ -255,22 +241,19 @@ def build_parser() -> argparse.ArgumentParser:
         default=1000,
         help="Graine de base des chaînes aléatoires U6 (défaut : 1000).",
     )
-    # Option interne (non documentée dans PIPELINE.md) : permet aux tests de
-    # pointer l'orchestrateur vers une fausse racine de dépôt sans toucher au
-    # vrai. Aucun contrat gelé ne porte sur les flags de run_pipeline.py
-    # lui-même (seuls ceux des unités sœurs le sont).
+    # Option interne (non documentee dans PIPELINE.md) : permet aux tests de pointer l'orchestrateur vers une fausse racine de depot sans toucher au vrai. Aucun contrat gele ne porte sur les flags de run_pipeline.py lui-meme (seuls ceux des unites soeurs le sont).
     parser.add_argument("--repo-root", default=None, help=argparse.SUPPRESS)
     return parser
 
 
 def build_config(args: argparse.Namespace) -> Config:
-    """Résout la configuration à partir des arguments analysés.
+    """Resout la configuration a partir des arguments analyses.
 
     Args:
-        args: espace de noms retourné par ``build_parser().parse_args(...)``.
+        args: espace de noms retourne par ``build_parser().parse_args(...)``.
 
     Returns:
-        La configuration prête à l'emploi pour toutes les étapes.
+        La configuration prete a l'emploi pour toutes les etapes.
     """
     repo_root = Path(args.repo_root).resolve() if args.repo_root else _DEFAULT_REPO_ROOT
     profile_name = "xl" if args.xl else "full" if args.full else "default"
@@ -280,9 +263,7 @@ def build_config(args: argparse.Namespace) -> Config:
     work_dir = (
         Path(args.work).resolve() if args.work else repo_root / "projects/factory/factory_work"
     )
-    # Comparaison explicite à None (pas un test de vérité) : --max-workers 0 ou
-    # négatif doit être borné à 1, jamais transmis tel quel à ProcessPoolExecutor
-    # (qui lève ValueError sur un nombre <= 0 — pas l'échec propre promis ici).
+    # Comparaison explicite a None (pas un test de verite) : --max-workers 0 ou negatif doit etre borne a 1, jamais transmis tel quel a ProcessPoolExecutor (qui leve ValueError sur un nombre <= 0 - pas l'echec propre promis ici).
     if args.max_workers is not None:
         max_workers = max(1, args.max_workers)
     else:
@@ -297,24 +278,22 @@ def build_config(args: argparse.Namespace) -> Config:
     )
 
 
-# --------------------------------------------------------------------------
-# État (reprise sur panne)
-# --------------------------------------------------------------------------
+# Etat (reprise sur panne)
 
 
 def _now() -> str:
-    """Horodatage ISO 8601 UTC, à la seconde près."""
+    """Horodatage ISO 8601 UTC, a la seconde pres."""
     return dt.datetime.now(dt.UTC).isoformat(timespec="seconds")
 
 
 def new_state(profile_name: str) -> dict[str, Any]:
-    """Crée un état de pipeline neuf (aucune étape commencée).
+    """Cree un etat de pipeline neuf (aucune etape commencee).
 
     Args:
-        profile_name: nom du profil actif, consigné pour information.
+        profile_name: nom du profil actif, consigne pour information.
 
     Returns:
-        Le dictionnaire d'état initial (à sauvegarder via :func:`save_state`).
+        Le dictionnaire d'etat initial (a sauvegarder via :func:`save_state`).
     """
     now = _now()
     return {
@@ -327,13 +306,13 @@ def new_state(profile_name: str) -> dict[str, Any]:
 
 
 def load_state(path: Path) -> dict[str, Any]:
-    """Charge l'état persisté, ou repart d'un état neuf s'il est illisible.
+    """Charge l'etat persiste, ou repart d'un etat neuf s'il est illisible.
 
     Args:
         path: chemin de ``pipeline_state.json``.
 
     Returns:
-        Le dictionnaire d'état (jamais ``None`` — un état neuf en repli).
+        Le dictionnaire d'etat (jamais ``None`` - un etat neuf en repli).
     """
     try:
         data: dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))
@@ -345,15 +324,15 @@ def load_state(path: Path) -> dict[str, Any]:
 
 
 def save_state(path: Path, state: dict[str, Any]) -> None:
-    """Sauvegarde atomique de l'état (fichier temporaire puis remplacement).
+    """Sauvegarde atomique de l'etat (fichier temporaire puis remplacement).
 
-    L'écriture atomique évite un ``pipeline_state.json`` tronqué si le
-    processus est interrompu pendant l'écriture — important pour la reprise
-    sur panne, qui est la raison d'être de ce fichier.
+    L'ecriture atomique evite un ``pipeline_state.json`` tronque si le
+    processus est interrompu pendant l'ecriture - important pour la reprise
+    sur panne, qui est la raison d'etre de ce fichier.
 
     Args:
         path: chemin de destination.
-        state: dictionnaire d'état à sérialiser.
+        state: dictionnaire d'etat a serialiser.
     """
     state["updated_at"] = _now()
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -364,31 +343,29 @@ def save_state(path: Path, state: dict[str, Any]) -> None:
 
 
 def _fail_msg(script_name: str, result: subprocess.CompletedProcess[str]) -> str:
-    """Message FR standard d'échec d'un sous-processus sœur (code non nul).
+    """Message FR standard d'echec d'un sous-processus soeur (code non nul).
 
     Args:
-        script_name: nom du script appelé (ex. ``"variants.py"``).
-        result: résultat du sous-processus (on lit ``returncode``).
+        script_name: nom du script appele (ex. ``"variants.py"``).
+        result: resultat du sous-processus (on lit ``returncode``).
 
     Returns:
-        Un message court, uniforme sur toutes les étapes.
+        Un message court, uniforme sur toutes les etapes.
     """
     return f"{script_name} a échoué (code {result.returncode})"
 
 
-# --------------------------------------------------------------------------
 # Utilitaires sous-processus
-# --------------------------------------------------------------------------
 
 
 def _require(cfg: Config, script: Path, unit: str) -> None:
-    """Vérifie qu'un script sœur existe, sinon lève :class:`MaillonManquantError`.
+    """Verifie qu'un script soeur existe, sinon leve :class:`MaillonManquantError`.
 
     Args:
-        cfg: configuration courante (pour exprimer le chemin relativement à
-            la racine du dépôt dans le message).
+        cfg: configuration courante (pour exprimer le chemin relativement a
+            la racine du depot dans le message).
         script: chemin absolu du script attendu.
-        unit: nom de l'unité responsable (ex. ``"U6"``), cité dans le message.
+        unit: nom de l'unite responsable (ex. ``"U6"``), cite dans le message.
 
     Raises:
         MaillonManquantError: si ``script`` n'existe pas.
@@ -403,12 +380,12 @@ def _require(cfg: Config, script: Path, unit: str) -> None:
 
 
 def _print_tail(text: str, n: int = 15, label: str = "") -> None:
-    """Imprime les ``n`` dernières lignes de ``text``, préfixées pour lisibilité.
+    """Imprime les ``n`` dernieres lignes de ``text``, prefixees pour lisibilite.
 
     Args:
         text: sortie brute (stdout ou stderr) d'un sous-processus.
-        n: nombre de lignes finales à afficher.
-        label: préfixe optionnel (ex. ``"stderr"``).
+        n: nombre de lignes finales a afficher.
+        label: prefixe optionnel (ex. ``"stderr"``).
     """
     lines = text.rstrip().splitlines()
     prefix = f"  [{label}] " if label else "  | "
@@ -417,15 +394,15 @@ def _print_tail(text: str, n: int = 15, label: str = "") -> None:
 
 
 def _run(cmd: list[str]) -> subprocess.CompletedProcess[str]:
-    """Exécute une commande sœur, sortie capturée, et l'affiche brièvement.
+    """Execute une commande soeur, sortie capturee, et l'affiche brievement.
 
     Args:
-        cmd: liste argv de la commande à exécuter.
+        cmd: liste argv de la commande a executer.
 
     Returns:
-        Le résultat complet (code, stdout, stderr) — jamais levé en cas de
-        code non nul : c'est à l'appelant de décider (certaines étapes
-        tolèrent un échec, d'autres non).
+        Le resultat complet (code, stdout, stderr) - jamais leve en cas de
+        code non nul : c'est a l'appelant de decider (certaines etapes
+        tolerent un echec, d'autres non).
     """
     print("  $ " + " ".join(cmd))
     result = subprocess.run(cmd, capture_output=True, text=True)
@@ -437,14 +414,14 @@ def _run(cmd: list[str]) -> subprocess.CompletedProcess[str]:
 
 
 def _subprocess_worker(cmd: list[str]) -> tuple[int, str, str]:
-    """Fonction de NIVEAU MODULE (picklable) exécutée dans chaque processus du pool.
+    """Fonction de NIVEAU MODULE (picklable) executee dans chaque processus du pool.
 
     ``ProcessPoolExecutor`` sous Windows utilise ``spawn`` : la fonction
-    soumise doit être importable par son chemin de module, donc définie ici
+    soumise doit etre importable par son chemin de module, donc definie ici
     au niveau module (jamais une fermeture locale).
 
     Args:
-        cmd: liste argv de la commande à exécuter.
+        cmd: liste argv de la commande a executer.
 
     Returns:
         Tuple ``(code_retour, stdout, stderr)``.
@@ -460,29 +437,29 @@ def _run_parallel_items(
     items: list[tuple[str, list[str]]],
     unit: str,
 ) -> None:
-    """Exécute les items manquants d'une étape en parallèle, reprise par item.
+    """Execute les items manquants d'une etape en parallele, reprise par item.
 
-    ``items`` est la liste COMPLÈTE ``(clé, commande)`` de l'étape. Les clés
-    déjà présentes dans ``done_items`` de l'état sont sautées. L'état est
-    réécrit après CHAQUE item terminé avec succès — granularité de reprise
-    fine, cœur du lot « reprise sur panne » de U14 : si le processus est tué
-    au milieu de 150 chaînes, relancer ne referra QUE celles qui manquent.
+    ``items`` est la liste COMPLETE ``(cle, commande)`` de l'etape. Les cles
+    deja presentes dans ``done_items`` de l'etat sont sautees. L'etat est
+    reecrit apres CHAQUE item termine avec succes - granularite de reprise
+    fine, coeur du lot " reprise sur panne " de U14 : si le processus est tue
+    au milieu de 150 chaines, relancer ne referra QUE celles qui manquent.
 
-    Un item en échec (code non nul ou exception du travailleur) n'interrompt
-    PAS les autres items déjà soumis, pour préserver le progrès ; l'étape est
-    déclarée en échec (:class:`EtapeEchoueeError`) seulement après que le lot
+    Un item en echec (code non nul ou exception du travailleur) n'interrompt
+    PAS les autres items deja soumis, pour preserver le progres ; l'etape est
+    declaree en echec (:class:`EtapeEchoueeError`) seulement apres que le lot
     complet ait fini.
 
     Args:
         cfg: configuration courante.
-        state: état global du pipeline (muté en place).
-        stage_name: nom de l'étape (clé dans ``state["stages"]``).
-        items: liste ``(clé, commande)`` — la clé identifie l'item pour la
-            reprise (ex. le numéro de graine).
-        unit: unité sœur responsable, citée en cas d'échec.
+        state: etat global du pipeline (mute en place).
+        stage_name: nom de l'etape (cle dans ``state["stages"]``).
+        items: liste ``(cle, commande)`` - la cle identifie l'item pour la
+            reprise (ex. le numero de graine).
+        unit: unite soeur responsable, citee en cas d'echec.
 
     Raises:
-        EtapeEchoueeError: si au moins un item a échoué.
+        EtapeEchoueeError: si au moins un item a echoue.
     """
     st = state["stages"].setdefault(stage_name, {})
     done = set(st.get("done_items", []))
@@ -505,7 +482,7 @@ def _run_parallel_items(
             key = futures[future]
             try:
                 code, _out, err = future.result()
-            except Exception as exc:  # processus tué, erreur de pickling, etc.
+            except Exception as exc:  # processus tue, erreur de pickling, etc.
                 failures.append(key)
                 print(f"[{stage_name}] item {key} : exception du travailleur — {exc!r}")
                 continue
@@ -530,17 +507,17 @@ def _run_parallel_items(
 
 
 def _variant_dirs(cfg: Config) -> list[Path]:
-    """Liste les dossiers de variantes produits par l'étape ``variants``.
+    """Liste les dossiers de variantes produits par l'etape ``variants``.
 
-    Hypothèse d'intégration (cf. PIPELINE.md) : chaque sous-dossier immédiat
-    de ``<work>/prepared_variants/`` est une variante ; elles sont triées par
-    nom et appariées aux graines 1..N dans cet ordre par les étapes en aval.
+    Hypothese d'integration (cf. PIPELINE.md) : chaque sous-dossier immediat
+    de ``<work>/prepared_variants/`` est une variante ; elles sont triees par
+    nom et appariees aux graines 1..N dans cet ordre par les etapes en aval.
 
     Args:
         cfg: configuration courante.
 
     Returns:
-        La liste triée des dossiers de variantes (vide si le dossier racine
+        La liste triee des dossiers de variantes (vide si le dossier racine
         n'existe pas encore).
     """
     root = cfg.work_dir / "prepared_variants"
@@ -550,10 +527,10 @@ def _variant_dirs(cfg: Config) -> list[Path]:
 
 
 def _parse_t1_verdict(output: str) -> str | None:
-    """Cherche le verdict RETENU/NON RETENU imprimé par ``behavior_model.py`` (U7).
+    """Cherche le verdict RETENU/NON RETENU imprime par ``behavior_model.py`` (U7).
 
     Args:
-        output: stdout + stderr concaténés du sous-processus.
+        output: stdout + stderr concatenes du sous-processus.
 
     Returns:
         ``"RETENU"``, ``"NON RETENU"``, ou ``None`` si aucune ligne ne le dit.
@@ -571,17 +548,17 @@ def _parse_t1_verdict(output: str) -> str | None:
 def _parse_global_verdict(output: str) -> str | None:
     """Cherche le verdict global PASS/FAIL de ``fit_action_effects.py --validate`` (U17).
 
-    U17 imprime un verdict PAR CRITÈRE de la batterie D32 puis un verdict
-    GLOBAL. Heuristique documentée (PIPELINE.md) : on cherche d'abord une
-    ligne mentionnant « global » (insensible à la casse) portant PASS/FAIL ;
-    à défaut, on retient la DERNIÈRE occurrence de PASS/FAIL, en supposant
-    que la ligne de synthèse conclut la sortie.
+    U17 imprime un verdict PAR CRITERE de la batterie D32 puis un verdict
+    GLOBAL. Heuristique documentee (PIPELINE.md) : on cherche d'abord une
+    ligne mentionnant " global " (insensible a la casse) portant PASS/FAIL ;
+    a defaut, on retient la DERNIERE occurrence de PASS/FAIL, en supposant
+    que la ligne de synthese conclut la sortie.
 
     Args:
-        output: stdout + stderr concaténés du sous-processus.
+        output: stdout + stderr concatenes du sous-processus.
 
     Returns:
-        ``"PASS"``, ``"FAIL"``, ou ``None`` si indétectable.
+        ``"PASS"``, ``"FAIL"``, ou ``None`` si indetectable.
     """
     lines = output.splitlines()
     for line in lines:
@@ -597,23 +574,23 @@ def _parse_global_verdict(output: str) -> str | None:
 
 
 def _discover_db_project(smoke_dir: Path) -> tuple[Path, str] | None:
-    """Découvre ``(db_dir, project_id)`` de la chaîne fraîche produite par U6.
+    """Decouvre ``(db_dir, project_id)`` de la chaine fraiche produite par U6.
 
-    Heuristique documentée (PIPELINE.md), faute du script réel de U6 dans ce
+    Heuristique documentee (PIPELINE.md), faute du script reel de U6 dans ce
     worktree :
 
-    1. cherche un fichier ``*.json`` sous ``smoke_dir`` contenant une clé de
-       dossier (``db_dir``|``db_path``|``database``) ET une clé de projet
+    1. cherche un fichier ``*.json`` sous ``smoke_dir`` contenant une cle de
+       dossier (``db_dir``|``db_path``|``database``) ET une cle de projet
        (``project_id``|``project``) ;
-    2. à défaut, cherche un fichier ``.sqlite`` UNIQUE et y lit
-       ``SELECT id FROM projects ORDER BY rowid DESC LIMIT 1`` (schéma
+    2. a defaut, cherche un fichier ``.sqlite`` UNIQUE et y lit
+       ``SELECT id FROM projects ORDER BY rowid DESC LIMIT 1`` (schema
        registre SupplyScore standard).
 
     Args:
         smoke_dir: dossier de sortie du run de smoke (U6).
 
     Returns:
-        ``(db_dir, project_id)`` si trouvé, sinon ``None``.
+        ``(db_dir, project_id)`` si trouve, sinon ``None``.
     """
     for manifest in sorted(smoke_dir.rglob("*.json")):
         try:
@@ -647,13 +624,13 @@ def _discover_db_project(smoke_dir: Path) -> tuple[Path, str] | None:
 
 
 def _format_duration(seconds: float) -> str:
-    """Formate une durée en secondes vers une chaîne FR lisible (s/min/h/j).
+    """Formate une duree en secondes vers une chaine FR lisible (s/min/h/j).
 
     Args:
-        seconds: durée en secondes.
+        seconds: duree en secondes.
 
     Returns:
-        Chaîne du type ``"3 h 12 min"``.
+        Chaine du type ``"3 h 12 min"``.
     """
     total = round(seconds)
     if total < 60:
@@ -669,7 +646,7 @@ def _format_duration(seconds: float) -> str:
 
 
 def _print_estimate(cfg: Config) -> None:
-    """Affiche l'estimation de temps AVANT lancement (cf. tableau de coûts).
+    """Affiche l'estimation de temps AVANT lancement (cf. tableau de couts).
 
     Args:
         cfg: configuration courante.
@@ -695,21 +672,19 @@ def _print_estimate(cfg: Config) -> None:
     print("Estimations indicatives ; les durées mesurées sont imprimées après chaque étape.\n")
 
 
-# --------------------------------------------------------------------------
-# Étapes
-# --------------------------------------------------------------------------
+# Etapes
 
 
 def stage_opendata(cfg: Config, state: dict[str, Any]) -> None:
-    """Étape ``opendata`` (U13, OPTIONNELLE) : ``fetch_opendata.py --all``.
+    """Etape ``opendata`` (U13, OPTIONNELLE) : ``fetch_opendata.py --all``.
 
-    Sautée avec un avis FR (pas un échec) si
-    ``projects/factory/opendata/MANIFEST.md`` est absent — c'est la seule
-    étape du pipeline qui tolère nativement l'absence de son unité.
+    Sautee avec un avis FR (pas un echec) si
+    ``projects/factory/opendata/MANIFEST.md`` est absent - c'est la seule
+    etape du pipeline qui tolere nativement l'absence de son unite.
 
     Args:
         cfg: configuration courante.
-        state: état global du pipeline (muté en place).
+        state: etat global du pipeline (mute en place).
     """
     name = "opendata"
     st = state["stages"].setdefault(name, {})
@@ -735,11 +710,11 @@ def stage_opendata(cfg: Config, state: dict[str, Any]) -> None:
 
 
 def stage_variants(cfg: Config, state: dict[str, Any]) -> None:
-    """Étape ``variants`` (U4) : ``variants.py --seeds 1..N --out <work>/prepared_variants/``.
+    """Etape ``variants`` (U4) : ``variants.py --seeds 1..N --out <work>/prepared_variants/``.
 
     Args:
         cfg: configuration courante.
-        state: état global du pipeline (muté en place).
+        state: etat global du pipeline (mute en place).
     """
     name = "variants"
     st = state["stages"].setdefault(name, {})
@@ -775,11 +750,11 @@ def stage_variants(cfg: Config, state: dict[str, Any]) -> None:
 
 
 def stage_helios_runs(cfg: Config, state: dict[str, Any]) -> None:
-    """Étape ``helios_runs`` (U5) : une campagne HÉLIOS par variante, en parallèle.
+    """Etape ``helios_runs`` (U5) : une campagne HELIOS par variante, en parallele.
 
     Args:
         cfg: configuration courante.
-        state: état global du pipeline (muté en place).
+        state: etat global du pipeline (mute en place).
     """
     name = "helios_runs"
     st = state["stages"].setdefault(name, {})
@@ -816,16 +791,16 @@ def stage_helios_runs(cfg: Config, state: dict[str, Any]) -> None:
 
 
 def stage_random_chains(cfg: Config, state: dict[str, Any]) -> None:
-    """Étape ``random_chains`` (U6) : N chaînes aléatoires indépendantes, en parallèle.
+    """Etape ``random_chains`` (U6) : N chaines aleatoires independantes, en parallele.
 
-    Chaque chaîne est un appel séparé avec ``--chains 1`` (plutôt qu'un seul
-    appel ``--chains N``) pour obtenir un vrai parallélisme au niveau
-    processus — chaque sous-processus produit son propre db-dir temporaire
+    Chaque chaine est un appel separe avec ``--chains 1`` (plutot qu'un seul
+    appel ``--chains N``) pour obtenir un vrai parallelisme au niveau
+    processus - chaque sous-processus produit son propre db-dir temporaire
     par conception des runners (cf. contrat U6).
 
     Args:
         cfg: configuration courante.
-        state: état global du pipeline (muté en place).
+        state: etat global du pipeline (mute en place).
     """
     name = "random_chains"
     st = state["stages"].setdefault(name, {})
@@ -859,13 +834,13 @@ def stage_random_chains(cfg: Config, state: dict[str, Any]) -> None:
 
 
 def stage_llm_traces(cfg: Config, state: dict[str, Any]) -> None:
-    """Étape ``llm_traces`` (U7, OPTIONNELLE) : ``llm_farm.py`` (traces T2).
+    """Etape ``llm_traces`` (U7, OPTIONNELLE) : ``llm_farm.py`` (traces T2).
 
-    Sautée si ``--llm-runs`` résout à 0 (défaut du profil ``default``).
+    Sautee si ``--llm-runs`` resout a 0 (defaut du profil ``default``).
 
     Args:
         cfg: configuration courante.
-        state: état global du pipeline (muté en place).
+        state: etat global du pipeline (mute en place).
     """
     name = "llm_traces"
     st = state["stages"].setdefault(name, {})
@@ -905,14 +880,14 @@ def stage_llm_traces(cfg: Config, state: dict[str, Any]) -> None:
 
 
 def stage_t1_refit(cfg: Config, state: dict[str, Any]) -> None:
-    """Étape ``t1_refit`` (U7) : ``behavior_model.py``, verdict RETENU/NON RETENU.
+    """Etape ``t1_refit`` (U7) : ``behavior_model.py``, verdict RETENU/NON RETENU.
 
-    Sautée (repli T1 compté) si ``llm_traces`` n'est pas passée à ``ok`` —
-    sans traces T2, il n'y a rien à refitter.
+    Sautee (repli T1 compte) si ``llm_traces`` n'est pas passee a ``ok`` -
+    sans traces T2, il n'y a rien a refitter.
 
     Args:
         cfg: configuration courante.
-        state: état global du pipeline (muté en place).
+        state: etat global du pipeline (mute en place).
     """
     name = "t1_refit"
     st = state["stages"].setdefault(name, {})
@@ -944,18 +919,18 @@ def stage_t1_refit(cfg: Config, state: dict[str, Any]) -> None:
 
 
 def stage_amplified_runs(cfg: Config, state: dict[str, Any]) -> None:
-    """Étape ``amplified_runs`` : campagnes HÉLIOS supplémentaires avec RidgeDeclarant.
+    """Etape ``amplified_runs`` : campagnes HELIOS supplementaires avec RidgeDeclarant.
 
-    Ré-exécute U5 (``run_campaign.py``) sur les MÊMES dossiers de variantes
+    Re-execute U5 (``run_campaign.py``) sur les MEMES dossiers de variantes
     que ``helios_runs``, mais avec ``--behavior
-    projects.factory.declarants:RidgeDeclarant`` (contrat U5) : le déclarant
-    ridge T1 fraîchement validé remplace le déclarant par défaut, ce qui
-    « amplifie » le dataset avec un comportement plus réaliste. N'a lieu que
-    si ``t1_refit`` a rendu le verdict ``RETENU`` (repli T1 compté sinon).
+    projects.factory.declarants:RidgeDeclarant`` (contrat U5) : le declarant
+    ridge T1 fraichement valide remplace le declarant par defaut, ce qui
+    " amplifie " le dataset avec un comportement plus realiste. N'a lieu que
+    si ``t1_refit`` a rendu le verdict ``RETENU`` (repli T1 compte sinon).
 
     Args:
         cfg: configuration courante.
-        state: état global du pipeline (muté en place).
+        state: etat global du pipeline (mute en place).
     """
     name = "amplified_runs"
     st = state["stages"].setdefault(name, {})
@@ -1004,11 +979,11 @@ def stage_amplified_runs(cfg: Config, state: dict[str, Any]) -> None:
 
 
 def stage_dataset(cfg: Config, state: dict[str, Any]) -> None:
-    """Étape ``dataset`` (U8) : ``build_dataset.py --runs ... --out dataset.csv --append``.
+    """Etape ``dataset`` (U8) : ``build_dataset.py --runs ... --out dataset.csv --append``.
 
     Args:
         cfg: configuration courante.
-        state: état global du pipeline (muté en place).
+        state: etat global du pipeline (mute en place).
     """
     name = "dataset"
     st = state["stages"].setdefault(name, {})
@@ -1038,11 +1013,11 @@ def stage_dataset(cfg: Config, state: dict[str, Any]) -> None:
 
 
 def stage_interventions_extract(cfg: Config, state: dict[str, Any]) -> None:
-    """Étape ``interventions_extract`` (U8) : ``build_dataset.py --interventions``.
+    """Etape ``interventions_extract`` (U8) : ``build_dataset.py --interventions``.
 
     Args:
         cfg: configuration courante.
-        state: état global du pipeline (muté en place).
+        state: etat global du pipeline (mute en place).
     """
     name = "interventions_extract"
     st = state["stages"].setdefault(name, {})
@@ -1072,22 +1047,22 @@ def stage_interventions_extract(cfg: Config, state: dict[str, Any]) -> None:
 
 
 def stage_action_effects(cfg: Config, state: dict[str, Any]) -> None:
-    """Étape ``action_effects`` (U17) : PORTE DE VALIDATION CAUSALE (D32).
+    """Etape ``action_effects`` (U17) : PORTE DE VALIDATION CAUSALE (D32).
 
-    ``fit_action_effects.py --validate`` écrit toujours dans un dossier de
+    ``fit_action_effects.py --validate`` ecrit toujours dans un dossier de
     STAGING (jamais directement dans ``<work>/models/``). Le verdict global
     PASS/FAIL est extrait de sa sortie :
 
-    - PASS : le contenu du staging est copié dans ``<work>/models/`` (fusion
-      avec l'artefact prédictif U10, publié séparément par ``stage_train``) ;
-    - FAIL (ou verdict indéterminé) : RIEN n'est copié — l'artefact d'effets
-      causaux reste dans ``staging_action_effects/``, jamais publié. Un
+    - PASS : le contenu du staging est copie dans ``<work>/models/`` (fusion
+      avec l'artefact predictif U10, publie separement par ``stage_train``) ;
+    - FAIL (ou verdict indetermine) : RIEN n'est copie - l'artefact d'effets
+      causaux reste dans ``staging_action_effects/``, jamais publie. Un
       message FR explique pourquoi. Le pipeline continue : l'artefact
-      prédictif sera publié normalement par l'étape ``train``.
+      predictif sera publie normalement par l'etape ``train``.
 
     Args:
         cfg: configuration courante.
-        state: état global du pipeline (muté en place).
+        state: etat global du pipeline (mute en place).
     """
     name = "action_effects"
     st = state["stages"].setdefault(name, {})
@@ -1148,14 +1123,14 @@ def stage_action_effects(cfg: Config, state: dict[str, Any]) -> None:
 
 
 def stage_train(cfg: Config, state: dict[str, Any]) -> None:
-    """Étape ``train`` (U10) : ``train_predictor.py --dataset ... --out <work>/models/``.
+    """Etape ``train`` (U10) : ``train_predictor.py --dataset ... --out <work>/models/``.
 
-    Publie TOUJOURS l'artefact prédictif, indépendamment du verdict de la
-    porte causale (seul l'artefact d'effets d'actions est conditionné).
+    Publie TOUJOURS l'artefact predictif, independamment du verdict de la
+    porte causale (seul l'artefact d'effets d'actions est conditionne).
 
     Args:
         cfg: configuration courante.
-        state: état global du pipeline (muté en place).
+        state: etat global du pipeline (mute en place).
     """
     name = "train"
     st = state["stages"].setdefault(name, {})
@@ -1187,20 +1162,20 @@ def stage_train(cfg: Config, state: dict[str, Any]) -> None:
 
 
 def stage_smoke(cfg: Config, state: dict[str, Any]) -> None:
-    """Étape ``smoke`` : chaîne fraîche (U6) + ``predict``/``insights`` (U11/U12).
+    """Etape ``smoke`` : chaine fraiche (U6) + ``predict``/``insights`` (U11/U12).
 
-    Génère UNE chaîne aléatoire neuve avec la graine réservée
-    :data:`SMOKE_SEED` (hors de toute plage utilisée à l'entraînement), puis
+    Genere UNE chaine aleatoire neuve avec la graine reservee
+    :data:`SMOKE_SEED` (hors de toute plage utilisee a l'entrainement), puis
     tente ``python -m supplyscore.tools.predict`` et
     ``python -m supplyscore.tools.insights`` dessus. L'absence de U11/U12 (ou
-    l'échec de la découverte automatique du db-dir/projet) est TOLÉRÉE :
-    l'étape se termine en statut ``"partiel"`` plutôt que d'interrompre le
-    pipeline, puisque tous les artefacts utiles ont déjà été publiés par les
-    étapes précédentes.
+    l'echec de la decouverte automatique du db-dir/projet) est TOLEREE :
+    l'etape se termine en statut ``"partiel"`` plutot que d'interrompre le
+    pipeline, puisque tous les artefacts utiles ont deja ete publies par les
+    etapes precedentes.
 
     Args:
         cfg: configuration courante.
-        state: état global du pipeline (muté en place).
+        state: etat global du pipeline (mute en place).
     """
     name = "smoke"
     st = state["stages"].setdefault(name, {})
@@ -1288,11 +1263,9 @@ def stage_smoke(cfg: Config, state: dict[str, Any]) -> None:
     print(f"[{name}] statut={'ok' if complete else 'partiel'} — {results}")
 
 
-# --------------------------------------------------------------------------
-# Point d'entrée
-# --------------------------------------------------------------------------
+# Point d'entree
 
-#: Étapes du pipeline, DANS L'ORDRE (cf. docstring du module et PIPELINE.md).
+#: Etapes du pipeline, DANS L'ORDRE (cf. docstring du module et PIPELINE.md).
 STAGES: list[tuple[str, Any]] = [
     ("opendata", stage_opendata),
     ("variants", stage_variants),
@@ -1310,16 +1283,16 @@ STAGES: list[tuple[str, Any]] = [
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Point d'entrée de l'orchestrateur.
+    """Point d'entree de l'orchestrateur.
 
     Args:
         argv: arguments de ligne de commande (``sys.argv[1:]`` si ``None``).
 
     Returns:
-        ``0`` si toutes les étapes ont pu s'exécuter (certaines pouvant être
-        sautées ou partielles) ; ``1`` si le pipeline s'est interrompu à une
-        étape (maillon manquant ou étape en échec — voir
-        ``pipeline_state.json`` pour le détail).
+        ``0`` si toutes les etapes ont pu s'executer (certaines pouvant etre
+        sautees ou partielles) ; ``1`` si le pipeline s'est interrompu a une
+        etape (maillon manquant ou etape en echec - voir
+        ``pipeline_state.json`` pour le detail).
     """
     args = build_parser().parse_args(argv)
     cfg = build_config(args)
@@ -1358,7 +1331,7 @@ def main(argv: list[str] | None = None) -> int:
             save_state(cfg.state_path, state)
             print(f"\nPIPELINE INTERROMPU à l'étape « {stage_name} » : {exc}", file=sys.stderr)
             return 1
-        except Exception as exc:  # filet de sécurité : jamais de trace non consignée
+        except Exception as exc:  # filet de securite : jamais de trace non consignee
             st = state["stages"].setdefault(stage_name, {})
             st["status"] = "bloque"
             st["detail"] = f"erreur inattendue : {exc!r}"

@@ -37,10 +37,10 @@ import zone  # noqa: E402
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import shape_skeleton  # noqa: E402
 
-OCHRE = (255, 186, 0)      # BD TOPO footprint, the reference
-AZURE = (0, 139, 210)      # YOLO dock apron
-MAGENTA = (176, 92, 200)   # SAM3 roof
-GREEN = (0, 230, 120)      # skeleton, the centre line the layout class is read from
+OCHRE = (255, 186, 0)  # BD TOPO footprint, the reference
+AZURE = (0, 139, 210)  # YOLO dock apron
+MAGENTA = (176, 92, 200)  # SAM3 roof
+GREEN = (0, 230, 120)  # skeleton, the centre line the layout class is read from
 NAVY = (4, 57, 98)
 WHITE = (255, 255, 255)
 
@@ -50,9 +50,9 @@ SITES = [
     ("flop", 43.696143, 1.401918),
 ]
 
-GSD_SAM = 0.40      # SAM3 sees the site whole, at about the scale the old pipeline used
-GSD_DRAW = 0.20     # the plate is rendered at full IGN resolution
-HALF = 220.0        # half-width of the view, metres
+GSD_SAM = 0.40  # SAM3 sees the site whole, at about the scale the old pipeline used
+GSD_DRAW = 0.20  # the plate is rendered at full IGN resolution
+HALF = 220.0  # half-width of the view, metres
 
 
 def font(px):
@@ -103,7 +103,7 @@ def plate(img, meta, roof, bdtopo, aprons, info, path, skel=()):
                   outline=AZURE + (255,), width=4)
         for p0, p1 in slots(z):
             d.line([px(p0), px(p1)], fill=OCHRE + (235,), width=2)
-    if len(skel) >= 2:                               # the centre line the class comes from
+    if len(skel) >= 2:  # the centre line the class comes from
         d.line([px(p) for p in skel], fill=GREEN + (255,), width=6)
         for p in skel:
             cx, cy = px(p)
@@ -185,7 +185,7 @@ def overview(lat, lon, half, ratio, mini, poids, prompt, out):
         got = roof_at(c.x, c.y, prompt)
         if got is None or got[0].area < mini * 0.3:
             missed += 1
-            r, klass, sk = p, "I", []               # fall back to the database polygon
+            r, klass, sk = p, "I", []  # fall back to the database polygon
         else:
             r, klass, sk = got
             kept.append(i - 1)
@@ -217,7 +217,7 @@ def overview(lat, lon, half, ratio, mini, poids, prompt, out):
         for z in zs:
             d.polygon([px(q) for q in z.exterior.coords], fill=AZURE + (115,),
                       outline=AZURE + (255,), width=lw + 1)
-    for sk in skels:                                 # the centre line the class is read from
+    for sk in skels:  # the centre line the class is read from
         if len(sk) >= 2:
             d.line([px(q) for q in sk], fill=GREEN + (255,), width=lw + 1)
             for q in sk:
@@ -314,7 +314,7 @@ def main():
         toits = sam.toits(img_s, meta_s["gsd"], prompt=a.prompt, aire_min_m2=1200.0)
         centre = Point(x, y)
         roof, klass, skel = None, "I", []
-        for m, area in toits:                      # prefer the roof under the site centre
+        for m, area in toits:  # prefer the roof under the site centre
             p = mask_to_polygon(m, meta_s["bbox"], meta_s["gsd"])
             if p is None or p.is_empty:
                 continue
@@ -330,9 +330,9 @@ def main():
             print(f"[{tag}] SAM3 found no roof at the centre, skipped")
             continue
 
-        # 2. layout, read off the simplified boundary   3. area
+        # 2. layout, read off the simplified boundary 3. area
         forme = klass
-        cap = analyse.capacite(roof.area, None)     # no height claimed from imagery
+        cap = analyse.capacite(roof.area, None)  # no height claimed from imagery
 
         # BD TOPO, for comparison only
         bd, h_bd = None, None

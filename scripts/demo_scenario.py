@@ -1,20 +1,20 @@
-"""Scénario de démo « Programme AERIS » — données réalistes pour présentation.
+"""Scenario de demo " Programme AERIS " - donnees realistes pour presentation.
 
-Construit un projet nommé (10 nœuds sur 4 rangs, arcs croisés + arc de secours),
-puis SIMULE 8 SEMAINES de serious game (revues hebdo complètes, événements
-calibrés, décisions tracées) pour que le dashboard, le rapport de session et la
-calibration aient du contenu. Données SIMULÉES, pour la démonstration uniquement.
+Construit un projet nomme (10 noeuds sur 4 rangs, arcs croises + arc de secours),
+puis SIMULE 8 SEMAINES de serious game (revues hebdo completes, evenements
+calibres, decisions tracees) pour que le dashboard, le rapport de session et la
+calibration aient du contenu. Donnees SIMULEES, pour la demonstration uniquement.
 
-La dramaturgie scriptée :
-- S2  : non-conformité qualité chez Ferralu Forge (rebuts fonderie) ;
-- S3  : retard fournisseur 120 h chez PowerChip — dont le joueur SOUS-DÉCLARE
-        l'urgence pendant 3 semaines -> risque caché H visible au dashboard ;
-- S4  : grève chez Mines & Alliages Atlas -> le choc remonte la branche fonderie ;
-- S5  : jalon « Qualification » terminé chez Composites Atlantique ; hausse
-        énergie chez CellTech ;
-- S6  : perte de capacité 25 % chez PowerChip (la crise sous-déclarée s'aggrave),
-        décision : activation du fournisseur de secours AccuPol ;
-- S7-8: la chaîne se stabilise… mais le client final panique À RETARDEMENT
+La dramaturgie scriptee :
+- S2  : non-conformite qualite chez Ferralu Forge (rebuts fonderie) ;
+- S3  : retard fournisseur 120 h chez PowerChip - dont le joueur SOUS-DECLARE
+        l'urgence pendant 3 semaines -> risque cache H visible au dashboard ;
+- S4  : greve chez Mines & Alliages Atlas -> le choc remonte la branche fonderie ;
+- S5  : jalon " Qualification " termine chez Composites Atlantique ; hausse
+        energie chez CellTech ;
+- S6  : perte de capacite 25 % chez PowerChip (la crise sous-declaree s'aggrave),
+        decision : activation du fournisseur de secours AccuPol ;
+- S7-8: la chaine se stabilise... mais le client final panique A RETARDEMENT
         (Ud 0.85 quand Ur redescend) -> fausse urgence F en fin de partie.
 
 Usage :
@@ -89,7 +89,7 @@ NOEUDS = [
      "Antofagasta", -23.65, -70.40, "Carbonate de lithium", 400.0, 80.0, 0.89, 0.045),
 ]
 
-#: (source, target, gamma, beta, label) — orientation fournisseur -> client.
+#: (source, target, gamma, beta, label) - orientation fournisseur -> client.
 ARCS = [
     ("mecanika", "aeris-oem", 0.75, 0.70, "Truck"),
     ("voltech", "aeris-oem", 0.70, 0.65, "Truck"),
@@ -97,12 +97,12 @@ ARCS = [
     ("ferralu", "mecanika", 0.55, 0.60, "Train"),
     ("celltech", "voltech", 0.60, 0.65, "Train"),
     ("powerchip", "voltech", 0.45, 0.70, "Ship"),
-    ("powerchip", "mecanika", 0.30, 0.50, "Ship"),  # arc croisé : actionneurs nacelle
+    ("powerchip", "mecanika", 0.30, 0.50, "Ship"),  # arc croise : actionneurs nacelle
     ("minalliages", "ferralu", 0.45, 0.55, "Ship"),
     ("lithium-andes", "celltech", 0.45, 0.60, "Ship"),
 ]
 
-#: Trajectoires d'urgence DÉCLARÉE (bias AHP par semaine 1..8) — la dramaturgie.
+#: Trajectoires d'urgence DECLAREE (bias AHP par semaine 1..8) - la dramaturgie.
 BIAS = {
     "aeris-oem":      [0.35, 0.35, 0.40, 0.40, 0.45, 0.60, 0.85, 0.90],  # panique tardive -> F
     "mecanika":       [0.40, 0.42, 0.50, 0.55, 0.55, 0.50, 0.45, 0.40],
@@ -110,7 +110,7 @@ BIAS = {
     "composites-atl": [0.35, 0.35, 0.38, 0.40, 0.35, 0.30, 0.30, 0.28],
     "ferralu":        [0.40, 0.55, 0.60, 0.65, 0.60, 0.50, 0.45, 0.40],
     "celltech":       [0.38, 0.40, 0.42, 0.45, 0.55, 0.50, 0.45, 0.40],
-    "powerchip":      [0.30, 0.28, 0.28, 0.30, 0.32, 0.35, 0.40, 0.42],  # sous-déclare -> H
+    "powerchip":      [0.30, 0.28, 0.28, 0.30, 0.32, 0.35, 0.40, 0.42],  # sous-declare -> H
     "accupol":        [0.25, 0.25, 0.25, 0.28, 0.30, 0.40, 0.45, 0.40],
     "minalliages":    [0.40, 0.42, 0.45, 0.65, 0.60, 0.50, 0.45, 0.40],
     "lithium-andes":  [0.42, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45, 0.42],
@@ -123,7 +123,7 @@ JOUEURS = {
     "lithium-andes": "Carla",
 }
 
-#: semaine -> liste de (noeud, type d'événement, params, décision tracée)
+#: semaine -> liste de (noeud, type d'evenement, params, decision tracee)
 EVENEMENTS = {
     2: [("ferralu", "non_conformite_qualite", {"taux_rebut_obs": 0.08},
          "Plan de surveillance qualité renforcé sur la fonderie (audit sous 2 semaines).")],
@@ -140,7 +140,7 @@ EVENEMENTS = {
          "Bascule ponctuelle sur fret maritime express ; surcoût accepté.")],
 }
 
-#: Dérives KPI hebdomadaires discrètes (saisies volet 2) : semaine -> [(noeud, chemin, valeur)]
+#: Derives KPI hebdomadaires discretes (saisies volet 2) : semaine -> [(noeud, chemin, valeur)]
 DERIVES_KPI = {
     2: [("ferralu", "oee.quality", 0.86)],
     3: [("powerchip", "time.delay_h", 96.0), ("voltech", "time.delay_h", 24.0)],
@@ -151,8 +151,7 @@ DERIVES_KPI = {
     8: [("powerchip", "time.delay_h", 12.0), ("ferralu", "oee.quality", 0.93)],
 }
 
-#: Écart d'avancement DÉCLARÉ vs théorique au volet jalons — PowerChip traîne
-#: (u_time v2 pénalise le retard constaté avec κ_retard = 0.5) puis rattrape.
+#: Ecart d'avancement DECLARE vs theorique au volet jalons - PowerChip traine (u_time v2 penalise le retard constate avec kappa_retard = 0.5) puis rattrape.
 def _retard_declare(nid: str, semaine: int) -> float:
     if nid == "powerchip":
         return -0.35 if semaine <= 6 else (-0.25 if semaine == 7 else -0.20)
@@ -161,7 +160,7 @@ def _retard_declare(nid: str, semaine: int) -> float:
 
 def _kpis(produit: str, lead_h: float, std_h: float, dispo: float, p_def: float,
           distance_km: float, demande: float) -> KPIBundle:
-    """KPIs complets et plausibles, tous blocs renseignés (PERT inclus pour Monte Carlo)."""
+    """KPIs complets et plausibles, tous blocs renseignes (PERT inclus pour Monte Carlo)."""
     op = 18_000.0 + demande * 40.0
     co2 = 2_200.0 + distance_km * 0.8
     return KPIBundle(
@@ -199,7 +198,7 @@ def _kpis(produit: str, lead_h: float, std_h: float, dispo: float, p_def: float,
 
 
 def construire(svc: SupplyScoreService) -> Project:
-    """Projet AERIS : nœuds, arcs (+ backup), tags, jalons, CdC, AHP initiaux, FBWM."""
+    """Projet AERIS : noeuds, arcs (+ backup), tags, jalons, CdC, AHP initiaux, FBWM."""
     t0 = svc.clock.now()
     projet = Project(
         id=PROJECT_ID,
@@ -260,7 +259,7 @@ def construire(svc: SupplyScoreService) -> Project:
         svc.registry.save_tag(tag)
     svc.create_project(projet, noeuds, arcs)
 
-    # Jalons : Proto -> Qualification -> Livraison série, décalés par rang.
+    # Jalons : Proto -> Qualification -> Livraison serie, decales par rang.
     for nid, _, _, rang, *_ in NOEUDS:
         depart = t0
         for position, (nom_jalon, kind, duree_sem) in enumerate([
@@ -275,7 +274,7 @@ def construire(svc: SupplyScoreService) -> Project:
             ))
             depart = deadline
 
-    # Cahiers des charges des acteurs clés.
+    # Cahiers des charges des acteurs cles.
     cdcs = {
         "aeris-oem": CahierDesCharges(
             deliverables=[Deliverable("Drone cargo AER-200", 24, "appareils")],
@@ -308,7 +307,7 @@ def construire(svc: SupplyScoreService) -> Project:
         svc.mutations.save_spec_sheet(nid, cdc_to_json(cdc), source="demo",
                                       operator_id=ANIMATEUR)
 
-    # Évaluations AHP initiales (S0) + pondération FBWM des blocs d'Ur.
+    # Evaluations AHP initiales (S0) + ponderation FBWM des blocs d'Ur.
     gen = RandomSupplyChainGenerator(seed=2026)
     for nid, traj in BIAS.items():
         svc.submit_assessment(gen.generate_assessment(
@@ -341,7 +340,7 @@ def construire(svc: SupplyScoreService) -> Project:
 
 
 def jouer(svc: SupplyScoreService) -> None:
-    """8 semaines de serious game : revues hebdo, événements, décisions."""
+    """8 semaines de serious game : revues hebdo, evenements, decisions."""
     events = EventEngine(svc)
     decisions = DecisionService(svc)
     review = WeeklyReview(svc)
@@ -359,12 +358,12 @@ def jouer(svc: SupplyScoreService) -> None:
             joueur = JOUEURS[nid]
             review.start(nid)
 
-            # Volet 1 — AHP de la semaine (trajectoire scriptée).
+            # Volet 1 - AHP de la semaine (trajectoire scriptee).
             svc.submit_assessment(gen.generate_assessment(
                 nid, PROJECT_ID, joueur, urgency_bias=traj[semaine - 1]))
             review.mark_volet(nid, "ahp", joueur)
 
-            # Volet 2 — KPIs : dérive scriptée ou « rien n'a changé ».
+            # Volet 2 - KPIs : derive scriptee ou " rien n'a change ".
             if nid in derives:
                 chemin, valeur = derives[nid]
                 svc.mutations.update_kpis(nid, {chemin: valeur},
@@ -373,7 +372,7 @@ def jouer(svc: SupplyScoreService) -> None:
                 review.confirm_block(nid, "time", joueur)
             review.mark_volet(nid, "kpis", joueur)
 
-            # Volet 3 — jalons : avancement déclaré vs théorique (PowerChip traîne).
+            # Volet 3 - jalons : avancement declare vs theorique (PowerChip traine).
             maintenant = svc.clock_for(PROJECT_ID).now()
             jalons = [m for m in svc.registry.list_milestones(nid)
                       if str(m.status) == "active"]
@@ -391,7 +390,7 @@ def jouer(svc: SupplyScoreService) -> None:
                                              round(declare, 2), joueur)
             review.mark_volet(nid, "jalons", joueur)
 
-            # Volet 4 — événements scriptés de la semaine + érosion bayésienne.
+            # Volet 4 - evenements scriptes de la semaine + erosion bayesienne.
             for ev_nid, ev_type, ev_params, ev_decision in EVENEMENTS.get(semaine, []):
                 if ev_nid == nid:
                     events.apply(nid, ev_type, ev_params, operator_id=joueur,
@@ -409,7 +408,7 @@ def jouer(svc: SupplyScoreService) -> None:
 
 
 def sorties(svc: SupplyScoreService, dest: Path) -> None:
-    """Export xlsx + rapport de session HTML + synthèse console."""
+    """Export xlsx + rapport de session HTML + synthese console."""
     dest.mkdir(parents=True, exist_ok=True)
     xlsx = ExportService(svc).export_project(PROJECT_ID, fmt="xlsx", dest_dir=dest)
     rapport = SessionReport(svc).build(PROJECT_ID, horizon_weeks=4, dest_dir=dest)

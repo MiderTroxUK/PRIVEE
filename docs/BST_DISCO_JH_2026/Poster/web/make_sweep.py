@@ -28,8 +28,8 @@ import geo  # noqa: E402
 import zone  # noqa: E402
 
 # ALTEN Brand Book 2025 (EN), main colours p.27 and charter shades p.28
-OCHRE = (255, 186, 0)        # BD TOPO footprint
-AZURE = (0, 139, 210)        # apron drawn by the model
+OCHRE = (255, 186, 0)  # BD TOPO footprint
+AZURE = (0, 139, 210)  # apron drawn by the model
 NAVY = (4, 57, 98)
 WHITE = (255, 255, 255)
 GREY = (160, 164, 178)
@@ -71,7 +71,7 @@ def font(px):
 def overview(bbox, bats, par_bat, res, path, title, sub):
     """One wide plate: every footprint, every apron, a label per productive building."""
     w_m, h_m = bbox[2] - bbox[0], bbox[3] - bbox[1]
-    gsd = max(0.20, max(w_m, h_m) / 4600)          # stay under the 5010 px server cap
+    gsd = max(0.20, max(w_m, h_m) / 4600)  # stay under the 5010 px server cap
     img, meta = geo.ortho(bbox, gsd=gsd)
     im = Image.fromarray(img).convert("RGB")
     d = ImageDraw.Draw(im, "RGBA")
@@ -86,8 +86,7 @@ def overview(bbox, bats, par_bat, res, path, title, sub):
             d.polygon([px(p) for p in z.exterior.coords], fill=AZURE + (110,),
                       outline=AZURE + (255,), width=lw + 1)
 
-    # Label only the productive sites, biggest first, nudging each box clear of the
-    # ones already placed. A cluttered overview is worse than an unlabelled one.
+    # Label only the productive sites, biggest first, nudging each box clear of the ones already placed. A cluttered overview is worse than an unlabelled one.
     f = font(max(14, int(im.width / 100)))
     placed = []
     inside = lambda r: bbox[0] < r["x"] < bbox[2] and bbox[1] < r["y"] < bbox[3]
@@ -137,11 +136,11 @@ def slots(z, pas=analyse.PAS_QUAI):
     c = np.array(z.minimum_rotated_rectangle.exterior.coords)[:-1]
     edges = np.roll(c, -1, 0) - c
     lens = np.hypot(edges[:, 0], edges[:, 1])
-    k = int(np.argmax(lens[:2]))                     # long side of the rectangle
-    u = edges[k] / lens[k]                           # along the apron
-    n = np.array([-u[1], u[0]])                      # across it
+    k = int(np.argmax(lens[:2]))  # long side of the rectangle
+    u = edges[k] / lens[k]  # along the apron
+    n = np.array([-u[1], u[0]])  # across it
     half = lens[1 - k] / 2
-    o = c[k] + edges[1 - k] / 2                      # mid-point of the long side
+    o = c[k] + edges[1 - k] / 2  # mid-point of the long side
     L = lens[k]
     return [(o + u * t - n * half, o + u * t + n * half)
             for t in np.arange(pas / 2, L, pas)]
@@ -181,8 +180,7 @@ def main():
     ap.add_argument("--lon", type=float, default=1.40566)
     ap.add_argument("--rayon", type=float, default=2000.0)
     ap.add_argument("--min", type=float, default=3000.0, dest="mini")
-    # The overview is rendered on its own, tighter extent: past about 1.5 km across, a
-    # dock apron is a couple of pixels and the plate stops carrying information.
+    # The overview is rendered on its own, tighter extent: past about 1.5 km across, a dock apron is a couple of pixels and the plate stops carrying information.
     ap.add_argument("--apercu", type=float, default=None,
                     help="half-width in m of the overview plate, default = rayon")
     ap.add_argument("--poids", default=os.path.join(VE, "runs/quai3/weights/best.pt"))
@@ -227,8 +225,7 @@ def main():
     json.dump(tot, open(os.path.join(a.out, "totaux.json"), "w"), indent=1)
     print("\n" + json.dumps(tot, indent=1))
 
-    # Landscape extent: the poster column is wide and short, and a square plate would
-    # have to be scaled down until the aprons disappeared.
+    # Landscape extent: the poster column is wide and short, and a square plate would have to be scaled down until the aprons disappeared.
     Ov = a.apercu or R
     ovb = (x - Ov, y - Ov * 0.52, x + Ov, y + Ov * 0.52)
     keep = [k for k, (p, _) in enumerate(bats) if p.intersects(box(*ovb))]
@@ -247,8 +244,7 @@ def main():
               key=lambda i: abs(res[i]["capacite_quais"] - 10), default=None)
     flop = max(flagged, key=lambda i: res[i]["capacite_quais"], default=None)
 
-    # Nothing self-flags on a clean run, so the loudest ratios are rendered too and the
-    # failure case is chosen by looking at them rather than by trusting the gate.
+    # Nothing self-flags on a clean run, so the loudest ratios are rendered too and the failure case is chosen by looking at them rather than by trusting the gate.
     loud = sorted((i for i, r in enumerate(res) if r["zones"]),
                   key=lambda i: -res[i]["quais_par_ha"])[:8]
     picks = [(f"cand{k:02d}", i) for k, i in enumerate(loud)]

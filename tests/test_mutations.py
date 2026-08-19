@@ -1,12 +1,12 @@
-"""Tests du Lot 3.3 : MutationService, point de passage obligatoire des écritures.
+"""Tests du Lot 3.3 : MutationService, point de passage obligatoire des ecritures.
 
-Couvre : diff réel des KPIs (seuls les champs changés sont écrits), no-op
+Couvre : diff reel des KPIs (seuls les champs changes sont ecrits), no-op
 complet sur valeurs identiques, refus bloquant d'une valeur invalide (rien
-n'est écrit), effacement par None, complétude du journal (propriété
-hypothesis), jalons (fenêtre temporelle, progress), arcs (création, diff,
-suppression), tags (diff sur l'ensemble), cahier des charges versionné,
-corrections d'évaluations (replaces_id), concurrence (aucune entrée perdue)
-et synchronisation du graphe en mémoire.
+n'est ecrit), effacement par None, completude du journal (propriete
+hypothesis), jalons (fenetre temporelle, progress), arcs (creation, diff,
+suppression), tags (diff sur l'ensemble), cahier des charges versionne,
+corrections d'evaluations (replaces_id), concurrence (aucune entree perdue)
+et synchronisation du graphe en memoire.
 """
 
 from __future__ import annotations
@@ -29,10 +29,10 @@ from supplyscore.domain.models import AHPAssessment, ArcKind, SupplyArc, SupplyN
 from supplyscore.graph.memory_repo import InMemoryGraphRepository
 from supplyscore.services.mutations import MutationService
 
-_NOW = 1_750_000_000.0  # 2025-06-15 ~ : instant figé de référence
+_NOW = 1_750_000_000.0  # 2025-06-15 ~ : instant fige de reference
 
 
-# --- Helpers --------------------------------------------------------------------
+# Helpers
 
 
 def _build_env(tmp_path: Path, repo: InMemoryGraphRepository | None = None) -> SimpleNamespace:
@@ -80,7 +80,7 @@ def env_repo(tmp_path):
 
 
 def _seed_node(registry: RegistryDatabase, node_id: str = "n1", **kwargs) -> SupplyNode:
-    """Crée et persiste un nœud avec trois KPIs discriminables."""
+    """Cree et persiste un noeud avec trois KPIs discriminables."""
     node = SupplyNode(id=node_id, name="Atelier", project_id="p1", **kwargs)
     node.kpis.time.lead_time_h = 10.0
     node.kpis.network.demand = 100.0
@@ -121,7 +121,7 @@ def _client_trail(env: SimpleNamespace, node_id: str) -> AuditTrail:
     return AuditTrail(db.conn, env.clock, lock=db.lock)
 
 
-# --- update_kpis ------------------------------------------------------------------
+# update_kpis
 
 
 class TestUpdateKpis:
@@ -130,7 +130,7 @@ class TestUpdateKpis:
         entries = env.service.update_kpis(
             "n1",
             {
-                "time.lead_time_h": 10.0,  # identique -> ignoré
+                "time.lead_time_h": 10.0,  # identique -> ignore
                 "network.demand": 150.0,
                 "risk.severity": 0.5,
             },
@@ -138,7 +138,7 @@ class TestUpdateKpis:
             operator_id="op-1",
         )
 
-        # 2 entrées (sur 3 demandées), dans l'ordre des changes.
+        # 2 entrees (sur 3 demandees), dans l'ordre des changes.
         assert [e.field for e in entries] == ["network.demand", "risk.severity"]
         assert all(isinstance(e, AuditEntry) for e in entries)
         assert all(e.entity_type == "node_kpis" and e.entity_id == "n1" for e in entries)
@@ -148,13 +148,13 @@ class TestUpdateKpis:
         assert entries[0].iso_week == iso_week(_NOW)
         assert entries[0].timestamp == _NOW
 
-        # Nœud persisté dans le registre, champ identique inchangé.
+        # Noeud persiste dans le registre, champ identique inchange.
         node = env.registry.get_node("n1")
         assert node.kpis.network.demand == 150.0
         assert node.kpis.risk.severity == 0.5
         assert node.kpis.time.lead_time_h == 10.0
 
-        # UN snapshot (état APRÈS mutation) et 2 lignes d'audit dans la base CLIENT.
+        # UN snapshot (etat APRES mutation) et 2 lignes d'audit dans la base CLIENT.
         client = env.clients["n1"]
         assert _count(client, "SELECT COUNT(*) FROM kpi_snapshots") == 1
         snap = client.kpis_at("n1", _NOW)
@@ -182,7 +182,7 @@ class TestUpdateKpis:
                 {"risk.failure_probability": 1.7, "network.demand": 150.0},
                 source="edit",
             )
-        # RIEN n'est écrit : ni nœud, ni snapshot, ni audit.
+        # RIEN n'est ecrit : ni noeud, ni snapshot, ni audit.
         node = env.registry.get_node("n1")
         assert node.kpis.network.demand == 100.0
         assert node.kpis.risk.failure_probability is None
@@ -219,7 +219,7 @@ class TestUpdateKpis:
             env.service.update_kpis("fantome", {"network.demand": 1.0}, source="edit")
 
 
-# --- Propriété hypothesis : complétude du journal -----------------------------------
+# Propriete hypothesis : completude du journal
 
 _KPI_PATHS = ("time.lead_time_h", "network.demand", "risk.severity", "oee.availability")
 
@@ -256,16 +256,16 @@ class TestJournalComplet:
                     current = getattr(getattr(node.kpis, block), field)
                     journal = trail.history("node_kpis", "n1", field=path, limit=1000)
                     if journal:
-                        # journal trié du plus récent au plus ancien.
+                        # journal trie du plus recent au plus ancien.
                         assert journal[0].new_value == current
                     else:
-                        assert current is None  # jamais écrit : valeur initiale
+                        assert current is None  # jamais ecrit : valeur initiale
             finally:
                 client.close()
                 registry.close()
 
 
-# --- update_node_fields --------------------------------------------------------------
+# update_node_fields
 
 
 class TestUpdateNodeFields:
@@ -274,7 +274,7 @@ class TestUpdateNodeFields:
         entries = env.service.update_node_fields(
             "n1", {"name": "Atelier", "location": "Lyon"}, source="edit", operator_id="op-2"
         )
-        # name identique -> seul location est écrit.
+        # name identique -> seul location est ecrit.
         assert [e.field for e in entries] == ["location"]
         assert entries[0].entity_type == "node" and entries[0].entity_id == "n1"
         assert entries[0].old_value is None and entries[0].new_value == "Lyon"
@@ -296,7 +296,7 @@ class TestUpdateNodeFields:
             env.service.update_node_fields("fantome", {"name": "X"}, source="edit")
 
 
-# --- upsert_arc / delete_arc ----------------------------------------------------------
+# upsert_arc / delete_arc
 
 
 class TestUpsertArc:
@@ -381,7 +381,7 @@ class TestDeleteArc:
             env.service.delete_arc("n2", "n1", source="edit")
 
 
-# --- set_node_tags ---------------------------------------------------------------------
+# set_node_tags
 
 
 class TestSetNodeTags:
@@ -404,7 +404,7 @@ class TestSetNodeTags:
             env.service.set_node_tags("fantome", ["t1"], source="edit")
 
 
-# --- update_milestone --------------------------------------------------------------------
+# update_milestone
 
 
 class TestUpdateMilestone:
@@ -412,7 +412,7 @@ class TestUpdateMilestone:
         _seed_milestone(env.registry)
         with pytest.raises(ValueError, match="deadline_ts"):
             env.service.update_milestone("m1", {"deadline_ts": 500.0}, source="edit")
-        # Rien n'est écrit.
+        # Rien n'est ecrit.
         milestone = env.registry.get_milestone("m1")
         assert milestone is not None and milestone.deadline_ts == 2000.0
         assert _count(env.registry, "SELECT COUNT(*) FROM audit_log") == 0
@@ -451,7 +451,7 @@ class TestUpdateMilestone:
             env.service.update_milestone("fantome", {"progress": 0.5}, source="edit")
 
 
-# --- save_spec_sheet ------------------------------------------------------------------
+# save_spec_sheet
 
 
 class TestSaveSpecSheet:
@@ -464,12 +464,12 @@ class TestSaveSpecSheet:
         assert client.latest_spec_sheet("n1") == (2, '{"a": 2}')
 
         journal = _client_trail(env, "n1").history("spec_sheet", "n1", field="version")
-        assert len(journal) == 2  # du plus récent au plus ancien
+        assert len(journal) == 2  # du plus recent au plus ancien
         assert journal[0].old_value == 1 and journal[0].new_value == 2
         assert journal[1].old_value is None and journal[1].new_value == 1
 
 
-# --- replace_assessment ----------------------------------------------------------------
+# replace_assessment
 
 
 class TestReplaceAssessment:
@@ -483,7 +483,7 @@ class TestReplaceAssessment:
         )
         assert new_id != old_id
 
-        # latest_assessment retourne la correction ; l'originale reste listée.
+        # latest_assessment retourne la correction ; l'originale reste listee.
         latest = client.latest_assessment("n1")
         assert latest is not None and latest.ud == pytest.approx(0.2)
         full = client.list_assessments("n1")
@@ -495,22 +495,22 @@ class TestReplaceAssessment:
         assert journal[0].source == "edit" and journal[0].operator_id == "op-8"
 
 
-# --- Concurrence -----------------------------------------------------------------------
+# Concurrence
 
 
 class TestConcurrence:
     def test_2_threads_x_50_updates_aucune_entree_perdue(self, env):
         for node_id in ("n1", "n2"):
             _seed_node(env.registry, node_id)
-            env.factory(node_id)  # pré-crée la base client (hors course)
+            env.factory(node_id)  # pre-cree la base client (hors course)
 
         failures: list[BaseException] = []
 
         def worker(node_id: str) -> None:
             try:
-                for i in range(1, 51):  # 50 valeurs toutes différentes -> 50 diffs
+                for i in range(1, 51):  # 50 valeurs toutes differentes -> 50 diffs
                     env.service.update_kpis(node_id, {"time.lead_time_h": float(i)}, source="edit")
-            except BaseException as exc:  # remontée au thread principal
+            except BaseException as exc:  # remontee au thread principal
                 failures.append(exc)
 
         threads = [threading.Thread(target=worker, args=(nid,)) for nid in ("n1", "n2")]
@@ -529,13 +529,13 @@ class TestConcurrence:
             assert count == 50
             total += count
         assert total == 100
-        # Valeur finale cohérente avec le journal.
+        # Valeur finale coherente avec le journal.
         for node_id in ("n1", "n2"):
             node = env.registry.get_node(node_id)
             assert node.kpis.time.lead_time_h == 50.0
 
 
-# --- Synchronisation du graphe en mémoire ----------------------------------------------
+# Synchronisation du graphe en memoire
 
 
 class TestRepoSync:
@@ -569,7 +569,7 @@ class TestRepoSync:
         assert env_repo.repo.get_arc("n2", "n1") is None
 
     def test_noeud_absent_du_repo_ignore(self, env_repo):
-        _seed_node(env_repo.registry)  # jamais ajouté au repo
+        _seed_node(env_repo.registry)  # jamais ajoute au repo
         entries = env_repo.service.update_kpis("n1", {"network.demand": 150.0}, source="edit")
-        assert len(entries) == 1  # l'écriture en base a bien eu lieu
+        assert len(entries) == 1  # l'ecriture en base a bien eu lieu
         assert env_repo.repo.get_node("n1") is None

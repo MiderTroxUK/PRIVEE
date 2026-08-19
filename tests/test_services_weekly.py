@@ -1,8 +1,8 @@
 """Tests du cycle hebdomadaire ISO (services.weekly) et de la migration client v4.
 
-Couvre : statuts à jour / en retard / manquant (FixedClock), passage en retard
+Couvre : statuts a jour / en retard / manquant (FixedClock), passage en retard
 en mode jeu (GameClock + advance_week), bascule de semaine dimanche/lundi,
-``semaines_ecart`` (bords d'année inclus), couverture excluant DONE/ABANDONED
+``semaines_ecart`` (bords d'annee inclus), couverture excluant DONE/ABANDONED
 et backfill ``iso_week`` de la migration client v3 -> v4.
 """
 
@@ -21,13 +21,13 @@ from supplyscore.domain.models import AHPAssessment, Project, SupplyNode, TaskSt
 from supplyscore.services import SupplyScoreService
 from supplyscore.services.weekly import CycleHebdomadaire, EtatHebdo, StatutHebdo, semaines_ecart
 
-#: Mercredi 2026-06-10 12:00 locale — semaine ISO « 2026-S24 ».
+#: Mercredi 2026-06-10 12:00 locale - semaine ISO " 2026-S24 ".
 _NOW = datetime(2026, 6, 10, 12, 0).timestamp()
 _WEEK = 604_800.0
 
 
 def _assessment(node_id: str, project_id: str = "p1", ts: float | None = None) -> AHPAssessment:
-    """Évaluation AHP minimale valide (iso_week laissée vide volontairement)."""
+    """Evaluation AHP minimale valide (iso_week laissee vide volontairement)."""
     return AHPAssessment(
         node_id=node_id,
         project_id=project_id,
@@ -43,7 +43,7 @@ def _assessment(node_id: str, project_id: str = "p1", ts: float | None = None) -
 
 
 def _setup_projet(service: SupplyScoreService, node_ids: tuple[str, ...]) -> Project:
-    """Crée un projet « p1 » et ses nœuds actifs (aucun arc, aucun jalon)."""
+    """Cree un projet " p1 " et ses noeuds actifs (aucun arc, aucun jalon)."""
     project = Project(
         id="p1",
         name="Projet",
@@ -71,7 +71,7 @@ def service(tmp_path: Path, fixed_clock: FixedClock):
     svc.close()
 
 
-# --- Statuts : à jour / en retard / manquant (FixedClock) ---------------------------
+# Statuts : a jour / en retard / manquant (FixedClock)
 
 
 def test_trois_noeuds_a_jour_en_retard_manquant(
@@ -80,10 +80,10 @@ def test_trois_noeuds_a_jour_en_retard_manquant(
     _setup_projet(service, ("n-a", "n-b", "n-c"))
     cycle = CycleHebdomadaire(service)
 
-    # n-a : évalué cette semaine.
+    # n-a : evalue cette semaine.
     service.submit_assessment(_assessment("n-a"))
 
-    # n-b : évalué il y a 2 semaines (horloge reculée puis ré-avancée).
+    # n-b : evalue il y a 2 semaines (horloge reculee puis re-avancee).
     fixed_clock.set(_NOW - 2 * _WEEK)
     service.submit_assessment(_assessment("n-b", ts=_NOW - 2 * _WEEK))
     fixed_clock.set(_NOW)
@@ -98,7 +98,7 @@ def test_trois_noeuds_a_jour_en_retard_manquant(
     assert etat_b.derniere_semaine == "2026-S22"
     assert etat_b.semaine_courante == semaine
 
-    # n-c : jamais évalué.
+    # n-c : jamais evalue.
     assert cycle.statut_noeud("n-c") == EtatHebdo(StatutHebdo.MANQUANT, semaine, None, 0)
 
     synthese = cycle.synthese("p1")
@@ -115,12 +115,12 @@ def test_statut_noeud_inconnu_leve_value_error(service: SupplyScoreService) -> N
         cycle.statut_noeud("fantome")
 
 
-# --- Mode jeu : advance_week fait passer en retard -----------------------------------
+# Mode jeu : advance_week fait passer en retard
 
 
 def test_game_clock_advance_week_passe_en_retard(service: SupplyScoreService) -> None:
     _setup_projet(service, ("n-a",))
-    service.set_clock_mode("p1", "game")  # origine = _NOW (horloge réelle figée)
+    service.set_clock_mode("p1", "game")  # origine = _NOW (horloge reelle figee)
     cycle = CycleHebdomadaire(service)
 
     service.submit_assessment(_assessment("n-a"))
@@ -136,7 +136,7 @@ def test_game_clock_advance_week_passe_en_retard(service: SupplyScoreService) ->
     assert etat.derniere_semaine == iso_week(_NOW)
 
 
-# --- Bascule de semaine : dimanche 23:59 vs lundi 00:00 (heure locale) ----------------
+# Bascule de semaine : dimanche 23:59 vs lundi 00:00 (heure locale)
 
 
 def test_bascule_dimanche_lundi(tmp_path: Path) -> None:
@@ -147,7 +147,7 @@ def test_bascule_dimanche_lundi(tmp_path: Path) -> None:
     assert iso_week(lundi.timestamp()) == "2026-S25"
 
     with ClientDatabase(tmp_path, "client-1") as db:
-        # iso_week vide : le garde-fou de save_assessment la dérive du timestamp.
+        # iso_week vide : le garde-fou de save_assessment la derive du timestamp.
         db.save_assessment(_assessment("n1", ts=dimanche.timestamp()))
         db.save_assessment(_assessment("n1", ts=lundi.timestamp()))
 
@@ -157,7 +157,7 @@ def test_bascule_dimanche_lundi(tmp_path: Path) -> None:
         assert db.assessment_weeks("autre") == []
 
 
-# --- semaines_ecart -------------------------------------------------------------------
+# semaines_ecart
 
 
 @pytest.mark.parametrize(
@@ -165,8 +165,8 @@ def test_bascule_dimanche_lundi(tmp_path: Path) -> None:
     [
         ("2026-S24", "2026-S24", 0),
         ("2026-S24", "2026-S26", 2),
-        ("2020-S53", "2021-S01", 1),  # bord d'année ISO (2020 compte 53 semaines)
-        ("2026-S26", "2026-S24", -2),  # b avant a : écart négatif
+        ("2020-S53", "2021-S01", 1),  # bord d'annee ISO (2020 compte 53 semaines)
+        ("2026-S26", "2026-S24", -2),  # b avant a : ecart negatif
     ],
 )
 def test_semaines_ecart(week_a: str, week_b: str, attendu: int) -> None:
@@ -178,7 +178,7 @@ def test_semaines_ecart_libelle_invalide() -> None:
         semaines_ecart("2026-24", "2026-S25")
 
 
-# --- Persistance de iso_week (écriture et relecture) -----------------------------------
+# Persistance de iso_week (ecriture et relecture)
 
 
 def test_submit_assessment_pose_iso_week_et_round_trip(service: SupplyScoreService) -> None:
@@ -189,7 +189,7 @@ def test_submit_assessment_pose_iso_week_et_round_trip(service: SupplyScoreServi
     assert got is not None
     assert got.iso_week == iso_week(_NOW)
 
-    # Une iso_week explicitement posée n'est PAS écrasée.
+    # Une iso_week explicitement posee n'est PAS ecrasee.
     explicite = _assessment("n-a", ts=_NOW + 60.0)
     explicite.iso_week = "2025-S01"
     service.submit_assessment(explicite)
@@ -206,33 +206,33 @@ def test_save_urgency_state_persiste_iso_week(tmp_path: Path) -> None:
         assert row["timestamp"] == _NOW
 
 
-# --- Couverture : DONE/ABANDONED exclus --------------------------------------------------
+# Couverture : DONE/ABANDONED exclus
 
 
 def test_couverture_exclut_done_et_abandoned(service: SupplyScoreService) -> None:
     _setup_projet(service, ("n-a", "n-b", "n-c", "n-d", "n-e"))
     service.submit_assessment(_assessment("n-a"))
-    service.submit_assessment(_assessment("n-d"))  # sera DONE : exclu malgré l'évaluation
+    service.submit_assessment(_assessment("n-d"))  # sera DONE : exclu malgre l'evaluation
     service.registry.set_node_status("n-d", TaskStatus.DONE)
     service.registry.set_node_status("n-e", TaskStatus.ABANDONED)
 
     cycle = CycleHebdomadaire(service)
-    # 3 actifs (n-a, n-b, n-c) dont un seul à jour (n-a).
+    # 3 actifs (n-a, n-b, n-c) dont un seul a jour (n-a).
     assert cycle.couverture("p1") == (1, 3)
 
-    # statut_noeud répond quand même pour les nœuds exclus du décompte.
+    # statut_noeud repond quand meme pour les noeuds exclus du decompte.
     assert cycle.statut_noeud("n-d").statut is StatutHebdo.A_JOUR
     assert cycle.statut_noeud("n-e").statut is StatutHebdo.MANQUANT
 
-    # La synthèse, elle, couvre TOUS les nœuds du projet.
+    # La synthese, elle, couvre TOUS les noeuds du projet.
     assert set(cycle.synthese("p1")) == {"n-a", "n-b", "n-c", "n-d", "n-e"}
 
 
-# --- Migration client v3 -> v4 : backfill iso_week ----------------------------------------
+# Migration client v3 -> v4 : backfill iso_week
 
 
 def _build_v3_client_with_data(db_file: Path, timestamps: list[float]) -> None:
-    """Construit une vraie base client v3 et y insère des évaluations datées."""
+    """Construit une vraie base client v3 et y insere des evaluations datees."""
     conn = sqlite3.connect(str(db_file))
     _client_v1(conn)
     _client_v2(conn)
@@ -257,7 +257,7 @@ def _build_v3_client_with_data(db_file: Path, timestamps: list[float]) -> None:
 
 
 def test_migration_v4_backfill_iso_week(tmp_path: Path) -> None:
-    ts_s53 = datetime(2026, 12, 28, 12, 0).timestamp()  # lundi -> « 2026-S53 »
+    ts_s53 = datetime(2026, 12, 28, 12, 0).timestamp()  # lundi -> " 2026-S53 "
     _build_v3_client_with_data(tmp_path / "client.sqlite", [_NOW, ts_s53])
 
     conn = sqlite3.connect(str(tmp_path / "client.sqlite"))
@@ -287,7 +287,7 @@ def test_migration_v4_backfill_iso_week(tmp_path: Path) -> None:
 
 
 def test_client_database_ouvre_base_v3_et_lit_les_semaines(tmp_path: Path) -> None:
-    """Une base v3 existante est migrée à l'ouverture et lisible par les nouvelles méthodes."""
+    """Une base v3 existante est migree a l'ouverture et lisible par les nouvelles methodes."""
     ts_s53 = datetime(2026, 12, 28, 12, 0).timestamp()
     _build_v3_client_with_data(tmp_path / "client.sqlite", [_NOW, ts_s53])
 

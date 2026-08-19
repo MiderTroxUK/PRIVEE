@@ -1,21 +1,21 @@
-"""L'INVARIANT CENTRAL E14.4 (hypothesis) : incrémental == complet à 1e-12.
+"""L'INVARIANT CENTRAL E14.4 (hypothesis) : incremental == complet a 1e-12.
 
-Pour TOUTE séquence aléatoire de modifications (``ud_local``, ``ur_local``,
-statuts) sur un DAG aléatoire (``RandomSupplyChainGenerator`` seedé par
-Hypothesis), ``propagate_incremental`` doit produire EXACTEMENT les mêmes
-Ud/Ur que ``propagate_all`` sur tous les nœuds (tolérance 1e-12). La
+Pour TOUTE sequence aleatoire de modifications (``ud_local``, ``ur_local``,
+statuts) sur un DAG aleatoire (``RandomSupplyChainGenerator`` seede par
+Hypothesis), ``propagate_incremental`` doit produire EXACTEMENT les memes
+Ud/Ur que ``propagate_all`` sur tous les noeuds (tolerance 1e-12). La
 comparaison oppose deux moteurs JUMEAUX construits sur des copies
-indépendantes du même graphe : l'un ne propage que par l'incrémental
-(``mark_dirty_*`` au fil des modifications), l'autre repasse au complet à
-chaque étape.
+independantes du meme graphe : l'un ne propage que par l'incremental
+(``mark_dirty_*`` au fil des modifications), l'autre repasse au complet a
+chaque etape.
 
-Le piège classique du nœud « frontière » (un seul prédécesseur affecté, les
-autres relus du cache) est couvert par construction : les DAG générés
-contiennent des diamants et chaque étape compare TOUS les nœuds.
+Le piege classique du noeud " frontiere " (un seul predecesseur affecte, les
+autres relus du cache) est couvert par construction : les DAG generes
+contiennent des diamants et chaque etape compare TOUS les noeuds.
 
 Les modifications passent ici directement par le moteur + ``mark_dirty_*``
-(variante autorisée par PLAN.md E14.4 « via les chemins orchestrateur OU
-directement moteur+mark_dirty ») : le câblage orchestrateur est couvert par
+(variante autorisee par PLAN.md E14.4 " via les chemins orchestrateur OU
+directement moteur+mark_dirty ") : le cablage orchestrateur est couvert par
 ``tests/test_graph_incremental.py``.
 """
 
@@ -31,10 +31,10 @@ from supplyscore.data.generator import RandomSupplyChainGenerator
 from supplyscore.domain.models import SupplyArc, SupplyNode, TaskStatus, UrgencyState
 from supplyscore.graph import InMemoryGraphRepository, PropagationEngine
 
-# Urgences tirées dans [0, 1], sans NaN ni infinis (cf. PLAN.md, risques E9).
+# Urgences tirees dans [0, 1], sans NaN ni infinis (cf. PLAN.md, risques E9).
 _UNIT = st.floats(min_value=0.0, max_value=1.0, allow_nan=False, allow_infinity=False)
 
-#: Une modification = (champ, indice de nœud, nouvelle valeur).
+#: Une modification = (champ, indice de noeud, nouvelle valeur).
 _Modification = tuple[str, int, float | TaskStatus]
 
 
@@ -42,7 +42,7 @@ _Modification = tuple[str, int, float | TaskStatus]
 def incremental_cases(
     draw: st.DrawFn,
 ) -> tuple[list[SupplyNode], list[SupplyArc], list[_Modification]]:
-    """DAG seedé + séquence de 1 à 6 modifications (ud_local, ur_local, statut)."""
+    """DAG seede + sequence de 1 a 6 modifications (ud_local, ur_local, statut)."""
     seed = draw(st.integers(min_value=0, max_value=2**32 - 1))
     n_ranks = draw(st.integers(min_value=1, max_value=3))
     _project, nodes, arcs = RandomSupplyChainGenerator(seed=seed).generate(
@@ -62,7 +62,7 @@ def incremental_cases(
 
 
 def _build_repo(nodes: list[SupplyNode], arcs: list[SupplyArc]) -> InMemoryGraphRepository:
-    """Charge nœuds puis arcs dans un dépôt mémoire et recalcule les rangs."""
+    """Charge noeuds puis arcs dans un depot memoire et recalcule les rangs."""
     repo = InMemoryGraphRepository()
     for node in nodes:
         repo.add_node(node)
@@ -78,7 +78,7 @@ def _apply(
     kind: str,
     value: float | TaskStatus,
 ) -> None:
-    """Applique une modification sur le nœud du dépôt (sans propager)."""
+    """Applique une modification sur le noeud du depot (sans propager)."""
     node = repo.get_node(node_id)
     assert node is not None
     if kind == "ud_local":
@@ -96,7 +96,7 @@ def _apply(
 def _assert_states_equal(
     states_inc: dict[str, UrgencyState], states_full: dict[str, UrgencyState]
 ) -> None:
-    """Ud et Ur identiques à 1e-12 sur TOUS les nœuds, mêmes ensembles d'ids."""
+    """Ud et Ur identiques a 1e-12 sur TOUS les noeuds, memes ensembles d'ids."""
     assert set(states_inc) == set(states_full)
     for node_id, full in states_full.items():
         inc = states_inc[node_id]
@@ -108,10 +108,10 @@ def _assert_states_equal(
 def test_incremental_equals_full_for_any_modification_sequence(
     case: tuple[list[SupplyNode], list[SupplyArc], list[_Modification]],
 ) -> None:
-    """Après CHAQUE modification, propagate_incremental == propagate_all à 1e-12.
+    """Apres CHAQUE modification, propagate_incremental == propagate_all a 1e-12.
 
-    Le statut ne modifie que le Ur effectif (décision de modélisation n°1 :
-    ``effective_ud_local`` ignore le statut), d'où ``mark_dirty_ur`` seul sur
+    Le statut ne modifie que le Ur effectif (decision de modelisation no1 :
+    ``effective_ud_local`` ignore le statut), d'ou ``mark_dirty_ur`` seul sur
     un changement de statut.
     """
     nodes, arcs, modifications = case
@@ -119,7 +119,7 @@ def test_incremental_equals_full_for_any_modification_sequence(
     repo_full = _build_repo(copy.deepcopy(nodes), copy.deepcopy(arcs))
     engine_inc = PropagationEngine(repo_inc)
     engine_full = PropagationEngine(repo_full)
-    # Base commune : les deux jumeaux partent du même état entièrement propagé.
+    # Base commune : les deux jumeaux partent du meme etat entierement propage.
     _assert_states_equal(engine_inc.propagate_all(), engine_full.propagate_all())
 
     ids = [node.id for node in nodes]
@@ -138,7 +138,7 @@ def test_incremental_equals_full_for_any_modification_sequence(
 def test_incremental_without_dirty_is_idempotent_bitwise(
     case: tuple[list[SupplyNode], list[SupplyArc], list[_Modification]],
 ) -> None:
-    """Sans nœud sale, propagate_incremental ne change RIEN (identité bit à bit)."""
+    """Sans noeud sale, propagate_incremental ne change RIEN (identite bit a bit)."""
     nodes, arcs, modifications = case
     repo = _build_repo(nodes, arcs)
     engine = PropagationEngine(repo)
@@ -161,7 +161,7 @@ def test_incremental_without_dirty_is_idempotent_bitwise(
 def test_invalidate_then_incremental_equals_full(
     case: tuple[list[SupplyNode], list[SupplyArc], list[_Modification]],
 ) -> None:
-    """invalidate() (tout sale) : l'incrémental délègue et égale le complet."""
+    """invalidate() (tout sale) : l'incremental delegue et egale le complet."""
     nodes, arcs, modifications = case
     repo_inc = _build_repo(copy.deepcopy(nodes), copy.deepcopy(arcs))
     repo_full = _build_repo(copy.deepcopy(nodes), copy.deepcopy(arcs))
@@ -174,5 +174,5 @@ def test_invalidate_then_incremental_equals_full(
     for kind, index, value in modifications:
         _apply(repo_inc, ids[index], kind, value)
         _apply(repo_full, ids[index], kind, value)
-    engine_inc.invalidate()  # AUCUN mark_dirty_* : tout doit être repassé
+    engine_inc.invalidate()  # AUCUN mark_dirty_* : tout doit etre repasse
     _assert_states_equal(engine_inc.propagate_incremental(), engine_full.propagate_all())

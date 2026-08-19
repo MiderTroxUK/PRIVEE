@@ -1,4 +1,4 @@
-"""Génération de l'image de l'adéquation moyenne A pour le LLM Pilot et comparaison avec DryRun.
+"""Generation de l'image de l'adequation moyenne A pour le LLM Pilot et comparaison avec DryRun.
 
 Produit :
 - docs/BST_DISCO_JH_2026/Images/4.Operations/helios_llm_pilot_adequacy.png
@@ -42,7 +42,7 @@ PERIODS = [
 ]
 
 def load_avg_adequacy(csv_path: Path) -> dict[int, float]:
-    """Calcule l'adéquation moyenne A par tour."""
+    """Calcule l'adequation moyenne A par tour."""
     by_tour: dict[int, list[float]] = {}
     with csv_path.open("r", encoding="utf-8") as f:
         reader = csv.DictReader(f)
@@ -55,9 +55,9 @@ def load_avg_adequacy(csv_path: Path) -> dict[int, float]:
 def generate_llm_adequacy_plot(llm_avg: dict[int, float]):
     fig, ax = plt.subplots(figsize=(15, 4.2), dpi=180)
     
-    # Fond et bandes de période
+    # Fond et bandes de periode
     for idx, (x1, x2, label) in enumerate(PERIODS):
-        if idx % 2 == 0:  # P1, P3, P5 ombragés
+        if idx % 2 == 0:  # P1, P3, P5 ombrages
             ax.axvspan(x1, x2, color="#edf4f9", alpha=0.8, zorder=0)
         ax.text((x1 + x2) / 2, 97, label, ha="center", va="top", fontsize=11, color="#64748b")
 
@@ -67,11 +67,11 @@ def generate_llm_adequacy_plot(llm_avg: dict[int, float]):
     # Courbe principale LLM
     ax.plot(tours, values, color="#0e6ba8", lw=2.8, marker="o", ms=6, label="Adéquation moyenne A (LLM Pilot)", zorder=3)
 
-    # Événements annotés
+    # Evenements annotes
     for t_ev, label_ev, offset in EVENTS:
         if t_ev in llm_avg:
             val = llm_avg[t_ev]
-            # Triangle orange inversé
+            # Triangle orange inverse
             ax.plot(t_ev, val, marker="v", color="#d97706", ms=9, zorder=4)
             # Annotations textuelles sous le point
             ax.text(t_ev, val + offset, label_ev, ha="center", va="top" if offset < 0 else "bottom", 

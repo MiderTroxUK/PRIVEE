@@ -1,14 +1,14 @@
-"""Tests de l'unité U9 : ForecastService — rollouts MC + contrefactuels appariés CRN.
+"""Tests de l'unite U9 : ForecastService - rollouts MC + contrefactuels apparies CRN.
 
-Couvre : les vérifications analytiques (série constante sans jalon → p_issue
-quasi nul et conforme au posterior Beta, jalon dépassé → p_jalon_rate = 1,
-hazard Bernoulli pur → p_issue = 1 − E[(1 − q)^h] exact via les moments Beta),
-l'appariement CRN (action nulle → delta_u_sim == 0 EXACTEMENT, branche sans
-action bit à bit identique à rollout(), action neutralisante → delta == p0,
-sémantique du délai d'effet), la décomposition de variance (mc/param, IC80
-étiqueté), l'erreur française sous 4 semaines d'historique, le déterminisme à
-graine égale, le bloc snapshot (contrat 7) et la performance (S = 2000, h = 4,
-chaîne de 20 nœuds, < 60 s).
+Couvre : les verifications analytiques (serie constante sans jalon -> p_issue
+quasi nul et conforme au posterior Beta, jalon depasse -> p_jalon_rate = 1,
+hazard Bernoulli pur -> p_issue = 1 - E[(1 - q)^h] exact via les moments Beta),
+l'appariement CRN (action nulle -> delta_u_sim == 0 EXACTEMENT, branche sans
+action bit a bit identique a rollout(), action neutralisante -> delta == p0,
+semantique du delai d'effet), la decomposition de variance (mc/param, IC80
+etiquete), l'erreur francaise sous 4 semaines d'historique, le determinisme a
+graine egale, le bloc snapshot (contrat 7) et la performance (S = 2000, h = 4,
+chaine de 20 noeuds, < 60 s).
 """
 
 from __future__ import annotations
@@ -35,13 +35,13 @@ from supplyscore.services.forecast import (
     to_snapshot_block,
 )
 
-#: Mercredi 2026-06-10 12:00 locale — semaine ISO « 2026-S24 ».
+#: Mercredi 2026-06-10 12:00 locale - semaine ISO " 2026-S24 ".
 _NOW = datetime(2026, 6, 10, 12, 0).timestamp()
 _WEEK = 604_800.0
-_T0 = _NOW - 10 * _WEEK  # origine du projet : 10 semaines avant « maintenant »
+_T0 = _NOW - 10 * _WEEK  # origine du projet : 10 semaines avant " maintenant "
 
 
-# --- Fixtures et aides ----------------------------------------------------------------
+# Fixtures et aides
 
 
 @pytest.fixture
@@ -54,7 +54,7 @@ def service(tmp_path: Any) -> Iterator[SupplyScoreService]:
 def _creer_projet(
     service: SupplyScoreService, n_noeuds: int, beta: float = 0.8
 ) -> tuple[Project, list[str]]:
-    """Chaîne n-00 (client final, rang 0) <- n-01 <- ... <- n-XX (fournisseur)."""
+    """Chaine n-00 (client final, rang 0) <- n-01 <- ... <- n-XX (fournisseur)."""
     ids = [f"n-{i:02d}" for i in range(n_noeuds)]
     nodes = [
         SupplyNode(id=nid, name=f"Noeud {i}", rank=i, project_id="p-prev")
@@ -71,7 +71,7 @@ def _creer_projet(
 
 
 def _historique(service: SupplyScoreService, node_id: str, valeurs: list[float]) -> None:
-    """Insère une série hebdo d'états ur_local (dernier état = semaine courante)."""
+    """Insere une serie hebdo d'etats ur_local (dernier etat = semaine courante)."""
     n = len(valeurs)
     for i, v in enumerate(valeurs):
         ts = _NOW - (n - 1 - i) * _WEEK
@@ -87,7 +87,7 @@ def _evenement(
     gravite: str = "critique",
     annule: bool = False,
 ) -> None:
-    """Journalise un événement dans la semaine « semaines_avant » semaines en arrière."""
+    """Journalise un evenement dans la semaine " semaines_avant " semaines en arriere."""
     ts = _NOW - semaines_avant * _WEEK
     eid = f"evt-{node_id}-{semaines_avant}-{gravite}"
     db = service.client_db(node_id)
@@ -105,7 +105,7 @@ def _jalon(
     status: MilestoneStatus = MilestoneStatus.ACTIVE,
     progress: float = 0.0,
 ) -> None:
-    """Pose un jalon dont l'échéance est décalée de N semaines par rapport à maintenant."""
+    """Pose un jalon dont l'echeance est decalee de N semaines par rapport a maintenant."""
     service.registry.save_milestone(
         Milestone(
             id=f"m-{node_id}",
@@ -120,7 +120,7 @@ def _jalon(
 
 
 def _p_evenement_beta(alpha: float, beta: float, k: int) -> float:
-    """P(au moins un événement en k semaines) sous q ~ Beta(alpha, beta), exact."""
+    """P(au moins un evenement en k semaines) sous q ~ Beta(alpha, beta), exact."""
     produit = 1.0
     for j in range(k):
         produit *= (beta + j) / (alpha + beta + j)
@@ -128,7 +128,7 @@ def _p_evenement_beta(alpha: float, beta: float, k: int) -> float:
 
 
 class ActionNulle:
-    """Action identité : ne transforme rien (contrôle d'appariement parfait)."""
+    """Action identite : ne transforme rien (controle d'appariement parfait)."""
 
     delai_effet_weeks = (0.0, 0.0, 0.0)
 
@@ -137,7 +137,7 @@ class ActionNulle:
 
 
 class ActionNeutralisante:
-    """Action qui annule le hazard et neutralise toutes les échéances."""
+    """Action qui annule le hazard et neutralise toutes les echeances."""
 
     def __init__(self, delai: tuple[float, float, float] = (0.0, 0.0, 0.0)) -> None:
         self.delai_effet_weeks = delai
@@ -149,17 +149,17 @@ class ActionNeutralisante:
         return etat
 
 
-# --- Ajustement (AR(1), posterior Beta, garde-fous) -----------------------------------
+# Ajustement (AR(1), posterior Beta, garde-fous)
 
 
 class TestAjustement:
     def test_ar1_pente_exacte_et_plancher_sigma(self, service: SupplyScoreService) -> None:
-        # Série géométrique x_{t+1} = 0.5·x_t exactement : pente OLS 0.5, résidus nuls.
+        # Serie geometrique x_{t+1} = 0.5-x_t exactement : pente OLS 0.5, residus nuls.
         project, ids = _creer_projet(service, 1)
         _historique(service, ids[0], [0.8, 0.4, 0.2, 0.1, 0.05, 0.025])
         diag = ForecastService(service).rollout(project.id, n_draws=20).diagnostics[ids[0]]
         assert diag.phi == pytest.approx(0.5, abs=1e-9)
-        assert diag.sigma == SIGMA_MIN  # résidus nuls : plancher appliqué
+        assert diag.sigma == SIGMA_MIN  # residus nuls : plancher applique
         assert diag.se_phi > 0.0
         assert diag.n_semaines == 6
         assert diag.ur_local_initial == pytest.approx(0.025)
@@ -177,7 +177,7 @@ class TestAjustement:
         project, ids = _creer_projet(service, 1)
         _historique(service, ids[0], [0.1, 0.9, 0.1, 0.9, 0.1, 0.9])
         diag = ForecastService(service).rollout(project.id, n_draws=20).diagnostics[ids[0]]
-        assert diag.phi == 0.0  # pente négative : clip à [0, 0.98]
+        assert diag.phi == 0.0  # pente negative : clip a [0, 0.98]
 
     def test_posterior_ne_compte_que_les_evenements_defavorables(
         self, service: SupplyScoreService
@@ -186,8 +186,8 @@ class TestAjustement:
         _historique(service, ids[0], [0.3] * 10)
         _evenement(service, ids[0], 2, "critique")
         _evenement(service, ids[0], 4, "defaut")
-        _evenement(service, ids[0], 6, "mineure")  # gravité non défavorable : ignorée
-        _evenement(service, ids[0], 8, "critique", annule=True)  # annulé : ignoré
+        _evenement(service, ids[0], 6, "mineure")  # gravite non defavorable : ignoree
+        _evenement(service, ids[0], 8, "critique", annule=True)  # annule : ignore
         diag = ForecastService(service).rollout(project.id, n_draws=20).diagnostics[ids[0]]
         assert diag.n_evenements == 2
         assert diag.alpha_post == pytest.approx(TAUX_PRIOR * 26.0 + 2)
@@ -216,14 +216,12 @@ class TestAjustement:
             fs.rollout("p-fantome")
 
 
-# --- Vérifications analytiques du rollout ---------------------------------------------
+# Verifications analytiques du rollout
 
 
 class TestRolloutAnalytique:
     def test_sans_evenement_ni_jalon_p_issue_quasi_nul(self, service: SupplyScoreService) -> None:
-        # phi = 0 (série constante), sigma plancher, aucun événement, aucune échéance :
-        # p_issue se réduit au seul risque d'événement du prior Beta érodé par
-        # 30 semaines calmes — quasi nul et exactement calculable.
+        # phi = 0 (serie constante), sigma plancher, aucun evenement, aucune echeance : p_issue se reduit au seul risque d'evenement du prior Beta erode par 30 semaines calmes - quasi nul et exactement calculable.
         project, ids = _creer_projet(service, 2)
         for nid in ids:
             _historique(service, nid, [0.2] * 30)
@@ -233,15 +231,13 @@ class TestRolloutAnalytique:
         for nid in ids:
             for k in range(1, 5):
                 prevision = resultat.previsions[nid][k]
-                assert prevision.p_jalon_rate == 0.0  # aucune échéance
-                assert prevision.p_issue < 0.12  # « quasi nul »
+                assert prevision.p_jalon_rate == 0.0  # aucune echeance
+                assert prevision.p_issue < 0.12  # " quasi nul "
                 attendu = _p_evenement_beta(alpha, beta, k)
                 assert prevision.p_issue == pytest.approx(attendu, abs=0.05)
 
     def test_hazard_bernoulli_pur_formule_exacte(self, service: SupplyScoreService) -> None:
-        # 6 semaines à événement défavorable sur 26 : posterior Beta connu, pas de
-        # jalon → p_issue(k) = 1 − E[(1 − q)^k], calculable exactement par les
-        # moments de la Beta. Tolérance = bruit MC + paramétrique (graine figée).
+        # 6 semaines a evenement defavorable sur 26 : posterior Beta connu, pas de jalon -> p_issue(k) = 1 - E[(1 - q)^k], calculable exactement par les moments de la Beta. Tolerance = bruit MC + parametrique (graine figee).
         project, ids = _creer_projet(service, 1)
         _historique(service, ids[0], [0.3] * 26)
         for semaine in (2, 4, 6, 8, 10, 12):
@@ -256,7 +252,7 @@ class TestRolloutAnalytique:
             assert prevision.p_jalon_rate == 0.0
 
     def test_jalon_depasse_deterministe(self, service: SupplyScoreService) -> None:
-        # Échéance déjà passée (d <= t) : jalon raté sûr, hors estimateur MC.
+        # Echeance deja passee (d <= t) : jalon rate sur, hors estimateur MC.
         project, ids = _creer_projet(service, 2)
         for nid in ids:
             _historique(service, nid, [0.2] * 6)
@@ -295,7 +291,7 @@ class TestRolloutAnalytique:
         a = fs.rollout(project.id, n_draws=200, seed=42)
         b = fs.rollout(project.id, n_draws=200, seed=42)
         c = fs.rollout(project.id, n_draws=200, seed=43)
-        assert a == b  # dataclasses figées : égalité champ à champ
+        assert a == b  # dataclasses figees : egalite champ a champ
         assert a != c
 
     def test_to_snapshot_block_contrat_7(self, service: SupplyScoreService) -> None:
@@ -321,17 +317,16 @@ class TestRolloutAnalytique:
                 assert cellule["p_issue"] == resultat.previsions[nid][k].p_issue
 
     def test_vocabulaire_effet_selon_le_modele(self) -> None:
-        # Décision D18’ : le module parle d'« effet SELON LE MODÈLE », et
-        # l'équivalence avec l'issue défavorable de la calibration est énoncée.
+        # Decision D18' : le module parle d'" effet SELON LE MODELE ", et l'equivalence avec l'issue defavorable de la calibration est enoncee.
         import supplyscore.services.forecast as module
 
         doc = (module.__doc__ or "").lower()
-        assert "selon le modèle" in doc
-        assert "issue défavorable" in doc
+        assert "selon le modele" in doc
+        assert "issue defavorable" in doc
         assert "calibrationservice" in doc
 
 
-# --- Contrefactuels appariés (CRN) ----------------------------------------------------
+# Contrefactuels apparies (CRN)
 
 
 class TestRolloutApparie:
@@ -341,7 +336,7 @@ class TestRolloutApparie:
         _historique(service, ids[1], [0.3] * 12)
         for semaine in (1, 3, 5, 7):
             _evenement(service, ids[1], semaine, "critique")
-        _jalon(service, ids[1], deadline_offset_weeks=-0.5)  # déjà ratée : p0 = 1 sur n-01
+        _jalon(service, ids[1], deadline_offset_weeks=-0.5)  # deja ratee : p0 = 1 sur n-01
         return project, ids
 
     def test_action_nulle_delta_exactement_zero(self, service: SupplyScoreService) -> None:
@@ -352,17 +347,16 @@ class TestRolloutApparie:
         for nid in ids:
             for k in range(1, 5):
                 paire = apparie.previsions[nid][k]
-                assert paire.delta_u_sim == 0.0  # appariement parfait : zéro EXACT
+                assert paire.delta_u_sim == 0.0  # appariement parfait : zero EXACT
                 assert paire.p0 == paire.p1
-                # Différences appariées toutes nulles : IC mc et param dégénérés en 0.
+                # Differences appariees toutes nulles : IC mc et param degeneres en 0.
                 assert paire.ic80_delta_mc.bas == 0.0
                 assert paire.ic80_delta_mc.haut == 0.0
                 assert paire.ic80_delta_param.bas == 0.0
                 assert paire.ic80_delta_param.haut == 0.0
                 assert paire.p_delta_positif == 0.0
                 assert paire.p_impact_client_0 == paire.p_impact_client_1
-                # Flux aléatoires séparés : la branche SANS action reproduit
-                # bit à bit le rollout simple à graine égale.
+                # Flux aleatoires separes : la branche SANS action reproduit bit a bit le rollout simple a graine egale.
                 assert paire.p0 == simple.previsions[nid][k].p_issue
 
     def test_action_neutralisante_delta_egale_p0(self, service: SupplyScoreService) -> None:
@@ -372,10 +366,9 @@ class TestRolloutApparie:
         for nid in ids:
             for k in range(1, 5):
                 paire = apparie.previsions[nid][k]
-                assert paire.p1 == 0.0  # hazard nul + échéances neutralisées
+                assert paire.p1 == 0.0  # hazard nul + echeances neutralisees
                 assert paire.delta_u_sim == pytest.approx(paire.p0, abs=1e-12)
-        # Le jalon déjà raté de n-01 est sauvé par la neutralisation immédiate :
-        # delta = p0 = 1 et toutes les moyennes externes sont positives.
+        # Le jalon deja rate de n-01 est sauve par la neutralisation immediate : delta = p0 = 1 et toutes les moyennes externes sont positives.
         paire_f1 = apparie.previsions[ids[1]][4]
         assert paire_f1.p0 == 1.0
         assert paire_f1.delta_u_sim == 1.0
@@ -383,9 +376,7 @@ class TestRolloutApparie:
         assert paire_f1.ic80_delta_param.bas == 1.0
 
     def test_delai_effet_une_semaine(self, service: SupplyScoreService) -> None:
-        # Délai (1, 1, 1) : ⌊1⌋ = 1 semaine pleine sans effet — la semaine 1
-        # est identique à la branche sans action (delta = 0 EXACT), l'effet
-        # n'apparaît qu'à partir de la semaine 2.
+        # Delai (1, 1, 1) : floor(1) = 1 semaine pleine sans effet - la semaine 1 est identique a la branche sans action (delta = 0 EXACT), l'effet n'apparait qu'a partir de la semaine 2.
         project, ids = _creer_projet(service, 2)
         _historique(service, ids[0], [0.2] * 26)
         _historique(service, ids[1], [0.3] * 26)
@@ -402,9 +393,7 @@ class TestRolloutApparie:
         assert paire[4].p1 < paire[4].p0
 
     def test_impact_client_via_propagation(self, service: SupplyScoreService) -> None:
-        # n-01 très événementiel alimente n-00 (β = 0.9) : ses bumps propagés
-        # dépassent le seuil ΔUr > 0.2 au rang 0 bien plus souvent que ceux du
-        # client final resté calme.
+        # n-01 tres evenementiel alimente n-00 (beta = 0.9) : ses bumps propages depassent le seuil DeltaUr > 0.2 au rang 0 bien plus souvent que ceux du client final reste calme.
         project, ids = _creer_projet(service, 2, beta=0.9)
         _historique(service, ids[0], [0.2] * 26)
         _historique(service, ids[1], [0.2] * 26)
@@ -417,9 +406,7 @@ class TestRolloutApparie:
         assert impact_f1 > impact_c0
 
     def test_action_neutralisant_un_arc(self, service: SupplyScoreService) -> None:
-        # Action qui coupe l'arc n-01 -> n-00 (β = 0 pour les tirages actifs) :
-        # les événements de n-01 ne se propagent plus au client final, son
-        # p_impact_client s'effondre dans la branche AVEC action.
+        # Action qui coupe l'arc n-01 -> n-00 (beta = 0 pour les tirages actifs) : les evenements de n-01 ne se propagent plus au client final, son p_impact_client s'effondre dans la branche AVEC action.
         project, ids = _creer_projet(service, 2, beta=0.9)
         _historique(service, ids[0], [0.2] * 26)
         _historique(service, ids[1], [0.2] * 26)
@@ -440,15 +427,13 @@ class TestRolloutApparie:
             project.id, ActionCoupeArc(), n_draws=2000, seed=0
         )
         paire = apparie.previsions[ids[1]][4]
-        assert paire.p_impact_client_0 > 0.2  # β = 0.9 : impact réel sans action
-        assert paire.p_impact_client_1 == 0.0  # arc coupé : plus aucun ΔUr au rang 0
-        # L'issue (événements du nœud lui-même) ne change pas : delta nul.
+        assert paire.p_impact_client_0 > 0.2  # beta = 0.9 : impact reel sans action
+        assert paire.p_impact_client_1 == 0.0  # arc coupe : plus aucun DeltaUr au rang 0
+        # L'issue (evenements du noeud lui-meme) ne change pas : delta nul.
         assert paire.delta_u_sim == 0.0
 
     def test_action_promouvant_un_arc(self, service: SupplyScoreService) -> None:
-        # Chaîne de 3 : promotion d'un arc direct n-02 -> n-00 (β = 0.9) qui
-        # court-circuite la chaîne, plus une promotion topologiquement invalide
-        # (n-00 -> n-02, sens client -> fournisseur) qui doit être IGNORÉE.
+        # Chaine de 3 : promotion d'un arc direct n-02 -> n-00 (beta = 0.9) qui court-circuite la chaine, plus une promotion topologiquement invalide (n-00 -> n-02, sens client -> fournisseur) qui doit etre IGNOREE.
         project, ids = _creer_projet(service, 3, beta=0.5)
         for nid in ids:
             _historique(service, nid, [0.2] * 26)
@@ -462,7 +447,7 @@ class TestRolloutApparie:
                 etat = dict(state)
                 arcs = dict(state["arc_beta"])
                 arcs[("n-02", "n-00")] = 0.9  # secours promu : exposition directe
-                arcs[("n-00", "n-02")] = 0.9  # sens invalide : doit être ignoré
+                arcs[("n-00", "n-02")] = 0.9  # sens invalide : doit etre ignore
                 etat["arc_beta"] = arcs
                 return etat
 
@@ -470,8 +455,7 @@ class TestRolloutApparie:
             project.id, ActionPromotion(), n_draws=2000, seed=0
         )
         paire = apparie.previsions[ids[2]][4]
-        # L'arc direct ajoute un chemin d'exposition : l'impact client du
-        # fournisseur profond augmente strictement dans la branche AVEC.
+        # L'arc direct ajoute un chemin d'exposition : l'impact client du fournisseur profond augmente strictement dans la branche AVEC.
         assert paire.p_impact_client_1 > paire.p_impact_client_0
 
     def test_delai_invalide_valueerror(self, service: SupplyScoreService) -> None:
@@ -504,20 +488,20 @@ class TestRolloutApparie:
             delai_effet_weeks = (0.0, 0.0, 0.0)
 
             def apply_to_rollout(self, state: dict[str, Any]) -> dict[str, Any]:
-                return {"ur_local": state["ur_local"]}  # clés manquantes
+                return {"ur_local": state["ur_local"]}  # cles manquantes
 
         with pytest.raises(ValueError, match="clé"):
             ForecastService(service).rollout_with_action(project.id, ActionCassee(), n_draws=40)
 
 
-# --- Bords : nœuds statiques, rangs 0 multiples ou absents, lois dégénérées -----------
+# Bords : noeuds statiques, rangs 0 multiples ou absents, lois degenerees
 
 
 class TestBords:
     def test_serie_ignore_les_etats_sans_ur_local(self, service: SupplyScoreService) -> None:
         project, ids = _creer_projet(service, 1)
         _historique(service, ids[0], [0.3] * 6)
-        # État SANS ur_local dans une semaine plus ancienne : ignoré par la série.
+        # Etat SANS ur_local dans une semaine plus ancienne : ignore par la serie.
         service.client_db(ids[0]).save_urgency_state(
             ids[0], UrgencyState(timestamp=_NOW - 10 * _WEEK)
         )
@@ -534,8 +518,7 @@ class TestBords:
             ForecastService(service).rollout("p-brouillon", n_draws=20)
 
     def test_noeud_done_statique_hors_previsions(self, service: SupplyScoreService) -> None:
-        # Le fournisseur profond passe DONE : il n'est plus simulé (aucune
-        # exigence d'historique) mais reste un nœud STATIQUE de la propagation.
+        # Le fournisseur profond passe DONE : il n'est plus simule (aucune exigence d'historique) mais reste un noeud STATIQUE de la propagation.
         project, ids = _creer_projet(service, 3)
         for nid in ids[:2]:
             _historique(service, nid, [0.2] * 6)
@@ -556,8 +539,7 @@ class TestBords:
         assert all(resultat.previsions["s-1"][k].p_impact_client == 0.0 for k in range(1, 5))
 
     def test_deux_noeuds_de_rang_zero(self, service: SupplyScoreService) -> None:
-        # Deux clients finaux alimentés par le même fournisseur : ΔUr au rang 0
-        # est le max des deux cibles.
+        # Deux clients finaux alimentes par le meme fournisseur : DeltaUr au rang 0 est le max des deux cibles.
         projet = Project(id="p-2r0", name="Deux clients", owner_node_id="c-a", created_at=_T0)
         noeuds = [
             SupplyNode(id="c-a", name="Client A", rank=0, project_id="p-2r0"),
@@ -577,8 +559,7 @@ class TestBords:
         assert resultat.previsions["f-1"][4].p_impact_client > 0.2
 
     def test_delai_triangulaire_non_degenere(self, service: SupplyScoreService) -> None:
-        # Support (0, 0.5, 1) non dégénéré : tous les délais tirés ont ⌊d⌋ = 0,
-        # l'action neutralisante agit donc dès la semaine 1 — delta == p0.
+        # Support (0, 0.5, 1) non degenere : tous les delais tires ont floor(d) = 0, l'action neutralisante agit donc des la semaine 1 - delta == p0.
         project, ids = _creer_projet(service, 1)
         _historique(service, ids[0], [0.3] * 12)
         for semaine in (1, 3, 5):
@@ -593,8 +574,7 @@ class TestBords:
             assert paire.delta_u_sim == pytest.approx(paire.p0, abs=1e-12)
 
     def test_loi_externe_degeneree_en_deterministe(self) -> None:
-        # Loi normale de moyenne très négative : les tirages (clip à 0) donnent
-        # des moments nuls — le bootstrap dégénère en loi déterministe.
+        # Loi normale de moyenne tres negative : les tirages (clip a 0) donnent des moments nuls - le bootstrap degenere en loi deterministe.
         from supplyscore.mc.lead_time import LoiLeadTime
         from supplyscore.services.forecast import _loi_externe
 
@@ -603,13 +583,12 @@ class TestBords:
         assert loi.m == 0.0
 
 
-# --- Performance ----------------------------------------------------------------------
+# Performance
 
 
 class TestPerformance:
     def test_performance_chaine_20_noeuds(self, service: SupplyScoreService) -> None:
-        # Budget du plan : S = 2000, h = 4, chaîne de 20 nœuds, < 60 s — la
-        # durée mesurée est consignée dans la docstring du module forecast.
+        # Budget du plan : S = 2000, h = 4, chaine de 20 noeuds, < 60 s - la duree mesuree est consignee dans la docstring du module forecast.
         project, ids = _creer_projet(service, 20)
         for i, nid in enumerate(ids):
             _historique(service, nid, [0.2 + 0.01 * (i % 5)] * 6)
@@ -632,23 +611,22 @@ class TestPerformance:
         assert duree < 60.0, f"rollout + rollout apparié en {duree:.1f} s (budget 60 s)"
         assert len(resultat.previsions) == 20
         assert len(apparie.previsions) == 20
-        # Les jalons à échéance S+2 exposés à un lead time ~300 h produisent un
-        # risque de jalon raté non trivial dès la semaine 2.
+        # Les jalons a echeance S+2 exposes a un lead time ~300 h produisent un risque de jalon rate non trivial des la semaine 2.
         assert any(resultat.previsions[nid][4].p_jalon_rate > 0.0 for nid in ids[::5])
 
 
 class TestJalonTravailRestant:
-    """P(jalon raté) porte sur le TRAVAIL RESTANT, pas sur un cycle complet.
+    """P(jalon rate) porte sur le TRAVAIL RESTANT, pas sur un cycle complet.
 
-    Régression du défaut mesuré sur la campagne HÉLIOS : le rollout tirait un
-    lead time de cycle ENTIER et le comparait à la marge, donc tout nœud dont
-    le lead time nominal dépassait sa marge était déclaré perdu d'avance quel
-    que soit son avancement — 99,6 % annoncé sur un jalon livré à l'heure.
+    Regression du defaut mesure sur la campagne HELIOS : le rollout tirait un
+    lead time de cycle ENTIER et le comparait a la marge, donc tout noeud dont
+    le lead time nominal depassait sa marge etait declare perdu d'avance quel
+    que soit son avancement - 99,6 % annonce sur un jalon livre a l'heure.
     """
 
     @staticmethod
     def _projet_lead_long(service: SupplyScoreService, progress: float) -> tuple[str, str]:
-        """Nœud unique, cycle nominal 400 h, jalon à 1 semaine (168 h) de marge."""
+        """Noeud unique, cycle nominal 400 h, jalon a 1 semaine (168 h) de marge."""
         project, ids = _creer_projet(service, 1)
         _historique(service, ids[0], [0.2] * 30)
         node = service.repo.get_node(ids[0])
@@ -664,8 +642,7 @@ class TestJalonTravailRestant:
         return resultat.previsions[nid][4].p_jalon_rate
 
     def test_avancement_nul_jalon_perdu(self, service: SupplyScoreService) -> None:
-        # 400 h de cycle a faire en 168 h : rate quasi certain. Comportement
-        # INCHANGE a progress = 0 — la correction est un sur-ensemble.
+        # 400 h de cycle a faire en 168 h : rate quasi certain. Comportement INCHANGE a progress = 0 - la correction est un sur-ensemble.
         assert self._p_jalon(service, 0.0) > 0.99
 
     def test_avancement_avance_desature(self, service: SupplyScoreService) -> None:
@@ -673,8 +650,7 @@ class TestJalonTravailRestant:
         assert self._p_jalon(service, 0.9) < 0.05
 
     def test_decroissant_en_progress(self, tmp_path: Any) -> None:
-        # Un jalon plus avance ne peut pas etre plus a risque, toutes choses
-        # egales par ailleurs (meme graine, meme scenario).
+        # Un jalon plus avance ne peut pas etre plus a risque, toutes choses egales par ailleurs (meme graine, meme scenario).
         precedent = 1.1
         for progress in (0.0, 0.3, 0.6, 0.9, 1.0):
             svc = SupplyScoreService(db_dir=tmp_path / f"store-{progress}", clock=FixedClock(_NOW))
@@ -686,5 +662,135 @@ class TestJalonTravailRestant:
             precedent = courant
 
     def test_jalon_termine_aucun_risque(self, service: SupplyScoreService) -> None:
-        # progress = 1 : plus rien a faire, la marge suffit toujours.
-        assert self._p_jalon(service, 1.0) == 0.0
+        # progress = 1 DECLARE : plus rien a faire, la marge suffit toujours. Le seuil n'est plus l'egalite stricte a 0.0 depuis que deux corrections se composent : - SIGMA_AVANCEMENT bruite l'avancement DECLARE (une declaration a 100 % n'est pas une certitude), donc une part des replicats a encore du travail devant elle ; - le rollout compte desormais le temps de production perdu par les chocs qu'il simule lui-meme, qui peut alors mordre sur la marge. Le residu est donc du signal, pas du bruit : il vaut exactement 0.0 quand on decide de croire la declaration (sigma = 0), ce que verifie le second bloc.
+        assert self._p_jalon(service, 1.0) < 0.05
+
+    def test_jalon_termine_strictement_nul_si_declaration_crue(
+        self, tmp_path: Any, monkeypatch: Any
+    ) -> None:
+        # Declaration prise pour argent comptant : un jalon acheve ne peut pas etre rate, ni par le cycle restant (nul) ni par le temps perdu.
+        monkeypatch.setattr("supplyscore.services.forecast.SIGMA_AVANCEMENT", 0.0)
+        svc = SupplyScoreService(db_dir=tmp_path / "sigma0", clock=FixedClock(_NOW))
+        try:
+            assert self._p_jalon(svc, 1.0) == 0.0
+        finally:
+            svc.close()
+
+
+class TestRetardChocForecast:
+    """Le temps perdu (``risk.recovery_time_h``) atteint p_jalon_rate, additivement.
+
+    Regression de la SUR-CORRECTION : route dans le lead time, un choc se fait
+    multiplier par ``1 - avancement`` et disparait sur les jalons proches de
+    leur echeance - NovaFab retombait de 84,6 % a 0,0 % sur un jalon reellement
+    rate apres quatre semaines d'arret.
+    """
+
+    @staticmethod
+    def _projet(service: SupplyScoreService, progress: float, recovery: float | None) -> str:
+        _, ids = _creer_projet(service, 1)
+        _historique(service, ids[0], [0.2] * 30)
+        node = service.repo.get_node(ids[0])
+        node.kpis.time.lead_time_h = 400.0
+        node.kpis.time.lead_time_std_h = 40.0
+        node.kpis.time.delay_h = recovery
+        service.repo.update_node(node)
+        _jalon(service, ids[0], deadline_offset_weeks=2.0, progress=progress)
+        return ids[0]
+
+    def _p_jalon(self, service: SupplyScoreService, progress: float, recovery: float | None):
+        nid = self._projet(service, progress, recovery)
+        return ForecastService(service).rollout("p-prev", n_draws=2000, seed=0).previsions[nid][4]
+
+    def test_choc_survit_a_un_avancement_eleve(self, tmp_path: Any) -> None:
+        # Jalon a 90 %, marge 2 semaines (336 h). Sans choc : 40 h a faire, sur. Avec 400 h perdues : la marge est mangee, le retard est certain.
+        resultats = {}
+        for etiquette, recovery in (("calme", None), ("choque", 400.0)):
+            svc = SupplyScoreService(db_dir=tmp_path / etiquette, clock=FixedClock(_NOW))
+            try:
+                resultats[etiquette] = self._p_jalon(svc, 0.9, recovery).p_jalon_rate
+            finally:
+                svc.close()
+        assert resultats["calme"] < 0.05
+        # Seuil 0.80 et non 0.95 : le rollout ne fait plus porter le temps perdu aux replicats dont l'avancement BRUITE atteint 100 % (meme garde-fou que ``UrModel.u_base_jalon`` - un jalon dont le travail est acheve ne peut plus etre repousse). A progress = 0.9 et SIGMA_AVANCEMENT = 0.10, c'est environ 16 % des tirages, d'ou ~0.84. L'intention du test est intacte : 0.84 avec choc contre < 0.05 sans, le choc SURVIT bien a un avancement eleve.
+        assert resultats["choque"] > 0.80
+
+    def test_croissant_en_recovery(self, tmp_path: Any) -> None:
+        precedent = -1.0
+        for recovery in (0.0, 100.0, 250.0, 400.0):
+            svc = SupplyScoreService(db_dir=tmp_path / f"r{recovery}", clock=FixedClock(_NOW))
+            try:
+                courant = self._p_jalon(svc, 0.5, recovery).p_jalon_rate
+            finally:
+                svc.close()
+            assert courant >= precedent - 1e-12, f"baisse a recovery={recovery}"
+            precedent = courant
+
+    def test_recovery_absent_identique_a_zero(self, tmp_path: Any) -> None:
+        valeurs = []
+        for etiquette, recovery in (("none", None), ("zero", 0.0)):
+            svc = SupplyScoreService(db_dir=tmp_path / etiquette, clock=FixedClock(_NOW))
+            try:
+                valeurs.append(self._p_jalon(svc, 0.5, recovery).p_jalon_rate)
+            finally:
+                svc.close()
+        assert valeurs[0] == valeurs[1]
+
+
+class TestChocSimuleAtteintLeJalon:
+    """Les chocs que le rollout SIMULE doivent atteindre p_jalon_rate.
+
+    Regression du lien causal casse cote PROJECTION : ``completion`` etait
+    calcule une fois avant la boucle hebdomadaire et n'etait jamais remis a
+    jour. Les evenements defavorables tires pendant le rollout faisaient monter
+    ``etat.bump`` et ``evenement_cum``, mais n'apportaient aucun temps perdu :
+    un tirage ou le hasard declenchait une panne en semaine 2 rendait
+    exactement le meme P(jalon rate) qu'un tirage sans aucun evenement.
+
+    C'est le meme defaut que celui repare cote domaine - " evenement ->
+    capacite -> retard -> jalon " - laisse ouvert d'un cran plus loin.
+    """
+
+    @staticmethod
+    def _projet(service: SupplyScoreService, taux: float) -> tuple[str, str]:
+        """Noeud a marge serree : un seul choc simule suffit a la manger."""
+        project, ids = _creer_projet(service, 1)
+        # Historique d'urgence eleve -> hazard eleve (le taux d'evenement du rollout est estime dessus), ou plat -> hazard faible.
+        _historique(service, ids[0], [taux] * 30)
+        node = service.repo.get_node(ids[0])
+        node.kpis.time.lead_time_h = 40.0
+        node.kpis.time.lead_time_std_h = 4.0
+        service.repo.update_node(node)
+        _jalon(service, ids[0], deadline_offset_weeks=1.0, progress=0.0)
+        return project.id, ids[0]
+
+    def _p_jalon(self, service: SupplyScoreService, taux: float) -> float:
+        pid, nid = self._projet(service, taux)
+        resultat = ForecastService(service).rollout(pid, n_draws=2000, seed=0)
+        return resultat.previsions[nid][4].p_jalon_rate
+
+    def test_le_choc_simule_pousse_le_jalon(self, tmp_path: Any, monkeypatch: Any) -> None:
+        # Marge 168 h, cycle 40 h : jamais rate sans choc. Un evenement defavorable coute LAMBDA_ARRET x severite x 168 h de production, donc mange la marge -> le jalon devient ratable. Avec LAMBDA_ARRET = 0 le choc ne coute rien : c'est exactement l'ancien comportement.
+        valeurs = {}
+        for etiquette, lam in (("sans_cout", 0.0), ("avec_cout", 1.0)):
+            monkeypatch.setattr("supplyscore.services.forecast.COUT_CHOC_SEMAINE", lam)
+            svc = SupplyScoreService(db_dir=tmp_path / etiquette, clock=FixedClock(_NOW))
+            try:
+                valeurs[etiquette] = self._p_jalon(svc, 0.9)
+            finally:
+                svc.close()
+        assert valeurs["sans_cout"] < 0.01, "sans cout de choc, le jalon est intouchable"
+        assert valeurs["avec_cout"] > valeurs["sans_cout"], (
+            "un choc simule doit pouvoir repousser l'achevement"
+        )
+
+    def test_plus_le_hasard_frappe_plus_le_jalon_souffre(self, tmp_path: Any) -> None:
+        # Le taux d'evenement du rollout croit avec l'urgence historique : un noeud plus expose doit voir son risque de jalon monter, lui aussi.
+        valeurs = []
+        for taux in (0.05, 0.9):
+            svc = SupplyScoreService(db_dir=tmp_path / f"t{taux}", clock=FixedClock(_NOW))
+            try:
+                valeurs.append(self._p_jalon(svc, taux))
+            finally:
+                svc.close()
+        assert valeurs[1] >= valeurs[0]

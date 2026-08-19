@@ -1,7 +1,7 @@
-"""Tests du sélecteur d'opérateur global (« qui joue ? ») — aucun serveur lancé.
+"""Tests du selecteur d'operateur global (" qui joue ? ") - aucun serveur lance.
 
-Même convention que ``test_webui.py`` : les callbacks sont des fonctions
-nommées au niveau module, appelées directement sans contexte de requête Dash.
+Meme convention que ``test_webui.py`` : les callbacks sont des fonctions
+nommees au niveau module, appelees directement sans contexte de requete Dash.
 """
 
 import pytest
@@ -18,7 +18,7 @@ from supplyscore.web_ui.components.operator import (
 
 @pytest.fixture
 def service(tmp_path):
-    """Service seedé avec une petite démo, partagé par les callbacks."""
+    """Service seede avec une petite demo, partage par les callbacks."""
     svc = SupplyScoreService(db_dir=tmp_path / "store")
     svc.seed_demo(n_ranks=2, seed=1)
     set_service(svc)
@@ -26,7 +26,7 @@ def service(tmp_path):
     set_service(None)
 
 
-# --- current_operator (helper pur) ---------------------------------------------------
+# current_operator (helper pur)
 
 
 @pytest.mark.parametrize(
@@ -45,7 +45,7 @@ def test_current_operator(store_value, expected):
     assert current_operator(store_value) == expected
 
 
-# --- Callback du sélecteur ------------------------------------------------------------
+# Callback du selecteur
 
 
 def test_set_operator_callback_sets_trimmed_name():
@@ -68,7 +68,7 @@ def test_set_operator_callback_blank_falls_back_to_anonyme():
 
 
 def test_set_operator_callback_initial_call_restores_session():
-    # Au chargement (value=None), l'opérateur mémorisé en session est conservé.
+    # Au chargement (value=None), l'operateur memorise en session est conserve.
     data, badge = set_operator_callback(None, {"name": "Marie"})
     assert data == {"name": "Marie"}
     assert badge == "Marie"
@@ -86,7 +86,7 @@ def test_set_operator_callback_preserves_other_store_keys():
     assert badge == "Bob"
 
 
-# --- Composant et intégration au layout de l'application ------------------------------
+# Composant et integration au layout de l'application
 
 
 def test_operator_selector_contains_input_and_badge():

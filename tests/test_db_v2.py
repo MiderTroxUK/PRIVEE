@@ -1,7 +1,7 @@
-"""Tests du domaine v2 : migrations registre v3 / client v2 et CRUD associés (Lot 2.4).
+"""Tests du domaine v2 : migrations registre v3 / client v2 et CRUD associes (Lot 2.4).
 
 Couvre : migration d'une base v2 existante vers v3 (backfill t0_ts, idempotence,
-intégrité référentielle), round-trips des nouveaux champs (t0_ts, tags,
+integrite referentielle), round-trips des nouveaux champs (t0_ts, tags,
 onboarding_state, kind_arc), CRUD jalons/tags/onboarding/spec_sheet/events et
 cascades explicites de delete_node.
 """
@@ -25,11 +25,11 @@ from supplyscore.domain.milestones import Milestone, MilestoneStatus
 from supplyscore.domain.models import ArcKind, Project, SupplyArc, SupplyNode
 from supplyscore.domain.tags import Tag, TagCategory
 
-# --- Helpers --------------------------------------------------------------------
+# Helpers
 
 
 def _build_v2_registry(path: Path) -> None:
-    """Construit une base registre v2 réelle (telle que créée par le code actuel)."""
+    """Construit une base registre v2 reelle (telle que creee par le code actuel)."""
     conn = sqlite3.connect(str(path))
     _registry_v1(conn)
     _registry_v2(conn)
@@ -66,13 +66,13 @@ def _index_names(conn: sqlite3.Connection) -> set[str]:
 
 
 def _milestone(mid: str, node_id: str = "n1", position: int = 0, **kwargs: Any) -> Milestone:
-    """Jalon valide par défaut (deadline > start, progress dans [0, 1])."""
+    """Jalon valide par defaut (deadline > start, progress dans [0, 1])."""
     defaults: dict[str, Any] = {"start_ts": 1000.0, "deadline_ts": 2000.0}
     defaults.update(kwargs)
     return Milestone(id=mid, node_id=node_id, name=mid, position=position, **defaults)
 
 
-# --- Migration registre v2 -> v3 ---------------------------------------------------
+# Migration registre v2 -> v3
 
 
 class TestRegistryV3Migration:
@@ -84,7 +84,7 @@ class TestRegistryV3Migration:
         assert conn.execute("PRAGMA user_version").fetchone()[0] == 2
         assert apply_migrations(conn, "registry") == 5
 
-        # Données préservées.
+        # Donnees preservees.
         assert conn.execute("SELECT COUNT(*) FROM projects").fetchone()[0] == 1
         assert conn.execute("SELECT COUNT(*) FROM nodes").fetchone()[0] == 2
         assert conn.execute("SELECT COUNT(*) FROM arcs").fetchone()[0] == 1
@@ -93,7 +93,7 @@ class TestRegistryV3Migration:
         row = conn.execute("SELECT created_at, t0_ts FROM projects WHERE id = 'p1'").fetchone()
         assert row == (1000.0, 1000.0)
 
-        # Défauts des colonnes ajoutées.
+        # Defauts des colonnes ajoutees.
         states = {r[0] for r in conn.execute("SELECT onboarding_state FROM nodes").fetchall()}
         assert states == {"complete"}
         assert conn.execute("SELECT arc_kind FROM arcs").fetchone()[0] == "nominal"
@@ -108,7 +108,7 @@ class TestRegistryV3Migration:
         } <= _table_names(conn)
         assert {"idx_milestones_node", "idx_node_tags_tag"} <= _index_names(conn)
 
-        # Intégrité référentielle intacte.
+        # Integrite referentielle intacte.
         assert conn.execute("PRAGMA foreign_key_check").fetchall() == []
         conn.close()
 
@@ -118,7 +118,7 @@ class TestRegistryV3Migration:
         conn = sqlite3.connect(str(db_file))
 
         assert apply_migrations(conn, "registry") == 5
-        # Re-application : no-op, données intactes.
+        # Re-application : no-op, donnees intactes.
         assert apply_migrations(conn, "registry") == 5
         assert conn.execute("PRAGMA user_version").fetchone()[0] == 5
         assert conn.execute("SELECT COUNT(*) FROM nodes").fetchone()[0] == 2
@@ -133,7 +133,7 @@ class TestRegistryV3Migration:
         conn.close()
 
     def test_foreign_key_check_empty_with_v3_data(self, tmp_path):
-        """Une base v3 peuplée via les CRUD reste référentiellement saine."""
+        """Une base v3 peuplee via les CRUD reste referentiellement saine."""
         with RegistryDatabase(tmp_path) as db:
             db.save_project(Project(id="p1", name="P", owner_node_id="n1", created_at=10.0))
             db.save_tag(Tag(id="t1", project_id="p1", name="acier"))
@@ -146,7 +146,7 @@ class TestRegistryV3Migration:
         conn.close()
 
 
-# --- Migration client v1 -> v2 ------------------------------------------------------
+# Migration client v1 -> v2
 
 
 class TestClientV2Migration:
@@ -175,7 +175,7 @@ class TestClientV2Migration:
         conn.close()
 
 
-# --- Round-trips des nouveaux champs --------------------------------------------------
+# Round-trips des nouveaux champs
 
 
 class TestNewFieldsRoundTrip:
@@ -232,7 +232,7 @@ class TestNewFieldsRoundTrip:
             assert [t.name for t in db.list_tags("p1")] == ["forge", "usinage"]
             assert db.list_tags("autre") == []
 
-            # Re-save : les liens sont resynchronisés (pas accumulés).
+            # Re-save : les liens sont resynchronises (pas accumules).
             node.tags = ["t2"]
             db.save_node(node)
             resaved = db.get_node("n1")
@@ -257,7 +257,7 @@ class TestNewFieldsRoundTrip:
             assert db.list_arcs() == [backup, nominal]
 
 
-# --- Jalons ---------------------------------------------------------------------------
+# Jalons
 
 
 class TestMilestones:
@@ -273,7 +273,7 @@ class TestMilestones:
                 status=MilestoneStatus.DONE,
                 progress=1.0,
             )
-            # Insertion volontairement dans le désordre.
+            # Insertion volontairement dans le desordre.
             for m in (serie, livraison, proto):
                 db.save_milestone(m)
 
@@ -296,8 +296,8 @@ class TestMilestones:
             row = db._conn.execute(
                 "SELECT created_at, updated_at, progress FROM milestones WHERE id = 'm1'"
             ).fetchone()
-            assert row[0] == created  # created_at préservé
-            assert row[1] >= created  # updated_at rafraîchi
+            assert row[0] == created  # created_at preserve
+            assert row[1] >= created  # updated_at rafraichi
             assert row[2] == pytest.approx(0.7)
             assert len(db.list_milestones("n1")) == 1
 
@@ -325,7 +325,7 @@ class TestMilestones:
             assert db.list_milestones("n1") == []
 
 
-# --- Onboarding -----------------------------------------------------------------------
+# Onboarding
 
 
 class TestOnboarding:
@@ -354,7 +354,7 @@ class TestOnboarding:
             db.delete_onboarding("n1")  # silencieux si absent
 
 
-# --- Cascades de delete_node ------------------------------------------------------------
+# Cascades de delete_node
 
 
 def test_delete_node_cascades_tags_milestones_and_onboarding(tmp_path):
@@ -372,7 +372,7 @@ def test_delete_node_cascades_tags_milestones_and_onboarding(tmp_path):
         assert db.tags_of_node("n1") == []
         assert db.list_milestones("n1") == []
         assert db.get_onboarding("n1") is None
-        # Le nœud voisin et le catalogue de tags sont intacts.
+        # Le noeud voisin et le catalogue de tags sont intacts.
         neighbour = db.get_node("n2")
         assert neighbour is not None and neighbour.tags == ["t1"]
         assert [m.id for m in db.list_milestones("n2")] == ["m2"]
@@ -385,7 +385,7 @@ def test_delete_node_cascades_tags_milestones_and_onboarding(tmp_path):
         assert db._conn.execute("PRAGMA foreign_key_check").fetchall() == []
 
 
-# --- ClientDatabase : spec_sheet -----------------------------------------------------------
+# ClientDatabase : spec_sheet
 
 
 class TestSpecSheet:
@@ -410,7 +410,7 @@ class TestSpecSheet:
             assert db.latest_spec_sheet("n2") == (1, '{"a": 1}')
 
 
-# --- ClientDatabase : events ---------------------------------------------------------------
+# ClientDatabase : events
 
 
 class TestEvents:
@@ -448,7 +448,7 @@ class TestEvents:
                 "op-8",
             )
 
-            # Liste complète du nœud, ordonnée par occurred_at.
+            # Liste complete du noeud, ordonnee par occurred_at.
             events = db.list_events("n1")
             assert [e["id"] for e in events] == ["e1", "e2"]
             first = events[0]
@@ -461,20 +461,20 @@ class TestEvents:
             assert first["reverted_at"] is None
             assert events[1]["notes"] == "ligne 3 à l'arrêt"
 
-            # Filtre par semaine ISO (isolation par nœud comprise).
+            # Filtre par semaine ISO (isolation par noeud comprise).
             assert [e["id"] for e in db.list_events("n1", iso_week="2026-W23")] == ["e1"]
             assert [e["id"] for e in db.list_events("n1", iso_week="2026-W24")] == ["e2"]
             assert db.list_events("n1", iso_week="2026-W25") == []
             assert [e["id"] for e in db.list_events("n2")] == ["e3"]
 
-            # Annulation : reverted_at posé, l'événement reste journalisé.
+            # Annulation : reverted_at pose, l'evenement reste journalise.
             db.mark_reverted("e2", 2500.0)
             events = db.list_events("n1")
             assert events[1]["reverted_at"] == 2500.0
             assert events[0]["reverted_at"] is None
 
 
-# --- Persistance après réouverture -----------------------------------------------------------
+# Persistance apres reouverture
 
 
 def test_v3_fields_persist_across_reopen(tmp_path):

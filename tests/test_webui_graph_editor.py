@@ -1,15 +1,15 @@
-"""Tests du Lot 10.4 : page « /graphe » — éditeur de graphe, sans serveur.
+"""Tests du Lot 10.4 : page " /graphe " - editeur de graphe, sans serveur.
 
-Couvre : le tableau des arcs (lignes à id « src->dst », valeurs numériques),
-l'édition de cellule (γ modifié → registre + audit + ``no_update`` table ;
-γ hors bornes → rejet, table rechargée, AUCUN audit ; nature nominal→backup →
-rangs recalés ; backup→nominal cyclique → refus AVANT écriture), l'ajout
-d'arc (valide → base + repo ; cycle → message français, arc ABSENT de la base
-ET du repo ; self-loop et doublon refusés), la suppression confirmée
-(``service.remove_arc`` espionné), la taxonomie (catégorie + tag + affectation
-→ ``tags_of_node``) et les statuts (``service.set_status``). Callbacks appelés
-directement (fonctions module), service à FixedClock posé via ``set_service``
-et libéré en teardown, graphe déterministe A ← B ← C (+ D isolé).
+Couvre : le tableau des arcs (lignes a id " src->dst ", valeurs numeriques),
+l'edition de cellule (gamma modifie -> registre + audit + ``no_update`` table ;
+gamma hors bornes -> rejet, table rechargee, AUCUN audit ; nature nominal->backup ->
+rangs recales ; backup->nominal cyclique -> refus AVANT ecriture), l'ajout
+d'arc (valide -> base + repo ; cycle -> message francais, arc ABSENT de la base
+ET du repo ; self-loop et doublon refuses), la suppression confirmee
+(``service.remove_arc`` espionne), la taxonomie (categorie + tag + affectation
+-> ``tags_of_node``) et les statuts (``service.set_status``). Callbacks appeles
+directement (fonctions module), service a FixedClock pose via ``set_service``
+et libere en teardown, graphe deterministe A <- B <- C (+ D isole).
 """
 
 from __future__ import annotations
@@ -30,7 +30,7 @@ from supplyscore.services import SupplyScoreService
 from supplyscore.web_ui import set_service
 from supplyscore.web_ui.pages import graph_editor
 
-#: Mercredi 2026-06-10 12:00 locale — semaine ISO « 2026-S24 ».
+#: Mercredi 2026-06-10 12:00 locale - semaine ISO " 2026-S24 ".
 _NOW = datetime(2026, 6, 10, 12, 0).timestamp()
 
 _OPERATOR = {"name": "testeuse"}
@@ -39,7 +39,7 @@ _PROJECT = {"project_id": "p1", "name": "Chaîne"}
 
 @pytest.fixture
 def service(tmp_path: Path):
-    """Service à horloge figée, partagé par les callbacks de la page."""
+    """Service a horloge figee, partage par les callbacks de la page."""
     svc = SupplyScoreService(db_dir=tmp_path / "store", clock=FixedClock(_NOW))
     set_service(svc)
     yield svc
@@ -49,7 +49,7 @@ def service(tmp_path: Path):
 
 @pytest.fixture
 def chain(service: SupplyScoreService) -> Project:
-    """Chaîne déterministe C → B → A (+ D isolé), projet « p1 »."""
+    """Chaine deterministe C -> B -> A (+ D isole), projet " p1 "."""
     project = Project(id="p1", name="Chaîne", owner_node_id="A", created_at=_NOW, t0_ts=_NOW)
     nodes = [
         SupplyNode(id="A", name="Client final", label="Client", rank=0, project_id="p1"),
@@ -66,12 +66,12 @@ def chain(service: SupplyScoreService) -> Project:
 
 
 def _rows(service: SupplyScoreService) -> list[dict]:
-    """Lignes fraîches du tableau des arcs du projet p1."""
+    """Lignes fraiches du tableau des arcs du projet p1."""
     return graph_editor._arc_rows(service, "p1")
 
 
 def _row(rows: list[dict], arc_id: str) -> dict:
-    """La ligne du tableau portant l'id demandé."""
+    """La ligne du tableau portant l'id demande."""
     matches = [r for r in rows if r["id"] == arc_id]
     assert len(matches) == 1, f"ligne {arc_id!r} introuvable dans {rows!r}"
     return matches[0]
@@ -84,14 +84,14 @@ def _audit_arc(service: SupplyScoreService, arc_id: str, field: str):
 
 
 def _edit(service: SupplyScoreService, mutate, project=_PROJECT):
-    """Joue une édition de cellule : copie data_previous, applique ``mutate``."""
+    """Joue une edition de cellule : copie data_previous, applique ``mutate``."""
     previous = _rows(service)
     data = copy.deepcopy(previous)
     mutate(data)
     return graph_editor.edit_arc_callback(123, data, previous, project, _OPERATOR, 0)
 
 
-# --- Tableau des arcs --------------------------------------------------------------
+# Tableau des arcs
 
 
 class TestTableau:
@@ -119,14 +119,14 @@ class TestTableau:
     def test_sans_projet_tout_le_graphe_et_tags_vides(self, service, chain) -> None:
         outputs = graph_editor.refresh_view_callback(None, 0)
 
-        # outputs[9] = bandeau info (outputs[8] = options du dropdown de suppression de nœud)
+        # outputs[9] = bandeau info (outputs[8] = options du dropdown de suppression de noeud)
         rows, cat_options, tag_options, info = outputs[0], outputs[4], outputs[6], outputs[9]
         assert {row["id"] for row in rows} == {"B->A", "C->B"}
         assert cat_options == [] and tag_options == []
         assert "Aucun projet sélectionné" in str(info)
 
 
-# --- Édition de cellule ------------------------------------------------------------
+# Edition de cellule
 
 
 class TestEditionArc:
@@ -148,7 +148,7 @@ class TestEditionArc:
         table, message, refresh = _edit(service, lambda data: _row(data, "C->B").update(gamma=1.5))
 
         assert table is not no_update
-        assert _row(table, "C->B")["gamma"] == 0.5  # rechargée depuis le registre
+        assert _row(table, "C->B")["gamma"] == 0.5  # rechargee depuis le registre
         assert "Modification refusée" in str(message)
         assert "gamma hors [0, 1]" in str(message)
         assert refresh is no_update
@@ -201,8 +201,7 @@ class TestEditionArc:
         assert len(entries) == 1 and entries[0].source == "edit"
 
     def test_backup_vers_nominal_cyclique_refuse_avant_ecriture(self, service, chain) -> None:
-        # Arc de secours A -> C : autorisé (inerte), mais il fermerait un
-        # cycle A -> C -> B -> A s'il repassait en nominal.
+        # Arc de secours A -> C : autorise (inerte), mais il fermerait un cycle A -> C -> B -> A s'il repassait en nominal.
         message, refresh = graph_editor.add_arc_callback(
             1, "A", "C", 0.4, 0.4, "backup", _OPERATOR, 0
         )
@@ -220,7 +219,7 @@ class TestEditionArc:
         assert _audit_arc(service, "A->C", "kind_arc") == []
 
 
-# --- Ajout d'arc -------------------------------------------------------------------
+# Ajout d'arc
 
 
 class TestAjoutArc:
@@ -234,7 +233,7 @@ class TestAjoutArc:
         arc = service.registry.get_arc("D", "A")
         assert arc is not None and arc.gamma == 0.7 and arc.beta == 0.6
         assert service.repo.get_arc("D", "A") is not None
-        # D alimente désormais A : son rang canonique passe à 1.
+        # D alimente desormais A : son rang canonique passe a 1.
         assert service.registry.get_node("D").rank == 1
         entries = _audit_arc(service, "D->A", "")
         assert len(entries) == 1 and entries[0].new_value == "created"
@@ -267,7 +266,7 @@ class TestAjoutArc:
 
         assert "existe déjà" in str(message)
         assert refresh is no_update
-        assert service.registry.get_arc("B", "A").gamma == 0.5  # inchangé
+        assert service.registry.get_arc("B", "A").gamma == 0.5  # inchange
 
     def test_selection_incomplete_refusee(self, service, chain) -> None:
         message, refresh = graph_editor.add_arc_callback(
@@ -289,7 +288,7 @@ class TestAjoutArc:
         assert "ajouté" in str(message)
 
 
-# --- Suppression d'arc -------------------------------------------------------------
+# Suppression d'arc
 
 
 class TestSuppressionArc:
@@ -311,7 +310,7 @@ class TestSuppressionArc:
         assert refresh == 1
         assert service.registry.get_arc("C", "B") is None
         assert service.repo.get_arc("C", "B") is None
-        # Fournisseur devenu isolé : rang recalé à 0 par remove_arc.
+        # Fournisseur devenu isole : rang recale a 0 par remove_arc.
         assert service.registry.get_node("C").rank == 0
 
     def test_suppression_sans_choix_refusee(self, service, chain) -> None:
@@ -327,7 +326,7 @@ class TestSuppressionArc:
         assert refresh is no_update
 
 
-# --- Tags & taxonomie --------------------------------------------------------------
+# Tags & taxonomie
 
 
 class TestTags:
@@ -350,7 +349,7 @@ class TestTags:
         message, refresh = graph_editor.assign_tags_callback(1, "B", [tags[0].id], _OPERATOR, 0)
         assert "mis à jour" in str(message) and refresh == 1
         assert [t.name for t in service.registry.tags_of_node("B")] == ["Usinage"]
-        # Affectation auditée au registre (entity node, champ tags, source edit).
+        # Affectation auditee au registre (entity node, champ tags, source edit).
         trail = AuditTrail(service.registry.conn, FixedClock(_NOW), lock=service.registry.lock)
         entries = trail.history("node", "B", field="tags", limit=5)
         assert len(entries) == 1
@@ -409,7 +408,7 @@ class TestTags:
         assert labels == ["Fonderie (Procédé)", "Libre"]
 
 
-# --- Statuts -----------------------------------------------------------------------
+# Statuts
 
 
 class TestStatuts:
@@ -428,7 +427,7 @@ class TestStatuts:
         assert refresh is no_update
 
 
-# --- Layout, câblage et garde-fous -------------------------------------------------
+# Layout, cablage et garde-fous
 
 
 class TestPage:
@@ -460,7 +459,7 @@ class TestPage:
             "graph-edit-refresh",
         ):
             assert el_id in rendu, f"id manquant dans le layout : {el_id}"
-        # UN SEUL ConfirmDialogProvider sur la page (piège des races documenté).
+        # UN SEUL ConfirmDialogProvider sur la page (piege des races documente).
         assert rendu.count("ConfirmDialogProvider") == 1
         assert "Supprimer l'arc ? La propagation sera recalculée." in rendu
 
@@ -484,7 +483,7 @@ class TestPage:
             appel()
 
     def test_creerait_un_cycle_bfs(self, service, chain) -> None:
-        assert graph_editor._creerait_un_cycle(service.repo, "A", "C") is True  # A→C ferme C⇝A
+        assert graph_editor._creerait_un_cycle(service.repo, "A", "C") is True  # A->C ferme C~>A
         assert graph_editor._creerait_un_cycle(service.repo, "B", "B") is True  # boucle
         assert graph_editor._creerait_un_cycle(service.repo, "D", "A") is False
         assert graph_editor._creerait_un_cycle(service.repo, "C", "A") is False  # diamant licite
