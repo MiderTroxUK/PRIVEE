@@ -1,0 +1,73 @@
+\section{H\'ELIOS Campaign Protocol Extract}
+\label{app:protocol}
+
+This appendix records the elements of the frozen protocol that a reader would need in order
+to reproduce or audit the campaign, beyond the design already given in
+Section~\ref{sec:methods_campaign}.
+
+\subsection*{Cadence and Sequence}
+
+Nineteen turns are indexed T0 to T18. T0 is a training turn used to verify that every
+declarant can complete the questionnaire inside ten minutes with the consistency gate
+active; its declarations are retained in the record but excluded from every analysis. The
+eighteen campaign turns run at two per day, morning and late afternoon, over nine working
+days. One game turn represents one real month, from September 2020 to February 2022, with
+real durations converted into engine hours at a fixed rate so that documented figures such as
+twelve to twenty-five week supplier lead times or a six-day canal blockage retain their true
+magnitude inside an eighteen-turn game.
+
+\subsection*{Frozen Artifacts}
+
+Four artifacts were frozen before T0 and are the reference against which any later analysis
+is checked: the scenario definition with its twelve calibrated events and their turn
+assignments; the data pack of public time series, with a SHA-256 hash recorded per file; the
+role cards, one per node, each stating only what that declarant may know; and the hypothesis
+register H1 to H6 with its numeric thresholds. Any analysis not derivable from the register
+is labelled exploratory in the reporting.
+
+\subsection*{Controls}
+
+\begin{itemize}
+    \item \emph{Isolation.} Each declarant sees only its own role sheet, its own turn
+    briefing and its own questionnaire. Dashboards, scores, the network view and other
+    declarants' material stay hidden until the debrief. In the executed campaign this is
+    enforced by the harness, which gives each agent a private working directory, rather than
+    by instruction.
+    \item \emph{Placebo sheets.} A false de-escalation notice is handed to the avionics
+    integrator at T9 and to the wafer supplier at T15. A declared urgency that follows the
+    placebo is reflecting the sheet rather than a reading of the situation.
+    \item \emph{Weak-signal turn.} At T4 the press briefing mentions a tension with no
+    engine event behind it, which measures who reacts to media noise alone. This is also the
+    turn on which the arm B treatment first becomes visible, so the two effects are
+    deliberately not separated on that turn and the arm A control is what isolates them.
+    \item \emph{Role assignment.} The two most information-heavy nodes, the foundry and
+    the distributor, are assigned away from the most supply-chain-experienced participants,
+    so that a role effect cannot be confounded with an expertise effect.
+    \item \emph{Journal.} Every deviation from protocol is logged the same day.
+\end{itemize}
+
+\subsection*{Contingencies Arbitrated in Advance}
+
+Three contingencies were decided before the campaign rather than improvised under time
+pressure. The campaign truncates at T16 if it overruns by more than two turns, rather than
+rushing the remaining responses. It drops to one turn per day if the questionnaire exceeds
+ten minutes at the training turn. Any absence, or any unresolved consistency failure, is
+carried forward unchanged and excluded from the reactivity analyses.
+
+\subsection*{Declaration Record Format}
+
+Each declaration is one JSON record per node per turn, carrying the turn index, the six
+bipolar pairwise comparisons, the four severity scores, the derived criteria weights, the
+principal eigenvalue with its consistency index and consistency ratio, a flag for whether the
+consistency gate passed, the number of attempts, the raw and smoothed declared urgency, and a
+free-text note. Arm B adds one field, \texttt{influence\_prediction}, taking one of four
+values: no influence, confirms, revised upward, or revised downward. The format is otherwise
+identical between arms, which is what makes them comparable.
+
+\subsection*{Deviations Recorded in the Executed Campaign}
+
+Two are on record. One node submitted turn 1 twice; the first submission is retained and the
+duplicate discarded, which is why the arm B analysis reports 96 declarations from 97 raw
+records. Arm B ran to T11 rather than T18, so its forecast log covers turns 4 to 12 against
+turns 4 to 18 in arm A; all arm B comparisons in this thesis are therefore made over the
+turns actually recorded, and the arm A scoring uses its own full range.

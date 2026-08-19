@@ -1,0 +1,49 @@
+<svg width="1280" height="720" viewBox="0 0 1280 720" xmlns="http://www.w3.org/2000/svg">
+  <rect id="bg" x="0" y="0" width="1280" height="720" fill="#FFFFFF"/>
+
+  <g id="p08-header">
+    <text x="56" y="60" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" letter-spacing="2" fill="#6B7A85">PARTIE II · DEEP DIVE 1/6 · AHP</text>
+    <text x="54" y="104" font-family="Segoe UI, Arial, sans-serif" font-size="42" font-weight="800" fill="#1E4258">Comparer plutôt que noter : le processus AHP de Saaty</text>
+    <rect x="56" y="118" width="64" height="4" fill="#2C5F7C"/>
+  </g>
+
+  <g id="p08-figure">
+    <image href="../images/04-questionnaire-pleine-page.png" x="76" y="150" width="315" height="460" preserveAspectRatio="xMidYMid meet"/>
+    <rect x="76" y="150" width="315" height="460" fill="none" stroke="#D8DEE3" stroke-width="1"/>
+    <text x="76" y="634" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#6B7A85">
+      <tspan x="76" dy="0">Curseur bipolaire -8…+8, mappé sur</tspan>
+      <tspan x="76" dy="22">l'échelle de Saaty [1/9, 9]</tspan>
+    </text>
+  </g>
+
+  <g id="p08-content">
+    <text x="430" y="176" font-family="Segoe UI, Arial, sans-serif" font-size="26" font-weight="700" fill="#1E4258">4 critères comparés deux à deux</text>
+    <text x="430" y="208" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#22313A">
+      <tspan x="430" dy="0">C1 Impact opérationnel · C2 Fenêtre temporelle ·</tspan>
+      <tspan x="430" dy="26">C3 Dépendances aval · C4 Récupérabilité</tspan>
+    </text>
+
+    <rect x="430" y="256" width="56" height="3" fill="#B06000"/>
+
+    <text x="430" y="294" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#6B7A85">Matrice réciproque positive A</text>
+    <image href="../images/f01_ahp_matrix.png" x="430" y="304" width="420" height="74" preserveAspectRatio="xMidYMid meet"/>
+
+    <text x="430" y="400" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#6B7A85">Vecteur de priorité w (moyenne des colonnes normalisées)</text>
+    <image href="../images/f02_ahp_w.png" x="430" y="410" width="340" height="86" preserveAspectRatio="xMidYMid meet"/>
+
+    <text x="430" y="518" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#6B7A85">Indice et ratio de consistance (Saaty)</text>
+    <image href="../images/f03_ahp_cr.png" x="430" y="526" width="430" height="69" preserveAspectRatio="xMidYMid meet"/>
+
+    <text x="430" y="628" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#22313A">
+      <tspan x="430" dy="0">Seuil : <tspan font-weight="700" fill="#2C5F7C">CR &lt; 0.10</tspan> · lissage EMA avec ρ = 0.3</tspan>
+      <tspan x="430" dy="26">pour amortir les pics de stress ponctuels</tspan>
+    </text>
+  </g>
+
+  <g id="p08-footer">
+    <line x1="56" y1="676" x2="1224" y2="676" stroke="#D8DEE3" stroke-width="1"/>
+    <text x="56" y="700" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#9AA5AC">SupplyScore · Soutenance de thèse</text>
+    <text x="640" y="700" text-anchor="middle" font-family="Consolas, 'Courier New', monospace" font-size="15" fill="#9AA5AC">supplyscore/core/ahp.py</text>
+    <text x="1224" y="700" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#9AA5AC" text-anchor="end">08 / 28</text>
+  </g>
+</svg>

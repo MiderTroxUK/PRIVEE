@@ -1,0 +1,64 @@
+<svg width="1280" height="720" viewBox="0 0 1280 720" xmlns="http://www.w3.org/2000/svg">
+  <rect id="bg" x="0" y="0" width="1280" height="720" fill="#FFFFFF"/>
+
+  <g id="p24-header">
+    <text x="56" y="60" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" letter-spacing="2" fill="#6B7A85">PARTIE III · DÉMONSTRATION 8/8</text>
+    <text x="54" y="104" font-family="Segoe UI, Arial, sans-serif" font-size="42" font-weight="800" fill="#1E4258">Un classeur de 12 feuilles pour l'audit complet</text>
+    <rect x="56" y="118" width="64" height="4" fill="#2C5F7C"/>
+  </g>
+
+  <g id="p24-content">
+    <text x="76" y="196" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#22313A">
+      <tspan x="76" dy="0">ExportService compile le registre global et les bases</tspan>
+      <tspan x="76" dy="26">locales en un classeur Excel structuré, prêt pour</tspan>
+      <tspan x="76" dy="26">l'analyse statistique post-session sous pandas.</tspan>
+    </text>
+
+    <rect x="76" y="320" width="230" height="50" fill="#F4F6F8" stroke="#D8DEE3"/>
+    <text x="191" y="350" text-anchor="middle" font-family="Consolas, 'Courier New', monospace" font-size="14" font-weight="700" fill="#1E4258">projet</text>
+    <rect x="322" y="320" width="230" height="50" fill="#F4F6F8" stroke="#D8DEE3"/>
+    <text x="437" y="350" text-anchor="middle" font-family="Consolas, 'Courier New', monospace" font-size="14" font-weight="700" fill="#1E4258">noeuds</text>
+    <rect x="568" y="320" width="230" height="50" fill="#F4F6F8" stroke="#D8DEE3"/>
+    <text x="683" y="350" text-anchor="middle" font-family="Consolas, 'Courier New', monospace" font-size="14" font-weight="700" fill="#1E4258">arcs</text>
+    <rect x="814" y="320" width="230" height="50" fill="#F4F6F8" stroke="#D8DEE3"/>
+    <text x="929" y="350" text-anchor="middle" font-family="Consolas, 'Courier New', monospace" font-size="14" font-weight="700" fill="#1E4258">jalons</text>
+
+    <rect x="76" y="380" width="230" height="50" fill="#F4F6F8" stroke="#D8DEE3"/>
+    <text x="191" y="410" text-anchor="middle" font-family="Consolas, 'Courier New', monospace" font-size="13" font-weight="700" fill="#1E4258">historique_urgences</text>
+    <rect x="322" y="380" width="230" height="50" fill="#F4F6F8" stroke="#D8DEE3"/>
+    <text x="437" y="410" text-anchor="middle" font-family="Consolas, 'Courier New', monospace" font-size="14" font-weight="700" fill="#1E4258">evaluations</text>
+    <rect x="568" y="380" width="230" height="50" fill="#F4F6F8" stroke="#D8DEE3"/>
+    <text x="683" y="410" text-anchor="middle" font-family="Consolas, 'Courier New', monospace" font-size="14" font-weight="700" fill="#1E4258">revues</text>
+    <rect x="814" y="380" width="230" height="50" fill="#F4F6F8" stroke="#D8DEE3"/>
+    <text x="929" y="410" text-anchor="middle" font-family="Consolas, 'Courier New', monospace" font-size="13" font-weight="700" fill="#1E4258">kpi_snapshots</text>
+
+    <rect x="76" y="440" width="230" height="50" fill="#F4F6F8" stroke="#D8DEE3"/>
+    <text x="191" y="470" text-anchor="middle" font-family="Consolas, 'Courier New', monospace" font-size="14" font-weight="700" fill="#1E4258">evenements</text>
+    <rect x="322" y="440" width="230" height="50" fill="#F4F6F8" stroke="#D8DEE3"/>
+    <text x="437" y="470" text-anchor="middle" font-family="Consolas, 'Courier New', monospace" font-size="14" font-weight="700" fill="#1E4258">decisions</text>
+    <rect x="568" y="440" width="230" height="50" fill="#F4F6F8" stroke="#D8DEE3"/>
+    <text x="683" y="470" text-anchor="middle" font-family="Consolas, 'Courier New', monospace" font-size="13" font-weight="700" fill="#1E4258">audit_registre</text>
+    <rect x="814" y="440" width="230" height="50" fill="#F4F6F8" stroke="#D8DEE3"/>
+    <text x="929" y="470" text-anchor="middle" font-family="Consolas, 'Courier New', monospace" font-size="13" font-weight="700" fill="#1E4258">audit_noeuds</text>
+
+    <text x="76" y="530" font-family="Segoe UI, Arial, sans-serif" font-size="17" fill="#22313A">
+      <tspan x="76" dy="0">Conversion automatique des timestamps epoch vers</tspan>
+      <tspan x="76" dy="26">le fuseau horaire local du coordinateur.</tspan>
+    </text>
+
+    <text x="76" y="596" font-family="Consolas, 'Courier New', monospace" font-size="16" fill="#6B7A85">SupplyScore_&lt;projet&gt;_AAAAMMJJ_HHMMSS.xlsx</text>
+  </g>
+
+  <g id="p24-figure">
+    <text x="1071" y="160" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#9AA5AC">Session</text>
+    <image href="../images/17-rapport-session-pleine-page.png" x="1071" y="170" width="153" height="480" preserveAspectRatio="xMidYMid meet"/>
+    <rect x="1071" y="170" width="153" height="480" fill="none" stroke="#D8DEE3" stroke-width="1"/>
+  </g>
+
+  <g id="p24-footer">
+    <line x1="56" y1="676" x2="1224" y2="676" stroke="#D8DEE3" stroke-width="1"/>
+    <text x="56" y="700" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#9AA5AC">SupplyScore · Soutenance de thèse</text>
+    <text x="640" y="700" text-anchor="middle" font-family="Consolas, 'Courier New', monospace" font-size="15" fill="#9AA5AC">supplyscore/services/exports.py · ExportService</text>
+    <text x="1224" y="700" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#9AA5AC" text-anchor="end">24 / 28</text>
+  </g>
+</svg>

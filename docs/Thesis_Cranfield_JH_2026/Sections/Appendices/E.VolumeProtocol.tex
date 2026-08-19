@@ -1,0 +1,131 @@
+\section{Satellite Capacity Estimation: Protocol and Data}
+\label{app:volume}
+
+This appendix records the operational detail behind the opening of
+Section~\ref{sec:res_volume}, so that its measurements can be audited or repeated.
+
+\subsection*{Data Sources}
+
+All sources are public French open-data services, accessed over standard web map and feature
+services and cached on disk so that a re-run does not depend on service availability.
+Table~\ref{tab:app_volume_sources} lists each one with the role it plays in the pipeline.
+
+\begin{table}[htbp]
+\centering
+\caption{Data sources of the capacity pipeline}
+\label{tab:app_volume_sources}
+\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{4.0cm} X}
+\toprule
+\textbf{Source} & \textbf{Use} \\
+\midrule
+Orthophotography, 20~cm & Primary imagery for detection and segmentation \\
+Orthophotography, 5 to 10~cm & Partial coverage, used only for the resolution control of
+Figure~\ref{fig:volume_resolution} \\
+LiDAR surface model & Building height where available, delivered as 32-bit float raster \\
+National topographic database & Building footprints and, where populated, height \\
+Classified installations register & Declared storage volume, used only to calibrate the
+fill factor \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+All geometry is handled in the national metric projection, in which the ground sample
+distance is exactly the bounding-box width in metres divided by the image width in pixels
+rather than an approximation.
+
+\subsection*{Calibration of the Fill Factor}
+
+The fill factor relates declared storage volume to the geometric envelope. For each site in
+the regulatory register, the nearest building footprint is matched, the geometric volume is
+computed as footprint area times eaves height, and the ratio of declared to geometric volume
+is recorded. Ratios outside $[0.05, 20]$ are discarded as either an aberrant declaration or a
+mismatched building. The production constant of $0.80$ is attributed in the source to a
+median over 122 matched sites with an interquartile range of $[0.52, 1.22]$.
+
+That run cannot be reproduced from the retained artifacts, and the discrepancy is recorded
+here in full. The calibration script writes its detailed output to a file that is not present
+in the repository, so the only auditable sample is the 68-site corpus retained for other
+purposes. Recomputing the identical ratio over those 68 sites gives a median of $0.966$, an
+interquartile range of $[0.80, 2.00]$, and $47\%$ of sites inside the $[0.7, 1.4]$ band,
+against the $70\%$ the calibration script itself prints as its acceptance target. The
+available evidence does not distinguish between a biased remnant sample and an understated
+production constant. Recollecting the register cleanly, with the departmental loop and
+pagination the script provides, and rederiving the factor, is the resolution.
+
+One matching rule is worth recording because it changes the answer materially. Only the
+largest building within the search radius is matched, and neighbouring buildings are not
+summed: summing them moves the median ratio from $0.80$ to $0.58$, because a declared volume
+belongs to one warehouse while the footprints of a whole industrial estate do not.
+
+\subsection*{Annotation Protocol}
+
+The dataset comprises 442 georeferenced image chips, each retained at a single location, a
+single resolution and a single vintage, with a sidecar file recording its geographic
+transform. Of these, 351 form the training split and 91 the validation split.
+
+Annotators mark one class, the continuous extent of facade served by a dock apron, and the
+following rules apply.
+
+\begin{itemize}
+    \item Mark an equipped facade even where no vehicle is parked. The apron and canopy
+    remain visible, and a facade annotated only when a vehicle is present teaches the model
+    to detect vehicles.
+    \item Do not annotate a trailer holding yard that is not adjacent to a wall.
+    \item Do not annotate an aeronautical tarmac or a small-business forecourt. Both are
+    paved and deep but serve no docks.
+    \item A facade without docks is annotated empty. That is a useful negative, not an
+    omission, and roughly 40\% of the target sample is negative by design.
+    \item Ignore everything above the facade line, which is roof. Rooflights and sawtooth
+    roofs are perfectly periodic and are the principal source of false positives.
+    \item Annotate every visible dock zone in a chip regardless of which building owns it.
+    Ownership is resolved downstream by geometric clipping, so the model is never asked to
+    infer it from pixels, and annotating a zone in one chip but not in the overlapping
+    neighbour would give the model two contradictory labels for the same ground.
+\end{itemize}
+
+Sampling is stratified by footprint area across three bands, roughly 1\,500 to
+5\,000~m\textsuperscript{2}, 5\,000 to 20\,000~m\textsuperscript{2} and above
+20\,000~m\textsuperscript{2}, and across five site categories covering small enterprises,
+aerospace, refrigerated, very large and retail distribution. An unstratified random draw
+over-represents large warehouses, and the model inherits that bias.
+
+\subsection*{Training Configuration}
+
+The model is a segmentation network trained from pre-trained weights at a $640$~pixel input
+size, with rotation augmentation over the full circle, horizontal and vertical flips, and
+scale jitter. Rotation invariance is obtained by augmentation rather than by geometric
+rectification of the facade, which is what allows the model to accept any building shape and
+orientation without requiring a footprint as input. Training ran on CPU throughout, with no
+GPU available, which is the practical reason the input size was not raised further and the
+context for the negative resolution result of Table~\ref{tab:volume_training}.
+
+\subsection*{Measured Facts Recorded for Reuse}
+
+\begin{itemize}
+    \item Empty bay contrast at verified locations: $0.18\sigma$, $0.22\sigma$ and
+    $0.01\sigma$, against $5.3\sigma$ to $6.4\sigma$ at occupied bays on the same facades,
+    over a full sweep of assumed apron depths from $0.3$~m to $20$~m.
+    \item Dock pitch coherence between facades of the same building: $0.03$ to $0.05$~m,
+    which provides a free quality control.
+    \item Roof overhang beyond the footprint edge: $0$ to $14.4$~m. This is why the footprint
+    edge is not the start of the apron, and it was the cause of an earlier defect in which
+    rooflights were counted as bays.
+    \item Trailer distance to building: median up to $126$~m on large platforms; at one site
+    only 8 of 89 detected trailers lay within $26$~m. Trailers are not a proxy for docks.
+    \item Zero-shot coverage before the learned model: 25 of 70 sites, or $36\%$.
+    \item Prompt sensitivity of the promptable segmentation model used for site sampling: a
+    prompt naming an industrial warehouse returns 88\,752~m\textsuperscript{2}, some 45\% of
+    the view, where a prompt naming a warehouse roof returns the
+    13\,478~m\textsuperscript{2} of the roof itself. The first is useful for locating a site,
+    the second for measuring it, and they are not interchangeable.
+\end{itemize}
+
+\subsection*{Licensing Constraint}
+
+The detection and segmentation library used is distributed under a strong copyleft licence.
+This has no consequence for internal research use, but it becomes determinative the moment
+the capability is distributed or exposed over a network. The options are a commercial licence
+from the vendor or replacement of the backbone with a permissively licensed equivalent. This
+is recorded as a governance decision to be taken deliberately rather than discovered at
+deployment.

@@ -1,0 +1,50 @@
+[
+ {
+  "tag": "best",
+  "lat": 43.722035,
+  "lon": 1.398999,
+  "sam_area_m2": 6702,
+  "bdtopo_area_m2": 7250,
+  "forme": "U/T/Z",
+  "volume_m3": 58446,
+  "palettes": 11689,
+  "hauteur_m": 10.9,
+  "hauteur_source": "bdtopo",
+  "aprons": 5,
+  "longueur_quai_m": 281,
+  "docks": 74,
+  "secondes": 41
+ },
+ {
+  "tag": "mid",
+  "lat": 43.71951,
+  "lon": 1.390983,
+  "sam_area_m2": 9728,
+  "bdtopo_area_m2": 9586,
+  "forme": "L",
+  "volume_m3": 73931,
+  "palettes": 14786,
+  "hauteur_m": 9.5,
+  "hauteur_source": "bdtopo",
+  "aprons": 3,
+  "longueur_quai_m": 112,
+  "docks": 30,
+  "secondes": 39
+ },
+ {
+  "tag": "flop",
+  "lat": 43.696143,
+  "lon": 1.401918,
+  "sam_area_m2": 3439,
+  "bdtopo_area_m2": 3505,
+  "forme": "complexe",
+  "volume_m3": 17058,
+  "palettes": 3412,
+  "hauteur_m": 6.2,
+  "hauteur_source": "bdtopo",
+  "aprons": 0,
+  "longueur_quai_m": 0,
+  "docks": 0,
+  "secondes": 35
+ }
+]

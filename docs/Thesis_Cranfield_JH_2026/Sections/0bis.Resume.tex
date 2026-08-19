@@ -1,0 +1,35 @@
+Dans les r\'eseaux logistiques mutualis\'es, l'urgence qu'un op\'erateur d\'eclare diverge
+souvent de celle que l'on peut calculer \`a partir de l'\'etat op\'erationnel. La
+sur-d\'eclaration gaspille de la capacit\'e partag\'ee~; la sous-d\'eclaration dissimule un
+risque de rupture. Aucun jumeau num\'erique existant ne mesure cette divergence ni ne la
+propage \`a l'\'echelle d'un r\'eseau de fournisseurs.
+
+Ce m\'emoire en construit un et le met \`a l'\'epreuve. L'urgence r\'eelle est agr\'eg\'ee
+\`a chaque n\oe{}ud \`a partir de six blocs de KPI par un OU probabiliste pond\'er\'e, puis
+propag\'ee vers l'aval sur un graphe orient\'e acyclique~; l'urgence d\'eclar\'ee est
+\'elicit\'ee par un questionnaire de comparaisons par paires soumis \`a un contr\^ole de
+coh\'erence, puis propag\'ee vers l'amont~; leur \'ecart est not\'e sur $[0,100]$ par une
+p\'enalit\'e asym\'etrique issue de la th\'eorie des perspectives. Le syst\`eme a \'et\'e
+\'evalu\'e par une campagne pr\'e-enregistr\'ee rejouant la p\'enurie de semi-conducteurs de
+2020 \`a 2022 sur dix-neuf tours et huit n\oe{}uds, avec un bras t\'emoin en aveugle et un
+bras de traitement assist\'e par pr\'evision, sur un sc\'enario gel\'e.
+
+Les r\'esultats sont n\'egatifs et pr\'ecis sur le plan diagnostique. La couche de
+pr\'evision ne discrimine pas mieux que le hasard et se r\'ev\`ele fortement mal
+calibr\'ee, avec un \emph{skill} de Brier compris entre $-3{,}4$ et $-6{,}9$ face \`a un
+pr\'evisionniste annon\c{c}ant le taux de base. Les pr\'evisions inf\'erieures \`a $0{,}1$
+sont bien calibr\'ees, tandis que vingt-et-une annon\c{c}ant une probabilit\'e moyenne de
+$0{,}948$ n'ont \'et\'e suivies de l'issue pr\'edite exactement z\'ero fois. Un seul bloc
+l'explique~: le bloc temporel lit une distribution de d\'elai qu'aucun choc n'atteint
+jamais. Dans le bras de traitement, au tour o\`u la pr\'evision devient visible pour la
+premi\`ere fois, les huit d\'eclarants ont tous revu leur urgence \`a la baisse ou l'ont
+maintenue, aucun ne l'a revue \`a la hausse, deux tours avant l'\'ev\'enement critique du
+sc\'enario. Les deux bras portent des pr\'evisions identiques~: l'effet tient donc \`a
+l'affichage. Substituer une d\'efinition d'issue plausible mais na\"ive multiplie par cinq
+le \emph{skill} apparent sans modifier la discrimination.
+
+\vspace{0.5cm}
+
+\noindent\textbf{Mots-cl\'es~:} jumeau num\'erique de cha\^ine d'approvisionnement,
+ad\'equation d'urgence, biais cognitif, aide multicrit\`ere \`a la d\'ecision, calibration
+de pr\'evisions, biais d'automatisation, jeu s\'erieux.

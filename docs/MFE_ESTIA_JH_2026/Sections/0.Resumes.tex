@@ -1,0 +1,92 @@
+%% Les consignes (§6.2.3.1) exigent un resume en francais, en anglais et en
+%% espagnol, d'environ une demi-page chacun.
+
+\section*{R\'esum\'e}
+\label{sec:resume_fr}
+\addcontentsline{toc}{section}{R\'esum\'e / Abstract / Resumen}
+
+\begin{otherlanguage}{french}
+Dans une cha\^ine d'approvisionnement, l'urgence qu'un op\'erateur d\'eclare diverge
+souvent de celle que l'on peut calculer \`a partir de l'\'etat op\'erationnel r\'eel.
+Sur-d\'eclarer gaspille une capacit\'e partag\'ee~; sous-d\'eclarer laisse un risque de
+rupture invisible. Aucun jumeau num\'erique existant ne mesure cet \'ecart.
+
+Cette mission de fin d'\'etudes, men\'ee \`a la Direction de l'Innovation d'ALTEN dans le
+cadre du programme Smart Green Supply Chain, a con\c{c}u, d\'evelopp\'e et \'evalu\'e une
+couche logicielle qui le mesure. L'urgence r\'eelle est agr\'eg\'ee \`a chaque n\oe{}ud
+depuis six blocs d'indicateurs par un OU probabiliste pond\'er\'e, puis propag\'ee sur le
+r\'eseau de fournisseurs~; l'urgence d\'eclar\'ee est \'elicit\'ee par un questionnaire de
+comparaisons par paires contr\^ol\'e en coh\'erence~; leur \'ecart est not\'e sur $[0,100]$
+par une p\'enalit\'e asym\'etrique. Le syst\`eme livr\'e, SupplyScore, compte 73 modules
+Python. Il a \'et\'e \'eprouv\'e par une campagne
+pr\'e-enregistr\'ee rejouant la p\'enurie de semi-conducteurs de 2020 \`a 2022 sur
+dix-neuf tours et huit n\oe{}uds.
+
+Les r\'esultats sont n\'egatifs et pr\'ecis. La couche de pr\'evision ne discrimine pas
+mieux que le hasard et se r\'ev\`ele fortement mal calibr\'ee. Vingt-et-une pr\'evisions
+annon\c{c}ant une probabilit\'e moyenne de $0{,}948$ n'ont \'et\'e suivies de l'issue
+pr\'edite aucune fois. Un seul bloc l'explique~: le bloc temporel lit une grandeur
+qu'aucun choc du moteur d'\'ev\'enements n'atteint. Un second r\'esultat concerne
+l'op\'erateur~: au tour o\`u la pr\'evision devient visible, les huit d\'eclarants ont
+tous revu leur urgence \`a la baisse ou l'ont maintenue, deux tours avant
+l'\'ev\'enement critique. Le diagnostic, plus que le score, est le livrable.
+\end{otherlanguage}
+
+\vspace{0.4cm}
+
+\section*{Abstract}
+\label{sec:resume_en}
+
+In a supply chain, the urgency an operator declares often diverges from the urgency
+computable from the real operational state. Over-declaring wastes shared capacity;
+under-declaring leaves rupture risk invisible. No existing digital twin measures that gap.
+
+This final-year mission, carried out at the Direction de l'Innovation of ALTEN within the
+Smart Green Supply Chain programme, designed, built and evaluated a software layer that
+measures it. Real urgency is aggregated at each node from six indicator blocks through a
+weighted probabilistic OR and propagated across the supplier network; declared urgency is
+elicited through a consistency-gated pairwise questionnaire; their gap is scored on
+$[0,100]$ with an asymmetric penalty. The delivered system, SupplyScore, comprises 73
+Python modules covered by 1\,779 automated tests. It was tested through a pre-registered
+campaign replaying the 2020 to 2022 semiconductor shortage over nineteen turns and eight
+nodes.
+
+The results are negative and precise. The forecast layer discriminates no better than
+chance and is severely miscalibrated. Twenty-one forecasts announcing a mean probability
+of $0.948$ were followed by the predicted outcome zero times. One block explains it: the
+time block reads a quantity that no shock from the event engine ever reaches. A second
+result concerns the operator: on the turn the forecast became visible, all eight
+declarants revised their urgency downward or held it, two turns before the critical event.
+The diagnosis, more than the score, is the deliverable.
+
+\vspace{0.4cm}
+
+\section*{Resumen}
+\label{sec:resume_es}
+
+\begin{otherlanguage}{french}
+En una cadena de suministro, la urgencia que declara un operador difiere a menudo de la
+urgencia calculable a partir del estado operativo real. Declarar de m\'as desperdicia
+capacidad compartida; declarar de menos deja invisible el riesgo de ruptura. Ning\'un
+gemelo digital existente mide esa diferencia.
+
+Esta misi\'on de fin de estudios, realizada en la Direcci\'on de Innovaci\'on de ALTEN
+dentro del programa Smart Green Supply Chain, dise\~n\'o, desarroll\'o y evalu\'o una capa
+de software que la mide. La urgencia real se agrega en cada nodo a partir de seis bloques
+de indicadores mediante un O probabil\'istico ponderado y se propaga por la red de
+proveedores; la urgencia declarada se obtiene mediante un cuestionario de comparaciones
+por pares con control de coherencia; su diferencia se punt\'ua en $[0,100]$ con una
+penalizaci\'on asim\'etrica. El sistema entregado, SupplyScore, consta de 73 m\'odulos
+Python cubiertos por 1\,779 pruebas automatizadas. Se someti\'o a una campa\~na
+preregistrada que reproduce la escasez de semiconductores de 2020 a 2022 durante
+diecinueve turnos y ocho nodos.
+
+Los resultados son negativos y precisos. La capa de predicci\'on no discrimina mejor que
+el azar y est\'a mal calibrada. Veintiuna predicciones que anunciaban una probabilidad
+media de $0{,}948$ no fueron seguidas del resultado predicho ninguna vez. Un solo bloque
+lo explica: el bloque temporal lee una magnitud que ning\'un choque del motor de eventos
+alcanza. Un segundo resultado concierne al operador: en el turno en que la predicci\'on se
+hizo visible, los ocho declarantes revisaron su urgencia a la baja o la mantuvieron, dos
+turnos antes del evento cr\'itico. El diagn\'ostico, m\'as que la puntuaci\'on, es el
+entregable.
+\end{otherlanguage}

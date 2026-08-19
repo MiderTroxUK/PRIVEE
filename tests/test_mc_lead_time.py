@@ -393,3 +393,76 @@ class TestReproductibilite:
         assert res.graine == 5
         with pytest.raises(dataclasses.FrozenInstanceError):
             res.n_tirages = 1  # type: ignore[misc]
+
+
+# --- Travail restant : le lead time tire est un cycle COMPLET ---------------------
+
+
+class TestTravailRestant:
+    """C_i = S_i + L_i·(1 − p_i) : seul le travail restant est devant nous.
+
+    Même correction que ``UrModel.u_base_jalon`` et ``ForecastService`` — les
+    trois estimateurs de P(jalon raté) doivent rester d'accord. Régression du
+    défaut mesuré sur la campagne HÉLIOS (99,6 % annoncé sur un jalon livré à
+    l'heure, faute d'avoir tenu compte de l'avancement).
+    """
+
+    T0_TS = 1_000_000.0
+
+    def _jalons(self, progress: float, deadline_h: float = 200.0) -> dict:
+        return {
+            "n": [
+                Milestone(
+                    id="m",
+                    node_id="n",
+                    name="Serie",
+                    start_ts=self.T0_TS,
+                    deadline_ts=self.T0_TS + deadline_h * 3600.0,
+                    status=MilestoneStatus.ACTIVE,
+                    progress=progress,
+                )
+            ]
+        }
+
+    def _u_time(self, progress: float) -> float:
+        repo = _repo_isole(lead=100.0, std=20.0, deadline=None)
+        sim = SimulateurLeadTime(repo, n_tirages=10_000, graine=8, famille="normale")
+        res = sim.executer(
+            t=100.0, milestones_par_noeud=self._jalons(progress), t0_ts=self.T0_TS
+        )
+        return res.u_time["n"]
+
+    def test_progress_zero_inchange(self):
+        # Marge = 200 - 100 = 100 = mu -> p = 0.5. La correction est un
+        # SUR-ENSEMBLE : a progress = 0 le comportement anterieur est conserve.
+        assert abs(self._u_time(0.0) - 0.5) <= 0.015
+
+    def test_avancement_reduit_le_risque(self):
+        # A 50 % : L_restant ~ N(50, 10) contre 100 h de marge -> z = 5, p ~ 0.
+        assert self._u_time(0.5) < 0.01
+
+    def test_decroissant_en_progress(self):
+        valeurs = [self._u_time(p) for p in (0.0, 0.25, 0.5, 0.75, 1.0)]
+        assert valeurs == sorted(valeurs, reverse=True)
+
+    def test_jalon_termine_aucun_retard(self):
+        # progress = 1 : C = S exactement, la marge suffit toujours.
+        assert self._u_time(1.0) == 0.0
+
+    def test_validation_croisee_mc_erf_avec_avancement(self):
+        """MC == survie analytique de L·(1 − p), l'invariant documente du module."""
+        reste = 0.4
+        repo = _repo_isole(lead=100.0, std=20.0, deadline=None)
+        sim = SimulateurLeadTime(repo, n_tirages=20_000, graine=11, famille="normale")
+        p_mc = sim.executer(
+            t=100.0, milestones_par_noeud=self._jalons(1.0 - reste), t0_ts=self.T0_TS
+        ).u_time["n"]
+        # P(L·reste > 100) = P(L > 250) pour L ~ N(100, 20) tronquee a 0.
+        p_erf = 0.5 * math.erfc((250.0 - 100.0) / (20.0 * math.sqrt(2.0)))
+        assert abs(p_mc - p_erf) <= 0.01
+
+    def test_reste_sans_jalon_actif_vaut_un(self):
+        assert SimulateurLeadTime._reste(None) == 1.0
+        assert SimulateurLeadTime._reste([]) == 1.0
+        jalons = self._jalons(0.3)["n"]
+        assert SimulateurLeadTime._reste(jalons) == pytest.approx(0.7)

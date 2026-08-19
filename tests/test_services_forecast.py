@@ -103,6 +103,7 @@ def _jalon(
     node_id: str,
     deadline_offset_weeks: float,
     status: MilestoneStatus = MilestoneStatus.ACTIVE,
+    progress: float = 0.0,
 ) -> None:
     """Pose un jalon dont l'échéance est décalée de N semaines par rapport à maintenant."""
     service.registry.save_milestone(
@@ -113,6 +114,7 @@ def _jalon(
             start_ts=_T0,
             deadline_ts=_NOW + deadline_offset_weeks * _WEEK,
             status=status,
+            progress=progress,
         )
     )
 
@@ -633,3 +635,56 @@ class TestPerformance:
         # Les jalons à échéance S+2 exposés à un lead time ~300 h produisent un
         # risque de jalon raté non trivial dès la semaine 2.
         assert any(resultat.previsions[nid][4].p_jalon_rate > 0.0 for nid in ids[::5])
+
+
+class TestJalonTravailRestant:
+    """P(jalon raté) porte sur le TRAVAIL RESTANT, pas sur un cycle complet.
+
+    Régression du défaut mesuré sur la campagne HÉLIOS : le rollout tirait un
+    lead time de cycle ENTIER et le comparait à la marge, donc tout nœud dont
+    le lead time nominal dépassait sa marge était déclaré perdu d'avance quel
+    que soit son avancement — 99,6 % annoncé sur un jalon livré à l'heure.
+    """
+
+    @staticmethod
+    def _projet_lead_long(service: SupplyScoreService, progress: float) -> tuple[str, str]:
+        """Nœud unique, cycle nominal 400 h, jalon à 1 semaine (168 h) de marge."""
+        project, ids = _creer_projet(service, 1)
+        _historique(service, ids[0], [0.2] * 30)
+        node = service.repo.get_node(ids[0])
+        node.kpis.time.lead_time_h = 400.0
+        node.kpis.time.lead_time_std_h = 40.0
+        service.repo.update_node(node)
+        _jalon(service, ids[0], deadline_offset_weeks=1.0, progress=progress)
+        return project.id, ids[0]
+
+    def _p_jalon(self, service: SupplyScoreService, progress: float) -> float:
+        project_id, nid = self._projet_lead_long(service, progress)
+        resultat = ForecastService(service).rollout(project_id, n_draws=2000, seed=0)
+        return resultat.previsions[nid][4].p_jalon_rate
+
+    def test_avancement_nul_jalon_perdu(self, service: SupplyScoreService) -> None:
+        # 400 h de cycle a faire en 168 h : rate quasi certain. Comportement
+        # INCHANGE a progress = 0 — la correction est un sur-ensemble.
+        assert self._p_jalon(service, 0.0) > 0.99
+
+    def test_avancement_avance_desature(self, service: SupplyScoreService) -> None:
+        # Meme noeud a 90 % : il reste 40 h a faire pour 168 h de marge.
+        assert self._p_jalon(service, 0.9) < 0.05
+
+    def test_decroissant_en_progress(self, tmp_path: Any) -> None:
+        # Un jalon plus avance ne peut pas etre plus a risque, toutes choses
+        # egales par ailleurs (meme graine, meme scenario).
+        precedent = 1.1
+        for progress in (0.0, 0.3, 0.6, 0.9, 1.0):
+            svc = SupplyScoreService(db_dir=tmp_path / f"store-{progress}", clock=FixedClock(_NOW))
+            try:
+                courant = self._p_jalon(svc, progress)
+            finally:
+                svc.close()
+            assert courant <= precedent + 1e-12, f"remontee a progress={progress}"
+            precedent = courant
+
+    def test_jalon_termine_aucun_risque(self, service: SupplyScoreService) -> None:
+        # progress = 1 : plus rien a faire, la marge suffit toujours.
+        assert self._p_jalon(service, 1.0) == 0.0

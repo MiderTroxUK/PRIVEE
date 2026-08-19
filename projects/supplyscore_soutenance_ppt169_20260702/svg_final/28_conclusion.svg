@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <rect id="bg" x="0" y="0" width="1280" height="720" fill="#FFFFFF" />
+  <rect id="bg-accent-bar" x="0" y="0" width="10" height="720" fill="#2C5F7C" />
+
+  <g id="p28-kicker">
+    <text x="100" y="150" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="600" letter-spacing="2" fill="#6B7A85">CONCLUSION</text>
+  </g>
+
+  <g id="p28-quote">
+    <text font-size="44" fill="#1E4258" font-family="Segoe UI, Arial, sans-serif" font-weight="800" x="98" y="248">SupplyScore ne remplace pas</text><text font-size="44" fill="#1E4258" font-family="Segoe UI, Arial, sans-serif" font-weight="800" x="98" y="306">le jugement humain :</text><text font-size="44" fill="#1E4258" font-family="Segoe UI, Arial, sans-serif" font-weight="800" x="98" y="364"><tspan>il le rend <tspan fill="#2C5F7C">mesurable</tspan>, <tspan fill="#2C5F7C">comparable</tspan></tspan>
+      </text><text font-size="44" fill="#1E4258" font-family="Segoe UI, Arial, sans-serif" font-weight="800" x="98" y="422"><tspan>et digne de <tspan fill="#2C5F7C">confiance</tspan>.</tspan>
+    </text></g>
+
+  <rect id="p28-rule" x="100" y="480" width="120" height="5" fill="#B06000" />
+
+  <g id="p28-thanks">
+    <text x="100" y="536" font-family="Segoe UI, Arial, sans-serif" font-size="28" font-weight="500" fill="#22313A">Merci. Place aux questions et à la discussion.</text>
+  </g>
+
+  <g id="p28-footer">
+    <text x="100" y="660" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#9AA5AC">John Hoarau · Soutenance de thèse · 2026</text>
+    <text x="1180" y="660" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#9AA5AC">28 / 28</text>
+  </g>
+</svg>

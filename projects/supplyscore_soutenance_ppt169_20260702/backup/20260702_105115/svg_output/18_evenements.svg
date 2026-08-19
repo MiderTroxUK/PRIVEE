@@ -1,0 +1,65 @@
+<svg width="1280" height="720" viewBox="0 0 1280 720" xmlns="http://www.w3.org/2000/svg">
+  <rect id="bg" x="0" y="0" width="1280" height="720" fill="#FFFFFF"/>
+
+  <g id="p18-header">
+    <text x="56" y="60" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" letter-spacing="2" fill="#6B7A85">PARTIE III · DÉMONSTRATION 2/8</text>
+    <text x="54" y="104" font-family="Segoe UI, Arial, sans-serif" font-size="42" font-weight="800" fill="#1E4258">14 événements, 3 opérateurs mathématiques</text>
+    <rect x="56" y="118" width="64" height="4" fill="#2C5F7C"/>
+  </g>
+
+  <g id="p18-content">
+    <text x="76" y="196" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#22313A">
+      <tspan x="76" dy="0">Un planificateur déclare un événement du monde réel ;</tspan>
+      <tspan x="76" dy="26">le moteur traduit automatiquement son impact sur les</tspan>
+      <tspan x="76" dy="26">KPIs, zéro calcul manuel, aperçu avant confirmation.</tspan>
+    </text>
+
+    <rect x="76" y="320" width="307" height="110" fill="#F4F6F8" stroke="#D8DEE3"/>
+    <use data-icon="tabler-outline/calculator" x="96" y="336" width="26" height="26" fill="#2C5F7C" stroke-width="2"/>
+    <text x="96" y="392" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700" fill="#1E4258">Beta-Bernoulli</text>
+    <text x="96" y="416" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#6B7A85">
+      <tspan x="96" dy="0">Révision bayésienne des</tspan>
+      <tspan x="96" dy="18">probabilités de panne</tspan>
+    </text>
+
+    <rect x="407" y="320" width="307" height="110" fill="#F4F6F8" stroke="#D8DEE3"/>
+    <use data-icon="tabler-outline/trending-up" x="427" y="336" width="26" height="26" fill="#2C5F7C" stroke-width="2"/>
+    <text x="427" y="392" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700" fill="#1E4258">EMA</text>
+    <text x="427" y="416" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#6B7A85">
+      <tspan x="427" dy="0">Lisse OEE, délais</tspan>
+      <tspan x="427" dy="18">(réactivité λ ∈ [0.3, 0.5])</tspan>
+    </text>
+
+    <rect x="738" y="320" width="307" height="110" fill="#F4F6F8" stroke="#D8DEE3"/>
+    <use data-icon="tabler-outline/database" x="758" y="336" width="26" height="26" fill="#2C5F7C" stroke-width="2"/>
+    <text x="758" y="392" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700" fill="#1E4258">Direct</text>
+    <text x="758" y="416" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#6B7A85">
+      <tspan x="758" dy="0">Faits signés</tspan>
+      <tspan x="758" dy="18">(ex. nouveau tarif)</tspan>
+    </text>
+
+    <rect x="76" y="454" width="969" height="76" fill="#FFFFFF" stroke="#D8DEE3"/>
+    <text x="96" y="480" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" fill="#1E4258">Exemple : grève 24h, 50% de l'effectif</text>
+    <text x="96" y="504" font-family="Consolas, 'Courier New', monospace" font-size="15" fill="#22313A">Disponibilité OEE : 0.95 → <tspan font-weight="700" fill="#2C5F7C">0.939</tspan> (EMA, réactivité 0.5)</text>
+
+    <text x="76" y="566" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" fill="#1E4258">14 types calibrés</text>
+    <text x="76" y="592" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#6B7A85">
+      <tspan x="76" dy="0">panne_machine · retard_fournisseur · grève · hausse_tarif · rupture_matiere · accident ·</tspan>
+      <tspan x="76" dy="20">non_conformite_qualite · perturbation_transport · instabilite_politique · cyber_incident ·</tspan>
+      <tspan x="76" dy="20">hausse_energie · alerte_financiere_fournisseur · perte_capacite · pic_demande</tspan>
+    </text>
+  </g>
+
+  <g id="p18-figure">
+    <text x="1071" y="160" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#9AA5AC">Rapport</text>
+    <image href="../images/17-rapport-session-pleine-page.png" x="1071" y="170" width="153" height="480" preserveAspectRatio="xMidYMid meet"/>
+    <rect x="1071" y="170" width="153" height="480" fill="none" stroke="#D8DEE3" stroke-width="1"/>
+  </g>
+
+  <g id="p18-footer">
+    <line x1="56" y1="676" x2="1224" y2="676" stroke="#D8DEE3" stroke-width="1"/>
+    <text x="56" y="700" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#9AA5AC">SupplyScore · Soutenance de thèse</text>
+    <text x="640" y="700" text-anchor="middle" font-family="Consolas, 'Courier New', monospace" font-size="15" fill="#9AA5AC">supplyscore/domain/events.py · services/events.py</text>
+    <text x="1224" y="700" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#9AA5AC" text-anchor="end">18 / 28</text>
+  </g>
+</svg>

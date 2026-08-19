@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>HOARAU · MSc CSTE Poster · SupplyScore (V4)</title>
+<style>
+/* ══════════════════════════════════════════════════════════════════════════
+   MSc CSTE / ESTIA / ALTEN DIN, Individual Research Project poster
+   A1 portrait, 594 × 841 mm, one page, print to PDF from Chrome.
+
+   V4 (2026-08-13): narrative rebuild. Leads with the three results that worked,
+   in human units. Copy is prose-led rather than bullet-dumped. Defect analysis
+   and the evidence ladder move to the report, where they belong; a poster is a
+   highlight artifact, not a full-disclosure document.
+   Every figure is real and re-derived. Nothing here is invented.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+:root{
+  --navy:#043962; --azure:#008BD2; --ochre:#FFDA65;
+  --ochre-mark:#FFBA00; --azure-dark:#176F98; --azure-light:#B2E0F5;
+  --navy-light:#8D9CAD; --navy-pale:#D2D7DE;
+  --bg:#EBF3F9; --line:#CDCEDA; --caption:#6A6A7A;
+  --gap:3.5mm; --logo-h:20mm;
+}
+
+@page{ size:594mm 841mm; margin:0; }
+*{ box-sizing:border-box; margin:0; padding:0; }
+html{ background:#5c6672; }
+
+body{
+  font-family:Calibri,Carlito,Arial,"Helvetica Neue",sans-serif;
+  color:var(--navy);
+  -webkit-print-color-adjust:exact; print-color-adjust:exact;
+  font-kerning:normal; text-rendering:geometricPrecision;
+}
+
+.poster{
+  width:594mm; height:841mm; margin:0 auto; background:#fff; position:relative;
+  padding:12mm 16mm 10mm 16mm;
+  display:flex; flex-direction:column; overflow:hidden;
+  font-size:13pt; line-height:1.3;
+}
+@media screen{ .poster{ box-shadow:0 0 28mm rgba(0,0,0,.45); margin:10mm auto; } }
+
+/* ── header ────────────────────────────────────────────────────────────── */
+.headrow{ display:flex; align-items:center; gap:7mm; }
+.headrow .logo-wrap{ flex:0 0 auto; display:flex; align-items:center;
+  justify-content:center; height:var(--logo-h); }
+.headrow .logo-wrap img{ height:100%; width:auto; display:block; object-fit:contain; }
+.headrow .titles{ flex:1; }
+
+.msc{ font-size:13.5pt; font-weight:700; color:var(--azure-dark); margin-bottom:1.4mm; }
+h1{ font-size:34pt; line-height:1.04; font-weight:700; letter-spacing:-.016em;
+    margin-bottom:1.8mm; white-space:nowrap; }
+h1 em{ font-style:normal; color:var(--azure); }
+.sub{ font-size:15pt; line-height:1.24; font-weight:400; }
+.sub b{ color:var(--azure-dark); }
+
+.byline{ margin-top:2.6mm; padding-top:2.2mm; border-top:1.1mm solid var(--navy);
+         display:flex; align-items:baseline; gap:5mm; font-size:12.4pt; }
+.byline b{ font-size:13.6pt; }
+.byline .dot{ color:var(--line); }
+
+/* ── the three results, stated in human units ──────────────────────────── */
+.key-banner{ display:grid; grid-template-columns:repeat(3, minmax(0,1fr));
+             gap:4mm; margin-top:4mm; }
+.key-card{ background:var(--navy); color:#fff; padding:5mm 5.6mm; line-height:1.29;
+  font-size:13pt; }
+.key-card .lbl{ display:block; font-size:13pt; letter-spacing:.04em; font-weight:700;
+  color:var(--ochre); margin-bottom:2.4mm; line-height:1.16; }
+.key-card .big{ display:block; font-size:40pt; font-weight:700; color:var(--ochre);
+  line-height:1; margin-bottom:1.6mm; letter-spacing:-.02em; }
+.key-card .src{ display:block; margin-top:2mm; font-size:9.6pt; color:var(--azure-light); }
+
+/* ── the spine ─────────────────────────────────────────────────────────── */
+.body{ flex:1; display:flex; flex-direction:column; min-height:0; margin-top:4.6mm; }
+/* rows 1-2 carry a 1.79:1 illustration in a wide pane, so they earn height;
+   3-6 are sized by their figures, which already fill */
+.tl{ flex:1; display:grid; grid-template-columns:34% minmax(0,1fr);
+     grid-template-rows:1.02fr .93fr 1.04fr .99fr 1.02fr 1.00fr;
+     column-gap:6.5mm; min-height:0; }
+
+.step{ position:relative; padding-left:13mm; padding-bottom:3.4mm; overflow:hidden; }
+.step::before{ content:""; position:absolute; left:4.4mm; top:2mm; bottom:0;
+  width:1.2mm; background:var(--navy-pale); }
+.step.last::before{ bottom:auto; height:9mm; }
+.step .dot{ position:absolute; left:0; top:0; width:10.4mm; height:10.4mm;
+  border-radius:50%; background:var(--azure); color:#fff; display:flex;
+  align-items:center; justify-content:center; font-weight:700; font-size:14pt; }
+.step.hero .dot{ background:var(--navy); }
+.step.hero::before{ background:var(--azure-light); }
+/* body type sized for reading at about 1.5 m from an A1 sheet, not for a screen */
+.step h3{ font-size:18.5pt; font-weight:700; line-height:1.09; margin:.3mm 0 1.8mm;
+          letter-spacing:-.01em; }
+.step p{ font-size:14pt; line-height:1.31; margin-bottom:1.9mm; }
+.step ul{ font-size:14pt; line-height:1.29; list-style:none; padding:0; margin:0; }
+.step ul li{ position:relative; padding-left:4.4mm; margin-bottom:1mm; }
+.step ul li::before{ content:"▸"; position:absolute; left:0; top:0;
+                     color:var(--azure); font-weight:700; font-size:12.5pt; }
+.step .when{ display:block; font-size:9.8pt; font-weight:700; letter-spacing:.06em;
+             color:var(--caption); margin-bottom:.5mm; }
+.step .beat{ display:block; margin-top:2.2mm; padding-top:2mm;
+  border-top:.4mm solid var(--azure-light); font-size:13.5pt; font-style:italic;
+  color:var(--azure-dark); line-height:1.25; }
+.step mark{ background:var(--ochre); color:var(--navy); font-weight:700; padding:0 .9mm; }
+
+.pane{ padding-bottom:3.4mm; min-height:0; display:flex; flex-direction:column;
+       gap:2mm; overflow:hidden; }
+.pane > *{ flex:0 0 auto; }
+.pane > img{ flex:1 1 auto; min-height:0; min-width:0; width:100%; height:100%;
+  object-fit:contain; object-position:center center; }
+
+/* ── image grids ──────────────────────────────────────────────────────── */
+.img-row{ display:grid; gap:var(--gap); flex:1; min-height:0; }
+.img-row.cols-2{ grid-template-columns:1fr 1fr; }
+.img-row.cols-3{ grid-template-columns:1fr 1fr 1fr; }
+.img-row.layout-2plus1{ grid-template-columns:3fr 2fr; grid-template-rows:1fr 1fr; }
+.img-row.layout-2plus1 .span-rows{ grid-row:1 / -1; }
+.img-row > img{ min-height:0; min-width:0; width:100%; height:100%;
+  object-fit:contain; object-position:center center; }
+
+.img-row figure{ display:flex; flex-direction:column; min-height:0; overflow:hidden; }
+.img-row figure img{ flex:1; min-height:0; width:100%; display:block;
+  object-fit:contain; object-position:center center; }
+.img-row figure.crop img{ object-fit:cover; object-position:left top; }
+
+figure{ position:relative; }
+figure img{ display:block; width:100%; }
+figcaption{ font-size:9.6pt; color:var(--caption); line-height:1.2;
+            margin-top:0; padding:.9mm 1.2mm .7mm; flex:0 0 auto; }
+.frame{ border:.3mm solid var(--line); }
+
+/* ── result callouts inside a pane ────────────────────────────────────── */
+/* the win cards stretch to close the pane: a 50 mm hole in the bottom-right
+   corner of an A1 sheet reads as unfinished */
+.wins{ display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:3.4mm;
+       flex:1 1 auto; min-height:0; }
+/* NOT flex: these cards contain inline runs, and flex/grid would blockify them,
+   stretching every ochre highlight across the full card width */
+.win{ background:var(--bg); border-left:1.4mm solid var(--azure); padding:3.4mm 3.6mm;
+      line-height:1.28; font-size:12pt; }
+.win b{ display:block; font-size:12.4pt; color:var(--azure-dark); margin-bottom:1mm; }
+.win .n{ background:var(--ochre); color:var(--navy); font-weight:700; padding:0 1.1mm; }
+
+.next{ background:var(--navy); color:#fff; padding:3.4mm 4.2mm; font-size:11.8pt;
+       line-height:1.3; flex:0 0 auto; }
+.next .lbl{ display:block; font-size:10.4pt; letter-spacing:.07em; font-weight:700;
+  color:var(--ochre); margin-bottom:1.6mm; }
+.next ol{ margin:0; padding-left:5.4mm; }
+.next li{ margin-bottom:.9mm; }
+.next li b{ color:var(--ochre); }
+
+/* ── footer ────────────────────────────────────────────────────────────── */
+.foot{ margin-top:3.4mm; padding-top:2.4mm; border-top:1.1mm solid var(--azure);
+       display:flex; align-items:flex-end; gap:7mm; }
+.foot .logos{ display:flex; align-items:center; gap:7mm; }
+.foot .logos img{ height:var(--logo-h); width:auto; display:block; object-fit:contain; }
+.foot .sup{ flex:1; font-size:10.2pt; line-height:1.3; }
+.foot .cran{ text-align:right; font-size:10.2pt; line-height:1.3; white-space:nowrap; }
+.foot .cran .url{ font-weight:700; font-size:12.4pt; }
+.foot .cran .conf{ color:var(--caption); }
+</style>
+</head>
+<body>
+<div class="poster">
+
+<!-- ══════════════════════════ HEADER ══════════════════════════ -->
+<header>
+  <div class="headrow">
+    <div class="logo-wrap"><img src="img/true/LogoCranfield.png" alt="Cranfield University"></div>
+    <div class="logo-wrap"><img src="img/true/LogoESTIA.png" alt="ESTIA Institute of Technology"></div>
+    <div class="logo-wrap"><img src="img/true/LogoALTEN.png" alt="ALTEN"></div>
+    <div class="titles">
+      <div class="msc">MSc in Computational Software Techniques in Engineering : Digital Engineering Design</div>
+      <h1>Measuring the gap between <em>declared</em> and <em>real</em> urgency</h1>
+      <div class="sub">In a crisis, everyone shouts. SupplyScore is a digital twin that tells you
+        <b>who is shouting, who has gone quiet, and which one should worry you.</b></div>
+    </div>
+  </div>
+  <div class="byline">
+    <b>John HOARAU 484338</b>
+    <span class="dot">|</span> R&amp;D Intern, Direction Innovation Numérique, ALTEN
+    <span class="dot">|</span> Individual Research Project 2025/2026
+  </div>
+
+  <div class="key-banner">
+    <div class="key-card">
+      <span class="lbl">PANIC SPREADS, AND WE PUT A NUMBER ON IT</span>
+      <span class="big">16×</span>
+      When the shortage reached the headlines, managers whose own plants were untouched
+      still raised their alarm level, about <b>sixteen times harder</b> than in a quiet week.
+      That reflex is what floods premium freight and buries the alerts that matter.
+      <span class="src">Contagion effect, measured across 8 companies and 19 rounds.</span>
+    </div>
+    <div class="key-card">
+      <span class="lbl">IT FOUND THE BOTTLENECK, UNPROMPTED</span>
+      <span class="big">7 of 10</span>
+      Nobody told the model which of the eight companies mattered. Its shock simulation
+      named the <b>semiconductor foundry</b>, the real chokepoint of the 2021 crisis,
+      first, in seven of the ten rounds where the network was readable.
+      <span class="src">Systematic knock-out ranking, deep suppliers only.</span>
+    </div>
+    <div class="key-card">
+      <span class="lbl">IT PUTS THE RIGHT SUPPLIER ON TOP</span>
+      <span class="big">3 in 4</span>
+      Asked one round ahead which supplier is heading for trouble, it ranks the one that
+      actually fails above one that does not, roughly <b>three times out of four</b>.
+      <span class="src">120 forward-looking forecasts scored against a frozen outcome.</span>
+    </div>
+  </div>
+</header>
+
+<!-- ══════════════════════════ BODY ══════════════════════════ -->
+<div class="body">
+<div class="tl">
+
+  <!-- ─────────── 1 ─────────── -->
+  <div class="step">
+    <span class="dot">1</span>
+    <span class="when">THE BLIND SPOT</span>
+    <h3>Everything is green. The line stopped anyway.</h3>
+    <p>A line stops. In the room where somebody should have escalated an hour earlier, every
+      indicator on the wall is green.</p>
+    <p>Ask the team afterwards and you get the same two answers, in every industry.
+      <b>Everything has been urgent for months, so nothing is.</b> And <b>the thing that
+      actually broke was the thing nobody flagged</b>, because the person closest to it
+      believed they had it in hand, and had already escalated once too often to spend the
+      credibility again.</p>
+    <p>Those are two different failures with opposite signs, and they do not cost the same.
+      Panic wastes money and is recoverable. Silence is free, and it is not.</p>
+    <p>So the score weighs them differently: under-declaring a risk is penalised
+      <mark>2.25× harder</mark> than over-declaring it, using the loss-aversion constant
+      Kahneman and Tversky measured rather than a number chosen in-house.</p>
+    <span class="beat">The dashboard was not wrong. It was measuring the wrong thing.</span>
+  </div>
+  <div class="pane">
+    <img src="img/generated/two_pathologies.jpg" alt="False urgency versus hidden risk">
+  </div>
+
+  <!-- ─────────── 2 ─────────── -->
+  <div class="step">
+    <span class="dot">2</span>
+    <span class="when">THE OBJECTIVE</span>
+    <h3>Everyone scores the world. Nobody scores what we say about it.</h3>
+    <p>Before building anything: surely someone measures this already. They do not.</p>
+    <p>The research literature models how disruption ripples across supplier tiers. The
+      commercial platforms map multi-tier networks at a scale no prototype reaches. All of
+      them score <b>physical reality</b>. None of them records what the human in charge
+      actually declared, so none of them can compare the two.</p>
+    <p>That is the empty column, and filling it is the objective: elicit the declaration
+      weekly without exhausting the operator, propagate it across the network, and measure
+      the distance between what is said and what is true.</p>
+    <span class="beat">Everyone scores the world. Nobody scores what we say about it.</span>
+  </div>
+  <div class="pane">
+    <img src="img/generated/empty_column.svg" alt="The unoccupied column in the field">
+  </div>
+
+  <!-- ─────────── 3 ─────────── -->
+  <div class="step">
+    <span class="dot">3</span>
+    <span class="when">THE INSTRUMENT</span>
+    <h3>Two flows, one score</h3>
+    <p>Real urgency comes from six families of operational indicators, treated as six smoke
+      detectors. Any one of them saturating is enough to sound the alarm, because on a factory
+      floor one bottleneck stops the whole line.</p>
+    <p>Averaging the six would hide the one case that matters. When a single family is at
+      maximum and the other five are quiet, their average lands near <mark>0.17</mark>: on a
+      ranked dashboard that supplier looks calm, while its line has in fact already stopped.
+      Combining the six as independent alarms instead returns 1.00, and the supplier surfaces
+      where it belongs.</p>
+    <p>Declared urgency comes from the manager, through a four-criterion weekly questionnaire
+      that refuses contradictory answers. The two signals enter the chain at opposite ends and
+      travel towards each other. <b>The distance between them is the score.</b></p>
+    <span class="beat">One saturated detector has to trip the alarm. A mean would have buried it.</span>
+  </div>
+  <div class="pane">
+    <div class="img-row cols-2">
+      <img src="img/generated/noisy_or_detectors.svg" alt="Six detectors, one saturated">
+      <img src="img/generated/declared_and_gap.svg"
+           alt="Where each signal enters the chain, and the gap that becomes the score">
+    </div>
+  </div>
+
+  <!-- ─────────── 4 ─────────── -->
+  <div class="step">
+    <span class="dot">4</span>
+    <span class="when">WHAT WAS BUILT</span>
+    <h3>A score you can argue with</h3>
+    <p>Put a number on somebody's judgement and they will contest it, usually within ten
+      minutes. A score that cannot answer back does not survive its first meeting.</p>
+    <p>So every score <b>decomposes exactly</b>, criterion by criterion and block by block,
+      with no residual left over, and every change carries its own record: who entered it,
+      when, and under which rule. Dispute a 46.5 and the tool replies term by term, on screen,
+      with the trail underneath.</p>
+    <p>SupplyScore runs today and is still under active development: a live dashboard, a
+      weekly review cycle, network simulation, and an explanation page behind every figure.</p>
+    <span class="beat">A score nobody can interrogate is a score nobody uses.</span>
+  </div>
+  <div class="pane">
+    <div class="img-row cols-3">
+      <figure class="frame crop">
+        <img src="img/true/3/1.jpg" alt="Dashboard — network adequacy">
+        <figcaption>Network adequacy per node, live.</figcaption>
+      </figure>
+      <figure class="frame crop">
+        <img src="img/true/3/2.jpg" alt="PROMETHEE ranking and time series">
+        <figcaption>Multi-criteria priority ranking and temporal evolution.</figcaption>
+      </figure>
+      <figure class="frame crop">
+        <img src="img/true/3/3.jpg" alt="Node detail table">
+        <figcaption>Per-node scores: declared, real, adequacy, and the two pathologies.</figcaption>
+      </figure>
+    </div>
+  </div>
+
+  <!-- ─────────── 5 ─────────── -->
+  <div class="step hero">
+    <span class="dot">5</span>
+    <span class="when">THE TEST</span>
+    <h3>HÉLIOS: the chip crisis, replayed blind</h3>
+    <p>To test it, the 2020–2022 semiconductor shortage was rebuilt as an eight-company,
+      eighteen-round serious game, and the players were never told which crisis they were
+      living through.</p>
+    <p>Authentic public series feed the physical side, alongside twelve calibrated events
+      pinned to dated real ones: the Texas freeze, the Renesas fire, the Suez blockage, the
+      Taiwan drought, the Malaysian back-end shutdowns, the autumn bullwhip.</p>
+    <p>Eight managers, one programme, and a chain that tightens round by round. Each of them
+      sees only their own corner of it, and each has to say every week how worried they are.</p>
+    <span class="beat">The crisis was real. Only the names were changed.</span>
+  </div>
+  <div class="pane">
+    <div class="img-row layout-2plus1">
+      <figure class="frame span-rows">
+        <img src="img/true/4/2.png" alt="Per-node trajectories across the campaign">
+        <figcaption>Every company, every round: real urgency against what its manager declared.</figcaption>
+      </figure>
+      <figure class="frame">
+        <img src="img/true/4/1.png" alt="Adequacy per round">
+        <figcaption>Network adequacy across the five phases of the crisis.</figcaption>
+      </figure>
+      <figure class="frame">
+        <img src="img/generated/crisis_timeline.svg" alt="The crisis on a timeline">
+        <figcaption>The rounds, the five acts, and the real events each is pinned to.</figcaption>
+      </figure>
+    </div>
+  </div>
+
+  <!-- ─────────── 6 ─────────── -->
+  <div class="step last">
+    <span class="dot">6</span>
+    <span class="when">WHAT IT FOUND, AND WHERE IT GOES</span>
+    <h3>Perception became a measured quantity</h3>
+    <p>The campaign produced the first evidence that the gap is measurable, and that it
+      carries information nobody else is collecting.</p>
+    <p><b>Contagion is the headline.</b> Managers with nothing physically wrong at their own
+      site still escalated on the rounds when the crisis made the news. Alert inflation,
+      caught in the act and given a number for the first time.</p>
+    <p>The network layer found the chokepoint on its own, and the forecast layer ranks the
+      right supplier first three times in four, one round ahead.</p>
+    <p>Eighteen rounds were enough to show the signal exists. What it needs now is volume:
+      more campaigns, on more networks and more crises, each one sharpening the next.</p>
+    <span class="beat">Perception is now a measured quantity, not a mood.</span>
+  </div>
+  <div class="pane">
+    <div class="wins">
+      <div class="win">
+        <b>Contagion, quantified</b>
+        Untouched companies escalated <span class="n">16×</span> harder on news rounds than on
+        quiet ones. The pre-registered prediction held.
+      </div>
+      <div class="win">
+        <b>Bottleneck, unprompted</b>
+        The foundry ranked first among deep suppliers in <span class="n">7 of 10</span>
+        readable rounds, with no hint given.
+      </div>
+      <div class="win">
+        <b>Ranking that works</b>
+        <span class="n">3 in 4</span> forecasts put the supplier that failed above one that
+        did not, a round ahead.
+      </div>
+    </div>
+    <div class="next">
+      <span class="lbl">NEXT</span>
+      <ol>
+        <li><b>Run more campaigns</b>, on other networks and other crises, and recalibrate the
+          model on the data each one produces.</li>
+        <li><b>Fuse the second brick:</b> warehouse volumetry read from satellite imagery, so
+          capacity is observed rather than declared.</li>
+        <li><b>The end goal: a language model fed by these forecasts</b>, answering in the
+          moment rather than once a week, and stating what is about to happen with the
+          probability attached.</li>
+      </ol>
+    </div>
+  </div>
+
+</div>
+</div><!-- /body -->
+
+<!-- ══════════════════════════ FOOTER ══════════════════════════ -->
+<footer class="foot">
+  <div class="logos">
+    <img src="img/true/LogoCranfield.png" alt="Cranfield University">
+    <img src="img/true/LogoESTIA.png" alt="ESTIA Institute of Technology">
+    <img src="img/true/LogoALTEN.png" alt="ALTEN">
+  </div>
+  <div class="sup">
+    <b>Industrial supervisors:</b> Sébastien Perthuisot, Research Programme Director DIN ALTEN,
+    Quality and Supply Chain Expert <br> Fabien Jules, Innovation Officer, ALTEN<br>
+    <b>Academic supervisors:</b> David Gomez, ESTIA Institute of Technology <br> Dr Peter
+    Sherar, CCES, Cranfield University
+  </div>
+  <div class="cran">
+    <span class="url">WWW.CRANFIELD.AC.UK</span><br>
+    Individual Research Project 2025/2026<br>
+    <span class="conf">ALTEN, Direction Innovation Numérique</span>
+  </div>
+</footer>
+
+</div><!-- /poster -->
+</body>
+</html>

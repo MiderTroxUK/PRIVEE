@@ -1,0 +1,165 @@
+%% Consignes : « Toujours tres importante, la conclusion comporte : une
+%% appreciation qualitative et quantitative des resultats et de l'avancement
+%% du projet [...] des perspectives [...] un bilan personnel [...] Il est en
+%% particulier demande a l'eleve de faire le lien avec le referentiel de
+%% competences de l'ingenieur ESTIA. »
+
+\subsection{Results Against the Objectives}
+\label{sec:conclusion_objectifs}
+
+Table~\ref{tab:bilan} assesses each objective of Section~\ref{sec:objectifs} against its
+indicator. Four of five were met. The fifth was answered, and the answer was negative.
+
+\begin{table}[htbp]
+\centering
+\caption{Objectives against outcomes}
+\label{tab:bilan}
+\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.7cm} >{\raggedright\arraybackslash}p{2.4cm} X}
+\toprule
+& \textbf{Status} & \textbf{Evidence} \\
+\midrule
+O1 & Met & Six-block aggregation with bidirectional propagation and an asymmetric adequacy
+score, each term exactly decomposable; aggregation choice justified against the compensatory
+alternative \\
+O2 & Met & SupplyScore delivered: 73 modules, 1\,779 automated tests, multi-tenant
+persistence, every write audited, operational and reloadable \\
+O3 & Met & Propagation and criticality services operational, validated by dedicated
+performance benchmarks at the scale of a real programme \\
+O4 & Answered, negative & The signal does not predict recorded outcomes on this campaign. The
+cause is identified: one block is structurally unable to respond to a shock \\
+O5 & Met & Scientific report delivered; every reported figure regenerated from raw artefacts
+by script rather than transcribed \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\paragraph{Quantitatively.}
+The delivered system covers the specified scope and is measurably robust: 1\,779 automated
+tests, an auditable write path, and performance validated at the intended scale. The
+experiment produced numbers rather than impressions: an area under the ROC curve between
+$0.37$ and $0.56$, a Brier skill between $-3.4$ and $-6.9$, twenty-one confident forecasts of
+which none materialised, and an eight-of-eight one-sided response at first exposure to the
+displayed forecast.
+
+\paragraph{Qualitatively.}
+The mission set out to determine whether the declared-versus-real gap can be measured well
+enough to act on. It cannot, yet, and the work establishes precisely why. A negative result
+of this shape is more useful to the programme than a favourable score would have been,
+because it is actionable: it names one component, states the mechanism, and specifies the
+repair. A favourable score on a signal driven by a blind block would have been worse than
+useless, since it would have been trusted.
+
+\subsection{Limitations}
+\label{sec:conclusion_limites}
+
+Four limits bound what this report supports. The declarants were agents rather than human
+consultants, so every statement about declaration behaviour applies to that population.
+Results come from a single scenario, so the outcome base rate and event mix are properties of
+one script. The positive class is very small, which bounds every discrimination claim in both
+directions. And the carbon block was the least exercised of the six, for want of data to feed
+it, which is the measurement gap noted in Section~\ref{sec:rse}.
+
+\subsection{Perspectives}
+\label{sec:perspectives}
+
+\paragraph{For ALTEN.}
+Four steps follow, in order. Repair the time block first, by making the calibrated events
+write a lead-time impact alongside their existing effects; nothing else should be measured
+until they do, since any campaign run against the current forecast layer will reproduce the
+same result. Add a post-hoc calibration layer, fitted on data other than the evaluation
+scenario. Make the forecast state its own ignorance, since a layer that cannot anticipate
+exogenous shocks should not present a low probability in a confident numeric format. Then run
+the campaign with human participants, which is the only run that can decide the hypotheses as
+they were written, and which should happen only after the repair.
+
+Beyond that, the adequacy layer is designed to be coupled to DISCO rather than to remain
+standalone, and the network representation work carried out in parallel on the same programme
+is the natural counterpart to connect it to.
+
+\paragraph{For the author.}
+The subject continues in the research thesis produced for Cranfield University, which treats
+the same measurements at greater depth. The open question I would most like to pursue is the
+one the treatment arm opened: what an advisory layer owes the person reading it when it does
+not know.
+
+\subsection{Personal Assessment}
+\label{sec:bilan}
+
+\subsubsection{What I learned}
+
+The hardest problem of these six months was not mathematical. It was recognising, three
+separate times and in three different disguises, that the system was measuring itself. Each
+time the symptom looked like a modelling defect and each time the cause was circularity in
+the measurement. I would now design the independence of two signals before designing either
+of them.
+
+The second lesson concerns what counts as a result. For a long stretch I treated a negative
+outcome as a failure to be fixed before reporting it. The most useful findings in this report
+are negative, and none would have been found by a project optimising for a positive one. The
+related discipline, which the rejected dataset taught quickly, is that a confident
+presentation is not evidence, and that the cheap verification step belongs before the
+expensive one.
+
+With hindsight I would change two things. I would have scored the forecast layer against
+recorded outcomes far earlier, since doing so took a few hundred lines and revealed the
+defect immediately where months of implementation had not. And I would have written the
+outcome definition into the pre-registration alongside the thresholds, having since measured
+how much it moves the answer.
+
+\subsubsection{Link with the ESTIA engineering competency framework}
+
+Table~\ref{tab:competences} maps the mission onto the competencies of the ESTIA framework
+that it genuinely exercised. Appendix~\ref{app:competences} gives the detailed evidence.
+
+\begin{table}[htbp]
+\centering
+\caption{Competencies exercised during the mission}
+\label{tab:competences}
+\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{1.1cm} >{\raggedright\arraybackslash}p{4.2cm} X}
+\toprule
+& \textbf{Competency} & \textbf{Evidence from this mission} \\
+\midrule
+CI1 & Analysis, synthesis, creativity, systemic and interdisciplinary approach & Combining
+operations research, behavioural science, probabilistic modelling and software architecture
+into one measurement \\
+CI3 & Working in an international and intercultural context & Mission conducted and reported
+in English, under a double-degree programme, alongside an English-speaking colleague on the
+same research programme \\
+CI5 & Identifying and solving complex or research problems using external resources & The
+whole subject; and literally external, since the state of the art depended on university
+library access unavailable within the company \\
+CE3 & Leading and controlling a project against objectives, deadlines and risks & A four-touchpoint
+weekly cadence, six phases, a documented mid-mission replanning, and a risk register of which
+three items materialised \\
+CE4 & Taking the socio-ecological transition into account & Carbon modelled as one of six
+first-class blocks rather than as a correction, within a programme that is itself part of
+ALTEN's environmental R\&D commitment \\
+CE5 & Researching, selecting, qualifying and diffusing information & A candidate dataset
+rejected on inspection before use; the same work written three ways for three different
+audiences \\
+CST1 & Defining an engineering strategy in a poorly known context & Converging a five-workstream
+assignment onto one defensible contribution, and abandoning the first model when it proved
+unable to represent the problem \\
+CST2 & Modelling and simulating a system, capitalising the knowledge produced & The six-block
+model, its propagation, the campaign simulation, and a reproducible derivation of every
+reported figure \\
+CST7 & Building models, methods and tools to aid engineering, in an R\&D perspective & The
+delivered application and the experimental protocol, both designed to be continued by the
+programme rather than to end with the placement \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsubsection{What this mission clarified professionally}
+
+I came into this placement expecting the interesting difficulty to be in the mathematics. It
+was not. The mathematics behaved; what failed was the join between a model and the world it
+was supposed to describe, and then the join between a model's output and the person meant to
+act on it. Both failures were only visible because the work was measured against something
+external rather than judged on its own internal consistency.
+
+That is the kind of engineering I want to continue: the boundary where a model meets the
+person who has to act on it. It is where the failures are least obvious and most consequential,
+and this mission was a fairly direct demonstration of why.

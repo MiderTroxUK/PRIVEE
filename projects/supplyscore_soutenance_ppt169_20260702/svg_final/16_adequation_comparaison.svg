@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <rect id="bg" x="0" y="0" width="1280" height="720" fill="#FFFFFF" />
+
+  <g id="p16-header">
+    <text x="56" y="60" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" letter-spacing="2" fill="#6B7A85">PARTIE II · DEEP DIVE 6/6 · ADÉQUATION</text>
+    <text x="54" y="104" font-family="Segoe UI, Arial, sans-serif" font-size="42" font-weight="800" fill="#1E4258">Même écart, verdicts opposés</text>
+    <rect x="56" y="118" width="64" height="4" fill="#2C5F7C" />
+  </g>
+
+  <line x1="640" y1="160" x2="640" y2="590" stroke="#D8DEE3" stroke-width="1" stroke-dasharray="4,4" />
+
+  <g id="p16-caseA">
+    <text x="76" y="188" font-family="Segoe UI, Arial, sans-serif" font-size="22" font-weight="700" fill="#B06000">CAS A · Panique (sur-déclaration)</text>
+
+    <text x="76" y="248" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#6B7A85">Ud</text>
+    <rect x="130" y="230" width="320" height="24" fill="#2C5F7C" />
+    <text x="460" y="248" font-family="Consolas, 'Courier New', monospace" font-size="16" font-weight="700" fill="#2C5F7C">0.80</text>
+
+    <text x="76" y="288" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#6B7A85">Ur</text>
+    <rect x="130" y="270" width="120" height="24" fill="#1E4258" />
+    <text x="260" y="288" font-family="Consolas, 'Courier New', monospace" font-size="16" font-weight="700" fill="#1E4258">0.30</text>
+
+    <text x="76" y="330" font-family="Consolas, 'Courier New', monospace" font-size="16" fill="#22313A">F = 0.5 · H = 0.0</text>
+
+    <text x="76" y="378" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#6B7A85">Score d'adéquation A</text>
+    <text x="76" y="460" font-family="Segoe UI, Arial, sans-serif" font-size="72" font-weight="800" fill="#B06000">53.14%</text>
+
+    <text font-size="17" fill="#22313A" font-family="Segoe UI, Arial, sans-serif" x="76" y="504">Coûteux en ressources, mais</text><text font-size="17" fill="#22313A" font-family="Segoe UI, Arial, sans-serif" x="76" y="528">visible et corrigible.</text></g>
+
+  <g id="p16-caseB">
+    <text x="670" y="188" font-family="Segoe UI, Arial, sans-serif" font-size="22" font-weight="700" fill="#B3261E">CAS B · Silence (sous-déclaration)</text>
+
+    <text x="670" y="248" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#6B7A85">Ud</text>
+    <rect x="724" y="230" width="120" height="24" fill="#2C5F7C" />
+    <text x="854" y="248" font-family="Consolas, 'Courier New', monospace" font-size="16" font-weight="700" fill="#2C5F7C">0.30</text>
+
+    <text x="670" y="288" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#6B7A85">Ur</text>
+    <rect x="724" y="270" width="320" height="24" fill="#1E4258" />
+    <text x="1054" y="288" font-family="Consolas, 'Courier New', monospace" font-size="16" font-weight="700" fill="#1E4258">0.80</text>
+
+    <text x="670" y="330" font-family="Consolas, 'Courier New', monospace" font-size="16" fill="#22313A">F = 0.0 · H = 0.5</text>
+
+    <text x="670" y="378" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#6B7A85">Score d'adéquation A</text>
+    <text x="670" y="460" font-family="Segoe UI, Arial, sans-serif" font-size="72" font-weight="800" fill="#B3261E">21.13%</text>
+
+    <text font-size="17" fill="#22313A" font-family="Segoe UI, Arial, sans-serif" x="670" y="504">Silencieux et invisible,</text><text font-size="17" fill="#22313A" font-family="Segoe UI, Arial, sans-serif" x="670" y="528">jusqu'à l'incident.</text></g>
+
+  <g id="p16-takeaway">
+    <text x="640" y="616" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="22" font-weight="700" fill="#1E4258">
+      Même écart absolu |Ud − Ur| = 0.5, verdicts diamétralement opposés
+    </text>
+  </g>
+
+  <g id="p16-citation">
+    <text x="640" y="660" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#9AA5AC">Réf. : Mackway-Jones et al. (2013) ; Kuligowski et al. (2025), BMC Emergency Medicine · triage médical comparé</text>
+  </g>
+
+  <g id="p16-footer">
+    <text x="56" y="700" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#9AA5AC">SupplyScore · Soutenance de thèse</text>
+    <text x="1224" y="700" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#9AA5AC" text-anchor="end">16 / 28</text>
+  </g>
+</svg>

@@ -1,0 +1,342 @@
+{
+  "providers": [
+    "codecogs",
+    "quicklatex",
+    "mathpad",
+    "wikimedia"
+  ],
+  "items": [
+    {
+      "id": "f01_ahp_matrix",
+      "latex": "A_{ij} > 0,\\quad A_{ji} = \\frac{1}{A_{ij}},\\quad A_{ii} = 1",
+      "display": "block",
+      "color": "#22313A",
+      "background": "#FFFFFF",
+      "transparent": true,
+      "dpi": 400,
+      "filename": "f01_ahp_matrix.png",
+      "file": "images/f01_ahp_matrix.png",
+      "providers": [
+        "codecogs",
+        "quicklatex",
+        "mathpad",
+        "wikimedia"
+      ],
+      "transparent_tolerance": 12,
+      "provider": "codecogs",
+      "pixel_width": 656,
+      "pixel_height": 116,
+      "ratio": 5.6552,
+      "status": "Rendered"
+    },
+    {
+      "id": "f02_ahp_w",
+      "latex": "w_i = \\operatorname{mean}_j\\!\\left(\\frac{A_{ij}}{\\sum_k A_{kj}}\\right)",
+      "display": "block",
+      "color": "#22313A",
+      "background": "#FFFFFF",
+      "transparent": true,
+      "dpi": 400,
+      "filename": "f02_ahp_w.png",
+      "file": "images/f02_ahp_w.png",
+      "providers": [
+        "codecogs",
+        "quicklatex",
+        "mathpad",
+        "wikimedia"
+      ],
+      "transparent_tolerance": 12,
+      "provider": "codecogs",
+      "pixel_width": 476,
+      "pixel_height": 121,
+      "ratio": 3.9339,
+      "status": "Rendered"
+    },
+    {
+      "id": "f03_ahp_cr",
+      "latex": "CI = \\frac{\\lambda_{\\max} - n}{n - 1}, \\qquad CR = \\frac{CI}{RI(n)}",
+      "display": "block",
+      "color": "#22313A",
+      "background": "#FFFFFF",
+      "transparent": true,
+      "dpi": 400,
+      "filename": "f03_ahp_cr.png",
+      "file": "images/f03_ahp_cr.png",
+      "providers": [
+        "codecogs",
+        "quicklatex",
+        "mathpad",
+        "wikimedia"
+      ],
+      "transparent_tolerance": 12,
+      "provider": "codecogs",
+      "pixel_width": 721,
+      "pixel_height": 116,
+      "ratio": 6.2155,
+      "status": "Rendered"
+    },
+    {
+      "id": "f04_fbwm_opt",
+      "latex": "\\min \\xi^{*} \\quad \\text{s.t.} \\quad \\left| \\frac{\\tilde{w}_B}{\\tilde{w}_j} - \\tilde{a}_{Bj} \\right| \\le (\\xi,\\xi,\\xi) \\;\\; \\forall j \\ne B",
+      "display": "block",
+      "color": "#22313A",
+      "background": "#FFFFFF",
+      "transparent": true,
+      "dpi": 400,
+      "filename": "f04_fbwm_opt.png",
+      "file": "images/f04_fbwm_opt.png",
+      "providers": [
+        "codecogs",
+        "quicklatex",
+        "mathpad",
+        "wikimedia"
+      ],
+      "transparent_tolerance": 12,
+      "provider": "codecogs",
+      "pixel_width": 946,
+      "pixel_height": 124,
+      "ratio": 7.629,
+      "status": "Rendered"
+    },
+    {
+      "id": "f05_fbwm_gmir",
+      "latex": "w_j = \\frac{l_j + 4m_j + u_j}{6}",
+      "display": "block",
+      "color": "#22313A",
+      "background": "#FFFFFF",
+      "transparent": true,
+      "dpi": 400,
+      "filename": "f05_fbwm_gmir.png",
+      "file": "images/f05_fbwm_gmir.png",
+      "providers": [
+        "codecogs",
+        "quicklatex",
+        "mathpad",
+        "wikimedia"
+      ],
+      "transparent_tolerance": 12,
+      "provider": "codecogs",
+      "pixel_width": 408,
+      "pixel_height": 104,
+      "ratio": 3.9231,
+      "status": "Rendered"
+    },
+    {
+      "id": "f06_promethee_flows",
+      "latex": "\\phi^{+}(a) = \\frac{1}{n-1}\\sum_{b \\ne a} \\pi(a,b), \\qquad \\phi^{-}(a) = \\frac{1}{n-1}\\sum_{b \\ne a} \\pi(b,a)",
+      "display": "block",
+      "color": "#22313A",
+      "background": "#FFFFFF",
+      "transparent": true,
+      "dpi": 400,
+      "filename": "f06_promethee_flows.png",
+      "file": "images/f06_promethee_flows.png",
+      "providers": [
+        "codecogs",
+        "quicklatex",
+        "mathpad",
+        "wikimedia"
+      ],
+      "transparent_tolerance": 12,
+      "provider": "codecogs",
+      "pixel_width": 1185,
+      "pixel_height": 133,
+      "ratio": 8.9098,
+      "status": "Rendered"
+    },
+    {
+      "id": "f07_mc_recur",
+      "latex": "S_i = \\max_{j \\in Pred(i)} C_j, \\quad C_i = S_i + L_i, \\quad u_{time} = P(C_i > d_i)",
+      "display": "block",
+      "color": "#22313A",
+      "background": "#FFFFFF",
+      "transparent": true,
+      "dpi": 400,
+      "filename": "f07_mc_recur.png",
+      "file": "images/f07_mc_recur.png",
+      "providers": [
+        "codecogs",
+        "quicklatex",
+        "mathpad",
+        "wikimedia"
+      ],
+      "transparent_tolerance": 12,
+      "provider": "codecogs",
+      "pixel_width": 1128,
+      "pixel_height": 78,
+      "ratio": 14.4615,
+      "status": "Rendered"
+    },
+    {
+      "id": "f08_prop_ud",
+      "latex": "Ud_i = \\operatorname{clip}\\!\\left(1 - (1 - Ud_{loc,i}^{eff}) \\!\\!\\prod_{k \\in Succ(i)}\\!\\! (1 - \\gamma_{ik} Ud_k)\\right)",
+      "display": "block",
+      "color": "#22313A",
+      "background": "#FFFFFF",
+      "transparent": true,
+      "dpi": 400,
+      "filename": "f08_prop_ud.png",
+      "file": "images/f08_prop_ud.png",
+      "providers": [
+        "codecogs",
+        "quicklatex",
+        "mathpad",
+        "wikimedia"
+      ],
+      "transparent_tolerance": 12,
+      "provider": "codecogs",
+      "pixel_width": 1027,
+      "pixel_height": 180,
+      "ratio": 5.7056,
+      "status": "Rendered"
+    },
+    {
+      "id": "f09_prop_ur",
+      "latex": "Ur_i = \\operatorname{clip}\\!\\left(1 - (1 - Ur_{loc,i}^{eff}) \\!\\!\\prod_{j \\in Pred(i)}\\!\\! (1 - \\beta_{ji} Ur_j)\\right)",
+      "display": "block",
+      "color": "#22313A",
+      "background": "#FFFFFF",
+      "transparent": true,
+      "dpi": 400,
+      "filename": "f09_prop_ur.png",
+      "file": "images/f09_prop_ur.png",
+      "providers": [
+        "codecogs",
+        "quicklatex",
+        "mathpad",
+        "wikimedia"
+      ],
+      "transparent_tolerance": 12,
+      "provider": "codecogs",
+      "pixel_width": 1014,
+      "pixel_height": 180,
+      "ratio": 5.6333,
+      "status": "Rendered"
+    },
+    {
+      "id": "f10_adequation_penalty",
+      "latex": "\\text{penalty} = \\lambda_{under} H^{\\alpha} + \\lambda_{over} F^{\\alpha}",
+      "display": "block",
+      "color": "#22313A",
+      "background": "#FFFFFF",
+      "transparent": true,
+      "dpi": 400,
+      "filename": "f10_adequation_penalty.png",
+      "file": "images/f10_adequation_penalty.png",
+      "providers": [
+        "codecogs",
+        "quicklatex",
+        "mathpad",
+        "wikimedia"
+      ],
+      "transparent_tolerance": 12,
+      "provider": "codecogs",
+      "pixel_width": 635,
+      "pixel_height": 46,
+      "ratio": 13.8043,
+      "status": "Rendered"
+    },
+    {
+      "id": "f11_adequation_score",
+      "latex": "A = 100 \\cdot \\frac{e^{-\\text{penalty}} - e^{-\\text{max\\_penalty}}}{1 - e^{-\\text{max\\_penalty}}}",
+      "display": "block",
+      "color": "#22313A",
+      "background": "#FFFFFF",
+      "transparent": true,
+      "dpi": 400,
+      "filename": "f11_adequation_score.png",
+      "file": "images/f11_adequation_score.png",
+      "providers": [
+        "codecogs",
+        "quicklatex",
+        "mathpad",
+        "wikimedia"
+      ],
+      "transparent_tolerance": 12,
+      "provider": "codecogs",
+      "pixel_width": 689,
+      "pixel_height": 110,
+      "ratio": 6.2636,
+      "status": "Rendered"
+    },
+    {
+      "id": "f12_xai_noisyor",
+      "latex": "Ur_{local} = 1 - \\exp\\!\\left(-\\sum_m \\ell_m\\right), \\qquad \\ell_m = -\\omega_m \\ln(1 - u_m)",
+      "display": "block",
+      "color": "#22313A",
+      "background": "#FFFFFF",
+      "transparent": true,
+      "dpi": 400,
+      "filename": "f12_xai_noisyor.png",
+      "file": "images/f12_xai_noisyor.png",
+      "providers": [
+        "codecogs",
+        "quicklatex",
+        "mathpad",
+        "wikimedia"
+      ],
+      "transparent_tolerance": 12,
+      "provider": "codecogs",
+      "pixel_width": 1196,
+      "pixel_height": 150,
+      "ratio": 7.9733,
+      "status": "Rendered"
+    },
+    {
+      "id": "f13_unified_score",
+      "latex": "US(t) = 100 \\cdot \\operatorname{clip}\\!\\left(\\omega_A \\frac{A(t)}{100} + \\omega_V V_{mc} + \\omega_O O_{meta} - \\omega_C C_{crise}(t) - \\omega_L L_{macro}(t),\\; 0,\\; 1\\right)",
+      "display": "block",
+      "color": "#22313A",
+      "background": "#FFFFFF",
+      "transparent": true,
+      "dpi": 400,
+      "filename": "f13_unified_score.png",
+      "file": "images/f13_unified_score.png",
+      "providers": [
+        "codecogs",
+        "quicklatex",
+        "mathpad",
+        "wikimedia"
+      ],
+      "transparent_tolerance": 12,
+      "provider": "codecogs",
+      "pixel_width": 1731,
+      "pixel_height": 120,
+      "ratio": 14.425,
+      "status": "Rendered"
+    },
+    {
+      "id": "f14_mdp_reward",
+      "latex": "R(s,a) = \\sum_i A_i(s) - c(a)",
+      "display": "block",
+      "color": "#22313A",
+      "background": "#FFFFFF",
+      "transparent": true,
+      "dpi": 400,
+      "filename": "f14_mdp_reward.png",
+      "file": "images/f14_mdp_reward.png",
+      "providers": [
+        "codecogs",
+        "quicklatex",
+        "mathpad",
+        "wikimedia"
+      ],
+      "transparent_tolerance": 12,
+      "provider": "codecogs",
+      "pixel_width": 543,
+      "pixel_height": 105,
+      "ratio": 5.1714,
+      "status": "Rendered"
+    }
+  ],
+  "renderer": {
+    "providers": [
+      "codecogs",
+      "quicklatex",
+      "mathpad",
+      "wikimedia"
+    ],
+    "default_dpi": 300,
+    "output_dir": "images"
+  }
+}

@@ -1,0 +1,55 @@
+<svg width="1280" height="720" viewBox="0 0 1280 720" xmlns="http://www.w3.org/2000/svg">
+  <rect id="bg" x="0" y="0" width="1280" height="720" fill="#FFFFFF"/>
+
+  <g id="p10-header">
+    <text x="56" y="60" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" letter-spacing="2" fill="#6B7A85">PARTIE II · DEEP DIVE 2/6 · F-BWM</text>
+    <text x="54" y="104" font-family="Segoe UI, Arial, sans-serif" font-size="42" font-weight="800" fill="#1E4258">2n−3 comparaisons : la méthode Best-Worst floue</text>
+    <rect x="56" y="118" width="64" height="4" fill="#2C5F7C"/>
+  </g>
+
+  <g id="p10-figure">
+    <image href="../images/08-ponderation-pleine-page.png" x="76" y="170" width="520" height="329" preserveAspectRatio="xMidYMid meet"/>
+    <rect x="76" y="170" width="520" height="329" fill="none" stroke="#D8DEE3" stroke-width="1"/>
+    <text x="76" y="524" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#6B7A85">
+      <tspan x="76" dy="0">Interface de pondération : désignation du</tspan>
+      <tspan x="76" dy="22">critère Best / Worst, comparaisons linguistiques</tspan>
+    </text>
+
+    <rect x="76" y="578" width="520" height="60" fill="#F4F6F8" stroke="#D8DEE3"/>
+    <text x="96" y="603" font-family="Segoe UI, Arial, sans-serif" font-size="17" fill="#22313A">Pour 6 critères Ur :</text>
+    <text x="96" y="626" font-family="Segoe UI, Arial, sans-serif" font-size="17" fill="#22313A"><tspan font-weight="700" fill="#2C5F7C">2×6−3 = 9</tspan> comparaisons (contre 15 avec AHP)</text>
+  </g>
+
+  <g id="p10-content">
+    <text x="630" y="176" font-family="Segoe UI, Arial, sans-serif" font-size="26" font-weight="700" fill="#1E4258">Le meilleur et le pire, rien d'autre</text>
+    <text x="630" y="208" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#22313A">
+      <tspan x="630" dy="0">Le coordinateur désigne le critère Best (le plus</tspan>
+      <tspan x="630" dy="26">important) et Worst (le moins important), puis</tspan>
+      <tspan x="630" dy="26">compare uniquement Best-to-Others et</tspan>
+      <tspan x="630" dy="26">Others-to-Worst, jugements linguistiques.</tspan>
+    </text>
+
+    <text x="630" y="336" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#6B7A85">Optimisation sous contrainte (Scipy SLSQP)</text>
+    <image href="../images/f04_fbwm_opt.png" x="630" y="344" width="560" height="73" preserveAspectRatio="xMidYMid meet"/>
+
+    <text x="630" y="446" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#6B7A85">Défuzzification GMIR</text>
+    <image href="../images/f05_fbwm_gmir.png" x="630" y="454" width="300" height="77" preserveAspectRatio="xMidYMid meet"/>
+
+    <text x="630" y="570" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#22313A">
+      <tspan x="630" dy="0">Repli gracieux sur poids uniformes si la</tspan>
+      <tspan x="630" dy="26">convergence échoue, jamais de crash.</tspan>
+    </text>
+
+    <text x="630" y="638" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#9AA5AC">
+      <tspan x="630" dy="0">Échelle : égal(1,1,1) · faible(⅔,1,3/2) · assez(3/2,2,5/2) ·</tspan>
+      <tspan x="630" dy="18">très(5/2,3,7/2) · absolu(7/2,4,9/2)</tspan>
+    </text>
+  </g>
+
+  <g id="p10-footer">
+    <line x1="56" y1="676" x2="1224" y2="676" stroke="#D8DEE3" stroke-width="1"/>
+    <text x="56" y="700" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#9AA5AC">SupplyScore · Soutenance de thèse</text>
+    <text x="640" y="700" text-anchor="middle" font-family="Consolas, 'Courier New', monospace" font-size="15" fill="#9AA5AC">supplyscore/mcda/fbwm.py · resoudre_fbwm</text>
+    <text x="1224" y="700" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#9AA5AC" text-anchor="end">10 / 28</text>
+  </g>
+</svg>

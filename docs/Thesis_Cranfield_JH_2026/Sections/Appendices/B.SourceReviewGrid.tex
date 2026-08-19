@@ -1,0 +1,165 @@
+\section{Source Review Grid}
+\label{app:source_grid}
+
+Following the structured review method required by the programme's writing guidelines, the
+grid below records for each stream reviewed in Section~\ref{sec:Literature} its principal
+sources, the methodological approach those sources take, what this thesis takes from them,
+and a critical appraisal of the limitation that prevents the stream from answering the
+research question on its own. The final column is the one that matters for the argument: it
+is the accumulation of those limitations that defines the gap stated in
+Section~\ref{sec:lit_gaps}.
+
+\begin{longtable}{>{\raggedright\arraybackslash}p{2.6cm} >{\raggedright\arraybackslash}p{3.0cm} >{\raggedright\arraybackslash}p{3.4cm} >{\raggedright\arraybackslash}p{4.4cm}}
+\caption{Source review grid}
+\label{tab:source_grid} \\
+\toprule
+\textbf{Stream and role} & \textbf{Principal sources and method} & \textbf{Taken into this
+thesis} & \textbf{Critical appraisal} \\
+\midrule
+\endfirsthead
+\multicolumn{4}{l}{\small\itshape Table~\ref{tab:source_grid}, continued} \\
+\toprule
+\textbf{Stream and role} & \textbf{Principal sources and method} & \textbf{Taken into this
+thesis} & \textbf{Critical appraisal} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+
+Deadline-sensitive value and risk propagation \newline \textit{Foundation} &
+\autocite{cheng1996due,cheng2025survey}: analytical utility-accrual scheduling.
+\autocite{ivanov2020digital,ivanov2019viable,li2020exploring}: conceptual and simulation
+models of the ripple effect &
+Urgency treated as time-varying and network-propagated rather than node-local; the
+noisy-OR choice over weighted averaging &
+Time-value work stops at a single isolated task. Ripple-effect work models propagation but
+not the node-level aggregation of heterogeneous blocks that must precede it. Neither
+addresses a declared signal at all \\
+\midrule
+
+Cognitive bias in urgency \newline \textit{Foundation} &
+\autocite{zhu2018mere}: five controlled experiments. \autocite{steel2006integrating}: formal
+discounting model. \autocite{rusou2020psychology,diwa2020task}: field studies &
+The justification for treating declared urgency as a biased signal; the asymmetric penalty
+structure; hypothesis H5 &
+Diagnoses the bias but prescribes no operational correction. Effect sizes come from
+laboratory and clinical settings; the magnitude in industrial supply chains is
+uncalibrated, which this thesis inherits as an open parameter rather than resolves \\
+\midrule
+
+Closest antecedents \newline \textit{Antecedent} &
+\autocite{sawik2013integrated,sawik2014joint,sawik2016integrated}: mixed-integer
+programming. \autocite{cohen2021assigning,afrasiabi2022extended}: MCDM supplier
+prioritisation &
+Confirmation that multi-criteria, disruption-aware supplier evaluation is established, and
+precise identification of what it omits &
+Risk is evaluated once, at the point of decision, not maintained per node and propagated.
+Where a client-declared signal exists it is consumed directly, never validated against an
+operational counterpart. The optimisation machinery targets allocation, not measurement \\
+\midrule
+
+Bayesian risk updating \newline \textit{Enabling} &
+\autocite{pearl1988probabilistic,koller2009probabilistic}: theory.
+\autocite{hosseini2020bayesian}: survey.
+\autocite{huang2020bayesian,deng2020prediction,lockamy2011bayesian,qazi2017dynamic}: applied
+models &
+Beta-Bernoulli conjugate revision of the failure probability in the risk block, at
+$n_0 = 26$ &
+Suited to the sparse-evidence regime, but says nothing about whether the resulting
+probabilities are well calibrated once a human reads them. This thesis measured that gap
+directly and found it large \\
+\midrule
+
+Digital twins and decision support \newline \textit{Enabling, primary gap source} &
+\autocite{grieves2014digital,tao2018digital,fuller2020digital}: concept and survey.
+\autocite{ivanov2021digital,ivanov2020digital,niloofar2023}: supply chain twins and
+cognitive twins &
+The architectural family the delivered system belongs to; the human-in-the-loop framing &
+No retrieved system combines a declared input, a computed operational urgency and their
+propagated mismatch. A second gap matters here: these systems are evaluated on state
+estimation accuracy and assume their inputs simply arrive, so input circularity is not
+treated as a measurement problem \\
+\midrule
+
+Multi-criteria decision methods \newline \textit{Enabling} &
+\autocite{saaty1980analytic}: eigenvector method. \autocite{rezaei2015best,guo2017fuzzy}:
+best-worst and fuzzy extensions. \autocite{brans1986promethee,brans2005promethee}:
+outranking. \autocite{greco2018,becker2017,borgonovo2021global}: composite-index critique &
+The elicitation of $U_d$ with its consistency gate; the Fuzzy BWM weighting of the six
+blocks; the PROMETHEE~II network ranking &
+Static tools, rarely compared against a computed counterpart. The composite-index critique
+is usually offered as a caveat rather than instrumented; this thesis instruments it through
+the explainability decomposition, and the campaign then produced exactly the predicted
+failure, two perfectly correlated criteria \\
+\midrule
+
+Forecast-assisted decision and automation bias \newline \textit{Foundation for the treatment
+arm} &
+\autocite{parasuraman1997humans}: taxonomy. \autocite{skitka1999automation,cummings2004automation}:
+controlled studies. \autocite{goddard2012automation}: systematic review.
+\autocite{dietvorst2015algorithm,logg2019algorithm,bansal2021whole}: direction and
+explanation effects &
+The interpretive frame for the arm B result; the design requirement that an advisory layer
+communicate its own ignorance &
+Dominated by single-decision laboratory and clinical tasks. Does not cover a repeated
+multi-turn loop in which the declaration feeds back into the model, nor the case where the
+displayed forecast is known to be miscalibrated in a specific direction, which is the
+situation measured here \\
+\midrule
+
+Probabilistic forecast verification \newline \textit{Enabling} &
+\autocite{brier1950verification}: score. \autocite{murphy1973vector}: decomposition.
+\autocite{gneiting2007strictly}: proper scoring rules.
+\autocite{niculescu2005predicting,guo2017calibration}: post-hoc calibration &
+The scoring protocol of Section~\ref{sec:methods_scoring}; the separation of discrimination
+from calibration that carries the central result &
+Assumes the predicted outcome is unambiguously defined. In an operational supply chain it is
+a modelling choice, and Section~\ref{sec:res_target_trap} measures that choice moving the
+reported skill by a factor of five \\
+\midrule
+
+Serious games \newline \textit{Validation rationale} &
+\autocite{sterman1989modeling}: the Beer Game. \autocite{prensky2001digital,deterding2011game}:
+design theory. \autocite{mohaddesi2020gamettes,bellotti2013framework,lafkihi2025freight}:
+methodology and applications &
+Justification of a weekly-cadence game as an empirical instrument for observing declaration
+bias &
+Usually scored on learning outcomes or aggregate performance, rarely used as a controlled
+comparison replaying one frozen scenario with and without a treatment on the declarant,
+which is the design adopted here \\
+\midrule
+
+Medical triage \newline \textit{Analogy only} &
+\autocite{mackway2013emergency}: protocol. \autocite{kuligowski2025comparative}: comparative
+study, weighted $\kappa = 0.51$. \autocite{kim2020admission}: admission control &
+Vocabulary of over- and under-triage; the principle of asymmetric risk behind
+$\lambda_{\text{under}} > \lambda_{\text{over}}$ &
+Analogy only, and flagged as such wherever used. Clinical triage has an outcome observable
+within hours and a trained, certified assessor; neither holds in a supply chain, so no
+numeric parameter is transferred from this stream \\
+\midrule
+
+Physical Internet and carbon accounting \newline \textit{Context} &
+\autocite{montreuil2011toward,guo2020dynamic,li2020exploring}: network context.
+\autocite{smartfreight2023glec,commission2017vecto,ademe2014impacts,iso14083}: emissions
+frameworks &
+The motivation for treating urgency as a network-level quality of service variable; the
+carbon block as a separate arbitration criterion &
+Provides context and regulatory grounding, not method. The carbon block was the least
+exercised of the six on the campaign, so its inclusion remains justified by design intent
+rather than by measured contribution \\
+\midrule
+
+Earth observation of built assets \newline \textit{Foundation for the opening} &
+\autocite{xia2018dota}: oriented detection benchmark.
+\autocite{maggiori2017inria,vanetten2018spacenet}: footprint benchmarks.
+\autocite{kirillov2023segment}: promptable segmentation.
+\autocite{henderson2012measuring,jean2016combining}: activity proxies from imagery &
+The pre-trained detector and its vehicle classes; the sampling of candidate sites from
+imagery alone; the precedent that imagery can substitute for slow official statistics &
+The economics work measures aggregate activity at regional scale and produces nothing
+per-facility. The detection work stops at footprints and vehicles without converting them
+into an operational capacity. The conversion, and its calibration, is what
+Section~\ref{sec:res_volume} had to construct \\
+
+\end{longtable}

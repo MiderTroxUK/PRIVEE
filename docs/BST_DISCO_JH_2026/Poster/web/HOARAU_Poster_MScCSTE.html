@@ -1,0 +1,579 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>HOARAU — MSc CSTE Poster — Smart Green Supply Chain Digital Twin</title>
+<style>
+/* ══════════════════════════════════════════════════════════════════════════
+   MSc CSTE / ESTIA / ALTEN DIN, Individual Research Project poster
+   A1 portrait, 594 x 841 mm, one page, print to PDF from Chrome.
+   Palette and editorial rules: ALTEN Brand Book 2025 (EN), pp. 27-34.
+
+   Two tracks, numbered independently:
+     V1..V5  VOLUME             left column   (ochre rule)
+     S1..S4  SupplyScore/HELIOS right column  (azure rule)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+:root{
+  /* main colours, p.27 */
+  --navy:#043962; --azure:#008BD2; --ochre:#FFDA65;
+  /* charter shades, p.28, "to differentiate data" */
+  --ochre-mark:#FFBA00; --azure-dark:#176F98; --azure-light:#B2E0F5;
+  --navy-light:#8D9CAD; --navy-pale:#D2D7DE;
+  /* tertiaries, p.29 */
+  --bg:#EBF3F9; --line:#CDCEDA; --caption:#8C8C9A;
+}
+
+@page{ size:594mm 841mm; margin:0; }
+*{ box-sizing:border-box; margin:0; padding:0; }
+html{ background:#5c6672; }
+
+body{
+  font-family:Calibri,Carlito,Arial,"Helvetica Neue",sans-serif;
+  color:var(--navy);                       /* p.33, running text is always navy */
+  -webkit-print-color-adjust:exact; print-color-adjust:exact;
+  font-kerning:normal; text-rendering:geometricPrecision;
+}
+
+.poster{
+  width:594mm; height:841mm; margin:0 auto; background:#fff; position:relative;
+  padding:13mm 17mm 11mm 17mm;
+  display:flex; flex-direction:column; overflow:hidden;
+  font-size:11.2pt; line-height:1.3;
+}
+@media screen{ .poster{ box-shadow:0 0 28mm rgba(0,0,0,.45); margin:10mm auto; } }
+
+/* ── header ───────────────────────────────────────────────────────────── */
+/* The rule and the chips are siblings of the logo row, not children of it, so they
+   span the same full width as the footer rule. */
+.headrow{ display:flex; align-items:center; gap:9mm; }
+.headrow .crest{ width:40mm; flex:0 0 40mm; display:flex; align-items:center; }
+.headrow .crest img{ width:100%; display:block; }
+.headrow .titles{ flex:1; }
+
+.msc{ font-size:15pt; font-weight:700; color:var(--azure-dark); margin-bottom:2mm; }
+h1{ font-size:33pt; line-height:1.04; font-weight:700; letter-spacing:-.016em;
+    margin-bottom:2.4mm; white-space:nowrap; }
+h1 em{ font-style:normal; color:var(--azure); }
+.sub{ font-size:14pt; line-height:1.2; }
+
+.byline{ margin-top:3.2mm; padding-top:2.4mm; border-top:1.1mm solid var(--navy);
+         display:flex; align-items:baseline; gap:5mm; font-size:11.6pt; }
+.byline b{ font-size:13pt; }
+.byline .dot{ color:var(--line); }
+
+.bricks{ display:flex; gap:3mm; margin-top:2.6mm; }
+.brick-chip{ flex:1; display:flex; align-items:center; gap:2.4mm;
+             padding:1.7mm 3.2mm; background:var(--bg); font-size:10.6pt; line-height:1.2; }
+.brick-chip .tag{ font-weight:700; font-size:9.8pt; letter-spacing:.05em;
+                  padding:.7mm 2.2mm; color:#fff; white-space:nowrap; }
+.b1 .tag{ background:var(--azure); }
+.b2 .tag{ background:var(--ochre-mark); color:var(--navy); }
+.b1{ border-left:1.4mm solid var(--azure); }
+.b2{ border-left:1.4mm solid var(--ochre-mark); }
+
+/* ── grid ─────────────────────────────────────────────────────────────── */
+.body{ flex:1; display:flex; flex-direction:column; gap:5mm; margin-top:4.5mm; min-height:0; }
+/* minmax(0,…) not 1fr: a wide table or image grid inside a column would otherwise
+   push its own track past half the page. */
+.row{ display:grid; gap:6mm; min-height:0; }
+.row.two{ grid-template-columns:minmax(0,1fr) minmax(0,1fr); }
+.col{ display:flex; flex-direction:column; gap:5mm; min-height:0; }
+.col > .blk{ flex:0 0 auto; }        /* a section never squeezes its own text away */
+.col > .fill{ flex:1 1 auto; }       /* only these absorb the column's leftover height */
+
+/* ── section block, the vertical rule is the brand identity motif, p.34 ── */
+.blk{ border-left:1.7mm solid var(--azure); padding-left:4mm;
+      display:flex; flex-direction:column; min-height:0; overflow:hidden; }
+.blk.b2{ border-left-color:var(--ochre-mark); }
+.blk > *{ flex:0 0 auto; }
+.grow{ flex:1 1 auto !important; min-height:0; }
+
+.blk h2{
+  display:flex; align-items:center; gap:2.6mm; background:var(--bg);
+  margin:0 0 2.6mm -4mm; padding:1.6mm 3.6mm 1.6mm 4mm;
+  font-size:16pt; font-weight:700; line-height:1.1; letter-spacing:-.008em;
+}
+.blk h2 .n{ font-size:15pt; font-weight:700; color:#fff;
+            background:var(--azure); padding:.7mm 2.2mm; }
+.blk.b2 h2 .n{ background:var(--ochre-mark); color:var(--navy); }
+.blk h2 .sfx{ font-weight:400; color:var(--caption); font-size:11.6pt; margin-left:auto;
+              white-space:nowrap; }
+
+h3{ font-size:11.6pt; font-weight:700; margin:0 0 1mm; }
+p{ margin-bottom:2mm; }
+p:last-child{ margin-bottom:0; }
+.hl{ color:var(--azure); font-weight:700; }
+.no{ color:var(--caption); }
+
+/* ── emphasis ─────────────────────────────────────────────────────────── */
+.key{ background:var(--navy); color:#fff; padding:2.6mm 3.2mm; line-height:1.26; }
+.key b{ color:var(--azure-light); font-weight:700; }
+.key .lbl{ display:block; font-size:9.4pt; letter-spacing:.07em; font-weight:700;
+           color:var(--azure-light); margin-bottom:1mm; }
+.assume{ background:#FFF6DC; border-left:1.4mm solid var(--ochre-mark);
+         padding:2.4mm 3.2mm; line-height:1.24; }
+.assume .lbl{ display:block; font-size:9.4pt; letter-spacing:.07em; font-weight:700;
+              margin-bottom:.8mm; }
+
+/* ── stat tiles ───────────────────────────────────────────────────────── */
+.stats{ display:grid; gap:2.2mm; }
+.stats.s4{ grid-template-columns:repeat(4,minmax(0,1fr)); }
+.stats.s5{ grid-template-columns:repeat(5,minmax(0,1fr)); }
+.stat{ background:var(--bg); padding:2mm 2.4mm; }
+.stat .v{ font-size:17.5pt; font-weight:700; line-height:1; color:var(--azure);
+          letter-spacing:-.02em; display:block; }
+.b2 .stat .v{ color:var(--navy); }
+.stat .k{ font-size:9.2pt; line-height:1.16; display:block; margin-top:1mm; }
+
+/* ── tables ───────────────────────────────────────────────────────────── */
+table{ width:100%; border-collapse:collapse; font-size:10.2pt; }
+th{ text-align:left; font-weight:700; font-size:9.4pt; border-bottom:.5mm solid var(--navy);
+    padding:.9mm 1.2mm .9mm 0; }
+td{ padding:1mm 1.2mm 1mm 0; border-bottom:.25mm solid var(--line); vertical-align:top; }
+tr:last-child td{ border-bottom:none; }
+th.c,td.c{ text-align:center; }
+.ok{ color:var(--azure); font-weight:700; }
+tr.win td{ background:var(--bg); font-weight:700; }
+
+/* ── figures ──────────────────────────────────────────────────────────── */
+figure{ position:relative; }
+figure img{ display:block; width:100%; }
+figcaption{ font-size:9.2pt; color:var(--caption); line-height:1.2; margin-top:1mm; }
+.frame{ border:.3mm solid var(--line); }
+
+/* truth against prediction: two aligned rows of the same chips */
+.pairs{ display:grid; grid-template-columns:13mm repeat(4,minmax(0,1fr)); gap:2mm;
+        align-items:center; }
+.pairs img{ display:block; width:100%; height:auto; }
+.pairs .rowlab{ font-size:9.6pt; font-weight:700; line-height:1.12; text-align:right; }
+.pairs .caplab{ font-size:9.6pt; font-weight:700; text-align:center; line-height:1.1; }
+.pairs .caplab span{ display:block; font-weight:400; color:var(--caption); font-size:8.8pt; }
+
+/* ── footer ───────────────────────────────────────────────────────────── */
+.foot{ margin-top:4mm; padding-top:2.6mm; border-top:1.1mm solid var(--azure);
+       display:flex; align-items:flex-end; gap:7mm; }
+.foot .logos{ display:flex; align-items:center; gap:7mm; }
+.foot .sup{ flex:1; font-size:10.2pt; line-height:1.3; }
+.foot .cran{ text-align:right; font-size:10.2pt; line-height:1.3; white-space:nowrap; }
+.foot .cran .url{ font-weight:700; font-size:12pt; }
+.foot .cran .conf{ color:var(--caption); }
+</style>
+</head>
+<body>
+<div class="poster">
+
+<!-- ══════════════════════════ HEADER ══════════════════════════ -->
+<header>
+  <div class="headrow">
+    <div class="crest"><img src="img/LogoCranfield.png" alt="Cranfield University"></div>
+    <div class="crest"><img src="img/LogoESTIA.png" alt="ESTIA Institute of Technology"></div>
+    <div class="logo"><img src="img/LogoALTEN.png" alt="ALTEN" style="height:30mm"></div>
+    <div class="titles">
+      <div class="msc">MSc in Computational Software Techniques in Engineering : Digital Engineering Design</div>
+      <h1>R&amp;D Internship contribution to the <em>Smart Green Supply-Chain Digital Twin</em></h1>
+      <div class="sub">Warehouse capacity measured from orbit, and operator urgency measured
+        against physics. R&amp;D bricks of ALTEN DIN's <i>Smart Green Supply Chain</i> programme, built during the internship.</div>
+    </div>
+  </div>
+  <div class="byline">
+    <b>John HOARAU 484338</b>
+    <span class="dot">|</span> R&amp;D Intern, Direction Innovation Numérique, ALTEN
+    <span class="dot">|</span> Individual Research Project 2025/2026
+  </div>
+  <div class="bricks">
+    <div class="brick-chip b2"><span class="tag">V &middot; VOLUME</span>
+      <span>Modelling a warehouse from satellite imagery, to extrapolate the data the Physical Internet model needs.</span></div>
+    <div class="brick-chip b1"><span class="tag">S &middot; SUPPLYSCORE</span>
+      <span>An adequacy score between the urgency an operator declares and the urgency the twin computes, to anticipate and optimise flows.</span></div>
+  </div>
+</header>
+
+<!-- ══════════════════════════ BODY ══════════════════════════ -->
+<div class="body">
+
+<div class="row two" style="flex:1; min-height:0">
+
+<!-- ════════════ LEFT: VOLUME ════════════ -->
+<div class="col">
+
+  <section class="blk b2">
+    <h2><span class="n">V1</span> What comes out, per site</h2>
+    <div class="stats s5">
+      <div class="stat"><span class="v">m³</span><span class="k">storable volume</span></div>
+      <div class="stat"><span class="v">pallets</span><span class="k">rack slots</span></div>
+      <div class="stat"><span class="v">docks</span><span class="k">loading capacity</span></div>
+      <div class="stat"><span class="v">I/L/U</span><span class="k">building shape</span></div>
+      <div class="stat"><span class="v">m</span><span class="k">roof height</span></div>
+    </div>
+    <p style="font-size:10.4pt; margin-top:2.2mm">Source: IGN orthophoto at 20 cm, BD TOPO footprints, LiDAR HD heights.
+      <span class="no">https://www.data.gouv.fr/datasets/</span><br>
+      Chain: SAM3 segments the roof, shape and area are read off it, then the fine-tuned
+      YOLO26-seg finds the docks.</p>
+  </section>
+
+  <section class="blk b2">
+    <h2><span class="n">V2</span>Focus on Loading apron - Human annotation dataset against work in progress model</h2>
+    <div class="pairs" style="min-width:0">
+      <div></div>
+      <div class="caplab">Found<span>6 loading aprons, 7 drawn</span></div>
+      <div class="caplab">Partial<span>8 loading aprons, 5 drawn</span></div>
+      <div class="caplab">Missed<span>4 loading aprons, 1 drawn</span></div>
+      <div class="caplab">Clean<span>no loading apron, none drawn</span></div>
+
+      <div class="rowlab" style="color:#FFBA00">Hand<br>truth</div>
+      <img class="frame" src="img/ve_gt_a.jpg" alt="Hand annotation, found">
+      <img class="frame" src="img/ve_gt_b.jpg" alt="Hand annotation, partial">
+      <img class="frame" src="img/ve_gt_c.jpg" alt="Hand annotation, missed">
+      <img class="frame" src="img/ve_gt_d.jpg" alt="Hand annotation, negative">
+
+      <div class="rowlab" style="color:#008BD2">Model<br>output</div>
+      <img class="frame" src="img/ve_pr_a.jpg" alt="Model prediction, found">
+      <img class="frame" src="img/ve_pr_b.jpg" alt="Model prediction, partial">
+      <img class="frame" src="img/ve_pr_c.jpg" alt="Model prediction, missed">
+      <img class="frame" src="img/ve_pr_d.jpg" alt="Model prediction, negative">
+    </div>
+    <figcaption style="margin-top:1.6mm">Sample drawn from 442 hand-annotated images across
+      France. YOLO26-seg was fine-tuned on 80 % of that set and validated on the remaining 20 %,
+      from which these four come.</figcaption>
+  </section>
+
+  <section class="blk b2">
+    <h2><span class="n">V3</span> Model results
+        <span class="sfx">scored on dock count, not on mAP</span></h2>
+    <div style="display:grid; grid-template-columns:1.25fr 1fr; gap:4mm;
+                margin-bottom:2.2mm; height:64mm">
+      <figure style="display:flex; flex-direction:column; min-height:0">
+        <img src="img/yolo_training.png" alt="mAP50 across fine-tuning runs"
+             style="flex:1; min-height:0; object-fit:contain; object-position:left center">
+      </figure>
+      <figure style="display:flex; flex-direction:column; min-height:0">
+        <img src="img/yolo_business.png" alt="Dock-count error, first model against kept model"
+             style="flex:1; min-height:0; object-fit:contain; object-position:right center">
+      </figure>
+    </div>
+    <table>
+      <tr><th>Run</th><th class="c">px</th><th class="c">mAP50</th><th class="c">bias</th>
+          <th class="c">median error</th><th class="c">missed</th><th class="c">clean negatives</th></tr>
+      <tr><td>86 chips</td><td class="c">640</td><td class="c">0.363</td><td class="c">−35 %</td>
+          <td class="c">62 %</td><td class="c">20 %</td><td class="c">89 %</td></tr>
+      <tr><td>351 chips</td><td class="c">1280</td><td class="c">0.570</td><td class="c">−11 %</td>
+          <td class="c">60 %</td><td class="c">35 %</td><td class="c">93 %</td></tr>
+      <tr class="win"><td>351 chips, kept</td><td class="c">640</td><td class="c">0.618</td>
+          <td class="c">+2 %</td><td class="c">53 %</td><td class="c">22 %</td><td class="c">87 %</td></tr>
+    </table>
+    <figcaption>Training and data collection are still running, so these figures are a snapshot
+      and not the final result of the internship.</figcaption>
+  </section>
+
+  <section class="blk b2">
+    <h2><span class="n">V4</span> Zone sweep - Full modely
+        <span class="sfx">Toulouse, 5 km radius, fully automatic</span></h2>
+    <div class="stats s4" style="margin-bottom:2.4mm">
+      <div class="stat"><span class="v">69</span><span class="k">buildings characterised</span></div>
+      <div class="stat"><span class="v">3.6 M</span><span class="k">m³ storable</span></div>
+      <div class="stat"><span class="v">720 231</span><span class="k">pallet slots</span></div>
+      <div class="stat"><span class="v">455</span><span class="k">docks, from 1 729 m</span></div>
+    </div>
+
+    <figure style="margin-bottom:2.4mm">
+      <img class="frame" src="img/ve_sweep.jpg" alt="Overview of the swept zone">
+      <figcaption>A 1.8 km slice of the swept corridor with the same three stages run on every
+        building: 25 of the 26 roofs above 1 500 m² segmented, then classified, then searched for
+        docks. 208 docks here. No site list was supplied and no operator was contacted. The four
+        figures above cover the whole 5 km sweep.</figcaption>
+    </figure>
+    <h3 style="margin:1mm 0 1.6mm">Three sites, three stages: roof segmented, shape and area
+      read from it, then the docks</h3>
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:3mm; height:70mm">
+      <figure class="frame" style="display:flex; flex-direction:column; min-height:0">
+        <img src="img/ve_case_best.jpg" alt="I-shaped site, both berthed façades read"
+             style="flex:1; min-height:0; object-fit:cover; object-position:50% 46%">
+        <figcaption style="padding:1mm 1.4mm .6mm">Roof 6 702 m², shape <b>L</b>. Both berthed
+          façades found: 281 m at 3.8 m pitch, 74 docks.</figcaption>
+      </figure>
+      <figure class="frame" style="display:flex; flex-direction:column; min-height:0">
+        <img src="img/ve_case_mid.jpg" alt="I-shaped site, part of the dock face read"
+             style="flex:1; min-height:0; object-fit:cover; object-position:50% 48%">
+        <figcaption style="padding:1mm 1.4mm .6mm">Roof 9 728 m², shape <b>I</b>. The real dock
+          face, but only part of it: 112 m, 30 docks.</figcaption>
+      </figure>
+      <figure class="frame" style="display:flex; flex-direction:column; min-height:0">
+        <img src="img/ve_case_flop.jpg" alt="L-shaped site with no loading apron of its own"
+             style="flex:1; min-height:0; object-fit:cover; object-position:50% 48%">
+        <figcaption style="padding:1mm 1.4mm .6mm">Roof 3 439 m², shape <b>L</b>, and <b>no loading apron
+          of its own</b>. Storage, no throughput.</figcaption>
+      </figure>
+    </div>
+    <div class="assume" style="margin-top:2.4mm">
+      <span class="lbl">WHAT SEGMENTING THE ROOF FIRST CHANGED</span>
+      Roof area lands within 8 %, 1 % and 2 % of the reference polygon, so measuring a footprint
+      from imagery alone holds up. Layout is read off the roof's medial axis rather than off
+      corner counts, restricted to the three classes a warehouse actually takes: I, L, U. The
+      reference database returned "complex" for all three of these sites because it splits one
+      warehouse across several records; the segmented roof reads I, I and L instead. On the third
+      site the new order also removed 11 docks that the footprint-first run had credited to it.
+      They belong to the neighbour across the courtyard and fall outside this roof.
+    </div>
+  </section>
+
+  <section class="blk b2">
+    <h2><span class="n">V5</span> Next</h2>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:5mm; font-size:10.4pt;
+                line-height:1.24">
+      <div>
+        <h3>Scale the dataset</h3>
+        A larger annotated set and better training settings. That is the whole of it. Every
+        measured gain so far has come from more annotation, making a cleverer model.
+      </div>
+      <div>
+        <h3>Connect it</h3>
+        Push measured volume and dock capacity into the capacity block of SupplyScore, so the
+        twin stops reading a typed-in number, and starts reading the world.
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ════════════ RIGHT: SUPPLYSCORE ════════════ -->
+<div class="col">
+
+  <section class="blk fill">
+    <h2><span class="n">S1</span> Which KPIs feed the Adequacy Score?
+        <span class="sfx">six computed blocks, four declared criteria</span></h2>
+    <div class="grow" style="display:grid; grid-template-columns:1.5fr 1fr; gap:4mm;
+                             min-height:0; align-items:start">
+      <figure style="display:flex; flex-direction:column; min-height:0">
+        <img src="img/causal_tree_blocks.png" alt="The six KPI blocks behind computed urgency"
+             style="flex:1; min-height:0; object-fit:contain; object-position:left top">
+        <figcaption>Computed side. Six blocks, each answering one operational question, combined
+          into a rupture risk and propagated across the supplier graph.</figcaption>
+      </figure>
+      <figure style="display:flex; flex-direction:column; min-height:0">
+        <img src="img/ss_criteria.png" alt="Declared criteria mapped onto computed blocks"
+             style="flex:1; min-height:0; object-fit:contain; object-position:left top">
+        <figcaption>Declared side. Four criteria the operator compares by hand, each confronted
+          with the block that answers the same question.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="blk fill">
+    <h2><span class="n">S2</span> The delivered tool
+        <span class="sfx">live application, HÉLIOS project</span></h2>
+    <div class="grow" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:4mm;
+                             min-height:0">
+      <figure class="frame" style="display:flex; flex-direction:column; min-height:0">
+        <img src="img/ss_dashboard.jpg" alt="Dashboard, network view and hidden-risk count"
+             style="flex:1; min-height:0; object-fit:cover; object-position:center top; object-fit: contain" >
+        <figcaption>The dashboard: adequacy per node, hidden risks and false urgencies counted
+          live across the network.</figcaption>
+      </figure>
+      <figure class="frame" style="display:flex; flex-direction:column; min-height:0">
+        <img src="img/ss_questionnaire.jpg" alt="Weekly AHP questionnaire, pairwise sliders"
+             style="flex:1; min-height:0; object-fit:cover; object-position:center top; object-fit: contain">
+        <figcaption>The weekly results showcasing which node necessitates the most attention based on the AHP scores, and the PROMETHEE II rankings calibrations. Also showing which criterion has the most impact. And the temporal evolution of metrics applied to a node.</figcaption>
+      </figure>
+      <figure class="frame" style="display:flex; flex-direction:column; min-height:0">
+        <img src="img/ss_graphe.jpg" alt="Graph editor, supplier arcs with gamma and beta"
+             style="flex:1; min-height:0; object-fit:cover; object-position:center top; object-fit: contain">
+        <figcaption>The table details each node of the supplier graph and their respective scores, and can offer a comprehensive view of the network's performance and explanation of what's happening.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="blk fill">
+    <h2><span class="n">S3</span> The 2020 to 2022 chip shortage replayed via a Serious Game
+        <span class="sfx">8 nodes, 18 turns</span></h2>
+
+    <p style="font-size:10.4pt; margin-bottom:2.4mm"> Hélios reimagines the chip shortage as a serious game and proof of concept, 
+      demonstrating how shortages can be anticipated with sufficient data. Beyond replaying past crises, 
+      it can support scenario simulation and decision-making by identifying the most likely outcomes. 
+      Using documented disruptions from September 2020 to February 2022 and urgency scores derived from frozen public datasets, 
+      the model naturally reveals the foundry as the key bottleneck without being explicitly instructed to do so.
+      </p>
+
+    <figure style="margin-bottom:2.2mm">
+      <svg viewBox="0 0 560 118" style="width:100%; display:block" role="img"
+           aria-label="The eight campaign nodes with their final adequacy score">
+        <defs><marker id="ar2" markerWidth="6.5" markerHeight="6.5" refX="5.8" refY="3.25"
+                      orient="auto"><path d="M0 0 L6.5 3.25 L0 6.5 z" fill="#8D9CAD"/></marker></defs>
+        <g font-family="Calibri,sans-serif" fill="#043962">
+          <rect x="0" y="14" width="86" height="36" fill="#EBF3F9"/>
+          <text x="5" y="26" font-size="12.5" font-weight="700">SilPure</text>
+          <text x="5" y="36" font-size="10.5" fill="#8C8C9A">wafers, r5</text>
+          <rect x="5" y="41" width="52" height="5" fill="#D2D7DE"/>
+          <rect x="5" y="41" width="25.4" height="5" fill="#008BD2"/>
+          <text x="61" y="46" font-size="11" font-weight="700">48.9</text>
+
+          <rect x="118" y="14" width="86" height="36" fill="#EBF3F9"/>
+          <text x="123" y="26" font-size="12.5" font-weight="700">NovaFab</text>
+          <text x="123" y="36" font-size="10.5" fill="#8C8C9A">foundry, r4</text>
+          <rect x="123" y="41" width="52" height="5" fill="#D2D7DE"/>
+          <rect x="123" y="41" width="51.2" height="5" fill="#008BD2"/>
+          <text x="179" y="46" font-size="11" font-weight="700">98.5</text>
+
+          <rect x="236" y="14" width="86" height="36" fill="#EBF3F9"/>
+          <text x="241" y="26" font-size="12.5" font-weight="700">CompoDis</text>
+          <text x="241" y="36" font-size="10.5" fill="#8C8C9A">distributor, r3</text>
+          <rect x="241" y="41" width="52" height="5" fill="#D2D7DE"/>
+          <rect x="241" y="41" width="35.1" height="5" fill="#008BD2"/>
+          <text x="297" y="46" font-size="11" font-weight="700">67.5</text>
+
+          <rect x="354" y="14" width="86" height="36" fill="#EBF3F9"/>
+          <text x="359" y="26" font-size="12.5" font-weight="700">Électis</text>
+          <text x="359" y="36" font-size="10.5" fill="#8C8C9A">EMS, r2</text>
+          <rect x="359" y="41" width="52" height="5" fill="#D2D7DE"/>
+          <rect x="359" y="41" width="43.1" height="5" fill="#008BD2"/>
+          <text x="415" y="46" font-size="11" font-weight="700">82.9</text>
+
+          <rect x="472" y="14" width="86" height="36" fill="#EBF3F9"/>
+          <text x="477" y="26" font-size="12.5" font-weight="700">AvioSys</text>
+          <text x="477" y="36" font-size="10.5" fill="#8C8C9A">avionics, r1</text>
+          <rect x="477" y="41" width="52" height="5" fill="#D2D7DE"/>
+          <rect x="477" y="41" width="49.5" height="5" fill="#008BD2"/>
+          <text x="533" y="46" font-size="11" font-weight="700">95.2</text>
+
+          <path d="M88 32 H115" stroke="#8D9CAD" stroke-width="1.5" marker-end="url(#ar2)"/>
+          <path d="M206 32 H233" stroke="#8D9CAD" stroke-width="1.5" marker-end="url(#ar2)"/>
+          <path d="M324 32 H351" stroke="#8D9CAD" stroke-width="1.5" marker-end="url(#ar2)"/>
+          <path d="M442 32 H469" stroke="#8D9CAD" stroke-width="1.5" marker-end="url(#ar2)"/>
+
+          <rect x="118" y="68" width="86" height="36" fill="#fff" stroke="#CDCEDA"
+                stroke-width="1" stroke-dasharray="4 3"/>
+          <text x="123" y="80" font-size="12.5" font-weight="700">Meridian</text>
+          <text x="123" y="90" font-size="10.5" fill="#8C8C9A">inert backup, r4</text>
+          <rect x="123" y="95" width="52" height="5" fill="#D2D7DE"/>
+          <rect x="123" y="95" width="31.3" height="5" fill="#008BD2"/>
+          <text x="179" y="100" font-size="11" font-weight="700">60.1</text>
+
+          <rect x="236" y="68" width="86" height="36" fill="#EBF3F9"/>
+          <text x="241" y="80" font-size="12.5" font-weight="700">TransGlobal</text>
+          <text x="241" y="90" font-size="10.5" fill="#8C8C9A">freight, r3</text>
+          <rect x="241" y="95" width="52" height="5" fill="#D2D7DE"/>
+          <rect x="241" y="95" width="29.1" height="5" fill="#008BD2"/>
+          <text x="297" y="100" font-size="11" font-weight="700">56.0</text>
+
+          <rect x="472" y="68" width="86" height="36" fill="#043962"/>
+          <text x="477" y="80" font-size="12.5" font-weight="700" fill="#fff">Orbitalys</text>
+          <text x="477" y="90" font-size="10.5" fill="#B2E0F5">final customer, r0</text>
+          <rect x="477" y="95" width="52" height="5" fill="#8D9CAD"/>
+          <rect x="477" y="95" width="8" height="5" fill="#FFBA00"/>
+          <text x="533" y="100" font-size="11" font-weight="700" fill="#FFBA00">15.3</text>
+
+          <path d="M161 66 V52" stroke="#CDCEDA" stroke-width="1.4" stroke-dasharray="3 3"/>
+          <path d="M279 66 V52" stroke="#8D9CAD" stroke-width="1.5"/>
+          <path d="M515 52 V66" stroke="#8D9CAD" stroke-width="1.5" marker-end="url(#ar2)"/>
+          <text x="0" y="80" font-size="11" fill="#8C8C9A">bar = adequacy</text>
+          <text x="0" y="92" font-size="11" fill="#8C8C9A">score per node,</text>
+          <text x="0" y="104" font-size="11" fill="#8C8C9A">final turn</text>
+        </g>
+      </svg>
+    </figure>
+
+    <figure class="grow" style="margin-bottom:2.2mm; display:flex; flex-direction:column;
+                                min-height:0">
+      <img src="img/helios_dryrun_vs_llm.png" alt="Two validation runs, adequacy per turn"
+           style="flex:1; min-height:0; object-fit:contain; object-position:left top">
+    </figure>
+
+    <table style="margin-bottom:2.4mm">
+      <tr><th>Measured on the campaign</th><th class="c">dry run</th><th class="c">LLM agents</th>
+          <th class="c">pre-set bar</th></tr>
+      <tr class="win"><td>Foundry ranked most critical</td><td class="c">70 %</td>
+          <td class="c">70 %</td><td class="c">80 %</td></tr>
+      <tr class="win"><td>Urgency contagion on press turns</td><td class="c">−0.007</td>
+          <td class="c ok">+0.079</td><td class="c">above calm turns</td></tr>
+      <tr><td>Alarm level reached before the operator</td><td class="c">+2.0 turns</td>
+          <td class="c">−0.7 turns</td><td class="c">earlier</td></tr>
+      <tr><td>Hidden risk at the foundry</td><td class="c">0.070</td><td class="c">0.017</td>
+          <td class="c">0.30</td></tr>
+      <tr><td>Hidden risk predicts a bad outcome</td><td class="c">0.00</td><td class="c">0.00</td>
+          <td class="c">beat 0.16</td></tr>
+    </table>
+
+    <div class="key">
+      <span class="lbl">WHAT THE CAMPAIGN ACTUALLY SHOWED</span>
+      - The twin identified the real bottleneck on its own: the foundry ranked first in 7/10 informative turns using only physical KPIs, 
+      matching the industry's actual 2021 constraint. Even without injected events, urgency rose across the network (0.34 to 0.47) on weak-signal turns.
+      <br>
+      - Contagion effects were also observed. Nodes without physical disruptions increased their declared urgency on press-driven turns, with some actors reacting several turns before local impacts appeared, while downstream players lagged behind.
+      <br>
+      - The hidden-risk detector missed events at the predefined threshold, but the underlying signal remained visible: bad-outcome rates increased from 10% to 25% as hidden-risk scores rose, suggesting the threshold should be lowered.
+    </div>
+
+    <div class="n" style="margin-top:2.2mm">
+      <span class="blk fill">S4 &middot; WHAT IS LEFT TO STUDY</span>
+      Run the campaign with the eight human consultants over the densest window of the crisis,
+      which the protocol sizes at 72 observations. Refit the hidden-risk threshold and the
+      asymmetry on that data rather than on literature defaults. Use other AI to generate the
+      series that have no public source, so the model can move from a weekly review toward a
+      real-time decision aid driven by urgency. Then compare the turn the model saw criticality
+      rise against the date the trade press reported the same rise, on anchors such as Broadcom
+      lead times moving from 12.2 to 22.2 weeks.
+    </div>
+  </section>
+</div>
+
+</div><!-- /row -->
+
+<!-- ════════════ FULL WIDTH ════════════ -->
+<div class="row" style="height:48mm">
+  <section class="blk" style="border-left-color:var(--navy)">
+    <h2 style="background:var(--navy); color:#fff">
+      <span class="n" style="background:var(--azure-light); color:var(--navy)">V + S</span>
+      What this gives a real supply-chain simulation</h2>
+    <div style="display:grid; grid-template-columns:.85fr 1.15fr 1.15fr; gap:6mm;
+                font-size:10.4pt; line-height:1.24">
+      <div>
+        <h3>Measured, not asked</h3>
+        Storable volume, pallet slots, dock count, roof height, building shape, loading apron length and
+        yard depth. For every warehouse in France, without a phone call or a site visit, and
+        repeatable on any date or location where the imagery exists.
+      </div>
+      <div>
+        <h3>The nodes are the missing layer</h3>
+        In a supply-chain twin the arcs are public: roads, distances, costs, emissions. The nodes
+        are not. Capacity is private, declared, or absent. Nobody publishes that a given building
+        holds 34 000 pallets and has 42 docks. Imagery produces that layer: every building above
+        1 000 m², the same constants everywhere, nobody's consent needed. Without it a network
+        model runs on synthetic nodes, the classic weakness of Physical Internet simulations.
+      </div>
+      <div>
+        <h3>Stock against flow, and the investment signal</h3>
+        A node is defined by throughput against stock, not by volume. A transit hub has many docks
+        and little volume; an inventory point is the reverse. Occupancy is the only outside measure
+        of dormant capacity, which is the whole promise of pooling. Imagery is re-acquired every
+        year, so re-running turns a snapshot into a time series. That is the investment signal, and
+        every constant ships with its uncertainty.
+      </div>
+    </div>
+  </section>
+</div>
+
+</div><!-- /body -->
+
+<!-- ══════════════════════════ FOOTER ══════════════════════════ -->
+<footer class="foot">
+  <div class="logos">
+    <img src="img/LogoCranfield.png" alt="Cranfield University" style="height:21mm">
+    <img src="img/LogoESTIA.png" alt="ESTIA Institute of Technology" style="height:15mm">
+    <img src="img/LogoALTEN.png" alt="ALTEN" style="height:21mm">
+    
+  </div>
+  <div class="sup">
+    <b>Industrial supervisors:</b> Sébastien Perthuisot, Research Programme Director DIN ALTEN, Quality and
+    Supply Chain Expert <br> Fabien Jules, Innovation Officer, ALTEN<br>
+    <b>Academic supervisors:</b> David Gomez, ESTIA Institute of Technology <br> Dr Peter
+    Sherar, CCES, Cranfield University
+  </div>
+  <div class="cran">
+    <span class="url">WWW.CRANFIELD.AC.UK</span><br>
+    Individual Research Project 2025/2026<br>
+    <span class="conf">ALTEN, Direction Innovation Numérique</span>
+  </div>
+</footer>
+
+</div><!-- /poster -->
+</body>
+</html>

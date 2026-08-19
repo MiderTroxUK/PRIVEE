@@ -1,0 +1,175 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <rect id="bg" x="0" y="0" width="1280" height="720" fill="#FFFFFF" />
+
+  <g id="p07-header">
+    <text x="56" y="60" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" letter-spacing="2" fill="#6B7A85">PARTIE I · FONDATIONS</text>
+    <text x="54" y="104" font-family="Segoe UI, Arial, sans-serif" font-size="42" font-weight="800" fill="#1E4258">Un logiciel complet, pas une preuve de concept</text>
+    <rect x="56" y="118" width="64" height="4" fill="#2C5F7C" />
+  </g>
+
+  <g id="p07-grid-row1">
+    <rect x="56" y="150" width="277" height="90" fill="#F4F6F8" stroke="#D8DEE3" />
+    
+  <g transform="translate(72, 164) scale(0.916667)" fill="none" stroke="#2C5F7C" stroke-width="2">
+    <path d="M11 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" />
+    <path d="M7 12a5 5 0 1 0 10 0a5 5 0 1 0 -10 0" />
+    <path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" />
+  </g>
+    <text x="104" y="180" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700" fill="#1E4258">Projets</text>
+    <text font-size="13" fill="#6B7A85" font-family="Segoe UI, Arial, sans-serif" x="72" y="206">Créer un projet, nœuds,</text><text font-size="13" fill="#6B7A85" font-family="Segoe UI, Arial, sans-serif" x="72" y="222">horloge jeu / réel</text><rect x="353" y="150" width="277" height="90" fill="#F4F6F8" stroke="#D8DEE3" />
+    
+  <g transform="translate(369, 164) scale(0.916667)" fill="none" stroke="#2C5F7C" stroke-width="2">
+    <path d="M5 7a4 4 0 1 0 8 0a4 4 0 1 0 -8 0" />
+    <path d="M3 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    <path d="M21 21v-2a4 4 0 0 0 -3 -3.85" />
+  </g>
+    <text x="401" y="180" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700" fill="#1E4258">Onboarding</text>
+    <text font-size="13" fill="#6B7A85" font-family="Segoe UI, Arial, sans-serif" x="369" y="206">Wizard 4 étapes,</text><text font-size="13" fill="#6B7A85" font-family="Segoe UI, Arial, sans-serif" x="369" y="222">brouillon persisté</text><rect x="650" y="150" width="277" height="90" fill="#F4F6F8" stroke="#D8DEE3" />
+    
+  <g transform="translate(666, 164) scale(0.916667)" fill="none" stroke="#2C5F7C" stroke-width="2">
+    <path d="M4 7a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12" />
+    <path d="M16 3v4" />
+    <path d="M8 3v4" />
+    <path d="M4 11h16" />
+    <path d="M11 15h1" />
+    <path d="M12 15v3" />
+  </g>
+    <text x="698" y="180" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700" fill="#1E4258">Hebdo</text>
+    <text font-size="13" fill="#6B7A85" font-family="Segoe UI, Arial, sans-serif" x="666" y="206">Revue hebdo guidée,</text><text font-size="13" fill="#6B7A85" font-family="Segoe UI, Arial, sans-serif" x="666" y="222">4 volets</text><rect x="947" y="150" width="277" height="90" fill="#F4F6F8" stroke="#D8DEE3" />
+    
+  <g transform="translate(963, 164) scale(0.916667)" fill="none" stroke="#2C5F7C" stroke-width="2">
+    <path d="M4 5a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2l0 -14" />
+    <path d="M8 8a1 1 0 0 1 1 -1h6a1 1 0 0 1 1 1v1a1 1 0 0 1 -1 1h-6a1 1 0 0 1 -1 -1l0 -1" />
+    <path d="M8 14l0 .01" />
+    <path d="M12 14l0 .01" />
+    <path d="M16 14l0 .01" />
+    <path d="M8 17l0 .01" />
+    <path d="M12 17l0 .01" />
+    <path d="M16 17l0 .01" />
+  </g>
+    <text x="995" y="180" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700" fill="#1E4258">Questionnaire</text>
+    <text font-size="13" fill="#6B7A85" font-family="Segoe UI, Arial, sans-serif" x="963" y="206">Mode expert, Ud calculé</text><text font-size="13" fill="#6B7A85" font-family="Segoe UI, Arial, sans-serif" x="963" y="222">en direct (CR live)</text></g>
+
+  <g id="p07-grid-row2">
+    <rect x="56" y="266" width="277" height="90" fill="#F4F6F8" stroke="#D8DEE3" />
+    
+  <g transform="translate(72, 280) scale(0.916667)" fill="none" stroke="#2C5F7C" stroke-width="2">
+    <path d="M9 3l6 0" />
+    <path d="M10 9l4 0" />
+    <path d="M10 3v6l-4 11a.7 .7 0 0 0 .5 1h11a.7 .7 0 0 0 .5 -1l-4 -11v-6" />
+  </g>
+    <text x="104" y="296" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700" fill="#1E4258">Simulation</text>
+    <text font-size="13" fill="#6B7A85" font-family="Segoe UI, Arial, sans-serif" x="72" y="322">What-if, chocs,</text><text font-size="13" fill="#6B7A85" font-family="Segoe UI, Arial, sans-serif" x="72" y="338">criticité, scénarios</text><rect x="353" y="266" width="277" height="90" fill="#F4F6F8" stroke="#D8DEE3" />
+    
+  <g transform="translate(369, 280) scale(0.916667)" fill="none" stroke="#2C5F7C" stroke-width="2">
+    <path d="M4 10a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+    <path d="M6 4v4" />
+    <path d="M6 12v8" />
+    <path d="M10 16a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+    <path d="M12 4v10" />
+    <path d="M12 18v2" />
+    <path d="M16 7a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+    <path d="M18 4v1" />
+    <path d="M18 9v11" />
+  </g>
+    <text x="401" y="296" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700" fill="#1E4258">Édition</text>
+    <text font-size="13" fill="#6B7A85" font-family="Segoe UI, Arial, sans-serif" x="369" y="322">Tableau KPI éditable,</text><text font-size="13" fill="#6B7A85" font-family="Segoe UI, Arial, sans-serif" x="369" y="338">audit à la volée</text><rect x="650" y="266" width="277" height="90" fill="#F4F6F8" stroke="#D8DEE3" />
+    
+  <g transform="translate(666, 280) scale(0.916667)" fill="none" stroke="#2C5F7C" stroke-width="2">
+    <path d="M7 20l10 0" />
+    <path d="M6 6l6 -1l6 1" />
+    <path d="M12 3l0 17" />
+    <path d="M9 12l-3 -6l-3 6a3 3 0 0 0 6 0" />
+    <path d="M21 12l-3 -6l-3 6a3 3 0 0 0 6 0" />
+  </g>
+    <text x="698" y="296" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700" fill="#1E4258">Pondération</text>
+    <text font-size="13" fill="#6B7A85" font-family="Segoe UI, Arial, sans-serif" x="666" y="322">F-BWM, poids des</text><text font-size="13" fill="#6B7A85" font-family="Segoe UI, Arial, sans-serif" x="666" y="338">blocs de Ur</text><rect x="947" y="266" width="277" height="90" fill="#F4F6F8" stroke="#D8DEE3" />
+    
+  <g transform="translate(963, 280) scale(0.916667)" fill="none" stroke="#2C5F7C" stroke-width="2">
+    <path d="M10 19a2 2 0 1 0 -4 0a2 2 0 0 0 4 0" />
+    <path d="M18 5a2 2 0 1 0 -4 0a2 2 0 0 0 4 0" />
+    <path d="M10 5a2 2 0 1 0 -4 0a2 2 0 0 0 4 0" />
+    <path d="M6 12a2 2 0 1 0 -4 0a2 2 0 0 0 4 0" />
+    <path d="M18 19a2 2 0 1 0 -4 0a2 2 0 0 0 4 0" />
+    <path d="M14 12a2 2 0 1 0 -4 0a2 2 0 0 0 4 0" />
+    <path d="M22 12a2 2 0 1 0 -4 0a2 2 0 0 0 4 0" />
+    <path d="M6 12h4" />
+    <path d="M14 12h4" />
+    <path d="M15 7l-2 3" />
+    <path d="M9 7l2 3" />
+    <path d="M11 14l-2 3" />
+    <path d="M13 14l2 3" />
+  </g>
+    <text x="995" y="296" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700" fill="#1E4258">Graphe</text>
+    <text font-size="13" fill="#6B7A85" font-family="Segoe UI, Arial, sans-serif" x="963" y="322">Éditeur DAG, arcs γ/β,</text><text font-size="13" fill="#6B7A85" font-family="Segoe UI, Arial, sans-serif" x="963" y="338">anti-cycle</text></g>
+
+  <g id="p07-grid-row3">
+    <rect x="56" y="382" width="277" height="90" fill="#F4F6F8" stroke="#D8DEE3" />
+    
+  <g transform="translate(72, 396) scale(0.916667)" fill="none" stroke="#2C5F7C" stroke-width="2">
+    <path d="M8 5h-2a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h5.697" />
+    <path d="M18 14v4h4" />
+    <path d="M18 11v-4a2 2 0 0 0 -2 -2h-2" />
+    <path d="M8 5a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2a2 2 0 0 1 -2 2h-2a2 2 0 0 1 -2 -2" />
+    <path d="M14 18a4 4 0 1 0 8 0a4 4 0 1 0 -8 0" />
+    <path d="M8 11h4" />
+    <path d="M8 15h3" />
+  </g>
+    <text x="104" y="412" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700" fill="#1E4258">Rapport</text>
+    <text font-size="13" fill="#6B7A85" font-family="Segoe UI, Arial, sans-serif" x="72" y="438">Rapport HTML autonome,</text><text font-size="13" fill="#6B7A85" font-family="Segoe UI, Arial, sans-serif" x="72" y="454">calibration prédictive</text><rect x="353" y="382" width="277" height="90" fill="#F4F6F8" stroke="#D8DEE3" />
+    
+  <g transform="translate(369, 396) scale(0.916667)" fill="none" stroke="#2C5F7C" stroke-width="2">
+    <path d="M4 6c0 1.657 3.582 3 8 3s8 -1.343 8 -3s-3.582 -3 -8 -3s-8 1.343 -8 3" />
+    <path d="M4 6v6c0 1.657 3.582 3 8 3c1.118 0 2.183 -.086 3.15 -.241" />
+    <path d="M20 12v-6" />
+    <path d="M4 12v6c0 1.657 3.582 3 8 3c.157 0 .312 -.002 .466 -.005" />
+    <path d="M16 19h6" />
+    <path d="M19 16l3 3l-3 3" />
+  </g>
+    <text x="401" y="412" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700" fill="#1E4258">Admin</text>
+    <text font-size="13" fill="#6B7A85" font-family="Segoe UI, Arial, sans-serif" x="369" y="438">Données brutes,</text><text font-size="13" fill="#6B7A85" font-family="Segoe UI, Arial, sans-serif" x="369" y="454">sauvegardes</text><rect x="650" y="382" width="277" height="90" fill="#F4F6F8" stroke="#D8DEE3" />
+    
+  <g transform="translate(666, 396) scale(0.916667)" fill="none" stroke="#2C5F7C" stroke-width="2">
+    <path d="M3 7a3 3 0 0 1 3 -3h12a3 3 0 0 1 3 3v2a3 3 0 0 1 -3 3h-12a3 3 0 0 1 -3 -3" />
+    <path d="M3 15a3 3 0 0 1 3 -3h12a3 3 0 0 1 3 3v2a3 3 0 0 1 -3 3h-12a3 3 0 0 1 -3 -3l0 -2" />
+    <path d="M7 8l0 .01" />
+    <path d="M7 16l0 .01" />
+  </g>
+    <text x="698" y="412" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700" fill="#1E4258">Fiche nœud</text>
+    <text font-size="13" fill="#6B7A85" font-family="Segoe UI, Arial, sans-serif" x="666" y="438">Vue 360°, jalons,</text><text font-size="13" fill="#6B7A85" font-family="Segoe UI, Arial, sans-serif" x="666" y="454">évaluations, audit</text><rect x="947" y="382" width="277" height="90" fill="#F4F6F8" stroke="#D8DEE3" />
+    
+  <g transform="translate(963, 396) scale(0.916667)" fill="none" stroke="#2C5F7C" stroke-width="2">
+    <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+    <path d="M21 12c-2.4 4 -5.4 6 -9 6c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6" />
+  </g>
+    <text x="995" y="412" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700" fill="#1E4258">Explication</text>
+    <text font-size="13" fill="#6B7A85" font-family="Segoe UI, Arial, sans-serif" x="963" y="438">Décomposition XAI</text><text font-size="13" fill="#6B7A85" font-family="Segoe UI, Arial, sans-serif" x="963" y="454">du score</text></g>
+
+  <g id="p07-hub">
+    <rect x="56" y="498" width="1168" height="110" fill="#2C5F7C" />
+    <text x="80" y="524" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="700" letter-spacing="1" fill="#BFD3DE">13 / 13 · LA PAGE CENTRALE</text>
+    
+  <g transform="translate(80, 536) scale(1.41667)" fill="none" stroke="#FFFFFF" stroke-width="2">
+    <path d="M10 19a2 2 0 1 0 -4 0a2 2 0 0 0 4 0" />
+    <path d="M18 5a2 2 0 1 0 -4 0a2 2 0 0 0 4 0" />
+    <path d="M10 5a2 2 0 1 0 -4 0a2 2 0 0 0 4 0" />
+    <path d="M6 12a2 2 0 1 0 -4 0a2 2 0 0 0 4 0" />
+    <path d="M18 19a2 2 0 1 0 -4 0a2 2 0 0 0 4 0" />
+    <path d="M14 12a2 2 0 1 0 -4 0a2 2 0 0 0 4 0" />
+    <path d="M22 12a2 2 0 1 0 -4 0a2 2 0 0 0 4 0" />
+    <path d="M6 12h4" />
+    <path d="M14 12h4" />
+    <path d="M15 7l-2 3" />
+    <path d="M9 7l2 3" />
+    <path d="M11 14l-2 3" />
+    <path d="M13 14l2 3" />
+  </g>
+    <text x="128" y="558" font-family="Segoe UI, Arial, sans-serif" font-size="22" font-weight="800" fill="#FFFFFF">Dashboard · le cœur du système</text>
+    <text font-size="16" fill="#EAF1F5" font-family="Segoe UI, Arial, sans-serif" x="128" y="584">DAG coloré par adéquation A, badges hebdo, priorités PROMETHEE II,</text><text font-size="16" fill="#EAF1F5" font-family="Segoe UI, Arial, sans-serif" x="128" y="606">tableau détaillé Ud/Ur/A/F/H, évolution temporelle</text></g>
+
+  <g id="p07-footer">
+    <text x="56" y="700" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#9AA5AC">SupplyScore · Soutenance de thèse</text>
+    <text x="1224" y="700" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#9AA5AC" text-anchor="end">07 / 28</text>
+  </g>
+</svg>

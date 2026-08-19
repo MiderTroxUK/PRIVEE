@@ -350,8 +350,10 @@ def explain_u_time(
     - **v2, retard avéré** (t > d*) : u_time est forcé à 1.0, cause
       unique — pas de décomposition (u_base = p_th = None,
       planning_adjust = 0.0) ;
-    - **v2 nominal** : u_base = P(L > d* − t) (même appel interne que le
-      pipeline, 0.0 si lead time absent), p_th avancement théorique,
+    - **v2 nominal** : u_base = P(L_restant > d* − t) via
+      :meth:`~supplyscore.core.ur_model.UrModel.u_base_jalon` (socle porté
+      par le travail restant, 0.0 si lead time absent), p_th avancement
+      théorique,
       planning_adjust = κ_r·[r]+ − κ_a·[−r]+ avec r = p_th − progress, et
       final = clip01(u_base + planning_adjust) à 1e-12 près.
 
@@ -377,11 +379,8 @@ def explain_u_time(
             u_base=None, p_th=None, progress=m_star.progress, planning_adjust=0.0, final=final
         )
     tk = kpis.time
-    if tk.lead_time_h is None:
-        u_base = 0.0  # Choix documenté du pipeline : socle nul, modulation seule.
-    else:
-        # Même appel interne que UrModel.u_time (cohérence garantie).
-        u_base = model._p_late(d_star - t, tk.lead_time_h, tk.lead_time_std_h)
+    # Même appel que UrModel.u_time (cohérence structurelle, pas de duplication).
+    u_base = model.u_base_jalon(d_star - t, tk, m_star.progress)
     p_th = theoretical_progress(m_star, t0_ts + t * 3600.0)
     r = p_th - m_star.progress
     adjust = model.kappa_retard * max(r, 0.0) - model.kappa_avance * max(-r, 0.0)

@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 786" width="1200" height="786" font-family="Calibri, Carlito, Arial, Helvetica, sans-serif">
+<rect width="1200" height="786" fill="#fff"/>
+<defs><marker id="az" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L12 6 L0 12 z" fill="#008BD2"/></marker><marker id="oc" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L12 6 L0 12 z" fill="#FFDA65"/></marker></defs>
+<line x1="184.0" y1="392" x2="284.0" y2="250" stroke="#CDCEDA" stroke-width="3"/>
+<line x1="184.0" y1="392" x2="284.0" y2="534" stroke="#CDCEDA" stroke-width="3"/>
+<line x1="416.0" y1="250" x2="516.0" y2="250" stroke="#CDCEDA" stroke-width="3"/>
+<line x1="416.0" y1="534" x2="516.0" y2="534" stroke="#CDCEDA" stroke-width="3"/>
+<line x1="416.0" y1="250" x2="516.0" y2="534" stroke="#CDCEDA" stroke-width="3"/>
+<line x1="648.0" y1="250" x2="748.0" y2="250" stroke="#CDCEDA" stroke-width="3"/>
+<line x1="648.0" y1="534" x2="748.0" y2="534" stroke="#CDCEDA" stroke-width="3"/>
+<line x1="880.0" y1="250" x2="980.0" y2="392" stroke="#CDCEDA" stroke-width="3"/>
+<line x1="880.0" y1="534" x2="980.0" y2="392" stroke="#CDCEDA" stroke-width="3"/>
+<line x1="648.0" y1="534" x2="748.0" y2="250" stroke="#CDCEDA" stroke-width="3" stroke-dasharray="10 8"/>
+<text x="698" y="450" font-size="20" fill="#8C8C9A" text-anchor="middle">backup arc, deliberately inert</text>
+<rect x="52.0" y="361.0" width="132" height="62" rx="12" fill="#B2E0F5"/>
+<text x="118" y="400" font-size="22" fill="#043962" font-weight="700" text-anchor="middle">wafers</text>
+<rect x="284.0" y="219.0" width="132" height="62" rx="12" fill="#7DCAED"/>
+<text x="350" y="258" font-size="22" fill="#043962" font-weight="700" text-anchor="middle">foundry</text>
+<rect x="284.0" y="503.0" width="132" height="62" rx="12" fill="#7DCAED"/>
+<text x="350" y="542" font-size="22" fill="#043962" font-weight="700" text-anchor="middle">foundry 2</text>
+<rect x="516.0" y="219.0" width="132" height="62" rx="12" fill="#008BD2"/>
+<text x="582" y="258" font-size="22" fill="#fff" font-weight="700" text-anchor="middle">board EMS</text>
+<rect x="516.0" y="503.0" width="132" height="62" rx="12" fill="#008BD2"/>
+<text x="582" y="542" font-size="22" fill="#fff" font-weight="700" text-anchor="middle">distributor</text>
+<rect x="748.0" y="219.0" width="132" height="62" rx="12" fill="#176F98"/>
+<text x="814" y="258" font-size="22" fill="#fff" font-weight="700" text-anchor="middle">freight</text>
+<rect x="748.0" y="503.0" width="132" height="62" rx="12" fill="#176F98"/>
+<text x="814" y="542" font-size="22" fill="#fff" font-weight="700" text-anchor="middle">avionics</text>
+<rect x="980.0" y="361.0" width="132" height="62" rx="12" fill="#043962"/>
+<text x="1046" y="400" font-size="22" fill="#fff" font-weight="700" text-anchor="middle">satellite</text>
+<path d="M1120 96 C 820 40, 380 40, 74 96" fill="none" stroke="#008BD2" stroke-width="11" marker-end="url(#az)" stroke-linecap="round"/>
+<text x="600" y="34" font-size="26" fill="#043962" text-anchor="middle">declared need descends, attenuated by γ</text>
+<path d="M74 690 C 380 748, 820 748, 1120 690" fill="none" stroke="#FFDA65" stroke-width="11" marker-end="url(#oc)" stroke-linecap="round"/>
+<text x="600" y="772" font-size="26" fill="#043962" text-anchor="middle">physical risk climbs, scaled by β</text>
+<text x="118" y="480" font-size="21" fill="#8C8C9A" text-anchor="middle">deep supplier</text>
+<text x="1046" y="480" font-size="21" fill="#8C8C9A" text-anchor="middle">final customer</text>
+</svg>

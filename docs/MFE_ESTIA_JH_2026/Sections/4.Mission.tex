@@ -1,0 +1,98 @@
+%% Consignes : expliquer precisement la mission confiee, ses objectifs
+%% concrets et mesurables, ses livrables intermediaires et finaux.
+
+\subsection{The Assignment as Written}
+\label{sec:mission_ecrite}
+
+The placement agreement defines the subject as \emph{Stage Innovation: Ing\'enieur Supply
+Chain}, and the assignment as the update and development of a supply chain digital twin.
+The signed scope covers five workstreams: defining the twin's elements, meaning factory,
+storage, transport and cargo; updating its evaluation elements, meaning score, cost,
+quality, delay, CO\textsubscript{2} and planning; updating its evolution elements, meaning
+positive and negative hazards and change scenarios; integrating complexity through multiple
+supply chains and tier-2 and tier-3 subcontractors; and integrating Physical Internet
+elements. It further specifies that the work is an innovation project including a state of
+the art, formalisation of the research in a scientific report, multidisciplinary project
+management, and an evolutionary approach based on Agile and Test and Learn.
+
+That scope is deliberately broad, which is normal for an R\&D assignment and is itself a
+managed risk (Section~\ref{sec:risques}). The first weeks were therefore spent converging it
+onto a defensible contribution, in agreement with the research programme director.
+
+\subsection{The Converged Objective}
+\label{sec:mission_perimetre}
+
+The evaluation workstream is where the twin was weakest, because it computed state without
+ever assessing the human judgment applied to that state. The mission converged on that
+workstream, and specifically on the urgency dimension of it.
+
+\begin{definitionBox}
+\noindent\textbf{Converged objective.} Design, implement and empirically evaluate a
+decision-support layer that computes a real urgency from the twin's operational state,
+captures the urgency declared by the operator through a structured elicitation, propagates
+both across the supplier network, and scores the gap between them in a way that can be
+tested against recorded outcomes.
+\end{definitionBox}
+
+Two boundaries were set explicitly and held. The layer is built as a standalone application
+running alongside DISCO rather than inside it, because coupling to a Java and Angular
+platform under active development by another team would have made the schedule dependent on
+theirs. And the layer targets urgency alone, not the scheduling decision that follows from
+it, because a prioritisation signal that cannot be shown to be trustworthy has no business
+driving a schedule.
+
+\subsection{Objectives, Indicators and Deliverables}
+\label{sec:objectifs}
+
+Table~\ref{tab:objectifs} states the objectives agreed with the programme director, each
+with the indicator used to judge it and the deliverable that carries it. The indicators were
+chosen so that each could be answered yes or no from an artefact rather than from an
+opinion.
+
+\begin{table}[htbp]
+\centering
+\caption{Objectives, indicators and deliverables}
+\label{tab:objectifs}
+\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.8cm} >{\raggedright\arraybackslash}p{4.3cm} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}p{3.0cm}}
+\toprule
+& \textbf{Objective} & \textbf{Indicator} & \textbf{Deliverable} \\
+\midrule
+O1 & Define a real urgency computable from heterogeneous operational indicators, and an
+adequacy score against the declared value & A model whose every term is decomposable, and
+whose aggregation choice is justified against the alternatives & Mathematical specification
+\\
+O2 & Deliver a working, persistent, auditable application implementing it & Runs
+multi-tenant; every write audited; automated test suite passing & SupplyScore application \\
+O3 & Propagate urgency across a multi-tier network and rank nodes by criticality & Handles a
+network at the scale of a real programme within an interactive time budget & Propagation and
+criticality services \\
+O4 & Establish whether the resulting signal predicts recorded outcomes & A score against a
+stated outcome definition, compared with a trivial baseline & Pre-registered experimental
+protocol and its results \\
+O5 & Capitalise the research so the programme can continue it & A written scientific record
+and reproducible derivation of every number & \emph{Bilan Scientifique et Technique} and
+derivation scripts \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\paragraph{Intermediate deliverables.}
+Four were produced during the mission rather than at its end: a knowledge transfer report on
+planning and urgency, delivered in week~2 and used to align vocabulary with the programme; a
+state of the art with an accompanying presentation, delivered in week~3; the mathematical
+specification, reviewed before implementation began; and the frozen experimental protocol,
+hashed and registered before any campaign data existed, so that the hypotheses could not be
+adjusted after seeing results.
+
+\paragraph{Final deliverables.}
+The SupplyScore application with its test suite and documentation; the experimental campaign
+with its two executed arms and their analysis; the \emph{Bilan Scientifique et Technique};
+and the derivation scripts that regenerate every reported figure from raw artefacts.
+
+\paragraph{One objective was reformulated during the mission.}
+O4 as originally agreed asked whether the signal predicts outcomes, with an implicit
+expectation that it would. The campaign showed it does not, and identified why. The
+objective was therefore met in the sense that the question was answered with evidence, and
+not met in the sense that the answer is negative. Section~\ref{sec:conclusion_objectifs}
+treats that distinction directly rather than presenting a failed prediction as a success.

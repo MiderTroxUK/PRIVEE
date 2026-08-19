@@ -24,7 +24,9 @@ Modèle (PLAN.md, phase E13) :
 
 - **Récurrence en ORDRE TOPOLOGIQUE** (arcs nominaux, fournisseurs profonds
   d'abord) : ``S_i = max_{j∈Pred(i)} C_j`` (``t`` si aucun fournisseur) ;
-  ``C_i = S_i + L_i``.
+  ``C_i = S_i + L_i·(1 − p_i)`` où ``p_i`` est l'avancement du prochain jalon
+  ACTIF du nœud (0 si aucun). ``L_i`` tire un cycle COMPLET : seule la part
+  ``1 − p_i`` reste à parcourir (cf. :meth:`SimulateurLeadTime._reste`).
 
 - **Estimateur** : ``u_time_MC(i) = P(C_i > d_i) ≈ (1/N)·Σ_k 1[C_i^(k) > d_i]``
   où ``d_i`` est la deadline en HEURES-PROJET du prochain jalon ACTIF du nœud
@@ -42,9 +44,11 @@ repart de ``t`` — les nœuds RACINES (fournisseurs profonds, sans
 prédécesseur) démarrent à ``S = t`` (« les travaux restants commencent
 maintenant »), et la récurrence ``S_i = max C_pred`` garantit ``C_i >= t``
 partout. Conséquence vérifiable, fondement de la validation croisée
-MC ↔ erf : pour un nœud ISOLÉ, ``P(t + L > d) == survie analytique de L au
-seuil (d − t)``. Un nœud DÉJÀ en retard (``d_i <= t``) reçoit
-``u_time = 1.0`` exactement, sans passer par l'estimateur.
+MC ↔ erf : pour un nœud ISOLÉ dont le jalon actif est à l'avancement ``p``,
+``P(t + L·(1 − p) > d) == survie analytique de L·(1 − p) au seuil (d − t)`` —
+soit, à ``p = 0``, la survie de ``L`` elle-même. Un nœud DÉJÀ en retard
+(``d_i <= t``) reçoit ``u_time = 1.0`` exactement, sans passer par
+l'estimateur.
 """
 
 from __future__ import annotations
@@ -272,6 +276,29 @@ class SimulateurLeadTime:
             return (m_star.deadline_ts - t0_ts) / 3600.0
         return node.kpis.time.deadline_h
 
+    @staticmethod
+    def _reste(milestones: list[Milestone] | None) -> float:
+        """Part du cycle qu'il reste à parcourir sur le jalon actif, dans [0, 1].
+
+        Le lead time tiré est la durée d'un cycle COMPLET. Un jalon avancé à
+        ``p`` n'a plus que ``1 − p`` de ce cycle devant lui : sans ce facteur,
+        tout nœud dont le lead time nominal dépasse sa marge est déclaré perdu
+        d'avance quel que soit son avancement. Même correction que
+        :meth:`~supplyscore.core.ur_model.UrModel.u_base_jalon` et que
+        ``ForecastService`` — les trois estimateurs de P(jalon raté) doivent
+        rester d'accord.
+
+        Args:
+            milestones: jalons du nœud (None ou vide = aucun).
+
+        Returns:
+            ``1 − progress`` du prochain jalon ACTIF, ou 1.0 s'il n'y en a pas.
+        """
+        m_star = next_active_milestone(milestones) if milestones else None
+        if m_star is None:
+            return 1.0
+        return min(max(1.0 - m_star.progress, 0.0), 1.0)
+
     # --- Simulation -----------------------------------------------------------
 
     def executer(
@@ -336,10 +363,12 @@ class SimulateurLeadTime:
             else:
                 depart = depart_racine
             loi = resoudre_loi(node, self.famille)
-            c = depart + tirer_lead_times(loi, rng, self.n_tirages)
+            jalons = milestones_par_noeud.get(node_id)
+            # Seul le TRAVAIL RESTANT du jalon actif est devant nous (cf. _reste).
+            c = depart + tirer_lead_times(loi, rng, self.n_tirages) * self._reste(jalons)
             achevements[node_id] = c
             completion_quantiles[node_id] = {float(q): float(np.quantile(c, q)) for q in quantiles}
-            d = self._deadline_h(node, milestones_par_noeud.get(node_id), t0_ts)
+            d = self._deadline_h(node, jalons, t0_ts)
             if d is None:
                 u_time[node_id] = None  # pas d'échéance : pas de u_time
                 ic95[node_id] = 0.0

@@ -1,74 +1,11 @@
-%% ═══════════════════════════════════════════════════════════════════════════
-\subsection{Review of Research Questions}
-%% ═══════════════════════════════════════════════════════════════════════════
-
-\paragraph{RQ1: Multi-block real urgency $U_r(t)$ and network propagation.}
-
-\begin{definitionBox}
-\textbf{Status: Implemented and Tested} ($\bullet$)\\[4pt]
-The noisy-OR aggregation of six KPI blocks and the leaky DAG propagation of both $U_d$ (descending) and $U_r$ (ascending) are implemented, unit tested, and exercised by property-based tests. The worked trace in Section~\ref{sec:numerical_trace} confirms the model end to end on a hand-verifiable example. Remaining work concerns the empirical calibration of the block weights $\omega_m$ on a larger operational history than currently available (Lock~1, Lock~4).
-\end{definitionBox}
-
-\paragraph{RQ2: Cognitive adequacy score $A(t)$ and its predictive validity.}
-
-\begin{definitionBox}
-\textbf{Status: Implemented, Tested, and Empirically Calibrated on a Small Sample} ($\bullet$)\\[4pt]
-The asymmetric Prospect Theory adequacy score is implemented and tested, and its predictive validity against recorded operational outcomes is measured by a dedicated calibration service (Section~\ref{sec:mc_criticality}) rather than asserted theoretically. On the sample collected so far, the service itself flags the observation count as below the 30-point threshold needed for a statistically significant conclusion; accumulating further weekly cycles to cross that threshold is the direct next step for RQ2 (Lock~3).
-\end{definitionBox}
-
-\paragraph{RQ3: Network prioritisation and criticality.}
-
-\begin{definitionBox}
-\textbf{Status: Implemented and Tested} ($\bullet$)\\[4pt]
-AHP and Fuzzy-BWM elicitation, PROMETHEE~II outranking, and systematic shock-simulation criticality ranking are implemented, unit tested, and wired into the production ranking path. Live, in-person expert elicitation campaigns with supply chain planners, to validate the elicited weights against domain-expert judgment beyond synthetic and worked examples, remain an open next step (Lock~2).
-\end{definitionBox}
-
-\paragraph{RQ4: Operational validation within a digital twin.}
-
-\begin{definitionBox}
-\textbf{Status: Implemented and Operational} ($\bullet$)\\[4pt]
-The framework is operated as a persistent, multi-tenant digital twin with a weekly review cycle, a fourteen-type calibrated event engine, explainability, export, and administrative hardening, all implemented and tested. The digital twin has been used to produce the worked and small-sample examples in Section~\ref{sec:Operations}; a longer-running, multi-session, multi-operator validation campaign is the natural extension to strengthen the statistical power of RQ2's calibration.
-\end{definitionBox}
-
-%% ═══════════════════════════════════════════════════════════════════════════
-\subsection{Research Challenges and Next Steps}
-%% ═══════════════════════════════════════════════════════════════════════════
-
-Table~\ref{tab:lock_status} summarizes the status of the key research challenges (locks) and the proposed actions for their resolution.
-
-\begin{table}[H]
-\centering
-\caption{Research challenge status and target actions.}
-\label{tab:lock_status}
-\begin{tabularx}{\linewidth}{llXX}
-\toprule
-\textbf{Challenge} & \textbf{Severity} & \textbf{Current Status} & \textbf{Target Action} \\
-\midrule
-Lock 1: Aggregation model & MEDIUM &
-    Noisy-OR block aggregation implemented and tested, grounded in probabilistic-inference literature &
-    Sensitivity study of $\omega_m$ against simpler aggregation forms \\[4pt]
-Lock 2: Elicitation noise & HIGH &
-    Consistency ratio checks ($\gls{cr}$) implemented in AHP and Fuzzy-BWM, tested &
-    Run in-person expert elicitation sessions with supply chain planners \\[4pt]
-Lock 3: Adequacy utility & HIGH &
-    Calibration service implemented; first confusion matrix computed on a below-threshold sample &
-    Accumulate $\geq 30$ observation points per project for a statistically significant validation \\[4pt]
-Lock 4: Weight interpretability & MEDIUM &
-    Per-block explainability page implemented and tested &
-    Formal variance-based (Sobol) sensitivity analysis of nominal vs.\ effective weights \\[4pt]
-Lock 5: Maturity contrast & LOW &
-    Network propagation positioned against mature ripple-effect and digital-twin literature &
-    Ongoing literature positioning as the contribution area is the adequacy layer, not the propagation mechanics \\
-\bottomrule
-\end{tabularx}
-\end{table}
+This R\&D operation delivered \emph{SupplyScore}: a multi-block, noisy-OR real urgency model propagated across the supply chain DAG, an asymmetric cognitive adequacy score confronting declared and computed urgency, and a persistent, multi-tenant digital twin operated as a weekly-cadence serious game, with a pre-registered validation campaign (Section~\ref{sec:serious_game}) sized to measure the predictive validity of the hidden-risk signal. The scope of the delivered framework was bounded by explicit, documented design decisions rather than left implicit. This section states those limitations directly, draws the next steps, and closes with a personal assessment of the internship.
 
 %% ═══════════════════════════════════════════════════════════════════════════
 \subsection{Limitations}
 \label{sec:limitations}
 %% ═══════════════════════════════════════════════════════════════════════════
 
-The scope of the delivered framework was bounded by a set of explicit, documented design decisions rather than left implicit. Table~\ref{tab:limitations} lists the limitations judged material enough to state directly, together with their operational implication.
+Table~\ref{tab:limitations} lists the limitations judged material enough to state directly, together with their operational implication.
 
 \begin{table}[H]
 \centering
@@ -80,62 +17,33 @@ The scope of the delivered framework was bounded by a set of explicit, documente
 \textbf{Limitation} & \textbf{Implication} \\
 \midrule
 No probabilistic guarantee & The framework produces probabilities, scores, and confidence intervals, not certainties; a model remains a simplification of the underlying reality. \\[3pt]
+\midrule
 Score freshness follows input cadence & Without an ERP connector, a node's score is never more current than its last submitted weekly review; manual entry is an accepted trade-off, not an oversight. \\[3pt]
+\midrule
 AHP is limited to four criteria & Saaty's method degrades past roughly seven pairwise-compared criteria, which is why declared urgency stays on four criteria while the larger set of KPI blocks is weighted through Fuzzy-BWM instead. \\[3pt]
+\midrule
 Event reversibility is conditional & Reverting a declared event is only guaranteed correct if no other write has touched the same KPI in the meantime; otherwise the system raises an explicit conflict for manual resolution rather than silently rebasing later writes, which would be mathematically dishonest. \\[3pt]
+\midrule
 Event calibration priors are defensible, not measured & The Beta-Bernoulli prior weight ($n_0=26$) and EMA reactivity coefficients follow standard conjugate Bayesian revision but are not empirically fitted; the serious game itself is the intended instrument for recalibrating them. \\[3pt]
+\midrule
+Empirical validation is designed, not yet executed & The calibration service and its confusion-matrix methodology are implemented and tested, but at the time of writing the HÉLIOS campaign (Section~\ref{sec:serious_game}) has not yet been run with its human participants; no predictive-validity claim is made until it has. \\[3pt]
+\midrule
 Local time urgency looks only at the next milestone & A distant milestone that is silently drifting stays invisible to $u_{\text{time}}$ until it becomes the next active one; the underlying function already receives the full milestone list, so a weighted multi-milestone extension is possible without a model change. \\[3pt]
-Audit tables are strictly immutable & \texttt{audit\_log}, \texttt{urgency\_history}, \texttt{kpi\_snapshots}, \texttt{weekly\_reviews}, and \texttt{decisions} cannot be edited even from the admin view; relaxing this would undermine the "no silent data loss" guarantee the rest of the system relies on. \\[3pt]
+\midrule
 Double counting is possible & An operator can both declare a calibrated event and manually correct the same KPI in the same week; the interface warns but does not forbid this, since the human operator remains the final authority. \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
 %% ═══════════════════════════════════════════════════════════════════════════
-\subsection{Future Research Directions}
+\subsection{Next Steps}
 %% ═══════════════════════════════════════════════════════════════════════════
 
-The following directions are identified as realistic extensions of the delivered framework, consistent with the architecture already in place:
+The immediate next step of the programme is to run the human campaign itself (Section~\ref{sec:serious_game}). Role assignment across the eight consultants is not yet finalised and must be recorded in the campaign journal before the first turn, deliberately keeping the two most information-heavy roles, NovaFab and CompoDis, away from the most supply-chain-experienced consultants, so that a role effect is not confused with an expertise effect. A half-day kickoff, presentation, role cards, a signed contract, and a training turn, formally freezes the protocol; the eighteen campaign turns then run over nine working days with a daily journal and the two placebo sheets at turns 9 and 15, and the campaign closes with the pre-registered analysis and a reveal debrief that asks each consultant at which turn they recognised the real crisis.
 
-\begin{enumerate}[label=\textbf{R.\arabic*.}]
-    \item \textbf{[HIGH -- prepared, awaiting execution] Empirical validation campaign.} A full validation campaign has been designed, built, and rehearsed end to end (but \emph{not} yet executed with human participants): a serious-game replay of the 2020--2022 semiconductor shortage over an 8-node network anchored on the real actors of the crisis, with real urgency driven by public time series (INSEE production/failures/price indices, WSTS worldwide billings, US producer prices) and declared urgency elicited from 8 consultants through the existing weekly AHP questionnaire. The protocol is pre-registered (six falsifiable hypotheses with numeric thresholds, blinding rules, placebo controls, sensitivity analyses), the data pack is frozen by hash, and five successive dry runs with synthetic operator profiles validated the pipeline and calibrated the scenario --- surfacing, among other findings, that the network criticality index degenerates under saturation (realized risk is no longer shockable), a methodological result in its own right. Executing this campaign yields 144 real observations, crossing the 30-observation threshold required by the calibration service for a statistically meaningful confusion matrix.
+That analysis will fill the two reserved needs left open by Section~\ref{sec:serious_game}: the measured value of each of H1 to H6 against its pre-registered threshold, a verdict of supported, refuted, or inconclusive for each, and a sensitivity check (exclusion of absent consultants, a $\pm 50\%$ perturbation of the constants fixed by design) confirming whether those verdicts hold. Where the campaign supports a hypothesis but the underlying governance parameters, $\lambda_{\text{under}}$, $\alpha$, the block weights $\omega_m$, and the Bayesian prior weight $n_0$, fit the measured data poorly, recalibrating them from campaign data rather than from the literature-derived defaults of Section~\ref{sec:math_framework} is the direct follow-on. Three contingencies are already arbitrated rather than left to be improvised under time pressure: the campaign truncates to turn 16 if it overruns by more than two turns rather than rushing the remaining responses, it drops to one turn per day if the questionnaire exceeds ten minutes at the training turn, and any consultant absence or unresolved consistency failure is carried forward unchanged and excluded from reactivity analyses.
 
-    \item \textbf{[HIGH] Multi-expert elicitation.} Run structured AHP and Fuzzy-BWM elicitation sessions with several supply chain planners per node, and aggregate their judgments with a geometric mean, consistent with the multi-expert aggregation path already anticipated in the elicitation modules.
-
-    \item \textbf{[MEDIUM] Global sensitivity analysis.} Conduct variance-based sensitivity analysis (Sobol indices)~\autocite{borgonovo2021global,sobol2001global,saltelli2010variance} on the aggregation weights $\omega_m$ and the adequacy parameters $(\lambda_{\text{under}}, \lambda_{\text{over}}, \alpha)$ to identify which have the greatest impact on the adequacy score and the criticality ranking.
-
-    \item \textbf{[MEDIUM] Coordinator behaviour pattern detection.} Apply temporal sequence models (Temporal Graph Networks, LSTMs) to the accumulated weekly urgency history to automatically classify recurring coordinator behaviours, such as a persistently panicking coordinator (frequent false urgency without operational delay) or a silent bottleneck (sustained hidden risk at a structurally critical node).
-
-    \item \textbf{[MEDIUM] Adequacy-driven scheduling.} The original programme ambition, deliberately kept \emph{out} of the delivered scope: once the adequacy signal is empirically validated, feed the debiased urgency into an active scheduling engine that reorders deliveries and supplier priorities. The present operation delivers the measurement layer this scheduler would consume; the scheduling algorithm itself (choice of priority rule, queue stability under stochastic lead times, integration with DISCO's planning) is future work and should not be read anywhere in this report as an existing capability.
-
-    \item \textbf{[MEDIUM] Autonomous recommendation loop.} Formulate corrective actions (activating a backup arc, requesting expediting, adjusting a milestone) as a Markov Decision Process over the network state, and evaluate an agentic recommendation loop, using sandboxed shock simulation to estimate the expected adequacy improvement of each candidate action before proposing it to the operator.
-
-    \item \textbf{[LOW] Graph backend scale-out.} Evaluate migrating the in-memory graph repository to the already-scaffolded Neo4j repository implementation for projects whose node and arc counts exceed comfortable in-memory operation.
-\end{enumerate}
-
-\paragraph{Explicitly descoped extensions.} Distinct from the open research directions above, a further set of extensions was deliberately excluded from the current scope during planning, with the underlying model or interface already anticipating them so that resuming the work does not require a redesign:
-\begin{itemize}
-    \item \textbf{Time-to-Recover / Time-to-Survive stress-testing}~\autocite{ivanov2020digital}: the model already carries the recovery time, stock, and flow data such an analysis would need; deferred until after a full serious-game validation cycle.
-    \item \textbf{Backup arc activation}: the data model (\texttt{ArcKind.BACKUP}) exists and is exposed in the UI, but arcs are currently documentary only; the switching formula (delay, capacity trade-off) is not yet implemented.
-    \item \textbf{Neo4j graph backend end-to-end}: an adapter implementation exists but is frozen out of the test coverage requirement pending a concrete need for a scale beyond the in-memory repository.
-    \item \textbf{ERP/file-based data import}: manual weekly entry is an accepted design choice for the current validation phase, not a placeholder for a missing connector.
-    \item \textbf{Networked multi-operator access}: the system assumes multiple players on a single shared workstation, consistent with its serious-game deployment; concurrent network access was judged to reintroduce distributed-systems complexity disproportionate to the current validation goals.
-    \item \textbf{Weighted multi-milestone time urgency}: $u_{\text{time}}$ already receives the full milestone list and could be extended to weigh all upcoming milestones rather than only the next active one (Table~\ref{tab:limitations}).
-\end{itemize}
-
-%% ═══════════════════════════════════════════════════════════════════════════
-\subsection{Proposed Methodological Framework Summary}
-%% ═══════════════════════════════════════════════════════════════════════════
-
-In summary, this R\&D operation delivers a structured methodological framework integrating cognitive debiasing with network-propagated supply chain risk assessment, operated as a persistent digital twin. The key elements of this delivered framework consist of:
-
-\begin{enumerate}
-    \item \textbf{A non-compensatory, multi-block urgency model}: Aggregating six independent KPI blocks through a noisy-OR rule and propagating the result across a multi-tier supply chain DAG, rather than relying on a single deadline-proximity signal.
-
-    \item \textbf{An asymmetric cognitive adequacy scoring mechanism}: Translating the psychologically documented "mere urgency effect" and Prospect Theory loss aversion into a mathematical penalty function $A(t)$ that differentiates between over-declaration and under-declaration of task urgency, with its predictive validity tested against recorded outcomes rather than assumed.
-
-    \item \textbf{A tested, operational implementation}: A modular Python codebase of roughly sixty modules and over 1400 automated tests, integrating AHP, Fuzzy-BWM, PROMETHEE~II, Monte Carlo lead-time simulation, DAG propagation, a calibrated event engine, and a multi-page Dash application, operated as a persistent, multi-tenant digital twin exercised through a weekly-cadence serious game.
-\end{enumerate}
+Beyond the campaign itself, three further directions were identified but deliberately left out of the delivered scope: replacing single-operator AHP elicitation with a multi-expert protocol that aggregates several judgments per node, coupling SupplyScore with the DISCO platform it currently runs alongside rather than inside (Section~\ref{sec:Context}), and using the adequacy score as an input to scheduling decisions rather than only as a diagnostic. None of the three is a design commitment yet: each depends on what the human campaign shows about whether the underlying signal is worth building on.
 
 %% ═══════════════════════════════════════════════════════════════════════════
 \subsection{Bilan Personnel et Compétences Mobilisées}
@@ -153,15 +61,9 @@ Cette opération de R\&D a mobilisé des compétences dans quatre domaines disti
 
 \subsubsection{Apprentissages et difficultés rencontrées}
 
-\begin{attentionBox}
-\noindent\textbf{Section à compléter par l'auteur avant soutenance.}
-
-\smallskip
-Cette sous-section doit rester personnelle et ne peut pas être rédigée à la place de l'auteur. Elle gagne à répondre concrètement à~:
 \begin{itemize}
     \item Quelle a été la principale difficulté technique ou méthodologique rencontrée, et comment a-t-elle été surmontée~?
     \item Qu'est-ce qui aurait été fait différemment avec le recul~?
     \item Quelles compétences (techniques ou non) ont le plus progressé au cours du stage~?
     \item En quoi ce stage éclaire-t-il un projet professionnel~?
 \end{itemize}
-\end{attentionBox}

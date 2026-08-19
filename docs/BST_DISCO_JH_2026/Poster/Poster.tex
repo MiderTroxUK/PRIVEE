@@ -1,0 +1,353 @@
+%=======================================================================
+%  MSc CSTE / ALTEN DIN - Individual Research Project Poster (A1 portrait)
+%  John Hoarau - 2025/2026
+%=======================================================================
+\documentclass[20pt]{extarticle}
+
+\usepackage[a1paper,portrait,left=18mm,right=18mm,top=14mm,bottom=12mm]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+\usepackage{carlito}
+\renewcommand{\familydefault}{\sfdefault}
+\usepackage{anyfontsize}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{colortbl}
+\usepackage{enumitem}
+\usepackage{caption}
+
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0pt}
+\setlength{\abovedisplayskip}{4pt}
+\setlength{\belowdisplayskip}{4pt}
+\setlength{\abovedisplayshortskip}{2pt}
+\setlength{\belowdisplayshortskip}{2pt}
+
+%--------------- ALTEN Brand Book 2025 (EN) - certified colours ---------------
+% Main colours (p.27)
+\definecolor{altenazure}{HTML}{008BD2}   % Azure Blue   - Pantone P 109-7 C
+\definecolor{altennavy}{HTML}{043962}    % Navy Blue    - Pantone 534 C
+\definecolor{altenochre}{HTML}{FFDA65}   % Ochre Yellow - Pantone 120 C
+% Secondary colours: charter shades (p.28)
+\definecolor{azuredark}{HTML}{176F98}
+\definecolor{azurelight}{HTML}{B2E0F5}
+\definecolor{navylight}{HTML}{8D9CAD}
+\definecolor{navypale}{HTML}{D2D7DE}
+% Tertiary colours (p.29): backgrounds, element lines, secondary text
+\definecolor{bgblue}{HTML}{EBF3F9}       % background / element
+\definecolor{linegrey}{HTML}{CDCEDA}     % lines, tables
+\definecolor{captiongrey}{HTML}{8C8C9A}  % secondary text (captions, details)
+
+% Editorial charter (p.33): running text is always navy blue, never black,
+% never yellow.
+\color{altennavy}
+\arrayrulecolor{navylight}
+
+%----------------------------- box styles -----------------------------
+\newtcolorbox{pbox}[1]{%
+  enhanced, breakable=false,
+  colback=white, colframe=altenazure,
+  boxrule=0pt,
+  borderline west={5pt}{0pt}{altenazure},
+  colbacktitle=bgblue, coltitle=altennavy,
+  fonttitle=\bfseries\fontsize{27}{31}\selectfont,
+  title={#1},
+  attach boxed title to top left={xshift=0mm,yshift=0mm},
+  boxed title style={colframe=bgblue,boxrule=0pt,sharp corners,
+                     left=6mm,right=6mm,top=2.5mm,bottom=2.5mm},
+  top=12mm, bottom=4mm, left=6mm, right=4mm,
+  sharp corners,
+}
+
+\newtcolorbox{keybox}{%
+  enhanced, colback=altennavy, colframe=altennavy,
+  coltext=white, sharp corners, boxrule=0pt,
+  left=5mm,right=5mm,top=4mm,bottom=4mm}
+
+\newtcolorbox{ochrebox}{%
+  enhanced, colback=altenochre!30, colframe=altenochre,
+  sharp corners, boxrule=0pt,
+  borderline west={5pt}{0pt}{altenochre},
+  left=5mm,right=4mm,top=4mm,bottom=4mm}
+
+\setlist[itemize]{leftmargin=7mm,itemsep=1.5mm,topsep=1.5mm,parsep=0pt,
+                  label=\textcolor{altenazure}{\rule[0.25ex]{5pt}{5pt}}}
+
+\captionsetup{font={footnotesize,color=captiongrey},labelformat=empty,skip=2pt}
+
+\newcommand{\hl}[1]{\textcolor{altenazure}{\bfseries #1}}
+\newcommand{\gap}{\vspace{4mm}}
+
+\begin{document}
+\fontsize{18}{23}\selectfont
+\noindent\begin{minipage}[t][\textheight][t]{\textwidth}
+
+%=====================================================================
+%  LOGO BAND (on white: every logo is used on its approved background)
+%=====================================================================
+\begin{minipage}[c]{0.30\linewidth}
+  \includegraphics[height=44mm]{img/LogoALTEN.png}
+\end{minipage}\hfill
+\begin{minipage}[c]{0.34\linewidth}\centering
+  \includegraphics[height=28mm]{img/LogoESTIA.png}
+\end{minipage}\hfill
+\begin{minipage}[c]{0.30\linewidth}\raggedleft
+  \includegraphics[height=46mm]{img/LogoCranfield.png}
+\end{minipage}
+
+\vspace{5mm}
+
+%=====================================================================
+%  HEADER
+%=====================================================================
+\begin{tcolorbox}[enhanced,colback=altennavy,colframe=altennavy,
+                  sharp corners,boxrule=0pt,left=9mm,right=9mm,top=5mm,bottom=5mm]
+  \color{white}
+  {\fontsize{28}{32}\selectfont\bfseries\color{azurelight} MSc in Computational Software Techniques in Engineering}\\[3mm]
+  {\fontsize{50}{54}\selectfont\bfseries Adequacy Score Between Declared and Real Urgency}\\[3mm]
+  {\fontsize{33}{37}\selectfont in a Digital Smart Green Supply Chain}\\[4mm]
+  {\fontsize{23}{27}\selectfont \textbf{John HOARAU} — R\&D Intern, Direction Innovation Numérique, ALTEN \ \textbullet\ \ Individual Research Project 2025/2026}
+\end{tcolorbox}
+
+\vspace{4mm}
+
+%=====================================================================
+%  BODY - two columns
+%=====================================================================
+\begin{minipage}[t]{0.489\linewidth}
+\vspace{0pt}
+
+%--------------------------------------------------- CONTEXT
+\begin{pbox}{1. Context \& Problem}
+The \hl{DISCO digital twin} is one of the two bricks of ALTEN-DIN's
+\emph{Smart Green Supply Chain} programme: a serious game scoring 22 suppliers
+on cost, delay and CO$_2$.
+
+\smallskip
+Supply chains moving towards \hl{Physical Internet} operation face a
+signal-quality gap — the urgency an operator \emph{declares} diverges from the
+urgency that is \emph{physically computable} from the twin.
+
+\smallskip
+\begin{center}
+\includegraphics[height=64mm]{img/urgency_gap.png}
+\captionof{figure}{$U_d$ (step) vs.\ $U_r(t)$: false urgency $F$, hidden risk $H$.}
+\end{center}
+
+\smallskip
+The two pathologies are \hl{not symmetric}: a coordinator who panics wastes
+premium capacity; one who under-reports misses the window to prevent a line
+stoppage.
+\end{pbox}
+
+\gap
+
+%--------------------------------------------------- OBJECTIVES
+\begin{pbox}{2. Objectives}
+\begin{itemize}[label={}]
+  \item[\textbf{O1.}] A multi-block, DAG-propagated real urgency $U_r(t)$ and a
+        cognitive adequacy score $A(t)\in[0,100]$.
+  \item[\textbf{O2.}] A network propagation and criticality layer
+        (PROMETHEE II + systematic shock simulation) exposing structurally
+        critical nodes.
+  \item[\textbf{O3.}] Empirical validation of the prioritisation logic against
+        recorded operational outcomes.
+\end{itemize}
+
+\smallskip
+\begin{ochrebox}
+Six \hl{pre-registered, falsifiable hypotheses} (H1–H6) fix every numeric
+threshold \emph{before} any data exists: latency, early detection, criticality,
+predictive validity, contagion, hysteresis.
+\end{ochrebox}
+\end{pbox}
+
+\gap
+
+%--------------------------------------------------- METHOD
+\begin{pbox}{3. Method: a three-layer model}
+
+\begin{center}
+\includegraphics[height=87mm]{img/three_layer_architecture.png}
+\end{center}
+
+\smallskip
+\textbf{Real urgency} — noisy-OR over six KPI blocks (time, capacity,
+performance, adverse-event risk, cost, environment), propagated on the
+supply-chain DAG ($\beta$ upstream amplification, $\gamma$ downstream damping):
+\begin{align*}
+  U_{r,\text{loc}} &= 1-\textstyle\prod_{m}(1-u_m)^{\omega_m}\\
+  U_{r,i} &= 1-(1-U_{r,\text{loc},i})\textstyle\prod_{j\in\mathrm{Pred}(i)}(1-\beta_{ji}U_{r,j})
+\end{align*}
+
+\smallskip
+\textbf{Declared urgency} — pairwise elicitation over four expert criteria:
+\hl{AHP} with a consistency-ratio gate, \hl{Fuzzy Best-Worst Method}.
+
+\smallskip
+\textbf{Adequacy} — Prospect-Theory asymmetric loss
+($\lambda_{\text{under}}\!=\!2.25$, $\lambda_{\text{over}}\!=\!1$, $\alpha\!=\!0.88$):
+\begin{gather*}
+  F=[U_d-U_r]_+,\quad H=[U_r-U_d]_+,\quad
+  p=\lambda_{\text{under}}H^{\alpha}+\lambda_{\text{over}}F^{\alpha}\\
+  A = 100\,\bigl(e^{-p}-e^{-p_{\max}}\bigr)\big/\bigl(1-e^{-p_{\max}}\bigr)
+\end{gather*}
+
+\smallskip
+\textbf{Criticality} — each node is knocked out in turn; the drop in the final
+customer's urgency ranks the network (PROMETHEE II net flow $\phi$).
+\end{pbox}
+
+\gap
+
+%--------------------------------------------------- IMPLEMENTATION
+\begin{pbox}{4. Delivered system: \emph{SupplyScore}}
+A persistent, \hl{multi-tenant digital twin} in Python on a weekly review cadence.
+\begin{itemize}
+  \item Single-facade architecture, gated writes, versioned SQLite (WAL,
+        integrity-checked backups).
+  \item Calibrated event engine — spikes, accidents, transport disruptions,
+        shortages — with weekly Bayesian revision of failure probability.
+  \item \hl{Exact additive explainability}: every point of $U_d$ and $U_r$ traced
+        to its block or its upstream arc.
+  \item Twelve-worksheet Excel export: analysis runs outside the tool on frozen data.
+\end{itemize}
+\end{pbox}
+
+\end{minipage}\hfill
+\begin{minipage}[t]{0.489\linewidth}
+\vspace{0pt}
+
+%--------------------------------------------------- VALIDATION
+\begin{pbox}{5. Validation: the HÉLIOS serious game}
+The \hl{2020–2022 semiconductor shortage} replayed as an 8-node, 18-turn serious
+game over nine working days. $U_r$ is fed by public series (INSEE, WSTS) frozen
+under SHA-256; $U_d$ comes from the players' weekly AHP questionnaire. Protocol
+frozen before turn 1, with placebo sheets and a weak-signal turn as controls.
+
+\smallskip
+\begin{center}
+\includegraphics[height=78mm]{img/campaign_network.png}
+\captionof{figure}{The eight HÉLIOS nodes and the public series feeding $U_r$.}
+\end{center}
+
+\smallskip
+A \textbf{synthetic dry run} (5 iterations) calibrated the null baseline
+(precision 0.16 / recall 0.27); an exploratory \textbf{pilot with eight isolated
+LLM agents} then ran the full production pipeline.
+
+\smallskip
+\begin{center}
+\includegraphics[height=68mm]{img/helios_llm_pilot_adequacy.png}
+\captionof{figure}{Network-average adequacy $A$ across the 18 turns of the LLM
+pilot, annotated with the calibrated crisis events (five acts: baseline, tipping
+point, squeeze, rupture, recovery).}
+\end{center}
+
+\smallskip
+{\fontsize{18}{22}\selectfont
+\begin{tabular}{@{}p{0.42\linewidth}p{0.21\linewidth}p{0.30\linewidth}@{}}
+\toprule
+\textbf{Hypothesis} & \textbf{Verdict} & \textbf{Measured} \\
+\midrule
+H1 Cognitive latency      & Not confirmed & 3 of 8 nodes (thr.\ 5) \\
+H2 Early detection        & Not confirmed & $H_{\max}\!=\!0.017$ (thr.\ 0.3) \\
+H3 Structural criticality & Not confirmed & top-1 on 70\% (thr.\ 80\%) \\
+H4 Predictive validity    & Not confirmed & precision / recall 0.00 \\
+\textbf{H5 Urgency contagion} & \textbf{Confirmed} & $+0.079$ vs.\ $+0.005$ \\
+H6 Perception hysteresis  & Not applicable & no measurable decline \\
+\bottomrule
+\end{tabular}}
+
+\smallskip
+\begin{keybox}
+\textbf{Key result.} Urgency contagion is reproduced at network scale: nodes
+\emph{not} physically affected still raise their declared urgency on press-event
+turns. The LLM readers track their briefing too faithfully to leave the gap $H$
+is built to catch — which is why \textbf{the human campaign is the only fair test
+of H4}.
+\end{keybox}
+\end{pbox}
+
+\gap
+
+%--------------------------------------------------- BRICK 2
+\begin{pbox}{6. Second brick: warehouse volumetry at scale}
+The Physical Internet needs to know \emph{where} storage capacity sits, of
+\emph{what type} and \emph{what volume} — at a scale no manual survey reaches.
+This brick characterises any warehouse from its \hl{GPS coordinates alone}.
+
+\smallskip
+\begin{minipage}[t]{0.30\linewidth}
+\vspace{0pt}
+\includegraphics[width=\linewidth,clip,trim=0 70 70 0]{img/warehouse_satellite.png}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.67\linewidth}
+\vspace{-3mm}
+\begin{itemize}
+  \item ESRI satellite tiles, zoom 18 ($\approx$0.6\,m/px), 3$\times$3 grid.
+  \item Ground resolution \hl{calibrated} on the OSM footprint and the 2.40\,m
+        standard truck width.
+  \item \hl{SAM\,3} text-prompted segmentation: \emph{warehouse}, \emph{loading
+        dock}, \emph{truck}, \emph{office}.
+  \item Shape class I / L / U from solidity and compactness.
+  \item Storage volume $=$ footprint $\times$ height (OSM \texttt{height}, or
+        levels $\times\,3.5$\,m).
+\end{itemize}
+\end{minipage}
+
+\smallskip
+One JSON record per site — surface, docks, trucks, shape, volume — i.e.
+\hl{indicators that aggregate into a national storage-capacity map} and feed the
+twin with \emph{observed} capacity instead of declared capacity.
+\end{pbox}
+
+\gap
+
+%--------------------------------------------------- CONCLUSION
+\begin{pbox}{7. Conclusions \& next steps}
+A multi-block real urgency, an asymmetric cognitive adequacy score and an operable
+digital twin were delivered; the measurement apparatus around them is frozen and
+pre-registered.
+\begin{itemize}
+  \item Run the human HÉLIOS campaign — the only run able to decide H1–H6.
+  \item Recalibrate $(\lambda_{\text{under}},\lambda_{\text{over}},\alpha)$ on real
+        coordinators, not on literature defaults.
+  \item Connect an ERP feed, so score freshness stops depending on manual entry.
+  \item Fuse the two bricks: observed volumetry as a physical input to the
+        capacity block of $U_r$.
+\end{itemize}
+\end{pbox}
+
+\end{minipage}
+
+%=====================================================================
+%  FOOTER
+%=====================================================================
+\vfill
+{\color{altenazure}\rule{\linewidth}{2pt}}
+\vspace{2.5mm}
+
+{\fontsize{18}{22}\selectfont
+\begin{minipage}[t]{0.66\linewidth}
+\textbf{Industrial supervisors:} Sébastien Perthuisot (Research Programme
+Director, Quality \& Supply Chain Expert, DIN ALTEN) \textbullet\ Fabien Jules
+(Innovation Officer, ALTEN)\\[1.5mm]
+\textbf{Academic supervisors:} David Gomez (ESTIA Institute of Technology)
+\textbullet\ Dr Peter Sherar (CCES, Cranfield University)
+\end{minipage}\hfill
+\begin{minipage}[t]{0.31\linewidth}
+\raggedleft
+\textbf{\textcolor{altennavy}{WWW.CRANFIELD.AC.UK}}\\[1.5mm]
+Individual Research Project 2025/2026\\[1.5mm]
+\textcolor{captiongrey}{ALTEN — Direction Innovation Numérique — Company Confidential}
+\end{minipage}}
+\end{minipage}
+
+\end{document}

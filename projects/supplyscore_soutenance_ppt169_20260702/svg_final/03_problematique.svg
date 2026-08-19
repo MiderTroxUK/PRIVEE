@@ -1,0 +1,121 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <rect id="bg" x="0" y="0" width="1280" height="720" fill="#FFFFFF" />
+
+  <g id="p03-header">
+    <text x="56" y="60" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" letter-spacing="2" fill="#6B7A85">PARTIE 0 · OUVERTURE</text>
+    <text x="54" y="104" font-family="Segoe UI, Arial, sans-serif" font-size="42" font-weight="800" fill="#1E4258">La problématique : le biais cognitif de l'urgence déclarée</text>
+    <rect x="56" y="118" width="64" height="4" fill="#2C5F7C" />
+  </g>
+
+  <g id="p03-strata">
+    <rect x="140" y="152" width="1000" height="108" fill="#F4F6F8" stroke="#D8DEE3" stroke-width="1" />
+    <text x="164" y="180" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700" fill="#2C5F7C">STRATE SUBJECTIVE · Ud (urgence déclarée)</text>
+    
+  <g transform="translate(164, 204) scale(0.916667)" fill="none" stroke="#2C5F7C" stroke-width="2">
+    <path d="M15.5 13a3.5 3.5 0 0 0 -3.5 3.5v1a3.5 3.5 0 0 0 7 0v-1.8" />
+    <path d="M8.5 13a3.5 3.5 0 0 1 3.5 3.5v1a3.5 3.5 0 0 1 -7 0v-1.8" />
+    <path d="M17.5 16a3.5 3.5 0 0 0 0 -7h-.5" />
+    <path d="M19 9.3v-2.8a3.5 3.5 0 0 0 -7 0" />
+    <path d="M6.5 16a3.5 3.5 0 0 1 0 -7h.5" />
+    <path d="M5 9.3v-2.8a3.5 3.5 0 0 1 7 0v10" />
+  </g>
+    <text x="192" y="221" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#22313A">Perception humaine</text>
+    
+  <g transform="translate(404, 204) scale(0.916667)" fill="none" stroke="#2C5F7C" stroke-width="2">
+    <path d="M12 9v4" />
+    <path d="M10.363 3.591l-8.106 13.534a1.914 1.914 0 0 0 1.636 2.871h16.214a1.914 1.914 0 0 0 1.636 -2.87l-8.106 -13.536a1.914 1.914 0 0 0 -3.274 0" />
+    <path d="M12 16h.01" />
+  </g>
+    <text x="432" y="221" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#22313A">Biais émotionnel</text>
+    
+  <g transform="translate(644, 204) scale(0.916667)" fill="none" stroke="#2C5F7C" stroke-width="2">
+    <path d="M11 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" />
+    <path d="M7 12a5 5 0 1 0 10 0a5 5 0 1 0 -10 0" />
+    <path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" />
+  </g>
+    <text x="672" y="221" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#22313A">Optimisation locale</text>
+    
+  <g transform="translate(884, 204) scale(0.916667)" fill="none" stroke="#2C5F7C" stroke-width="2">
+    <path d="M10 5a2 2 0 1 1 4 0a7 7 0 0 1 4 6v3a4 4 0 0 0 2 3h-16a4 4 0 0 0 2 -3v-3a7 7 0 0 1 4 -6" />
+    <path d="M9 17v1a3 3 0 0 0 6 0v-1" />
+  </g>
+    <text x="912" y="221" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#22313A">Panique</text>
+
+    <rect x="140" y="270" width="1000" height="52" fill="#2C5F7C" />
+    <text x="640" y="303" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="700" fill="#FFFFFF">SupplyScore : couche de traduction mathématique &amp; comparaison</text>
+
+    <rect x="140" y="332" width="1000" height="108" fill="#F4F6F8" stroke="#D8DEE3" stroke-width="1" />
+    <text x="164" y="360" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700" fill="#1E4258">STRATE OBJECTIVE · Ur (urgence réelle)</text>
+    
+  <g transform="translate(164, 384) scale(0.916667)" fill="none" stroke="#1E4258" stroke-width="2">
+    <path d="M4 6a8 3 0 1 0 16 0a8 3 0 1 0 -16 0" />
+    <path d="M4 6v6a8 3 0 0 0 16 0v-6" />
+    <path d="M4 12v6a8 3 0 0 0 16 0v-6" />
+  </g>
+    <text x="192" y="401" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#22313A">Stocks</text>
+    
+  <g transform="translate(404, 384) scale(0.916667)" fill="none" stroke="#1E4258" stroke-width="2">
+    <path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" />
+    <path d="M12 7v5l3 3" />
+  </g>
+    <text x="432" y="401" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#22313A">Délais de transit</text>
+    
+  <g transform="translate(644, 384) scale(0.916667)" fill="none" stroke="#1E4258" stroke-width="2">
+    <path d="M3 7a3 3 0 0 1 3 -3h12a3 3 0 0 1 3 3v2a3 3 0 0 1 -3 3h-12a3 3 0 0 1 -3 -3" />
+    <path d="M3 15a3 3 0 0 1 3 -3h12a3 3 0 0 1 3 3v2a3 3 0 0 1 -3 3h-12a3 3 0 0 1 -3 -3l0 -2" />
+    <path d="M7 8l0 .01" />
+    <path d="M7 16l0 .01" />
+  </g>
+    <text x="672" y="401" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#22313A">Capacité physique</text>
+    
+  <g transform="translate(884, 384) scale(0.916667)" fill="none" stroke="#1E4258" stroke-width="2">
+    <path d="M3 17a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v2a2 2 0 0 1 -2 2h-2a2 2 0 0 1 -2 -2l0 -2" />
+    <path d="M15 17a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v2a2 2 0 0 1 -2 2h-2a2 2 0 0 1 -2 -2l0 -2" />
+    <path d="M9 5a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v2a2 2 0 0 1 -2 2h-2a2 2 0 0 1 -2 -2l0 -2" />
+    <path d="M6 15v-1a2 2 0 0 1 2 -2h8a2 2 0 0 1 2 2v1" />
+    <path d="M12 9l0 3" />
+  </g>
+    <text x="912" y="401" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#22313A">Contraintes réseau</text>
+  </g>
+
+  <g id="p03-cycle">
+    <text x="140" y="480" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700" fill="#B06000">LE CERCLE VICIEUX</text>
+    <text x="140" y="510" font-family="Segoe UI, Arial, sans-serif" font-size="17" fill="#22313A">Sur-déclaration généralisée</text>
+    
+  <g transform="translate(332, 496) scale(0.75)" fill="none" stroke="#9AA5AC" stroke-width="2">
+    <path d="M5 12l14 0" />
+    <path d="M13 18l6 -6" />
+    <path d="M13 6l6 6" />
+  </g>
+    <text x="360" y="510" font-family="Segoe UI, Arial, sans-serif" font-size="17" fill="#22313A">Saturation transport premium</text>
+    
+  <g transform="translate(622, 496) scale(0.75)" fill="none" stroke="#9AA5AC" stroke-width="2">
+    <path d="M5 12l14 0" />
+    <path d="M13 18l6 -6" />
+    <path d="M13 6l6 6" />
+  </g>
+    <text x="650" y="510" font-family="Segoe UI, Arial, sans-serif" font-size="17" fill="#22313A">Fatigue opérationnelle</text>
+    
+  <g transform="translate(864, 496) scale(0.75)" fill="none" stroke="#9AA5AC" stroke-width="2">
+    <path d="M5 12l14 0" />
+    <path d="M13 18l6 -6" />
+    <path d="M13 6l6 6" />
+  </g>
+    <text font-size="17" fill="#22313A" font-family="Segoe UI, Arial, sans-serif" x="892" y="510">Signaux critiques</text><text font-size="17" fill="#22313A" font-family="Segoe UI, Arial, sans-serif" x="892" y="530">ignorés</text></g>
+
+  <g id="p03-innovation">
+    <rect x="140" y="576" width="5" height="72" fill="#B06000" />
+    <text font-size="22" fill="#22313A" font-family="Segoe UI, Arial, sans-serif" font-weight="400" x="164" y="600"><tspan><tspan font-weight="700" fill="#B06000">Ce qui est nouveau :</tspan> la première couche de traduction</tspan>
+      </text><text font-size="22" fill="#22313A" font-family="Segoe UI, Arial, sans-serif" font-weight="400" x="164" y="630">mathématique entre perception et réalité : un moteur</text><text font-size="22" fill="#22313A" font-family="Segoe UI, Arial, sans-serif" font-weight="400" x="164" y="660"><tspan>d'adéquation <tspan font-weight="700">asymétrique</tspan>, pas un simple tableau de bord.</tspan>
+    </text></g>
+
+  <g id="p03-citation">
+    <text x="140" y="663" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#9AA5AC">Réf. : Zhu et al. (2018) ; Rusou, Amar &amp; Ayal (2020) · biais de sur-priorisation (revue littérature BST §3.2)</text>
+  </g>
+
+  <g id="p03-footer">
+    <line x1="56" y1="676" x2="1224" y2="676" stroke="#D8DEE3" stroke-width="1" />
+    <text x="56" y="700" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#9AA5AC">SupplyScore · Soutenance de thèse</text>
+    <text x="1224" y="700" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#9AA5AC" text-anchor="end">03 / 28</text>
+  </g>
+</svg>

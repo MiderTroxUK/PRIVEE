@@ -1,0 +1,44 @@
+No,Filename,Width,Height,AspectRatio,PixelAspectRatio,RatioSource,UsageCount,DisplayRatioVariants,AssetKind,SvgRenderable,PptxNativeSupported,SizeKB,Category,ImageArea_SxS,TextArea_SxS
+1,01-projets-pleine-page.png,1898,2583,0.73,0.73,pixel,1,,bitmap,True,True,188.6,Portrait,441x600,699x600
+2,01-projets.png,1898,926,2.05,2.05,pixel,1,,bitmap,True,True,67.9,Ultra-wide,812x396,328x600
+3,02-onboarding.png,1898,926,2.05,2.05,pixel,1,,bitmap,True,True,48.1,Ultra-wide,812x396,328x600
+4,03-hebdo.png,1898,926,2.05,2.05,pixel,1,,bitmap,True,True,64.0,Ultra-wide,812x396,328x600
+5,04-questionnaire-pleine-page.png,1898,2776,0.68,0.68,pixel,1,,bitmap,True,True,200.1,Portrait,410x600,730x600
+6,04-questionnaire.png,1898,926,2.05,2.05,pixel,1,,bitmap,True,True,85.3,Ultra-wide,812x396,328x600
+7,05-dashboard-pleine-page.png,1898,3254,0.58,0.58,pixel,1,,bitmap,True,True,230.8,Portrait,350x600,790x600
+8,05-dashboard.png,1898,926,2.05,2.05,pixel,1,,bitmap,True,True,86.2,Ultra-wide,812x396,328x600
+9,06-simulation-pleine-page.png,1898,2821,0.67,0.67,pixel,1,,bitmap,True,True,115.0,Portrait,404x600,736x600
+10,06-simulation.png,1898,926,2.05,2.05,pixel,1,,bitmap,True,True,42.1,Ultra-wide,812x396,328x600
+11,07-edition.png,1898,926,2.05,2.05,pixel,1,,bitmap,True,True,41.0,Ultra-wide,812x396,328x600
+12,08-ponderation-pleine-page.png,1898,1200,1.58,1.58,pixel,1,,bitmap,True,True,76.4,Wide landscape,812x513,328x600
+13,08-ponderation.png,1898,926,2.05,2.05,pixel,1,,bitmap,True,True,63.0,Ultra-wide,812x396,328x600
+14,09-graphe-pleine-page.png,1898,2227,0.85,0.85,pixel,1,,bitmap,True,True,152.7,Near square,511x600,629x600
+15,09-graphe.png,1898,926,2.05,2.05,pixel,1,,bitmap,True,True,85.3,Ultra-wide,812x396,328x600
+16,10-rapport.png,1898,926,2.05,2.05,pixel,1,,bitmap,True,True,33.4,Ultra-wide,812x396,328x600
+17,11-admin.png,1898,926,2.05,2.05,pixel,1,,bitmap,True,True,38.5,Ultra-wide,812x396,328x600
+18,12-fiche-noeud-pleine-page.png,1898,3124,0.61,0.61,pixel,1,,bitmap,True,True,216.6,Portrait,365x600,775x600
+19,12-fiche-noeud.png,1898,926,2.05,2.05,pixel,1,,bitmap,True,True,69.2,Ultra-wide,812x396,328x600
+20,13-explication-pleine-page.png,1898,2139,0.89,0.89,pixel,1,,bitmap,True,True,132.3,Near square,532x600,608x600
+21,13-explication.png,1898,926,2.05,2.05,pixel,1,,bitmap,True,True,55.5,Ultra-wide,812x396,328x600
+22,14-hebdo-noeud-crise-pleine-page.png,1898,4019,0.47,0.47,pixel,1,,bitmap,True,True,280.5,Portrait,283x600,857x600
+23,14-hebdo-noeud-crise.png,1898,926,2.05,2.05,pixel,1,,bitmap,True,True,86.4,Ultra-wide,812x396,328x600
+24,15-simulation-choc-pleine-page.png,1898,3062,0.62,0.62,pixel,1,,bitmap,True,True,211.2,Portrait,372x600,768x600
+25,15-simulation-choc.png,1898,926,2.05,2.05,pixel,1,,bitmap,True,True,90.6,Ultra-wide,812x396,328x600
+26,16-simulation-criticite-pleine-page.png,1898,3212,0.59,0.59,pixel,1,,bitmap,True,True,232.9,Portrait,355x600,785x600
+27,16-simulation-criticite.png,1898,926,2.05,2.05,pixel,1,,bitmap,True,True,90.6,Ultra-wide,812x396,328x600
+28,17-rapport-session-pleine-page.png,1898,5966,0.32,0.32,pixel,1,,bitmap,True,True,484.9,Portrait,191x600,949x600
+29,17-rapport-session.png,1898,926,2.05,2.05,pixel,1,,bitmap,True,True,81.9,Ultra-wide,812x396,328x600
+30,f01_ahp_matrix.png,656,116,5.66,5.66,pixel,1,,bitmap,True,True,4.4,Ultra-wide,1160x205,1160x375
+31,f02_ahp_w.png,476,121,3.93,3.93,pixel,1,,bitmap,True,True,6.8,Ultra-wide,1160x295,1160x285
+32,f03_ahp_cr.png,721,116,6.22,6.22,pixel,1,,bitmap,True,True,6.9,Ultra-wide,1160x187,1160x393
+33,f04_fbwm_opt.png,946,124,7.63,7.63,pixel,1,,bitmap,True,True,9.4,Ultra-wide,1160x152,1160x428
+34,f05_fbwm_gmir.png,408,104,3.92,3.92,pixel,1,,bitmap,True,True,3.8,Ultra-wide,1160x296,1160x284
+35,f06_promethee_flows.png,1185,133,8.91,8.91,pixel,1,,bitmap,True,True,8.1,Ultra-wide,1160x130,1160x450
+36,f07_mc_recur.png,1128,78,14.46,14.46,pixel,1,,bitmap,True,True,9.3,Ultra-wide,1160x80,1160x500
+37,f08_prop_ud.png,1027,180,5.71,5.71,pixel,1,,bitmap,True,True,11.6,Ultra-wide,1160x203,1160x377
+38,f09_prop_ur.png,1014,180,5.63,5.63,pixel,1,,bitmap,True,True,11.4,Ultra-wide,1160x206,1160x374
+39,f10_adequation_penalty.png,635,46,13.80,13.80,pixel,1,,bitmap,True,True,5.2,Ultra-wide,1160x84,1160x496
+40,f11_adequation_score.png,689,110,6.26,6.26,pixel,1,,bitmap,True,True,6.4,Ultra-wide,1160x185,1160x395
+41,f12_xai_noisyor.png,1196,150,7.97,7.97,pixel,1,,bitmap,True,True,10.7,Ultra-wide,1160x145,1160x435
+42,f13_unified_score.png,1731,120,14.43,14.43,pixel,1,,bitmap,True,True,15.2,Ultra-wide,1160x80,1160x500
+43,f14_mdp_reward.png,543,105,5.17,5.17,pixel,1,,bitmap,True,True,5.2,Ultra-wide,1160x224,1160x356

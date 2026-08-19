@@ -1,0 +1,215 @@
+\documentclass[a4paper, 12pt, oneside]{article}
+
+%% ═════════════════════════════════════════════════════════════════════════
+%%  RAPPORT DE MISSION DE FIN D'ÉTUDES — ESTIA, promotion 2026
+%%  John HOARAU · ALTEN Sud-Ouest, Direction de l'Innovation, Lab de Toulouse
+%%
+%%  Structure imposée par « Consignes évaluations Alternance 5 et MFE
+%%  2025-2026 », §6.2.3. Rédigé en anglais, à l'exception du paragraphe RSE
+%%  (§6.2.3.2 : « Ce paragraphe est à rédiger en français ») et du résumé,
+%%  fourni en français, anglais et espagnol comme exigé.
+%%
+%%  DÉPENDANCES PARTAGÉES, jamais dupliquées :
+%%    images       ../BST_DISCO_JH_2026/Images  et  ../Thesis_Cranfield_JH_2026/Images
+%%    bibliographie ../BST_DISCO_JH_2026/Utilities/Bibliography.bib
+%%                  ../Thesis_Cranfield_JH_2026/Utilities/Bibliography_thesis.bib
+%%    glossaire    ../BST_DISCO_JH_2026/Sections/Appendices/Glossary.tex
+%% ═════════════════════════════════════════════════════════════════════════
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[english,french]{babel}
+\usepackage{microtype}
+\usepackage[sfdefault,lining]{carlito}
+
+%% ── Couleurs de la charte ALTEN (Brandbook 2025) ────────────────────────
+\usepackage{xcolor}
+\definecolor{altenAzure}{HTML}{008BD2}
+\definecolor{altenNavy}{HTML}{043962}
+\definecolor{altenAzureDark}{HTML}{176F98}
+\definecolor{altenAzureLight}{HTML}{7DCAED}
+\definecolor{altenOchreDark}{HTML}{FFBA00}
+\definecolor{altenOchrePale}{HTML}{FFEF86}
+\definecolor{altenGreyLine}{HTML}{CDCEDA}
+\definecolor{altenBlueBg}{HTML}{EBF3F9}
+\definecolor{altenBlueBg2}{HTML}{DAE8F3}
+
+\usepackage{sectsty}
+\sectionfont{\color{altenNavy}}
+\subsectionfont{\color{altenAzureDark}}
+\subsubsectionfont{\color{altenAzureDark}}
+\paragraphfont{\color{altenNavy}}
+
+%% ── Mise en page ────────────────────────────────────────────────────────
+\usepackage[a4paper, top=2.6cm, bottom=2.6cm, left=2.7cm, right=2.7cm,
+            footskip=1.1cm]{geometry}
+\usepackage[skip=8pt plus 2pt, indent=0pt]{parskip}
+
+\renewcommand{\topfraction}{0.9}
+\renewcommand{\bottomfraction}{0.7}
+\renewcommand{\textfraction}{0.12}
+\renewcommand{\floatpagefraction}{0.75}
+
+%% Rapport confidentiel : marquage sur chaque page, exigé par ALTEN
+\pagestyle{plain}
+\usepackage{fancyhdr}
+\fancypagestyle{plain}{
+    \fancyhf{}
+    \fancyfoot[R]{\ShortTitle\\\textbf{Document confidentiel}}
+    \fancyfoot[L]{ESTIA \textbar{} ALTEN Sud-Ouest\\Mission de fin d'\'etudes 2026}
+    \fancyfoot[C]{\thepage}
+    \renewcommand{\headrulewidth}{0pt}
+    \renewcommand{\footrulewidth}{1pt}
+}
+
+%% Sommaire : trois niveaux de titre au maximum (consignes §6.2.3.1)
+\setcounter{tocdepth}{3}
+\setcounter{secnumdepth}{3}
+
+%% ── Bibliographie partagée ──────────────────────────────────────────────
+\usepackage[style=iso-authoryear, backend=biber, sorting=nyt,
+            maxbibnames=3, minbibnames=1, giveninits=true,
+            urldate=iso]{biblatex}
+\addbibresource{../BST_DISCO_JH_2026/Utilities/Bibliography.bib}
+\addbibresource{../Thesis_Cranfield_JH_2026/Utilities/Bibliography_thesis.bib}
+\addbibresource{Utilities/Bibliography_mfe.bib}
+\usepackage[nottoc,numbib]{tocbibind}
+
+%% ── Glossaire partagé ───────────────────────────────────────────────────
+\usepackage[acronym, section=subsection]{glossaries}
+\makenoidxglossaries{}
+\input{../BST_DISCO_JH_2026/Sections/Appendices/Glossary.tex}
+
+\usepackage{amsmath, amssymb, mathtools}
+
+%% ── Figures : les deux arbres d'images sont partagés, jamais copiés ─────
+\usepackage{graphicx}
+\graphicspath{{./}{../BST_DISCO_JH_2026/}{../Thesis_Cranfield_JH_2026/}}
+\usepackage{caption}
+\captionsetup{labelfont={bf,color=altenNavy}, textfont={color=altenNavy},
+              font=small}
+\usepackage[hidelinks]{hyperref}
+\hypersetup{colorlinks=true, linkcolor=altenAzure, citecolor=altenAzure,
+            urlcolor=altenAzure,
+            pdftitle={Mesurer l'ecart entre urgence declaree et urgence reelle},
+            pdfauthor={John Hoarau}}
+
+\usepackage{tabularx, array, booktabs, multirow, longtable, float}
+\usepackage{colortbl}
+\arrayrulecolor{altenNavy}
+\renewcommand{\tabularxcolumn}[1]{m{#1}}
+
+\usepackage{enumitem}
+\setitemize{parsep=0pt, partopsep=0pt}
+\setenumerate{parsep=0pt, partopsep=0pt}
+
+%% ── Encadrés de la charte ───────────────────────────────────────────────
+\usepackage[strict]{changepage}
+\usepackage{framed}
+
+\colorlet{definitionshade}{altenBlueBg2}
+\newenvironment{definitionBox}{%
+  \def\FrameCommand{\hspace{1pt}{\color{altenNavy}\vrule width 2pt}%
+    {\color{definitionshade}\vrule width 4pt}\colorbox{definitionshade}}%
+  \MakeFramed{\advance\hsize-\width\FrameRestore}%
+  \noindent\hspace{-4.55pt}\begin{adjustwidth}{}{7pt}\vspace{4pt}%
+}{\vspace{2pt}\end{adjustwidth}\endMakeFramed}
+
+\colorlet{attentionShade}{altenOchrePale!45!white}
+\newenvironment{attentionBox}{%
+  \def\FrameCommand{\hspace{1pt}{\color{altenOchreDark}\vrule width 2pt}%
+    {\color{attentionShade}\vrule width 4pt}\colorbox{attentionShade}}%
+  \MakeFramed{\advance\hsize-\width\FrameRestore}%
+  \noindent\hspace{-4.55pt}\begin{adjustwidth}{}{7pt}\vspace{4pt}%
+}{\vspace{2pt}\end{adjustwidth}\endMakeFramed}
+
+%% Le paragraphe RSE est exige en francais ; sa traduction anglaise le suit
+%% immediatement pour que le document reste lisible de bout en bout.
+\colorlet{frShade}{altenBlueBg}
+\newenvironment{frenchBox}{%
+  \def\FrameCommand{\hspace{1pt}{\color{altenAzure}\vrule width 2pt}%
+    {\color{frShade}\vrule width 4pt}\colorbox{frShade}}%
+  \MakeFramed{\advance\hsize-\width\FrameRestore}%
+  \noindent\hspace{-4.55pt}\begin{adjustwidth}{}{7pt}\vspace{4pt}%
+  \selectlanguage{french}%
+}{\vspace{2pt}\end{adjustwidth}\endMakeFramed\selectlanguage{english}}
+
+\begin{document}
+\selectlanguage{english}
+\color{altenNavy}
+
+\input{Utilities/Cover}
+
+\clearpage
+\pagenumbering{roman}
+\input{Utilities/Remerciements}
+
+\clearpage
+\input{Sections/0.Resumes}
+
+\clearpage
+\input{Sections/0bis.Preambule}
+
+\clearpage
+\tableofcontents
+
+\clearpage
+\listoffigures
+
+\clearpage
+\listoftables
+
+\clearpage
+\pagenumbering{arabic}
+\section{Introduction}
+\label{sec:intro}
+\input{Sections/1.Introduction}
+
+\clearpage
+\section{The Company}
+\label{sec:entreprise}
+\input{Sections/2.Entreprise}
+
+\clearpage
+\section{Problem Statement}
+\label{sec:problematique}
+\input{Sections/3.Problematique}
+
+\clearpage
+\section{The Mission}
+\label{sec:mission}
+\input{Sections/4.Mission}
+
+\clearpage
+\section{Project Organisation}
+\label{sec:organisation}
+\input{Sections/5.Organisation}
+
+\clearpage
+\section{State of the Art}
+\label{sec:etatdelart}
+\input{Sections/6.EtatDeLArt}
+
+\clearpage
+\section{Carrying Out the Mission}
+\label{sec:realisation}
+\input{Sections/7.Realisation}
+
+\clearpage
+\section{Conclusion and Personal Assessment}
+\label{sec:conclusion}
+\input{Sections/8.Conclusion}
+
+\clearpage
+\printbibliography[heading=bibintoc, title={Bibliography}]
+
+\clearpage
+\printnoidxglossaries{}
+
+\clearpage
+\appendix
+\input{Sections/Appendices/A.AutorisationIA}
+\input{Sections/Appendices/B.Planning}
+\input{Sections/Appendices/C.Competences}
+
+\end{document}

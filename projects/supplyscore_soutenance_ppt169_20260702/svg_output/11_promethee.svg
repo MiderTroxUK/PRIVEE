@@ -1,0 +1,78 @@
+<svg width="1280" height="720" viewBox="0 0 1280 720" xmlns="http://www.w3.org/2000/svg">
+  <rect id="bg" x="0" y="0" width="1280" height="720" fill="#FFFFFF"/>
+
+  <g id="p11-header">
+    <text x="56" y="60" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" letter-spacing="2" fill="#6B7A85">PARTIE II · DEEP DIVE 3/6 · PROMETHEE II</text>
+    <text x="54" y="104" font-family="Segoe UI, Arial, sans-serif" font-size="42" font-weight="800" fill="#1E4258">Comparer par paires, jamais compenser</text>
+    <rect x="56" y="118" width="64" height="4" fill="#2C5F7C"/>
+  </g>
+
+  <g id="p11-principle">
+    <text x="76" y="176" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#22313A">
+      <tspan x="76" dy="0">Un score catastrophique sur un critère n'est</tspan>
+      <tspan x="76" dy="26">jamais compensé par un excellent score ailleurs.</tspan>
+      <tspan x="76" dy="26">Chaque paire de nœuds est comparée critère</tspan>
+      <tspan x="76" dy="26">par critère, puis agrégée en flux net φ.</tspan>
+    </text>
+
+    <text x="76" y="316" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#6B7A85">Flux positif et négatif</text>
+    <image href="../images/f06_promethee_flows.png" x="76" y="324" width="520" height="58" preserveAspectRatio="xMidYMid meet"/>
+
+    <text x="76" y="424" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#22313A">
+      <tspan x="76" dy="0">Fonction par défaut : <tspan font-weight="700" fill="#2C5F7C">Type V linéaire</tspan> (q=0.05, p=0.30)</tspan>
+      <tspan x="76" dy="30">Valeur métier normalisée : BV = (φ+1)/2</tspan>
+    </text>
+
+    <text x="76" y="510" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#6B7A85">
+      <tspan x="76" dy="0">Limite documentée : sensibilité aux seuils p/q,</tspan>
+      <tspan x="76" dy="22">risque de renversement de rang.</tspan>
+    </text>
+  </g>
+
+  <g id="p11-example">
+    <text x="650" y="176" font-family="Segoe UI, Arial, sans-serif" font-size="26" font-weight="700" fill="#1E4258">Exemple : classer 3 nœuds sur 2 critères</text>
+
+    <text x="650" y="210" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="700" fill="#6B7A85">NŒUD</text>
+    <text x="810" y="210" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="700" fill="#6B7A85">c1 (w=0.6)</text>
+    <text x="940" y="210" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="700" fill="#6B7A85">c2 (w=0.4)</text>
+    <line x1="650" y1="220" x2="1060" y2="220" stroke="#D8DEE3" stroke-width="1"/>
+    <text x="650" y="246" font-family="Segoe UI, Arial, sans-serif" font-size="17" fill="#22313A">Nœud A</text>
+    <text x="810" y="246" font-family="Consolas, 'Courier New', monospace" font-size="16" fill="#22313A">0.8</text>
+    <text x="940" y="246" font-family="Consolas, 'Courier New', monospace" font-size="16" fill="#22313A">0.3</text>
+    <text x="650" y="276" font-family="Segoe UI, Arial, sans-serif" font-size="17" fill="#22313A">Nœud B</text>
+    <text x="810" y="276" font-family="Consolas, 'Courier New', monospace" font-size="16" fill="#22313A">0.5</text>
+    <text x="940" y="276" font-family="Consolas, 'Courier New', monospace" font-size="16" fill="#22313A">0.6</text>
+    <text x="650" y="306" font-family="Segoe UI, Arial, sans-serif" font-size="17" fill="#22313A">Nœud C</text>
+    <text x="810" y="306" font-family="Consolas, 'Courier New', monospace" font-size="16" fill="#22313A">0.2</text>
+    <text x="940" y="306" font-family="Consolas, 'Courier New', monospace" font-size="16" fill="#22313A">0.9</text>
+
+    <line x1="850" y1="348" x2="850" y2="548" stroke="#D8DEE3" stroke-width="1" stroke-dasharray="4,4"/>
+    <text x="850" y="340" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#9AA5AC">BV = 0.50 (neutre)</text>
+
+    <text x="650" y="356" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" fill="#1E4258">Nœud A</text>
+    <rect x="650" y="364" width="240" height="34" fill="#2C5F7C"/>
+    <text x="900" y="386" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" fill="#2C5F7C">BV=0.60 · 1er</text>
+
+    <text x="650" y="428" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" fill="#1E4258">Nœud B</text>
+    <rect x="650" y="436" width="200" height="34" fill="#6B7A85"/>
+    <text x="860" y="458" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#6B7A85">BV=0.50 · 2e</text>
+
+    <text x="650" y="500" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" fill="#1E4258">Nœud C</text>
+    <rect x="650" y="508" width="160" height="34" fill="#9AA5AC"/>
+    <text x="820" y="530" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#6B7A85">BV=0.40 · 3e</text>
+
+    <text x="650" y="600" font-family="Segoe UI, Arial, sans-serif" font-size="17" fill="#22313A">Le fort c1 de A domine malgré un c2 faible :</text>
+    <text x="650" y="626" font-family="Segoe UI, Arial, sans-serif" font-size="17" fill="#22313A">aucune moyenne ne masque l'arbitrage.</text>
+  </g>
+
+  <g id="p11-citation">
+    <text x="650" y="656" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#9AA5AC">Réf. : Brans, Vincke &amp; Mareschal (1986), EJOR ; Behzadian et al. (2010), EJOR</text>
+  </g>
+
+  <g id="p11-footer">
+    <line x1="56" y1="676" x2="1224" y2="676" stroke="#D8DEE3" stroke-width="1"/>
+    <text x="56" y="700" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#9AA5AC">SupplyScore · Soutenance de thèse</text>
+    <text x="640" y="700" text-anchor="middle" font-family="Consolas, 'Courier New', monospace" font-size="15" fill="#9AA5AC">supplyscore/mcda/promethee.py · PrometheeII</text>
+    <text x="1224" y="700" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#9AA5AC" text-anchor="end">11 / 28</text>
+  </g>
+</svg>

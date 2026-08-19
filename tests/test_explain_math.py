@@ -256,17 +256,19 @@ class TestExplainUTime:
 
     @pytest.fixture
     def kpis(self) -> KPIBundle:
-        return KPIBundle(time=TimeKPIs(lead_time_h=50.0, lead_time_std_h=10.0))
+        return KPIBundle(time=TimeKPIs(lead_time_h=100.0, lead_time_std_h=20.0))
 
     def test_cas_chiffre_v2(self, model, kpis):
-        # d* = 100 h, lead 50/std 10, t = 40, progress = 0.1.
-        m = make_milestone(100.0, progress=0.1)
+        # d* = 100 h, lead 100/std 20, t = 40, progress = 0.25.
+        # Socle sur travail restant : reste = 0.75 -> L_restant ~ N(75, 15),
+        # marge 60 -> z = -1 -> u_base = Phi(1) = 0.841345 ; r = 0.15.
+        m = make_milestone(100.0, progress=0.25)
         trace = explain_u_time(40.0, kpis, [m], model, t0_ts=T0)
-        assert trace.u_base == pytest.approx(0.1587, abs=1e-3)
+        assert trace.u_base == pytest.approx(0.841345, abs=1e-4)
         assert trace.p_th == pytest.approx(0.4, abs=1e-12)
-        assert trace.progress == pytest.approx(0.1, abs=1e-12)
-        assert trace.planning_adjust == pytest.approx(0.15, abs=1e-12)
-        assert trace.final == pytest.approx(0.3087, abs=1e-3)
+        assert trace.progress == pytest.approx(0.25, abs=1e-12)
+        assert trace.planning_adjust == pytest.approx(0.075, abs=1e-12)
+        assert trace.final == pytest.approx(0.916345, abs=1e-4)
         # final == pipeline (même appel) et == clip01(u_base + adjust).
         assert trace.final == model.u_time(40.0, kpis, milestones=[m], t0_ts=T0)
         reconstruit = min(max(trace.u_base + trace.planning_adjust, 0.0), 1.0)

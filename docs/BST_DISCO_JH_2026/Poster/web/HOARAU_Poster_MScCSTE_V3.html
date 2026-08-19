@@ -1,0 +1,495 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>HOARAU — MSc CSTE Poster — SupplyScore (V3)</title>
+<style>
+/* ══════════════════════════════════════════════════════════════════════════
+   MSc CSTE / ESTIA / ALTEN DIN, Individual Research Project poster
+   A1 portrait, 594 × 841 mm, one page, print to PDF from Chrome.
+
+   V3 (2026-08-13): storytelling timeline, six stations, one running thread.
+   Every figure re-derived from the repository. Overclaims removed:
+     - "predicted the exact week the line would halt"  -> unsupported, cut
+     - "hidden risk: 10% -> 25% milestone failure"     -> no source, cut
+       (project diagnostics contradict it: hidden_risk AUC 0.322, HA4 P/R 0.00)
+     - "65 modules / 1,425 tests"                      -> now 86 / 1 974
+     - "SAP ERP integration", "deploying next quarter" -> descoped / unplanned
+   Image slots marked .imgbrief are BRIEFS, not images. Replace each block with
+   <img src="img/generated/NAME.jpg" alt="..."> once generated.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+:root{
+  --navy:#043962; --azure:#008BD2; --ochre:#FFDA65;
+  --ochre-mark:#FFBA00; --azure-dark:#176F98; --azure-light:#B2E0F5;
+  --navy-light:#8D9CAD; --navy-pale:#D2D7DE;
+  --bg:#EBF3F9; --line:#CDCEDA; --caption:#6A6A7A;
+  --gap:3.5mm; --logo-h:20mm;
+}
+
+@page{ size:594mm 841mm; margin:0; }
+*{ box-sizing:border-box; margin:0; padding:0; }
+html{ background:#5c6672; }
+
+body{
+  font-family:Calibri,Carlito,Arial,"Helvetica Neue",sans-serif;
+  color:var(--navy);
+  -webkit-print-color-adjust:exact; print-color-adjust:exact;
+  font-kerning:normal; text-rendering:geometricPrecision;
+}
+
+.poster{
+  width:594mm; height:841mm; margin:0 auto; background:#fff; position:relative;
+  padding:12mm 16mm 10mm 16mm;
+  display:flex; flex-direction:column; overflow:hidden;
+  font-size:13pt; line-height:1.3;
+}
+@media screen{ .poster{ box-shadow:0 0 28mm rgba(0,0,0,.45); margin:10mm auto; } }
+
+/* ── header ────────────────────────────────────────────────────────────── */
+.headrow{ display:flex; align-items:center; gap:7mm; }
+.headrow .logo-wrap{
+  flex:0 0 auto; display:flex; align-items:center; justify-content:center;
+  height:var(--logo-h);
+}
+.headrow .logo-wrap img{ height:100%; width:auto; display:block; object-fit:contain; }
+.headrow .titles{ flex:1; }
+
+.msc{ font-size:13.5pt; font-weight:700; color:var(--azure-dark); margin-bottom:1.4mm; }
+h1{ font-size:34pt; line-height:1.04; font-weight:700; letter-spacing:-.016em;
+    margin-bottom:1.8mm; white-space:nowrap; }
+h1 em{ font-style:normal; color:var(--azure); }
+.sub{ font-size:14.5pt; line-height:1.24; font-weight:400; }
+.sub b{ color:var(--azure-dark); }
+
+.byline{ margin-top:2.6mm; padding-top:2.2mm; border-top:1.1mm solid var(--navy);
+         display:flex; align-items:baseline; gap:5mm; font-size:12.4pt; }
+.byline b{ font-size:13.6pt; }
+.byline .dot{ color:var(--line); }
+
+/* ── the thread: stated once, up top ───────────────────────────────────── */
+.thread{
+  margin-top:3.6mm; background:var(--navy); color:#fff;
+  padding:4.4mm 6mm; display:flex; align-items:baseline; gap:6mm;
+}
+.thread .tlbl{ font-size:11pt; font-weight:700; letter-spacing:.08em;
+               color:var(--ochre); flex:0 0 auto; }
+.thread .ttxt{ font-size:17.5pt; line-height:1.24; font-style:italic; }
+.thread .ttxt b{ color:var(--ochre); font-style:normal; }
+
+/* top banner: verified headline findings */
+.key-banner{ display:grid; grid-template-columns:repeat(3, minmax(0,1fr));
+             gap:4mm; margin-top:3.6mm; }
+.key-banner .key-card{ background:var(--bg); border-left:1.6mm solid var(--azure);
+  padding:3.6mm 4.4mm; line-height:1.27; font-size:12.2pt; }
+.key-banner .key-card .lbl{ display:block; font-size:11.5pt; letter-spacing:.045em;
+  font-weight:700; color:var(--azure-dark); margin-bottom:1.8mm; }
+.key-banner .key-card .num{ color:var(--navy); font-weight:700;
+  background:var(--ochre); padding:0 1.1mm; }
+.key-banner .key-card .src{ display:block; margin-top:1.6mm; font-size:9.4pt;
+  color:var(--caption); }
+
+/* ── the spine ─────────────────────────────────────────────────────────── */
+.body{ flex:1; display:flex; flex-direction:column; min-height:0; margin-top:4.4mm; }
+/* row weights follow the copy, not a uniform grid: stations 1-2 are short
+   argument, 4-6 carry the evidence and need the room */
+.tl{ flex:1; display:grid; grid-template-columns:34% minmax(0,1fr);
+     grid-template-rows:.82fr .82fr 1.06fr 1.02fr 1.12fr 1.16fr;
+     column-gap:6.5mm; min-height:0; }
+
+.step{ position:relative; padding-left:13mm; padding-bottom:3.4mm; overflow:hidden; }
+.step::before{
+  content:""; position:absolute; left:4.4mm; top:2mm; bottom:0;
+  width:1.2mm; background:var(--navy-pale);
+}
+.step.last::before{ bottom:auto; height:9mm; }
+.step .dot{
+  position:absolute; left:0; top:0; width:10.4mm; height:10.4mm; border-radius:50%;
+  background:var(--azure); color:#fff; display:flex; align-items:center;
+  justify-content:center; font-weight:700; font-size:14pt; letter-spacing:-.02em;
+}
+.step.hero .dot{ background:var(--navy); }
+.step.hero::before{ background:var(--azure-light); }
+.step h3{ font-size:16.5pt; font-weight:700; line-height:1.09; margin:.3mm 0 1.3mm;
+          letter-spacing:-.01em; }
+.step p{ font-size:12.2pt; line-height:1.28; }
+.step ul{ font-size:12.2pt; line-height:1.27; list-style:none; padding:0; margin:0; }
+.step ul li{ position:relative; padding-left:4.4mm; margin-bottom:.7mm; }
+.step ul li::before{ content:"▸"; position:absolute; left:0; top:0;
+                     color:var(--azure); font-weight:700; font-size:12.5pt; }
+.step .when{ display:block; font-size:9.8pt; font-weight:700; letter-spacing:.06em;
+             color:var(--caption); margin-bottom:.5mm; }
+.step .beat{ display:block; margin-top:1.8mm; padding-top:1.6mm;
+  border-top:.4mm solid var(--azure-light); font-size:12pt; font-style:italic;
+  color:var(--azure-dark); line-height:1.24; }
+.step mark{ background:var(--ochre); color:var(--navy); font-weight:700;
+            padding:0 .9mm; }
+
+.pane{ padding-bottom:3.4mm; min-height:0; display:flex; flex-direction:column;
+       gap:2mm; overflow:hidden; }
+.pane > *{ flex:0 0 auto; }
+/* a brief occupies the space its future image will occupy, so swapping the
+   block for an <img> does not reflow the page */
+.pane > .imgbrief{ flex:1 1 auto; }
+/* a bare <img> dropped straight into a pane (the swap the briefs invite) must
+   FIT its box, never overflow it: without this it renders at intrinsic size and
+   .pane's overflow:hidden silently crops the bottom off the artwork */
+.pane > img, .img-row > img{
+  flex:1 1 auto; min-height:0; min-width:0;
+  width:100%; height:100%;
+  object-fit:contain; object-position:center center;
+}
+
+/* ── image grids ──────────────────────────────────────────────────────── */
+.img-row{ display:grid; gap:var(--gap); flex:1; min-height:0; }
+.img-row.cols-2{ grid-template-columns:1fr 1fr; }
+.img-row.cols-3{ grid-template-columns:1fr 1fr 1fr; }
+.img-row.layout-2plus1{ grid-template-columns:3fr 2fr; grid-template-rows:1fr 1fr; }
+.img-row.layout-2plus1 .span-rows{ grid-row:1 / -1; }
+
+.img-row figure{ display:flex; flex-direction:column; min-height:0; overflow:hidden; }
+.img-row figure img{
+  flex:1; min-height:0; width:100%; display:block;
+  object-fit:contain; object-position:center center;
+}
+/* crop from the left edge: these are UI screenshots, and centring the crop
+   slices the panel title mid-word */
+.img-row figure.crop img{ object-fit:cover; object-position:left top; }
+
+figure{ position:relative; }
+figure img{ display:block; width:100%; }
+figcaption{ font-size:9.6pt; color:var(--caption); line-height:1.2;
+            margin-top:0; padding:.9mm 1.2mm .7mm; flex:0 0 auto; }
+.frame{ border:.3mm solid var(--line); }
+
+.fig-single{ display:flex; flex-direction:column; flex:1; min-height:0; overflow:hidden; }
+.fig-single img{ flex:1; min-height:0; width:100%; display:block;
+                 object-fit:contain; object-position:left center; }
+.fig-single figcaption{ flex:0 0 auto; padding:1mm 0 0; }
+
+/* ── IMAGE BRIEF placeholder (replace each with a real <img>) ──────────── */
+.imgbrief{
+  border:.55mm dashed var(--azure); background:#F6FBFE;
+  padding:2.6mm 3mm; display:flex; flex-direction:column; min-height:0;
+  overflow:hidden;
+}
+.imgbrief .slug{ font-size:9.6pt; font-weight:700; letter-spacing:.05em;
+  color:var(--azure-dark); margin-bottom:.5mm; }
+.imgbrief .slug .tag{ background:var(--azure); color:#fff; padding:.2mm 1.4mm;
+  margin-right:1.6mm; letter-spacing:.04em; }
+.imgbrief .spec{ font-size:8.6pt; color:var(--caption); margin-bottom:1.3mm;
+  font-family:Consolas,monospace; }
+.imgbrief .brief{ font-size:9pt; line-height:1.24; color:var(--navy);
+  overflow:hidden; }
+.imgbrief .brief b{ color:var(--azure-dark); }
+
+/* ── result table ─────────────────────────────────────────────────────── */
+table.res{ width:100%; border-collapse:collapse; font-size:10.4pt; }
+table.res th{ background:var(--navy); color:var(--azure-light); text-align:left;
+  padding:1.3mm 2mm; font-size:9.8pt; letter-spacing:.03em; }
+table.res td{ padding:1.15mm 2mm; border-bottom:.25mm solid var(--line);
+  line-height:1.2; }
+table.res tr:nth-child(even) td{ background:var(--bg); }
+table.res td.ok{ color:var(--navy); font-weight:700; background:var(--ochre)!important; }
+
+/* ── ladder ───────────────────────────────────────────────────────────── */
+.ladder{ display:grid; grid-template-columns:repeat(4,1fr); gap:2.4mm; }
+.ladder .rung{ padding:2.2mm 2.4mm; font-size:9.8pt; line-height:1.2;
+  border-top:1.4mm solid var(--navy-pale); background:var(--bg); }
+.ladder .rung .lv{ display:block; font-weight:700; font-size:12.5pt;
+  color:var(--azure-dark); }
+.ladder .rung.done{ border-top-color:var(--azure); }
+.ladder .rung.skipped{ border-top-color:var(--ochre-mark); background:#FFF8E3; }
+.ladder .rung.shut{ border-top-color:var(--navy); }
+
+.note{ font-size:9.6pt; color:var(--caption); line-height:1.24; }
+
+/* ── footer ────────────────────────────────────────────────────────────── */
+.foot{ margin-top:3.4mm; padding-top:2.4mm; border-top:1.1mm solid var(--azure);
+       display:flex; align-items:flex-end; gap:7mm; }
+.foot .logos{ display:flex; align-items:center; gap:7mm; }
+.foot .logos img{ height:var(--logo-h); width:auto; display:block; object-fit:contain; }
+.foot .sup{ flex:1; font-size:10.2pt; line-height:1.3; }
+.foot .cran{ text-align:right; font-size:10.2pt; line-height:1.3; white-space:nowrap; }
+.foot .cran .url{ font-weight:700; font-size:12.4pt; }
+.foot .cran .conf{ color:var(--caption); }
+</style>
+</head>
+<body>
+<div class="poster">
+
+<!-- ══════════════════════════ HEADER ══════════════════════════ -->
+<header>
+  <div class="headrow">
+    <div class="logo-wrap"><img src="img/true/LogoCranfield.png" alt="Cranfield University"></div>
+    <div class="logo-wrap"><img src="img/true/LogoESTIA.png" alt="ESTIA Institute of Technology"></div>
+    <div class="logo-wrap"><img src="img/true/LogoALTEN.png" alt="ALTEN"></div>
+    <div class="titles">
+      <div class="msc">MSc in Computational Software Techniques in Engineering : Digital Engineering Design</div>
+      <h1>Measuring the gap between <em>declared</em> and <em>real</em> urgency</h1>
+      <div class="sub">SupplyScore, a cognitive digital twin that tells you when you are
+        <b>not worried enough</b>, before the line stops.</div>
+    </div>
+  </div>
+  <div class="byline">
+    <b>John HOARAU 484338</b>
+    <span class="dot">|</span> R&amp;D Intern, Direction Innovation Numérique, ALTEN
+    <span class="dot">|</span> Individual Research Project 2025/2026
+  </div>
+
+  <div class="thread">
+    <span class="tlbl">THE THREAD</span>
+    <span class="ttxt">Every honest measurement in this project <b>contradicted a belief</b>,
+      and each contradiction is why the instrument can now be trusted.</span>
+  </div>
+
+  <div class="key-banner">
+    <div class="key-card">
+      <span class="lbl">ONE HYPOTHESIS SURVIVED, AND IT IS THE INTERESTING ONE</span>
+      Six falsifiable hypotheses were frozen before any data existed. Five were refuted by
+      their own thresholds. The survivor: <b>urgency is contagious</b>. Nodes with no physical
+      disruption still raised their declared urgency by <span class="num">+0.079</span> on
+      press-event turns, against <span class="num">+0.005</span> on calm turns.
+      <span class="src">HA5, LLM pilot, 8 nodes × 19 turns.</span>
+    </div>
+    <div class="key-card">
+      <span class="lbl">THE MODEL RANKS. IT DOES NOT CALIBRATE.</span>
+      Scored against a frozen ground truth, the forecast layer discriminates
+      (<span class="num">AUC 0.736</span> at one turn) yet its Brier skill is
+      <b>negative at every horizon</b>. Below 10 % it understates the real rate
+      <span class="num">3.3×</span>; above 90 % it overstates it <span class="num">4×</span>.
+      Usable for triage, not yet for a number a manager acts on.
+      <span class="src">120 prospective forecasts, turns 4–18.</span>
+    </div>
+    <div class="key-card">
+      <span class="lbl">THE WRONG TARGET NEARLY BURIED IT</span>
+      Same model, same predictions, same data, four-turn horizon:
+      <span class="num">AUC 0.435</span> when scored against “any event on the node”,
+      <span class="num">AUC 0.654</span> against the frozen definition of an adverse outcome.
+      <b>An evaluation against the wrong target can condemn a system that works.</b>
+      <span class="src">Caught only because the definition was frozen in one place.</span>
+    </div>
+  </div>
+</header>
+
+<!-- ══════════════════════════ BODY ══════════════════════════ -->
+<div class="body">
+<div class="tl">
+
+  <!-- ─────────── 1. THE BLIND SPOT ─────────── -->
+  <div class="step">
+    <span class="dot">1</span>
+    <span class="when">THE BLIND SPOT</span>
+    <h3>Everything is green. The line stopped anyway.</h3>
+    <ul>
+      <li>Two failures hide in every dashboard, and they have <b>opposite signs</b></li>
+      <li><b>False urgency F</b> = [U<sub>d</sub> − U<sub>r</sub>]<sub>+</sub>: everyone cries
+          wolf, premium capacity saturates, the next alert is believed a little less</li>
+      <li><b>Hidden risk H</b> = [U<sub>r</sub> − U<sub>d</sub>]<sub>+</sub>: the data screams,
+          nobody declares, the rupture arrives with the options already expired</li>
+      <li>Panic is expensive and recoverable. Silence is cheap and irreversible</li>
+      <li>So the score is <mark>deliberately asymmetric</mark>: same divergence of 0.5 scores
+          A = 53.1 for panic and A = 21.1 for silence</li>
+    </ul>
+    <span class="beat">The dashboard was not wrong. It was measuring the wrong thing.</span>
+  </div>
+  <div class="pane">
+    <img src="img/generated/two_pathologies.jpg" alt="False urgency versus hidden risk">
+  </div>
+
+  <!-- ─────────── 2. THE EMPTY COLUMN ─────────── -->
+  <div class="step">
+    <span class="dot">2</span>
+    <span class="when">THE GAP IN THE FIELD</span>
+    <h3>Everyone scores the world. Nobody scores the gap.</h3>
+    <ul>
+      <li>Ripple-effect models, Markov and dynamic Bayesian disruption models, Bayesian
+          supply-chain risk networks, TTR/TTS stress tests</li>
+      <li>Commercially: Everstream, Resilinc, Interos, mapping multi-tier networks at a scale
+          no research prototype reaches</li>
+      <li>All of them score <b>physical reality</b>. None records the human declaration as a
+          quantity, so none can subtract one from the other</li>
+      <li><b>Not claimed as novel:</b> the propagation algebra (a classical survival product),
+          AHP, PROMETHEE II, Monte Carlo PERT, noisy-OR. Every method here is established</li>
+      <li><b>Claimed:</b> the quantity they are assembled to compute, and the discipline
+          imposed on the assembly</li>
+    </ul>
+    <span class="beat">Everyone scores the world. Nobody scores the gap between the world and
+      what we say about it.</span>
+  </div>
+  <div class="pane">
+    <img src="img/generated/empty_column.svg" alt="The unoccupied column in the field">
+  </div>
+
+  <!-- ─────────── 3. THE INSTRUMENT ─────────── -->
+  <div class="step">
+    <span class="dot">3</span>
+    <span class="when">WHAT WAS BUILT</span>
+    <h3>Two flows, one score</h3>
+    <ul>
+      <li><b>U<sub>r</sub>, real urgency:</b> six KPI blocks (time, capacity, performance, risk,
+          cost, CO₂) combined by weighted <b>probabilistic OR</b>, not a mean</li>
+      <li>Why: a total material rupture with five healthy blocks <mark>averages to 0.17</mark>
+          while the line is physically stopped. One saturated detector must trip the alarm</li>
+      <li>A missing block is <b>ignored, never imputed</b>: absence of measurement is not
+          evidence, in either direction</li>
+      <li><b>U<sub>d</sub>, declared urgency:</b> weekly AHP over four fixed criteria, with a
+          blocking consistency gate at CR &lt; 0.10. Block weights by Fuzzy Best-Worst Method</li>
+      <li><b>Propagation:</b> declared need descends the DAG attenuated by γ, physical risk
+          climbs it scaled by β</li>
+      <li><b>A(t):</b> Prospect-Theory asymmetric loss, λ<sub>under</sub> = 2.25,
+          α = 0.88, both measured by Tversky and Kahneman, not tuned here</li>
+    </ul>
+    <span class="beat">We changed the mathematics because the arithmetic disagreed with the
+      factory floor.</span>
+  </div>
+  <div class="pane">
+    <div class="img-row cols-2">
+      <img src="img/generated/noisy_or_detectors.svg" alt="Six detectors, one saturated">
+      <img src="img/generated/dag_propagation.svg" alt="Need descends, risk climbs">
+    </div>
+  </div>
+
+  <!-- ─────────── 4. DELIVERED ─────────── -->
+  <div class="step">
+    <span class="dot">4</span>
+    <span class="when">DELIVERED, AND AUDITABLE</span>
+    <h3>A score that can be argued with</h3>
+    <ul>
+      <li><b>86 Python modules</b> across 13 packages, <b>1 974 automated tests</b>, coverage
+          gate blocking below 90 %, thirteen application pages</li>
+      <li><b>One write path.</b> Every business write is validated, diffed and audited inside
+          the same transaction as the change. The local CI greps the UI layer for direct writes
+          and <b>fails the build</b> if it finds one</li>
+      <li><b>Exact decompositions, not attributions.</b> U<sub>d</sub> splits additively by
+          criterion; U<sub>r</sub> splits exactly in log-survival space by block</li>
+      <li>So a player who contests a score of 46.5 is answered <b>term by term</b>, on screen,
+          with the audit trail underneath</li>
+      <li>Append-only history, WAL databases, integrity-checked backups, three clocks
+          (real, game, fixed)</li>
+    </ul>
+    <span class="beat">The score's job is not to be believed. It is to be checkable.</span>
+  </div>
+  <div class="pane">
+    <div class="img-row cols-3">
+      <figure class="frame crop">
+        <img src="img/true/3/1.jpg" alt="Dashboard — network adequacy">
+        <figcaption>Network adequacy per node, live.</figcaption>
+      </figure>
+      <figure class="frame crop">
+        <img src="img/true/3/2.jpg" alt="PROMETHEE ranking and time series">
+        <figcaption>PROMETHEE II priority ranking and temporal evolution.</figcaption>
+      </figure>
+      <figure class="frame crop">
+        <img src="img/true/3/3.jpg" alt="Node detail table">
+        <figcaption>Per-node scores: U<sub>d</sub>, U<sub>r</sub>, A, F, H.</figcaption>
+      </figure>
+    </div>
+  </div>
+
+  <!-- ─────────── 5. THE TEST ─────────── -->
+  <div class="step hero">
+    <span class="dot">5</span>
+    <span class="when">THE TEST</span>
+    <h3>HÉLIOS: the chip crisis, replayed blind</h3>
+    <ul>
+      <li>The 2020–2022 semiconductor shortage rebuilt as an <b>8-node, 18-turn</b> serious
+          game under narrative cover. Players are never told which crisis they are in</li>
+      <li>U<sub>r</sub> fed by authentic public series (INSEE, WSTS, BLS) frozen under SHA-256;
+          twelve calibrated events pinned to dated real ones: Texas freeze, Renesas fire, Suez,
+          Taiwan drought, Malaysian back end, the autumn bullwhip</li>
+      <li><b>Pre-registered and frozen at day five:</b> six hypotheses, numeric thresholds, and
+          the analysis code all written <b>before any data existed</b></li>
+      <li>A <b>null baseline</b> imposed on itself (precision 0.16, recall 0.27), structural
+          anti-lookahead in the briefing generator, two placebo briefings, and one third-party
+          dataset <b>rejected</b> at the authenticity check</li>
+    </ul>
+    <span class="beat">We wrote down how we could be wrong before we could know whether we were.</span>
+  </div>
+  <div class="pane">
+    <div class="img-row layout-2plus1">
+      <figure class="frame span-rows">
+        <img src="img/true/4/2.png" alt="Validation: dry run versus LLM pilot per node">
+        <figcaption>Dry run (synthetic) against the LLM pilot (8 isolated agents), 18 turns.</figcaption>
+      </figure>
+      <figure class="frame">
+        <img src="img/true/4/1.png" alt="Adequacy per turn">
+        <figcaption>Network adequacy across the five crisis phases.</figcaption>
+      </figure>
+      <div style="min-height:0;overflow:hidden">
+        <table class="res">
+          <tr><th>Pre-registered hypothesis</th><th>Verdict</th><th>Measured</th></tr>
+          <tr><td>H1 Cognitive latency</td><td>Not confirmed</td><td>3 of 8 nodes (bar 5)</td></tr>
+          <tr><td>H2 Early detection</td><td>Not confirmed</td><td>H max 0.017 (bar 0.3)</td></tr>
+          <tr><td>H3 Structural criticality</td><td>Not confirmed</td><td>top-1 on 70 % (bar 80 %)</td></tr>
+          <tr><td>H4 Predictive validity</td><td>Not confirmed</td><td>precision / recall 0.00</td></tr>
+          <tr><td><b>H5 Urgency contagion</b></td><td class="ok">Confirmed</td><td>+0.079 vs +0.005</td></tr>
+          <tr><td>H6 Perception hysteresis</td><td>Not applicable</td><td>no measurable decline</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────── 6. WHAT BROKE / NEXT ─────────── -->
+  <div class="step last">
+    <span class="dot">6</span>
+    <span class="when">WHAT BROKE, AND WHAT IS NEXT</span>
+    <h3>The instrument found four faults in itself</h3>
+    <ul>
+      <li><b>Milestone risk is blind to events.</b> It reacts only to nominal lead time, and no
+          calibrated event routes there. At turn 6 it announced <mark>99.6 %</mark> on a
+          milestone delivered on time and <mark>0.0 %</mark> on one that was missed while that
+          factory sat frozen. Near anti-correlated</li>
+      <li><b>The shock did not propagate</b>, upstream or downstream, on a model whose reason to
+          exist is propagation</li>
+      <li><b>Calibration fails in both directions at once</b>, which is why the mean looks
+          almost right while the skill score is deeply negative</li>
+      <li><b>The ladder was climbed out of order:</b> the historical replay ran before the model
+          had ever been trained. That mistake prevented a costlier one, since running the
+          synthetic factory first would have taught a model to be well calibrated on noise</li>
+      <li><b>Next, in this order:</b> repair the core → run the factory → train and calibrate →
+          re-test HÉLIOS against the archived before-repair measurements → the human campaign</li>
+    </ul>
+    <span class="beat">A model that is confident where it is blind is worse than no model.</span>
+  </div>
+  <div class="pane">
+    <img src="img/generated/turn_six.jpg" alt="99.6 % on the one that landed">
+    <div class="ladder">
+      <div class="rung done"><span class="lv">T1 ✓</span>Functioning on synthetic data. 19-turn replay end to end.</div>
+      <div class="rung skipped"><span class="lv">T2 —</span>Generalisation. <b>Skipped.</b> The synthetic factory has never run at scale.</div>
+      <div class="rung skipped"><span class="lv">T3 !</span>Historical replay. Attempted <b>early</b>; returned four faults, not validation.</div>
+      <div class="rung shut"><span class="lv">T4 ⊘</span>Utility. The causal battery fails its own validation and the pipeline <b>withholds the artefact</b>.</div>
+    </div>
+    <div class="note">
+      The prescriptive layer is gated shut by the system itself: on a failed causal validation
+      the effects artefact is never published, while the forecast still is. Nobody overrode it.
+      <b>The last measurement that disagreed with us was made by the system.</b>
+    </div>
+  </div>
+
+</div>
+</div><!-- /body -->
+
+<!-- ══════════════════════════ FOOTER ══════════════════════════ -->
+<footer class="foot">
+  <div class="logos">
+    <img src="img/true/LogoCranfield.png" alt="Cranfield University">
+    <img src="img/true/LogoESTIA.png" alt="ESTIA Institute of Technology">
+    <img src="img/true/LogoALTEN.png" alt="ALTEN">
+  </div>
+  <div class="sup">
+    <b>Industrial supervisors:</b> Sébastien Perthuisot, Research Programme Director DIN ALTEN,
+    Quality and Supply Chain Expert <br> Fabien Jules, Innovation Officer, ALTEN<br>
+    <b>Academic supervisors:</b> David Gomez, ESTIA Institute of Technology <br> Dr Peter
+    Sherar, CCES, Cranfield University
+  </div>
+  <div class="cran">
+    <span class="url">WWW.CRANFIELD.AC.UK</span><br>
+    Individual Research Project 2025/2026<br>
+    <span class="conf">ALTEN, Direction Innovation Numérique</span>
+  </div>
+</footer>
+
+</div><!-- /poster -->
+</body>
+</html>

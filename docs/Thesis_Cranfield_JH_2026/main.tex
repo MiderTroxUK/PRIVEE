@@ -1,0 +1,337 @@
+\documentclass[a4paper, 12pt, oneside]{article}
+
+%% ─────────────────────────────────────────
+%%  MSc Thesis, Cranfield University / ESTIA
+%%  Preamble inherited from the ALTEN BST (docs/BST_DISCO_JH_2026/main.tex)
+%%  so that both documents share one visual identity.
+%% ─────────────────────────────────────────
+
+%% ─────────────────────────────────────────
+%%  ENCODING & FONTS
+%% ─────────────────────────────────────────
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{microtype}
+
+%% ALTEN Brandbook 2025 — main font is Metropolis; in its absence the
+%% brand prescribes Arial or Calibri. Carlito is the metric-compatible
+%% free Calibri, so the whole document is set in it.
+\usepackage[sfdefault,lining]{carlito}
+
+%% ─────────────────────────────────────────
+%%  ALTEN BRAND COLOURS (Brandbook EN, Sept. 2025)
+%% ─────────────────────────────────────────
+\usepackage{xcolor}
+% Main trio
+\definecolor{altenAzure}{HTML}{008BD2}   % Azure blue
+\definecolor{altenNavy}{HTML}{043962}    % Navy blue — running text colour
+\definecolor{altenOchre}{HTML}{FFDA65}   % Ochre yellow
+% Official shades
+\definecolor{altenAzureDark}{HTML}{176F98}
+\definecolor{altenAzureLight}{HTML}{7DCAED}
+\definecolor{altenAzurePale}{HTML}{B2E0F5}
+\definecolor{altenNavyShade}{HTML}{4A617D}
+\definecolor{altenOchreDark}{HTML}{FFBA00}
+\definecolor{altenOchrePale}{HTML}{FFEF86}
+% Greyscale / bluescale (backgrounds, lines, secondary text)
+\definecolor{altenGreyBg}{HTML}{EBECF0}
+\definecolor{altenGreyLine}{HTML}{CDCEDA}
+\definecolor{altenGreyText}{HTML}{8C8C9A}
+\definecolor{altenBlueBg}{HTML}{EBF3F9}
+\definecolor{altenBlueBg2}{HTML}{DAE8F3}
+\definecolor{altenBlueBg3}{HTML}{CBEAF8}
+
+%% Coloured section headings (azure titles on navy text, per charter)
+\usepackage{sectsty}
+\sectionfont{\color{altenNavy}}
+\subsectionfont{\color{altenAzureDark}}
+\subsubsectionfont{\color{altenAzureDark}}
+\paragraphfont{\color{altenNavy}}
+
+%% ─────────────────────────────────────────
+%%  PAGE GEOMETRY
+%%  article defaults leave very wide margins on A4 at 12pt, which pushes
+%%  wide tables into overfull boxes and inflates the page count.
+%% ─────────────────────────────────────────
+\usepackage[a4paper, top=2.6cm, bottom=2.6cm, left=2.7cm, right=2.7cm,
+            footskip=1.1cm]{geometry}
+
+%% ─────────────────────────────────────────
+%%  FLOAT PLACEMENT
+%%  Allow a float to take more of a page and require less text on a mixed
+%%  page, so figures stop generating half-empty pages.
+%% ─────────────────────────────────────────
+\renewcommand{\topfraction}{0.9}
+\renewcommand{\bottomfraction}{0.7}
+\renewcommand{\textfraction}{0.12}
+\renewcommand{\floatpagefraction}{0.75}
+\setcounter{topnumber}{3}
+\setcounter{bottomnumber}{2}
+\setcounter{totalnumber}{4}
+
+%% ─────────────────────────────────────────
+%%  PAGE STYLE
+%% ─────────────────────────────────────────
+\pagestyle{plain}
+
+\usepackage{fancyhdr}
+\fancypagestyle{plain}{
+    \fancyhf{}
+    \fancyfoot[R]{\ShortTitle\\\textbf{Company Confidential}}
+    \fancyfoot[L]{Cranfield University\\MSc CSTE 2025--2026}
+    \renewcommand{\headrulewidth}{0pt}
+    \renewcommand{\footrulewidth}{1pt}
+}
+
+%% ─────────────────────────────────────────
+%%  PARAGRAPH LAYOUT — uniform spacing, no indents
+%% ─────────────────────────────────────────
+\usepackage[skip=8pt plus 2pt, indent=0pt]{parskip}
+
+%% ─────────────────────────────────────────
+%%  TOC DEPTH
+%% ─────────────────────────────────────────
+\setcounter{tocdepth}{3}
+\setcounter{secnumdepth}{3}
+
+%% ─────────────────────────────────────────
+%%  BIBLIOGRAPHY — biblatex ISO-690
+%%  The BST bibliography is referenced, never modified; thesis-only
+%%  citations live in a second resource.
+%% ─────────────────────────────────────────
+\usepackage[
+    style       = iso-authoryear,
+    backend     = biber,
+    sorting     = nyt,
+    maxbibnames = 3,
+    minbibnames = 1,
+    giveninits  = true,
+    urldate     = iso,
+]{biblatex}
+\addbibresource{../BST_DISCO_JH_2026/Utilities/Bibliography.bib}
+\addbibresource{Utilities/Bibliography_thesis.bib}
+\usepackage[nottoc,numbib]{tocbibind}
+
+%% ─────────────────────────────────────────
+%%  GLOSSARY — shared with the BST
+%% ─────────────────────────────────────────
+\usepackage[acronym, section=subsection]{glossaries}
+\makenoidxglossaries{}
+\input{../BST_DISCO_JH_2026/Sections/Appendices/Glossary.tex}
+
+%% ─────────────────────────────────────────
+%%  MATHEMATICS
+%% ─────────────────────────────────────────
+\usepackage{amsmath, amssymb, mathtools}
+
+%% ─────────────────────────────────────────
+%%  MEDIA / GRAPHICS
+%%  Figures come from the BST image tree and from this document's own tree.
+%% ─────────────────────────────────────────
+\usepackage{rotating}
+\usepackage{graphicx}
+\graphicspath{{./}{../BST_DISCO_JH_2026/}}
+\usepackage{caption}
+\usepackage[hidelinks]{hyperref}
+
+%% ─────────────────────────────────────────
+%%  TABLES
+%%  Rules and captions carry the navy body colour, so a table does not
+%%  read as a black island in a navy document.
+%% ─────────────────────────────────────────
+\usepackage{tabularx, array, booktabs, multirow, longtable, float}
+\usepackage{colortbl}  % provides \arrayrulecolor
+\renewcommand{\tabularxcolumn}[1]{m{#1}}
+\arrayrulecolor{altenNavy}
+
+%% Captions: navy label, navy text, matching the running colour
+\captionsetup{labelfont={bf,color=altenNavy}, textfont={color=altenNavy},
+              font=small}
+
+%% ─────────────────────────────────────────
+%%  LISTS
+%% ─────────────────────────────────────────
+\usepackage{enumitem}
+\setitemize{parsep=0pt, partopsep=0pt}
+\setenumerate{parsep=0pt, partopsep=0pt}
+
+%% ─────────────────────────────────────────
+%%  HYPERLINKS
+%% ─────────────────────────────────────────
+\hypersetup{
+    colorlinks  = true,
+    linkcolor   = altenAzure,
+    filecolor   = altenAzure,
+    urlcolor    = altenAzure,
+    citecolor   = altenAzure,
+    pdftitle    = {Measuring and Closing the Gap Between Declared and Real Urgency in a Supply Chain Digital Twin},
+    pdfauthor   = {John Hoarau},
+}
+
+%% ─────────────────────────────────────────
+%%  TOC SPACING
+%% ─────────────────────────────────────────
+\makeatletter
+\pretocmd{\section}{\addtocontents{toc}{\protect\addvspace{5\p@}}}{}{}
+\pretocmd{\subsection}{\addtocontents{toc}{\protect\addvspace{5\p@}}}{}{}
+\pretocmd{\subsubsection}{\addtocontents{toc}{\protect\addvspace{5\p@}}}{}{}
+\makeatother
+
+%% ─────────────────────────────────────────
+%%  COLOURED BOXES
+%% ─────────────────────────────────────────
+\usepackage[strict]{changepage}
+\usepackage{framed}
+
+\colorlet{definitionshade}{altenBlueBg2}
+\newenvironment{definitionBox}{%
+  \def\FrameCommand{%
+    \hspace{1pt}%
+    {\color{altenNavy}\vrule width 2pt}%
+    {\color{definitionshade}\vrule width 4pt}%
+    \colorbox{definitionshade}%
+  }%
+  \MakeFramed{\advance\hsize-\width\FrameRestore}%
+  \noindent\hspace{-4.55pt}%
+  \begin{adjustwidth}{}{7pt}%
+  \vspace{2pt}\vspace{2pt}%
+}{\vspace{2pt}\end{adjustwidth}\endMakeFramed}
+
+\colorlet{exampleShade}{altenBlueBg}
+\newenvironment{exampleBox}{%
+  \def\FrameCommand{%
+    \hspace{1pt}%
+    {\color{altenAzure}\vrule width 2pt}%
+    {\color{exampleShade}\vrule width 4pt}%
+    \colorbox{exampleShade}%
+  }%
+  \MakeFramed{\advance\hsize-\width\FrameRestore}%
+  \noindent\hspace{-4.55pt}%
+  \begin{adjustwidth}{}{7pt}%
+  \vspace{2pt}\vspace{2pt}%
+}{\vspace{2pt}\end{adjustwidth}\endMakeFramed}
+
+%% Brand charter excludes red: attention accents use ochre yellow instead
+\colorlet{attentionShade}{altenOchrePale!45!white}
+\newenvironment{attentionBox}{%
+  \def\FrameCommand{%
+    \hspace{1pt}%
+    {\color{altenOchreDark}\vrule width 2pt}%
+    {\color{attentionShade}\vrule width 4pt}%
+    \colorbox{attentionShade}%
+  }%
+  \MakeFramed{\advance\hsize-\width\FrameRestore}%
+  \noindent\hspace{-4.55pt}%
+  \begin{adjustwidth}{}{7pt}%
+  \vspace{2pt}\vspace{2pt}%
+}{\vspace{2pt}\end{adjustwidth}\endMakeFramed}
+
+%% ─────────────────────────────────────────
+%%  FIGURE PLACEHOLDERS — boxes describing figures
+%%  to be hand-drawn, then swapped for \includegraphics
+%% ─────────────────────────────────────────
+\newcommand{\figuretodraw}[3]{%
+  \begin{figure}[H]
+    \centering
+    \fcolorbox{red}{red!4}{%
+      \parbox{0.9\linewidth}{%
+        \centering\color{red}%
+        \textbf{[FIGURE TO DRAW]}\\[5pt]
+        \small #1\par
+      }%
+    }
+    \caption{#2}
+    \label{#3}
+  \end{figure}
+}
+
+%% ─────────────────────────────────────────
+%%  COMMENTS
+%% ─────────────────────────────────────────
+\usepackage{comment}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% BEGIN OF DOCUMENT
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+
+%% ALTEN charter: running text is navy blue, never black
+\color{altenNavy}
+
+\input{Utilities/Cover}
+
+\clearpage
+\pagenumbering{roman}
+\input{Utilities/Declaration}
+
+\clearpage
+\section*{Abstract}
+\label{sec:abstract}
+\addcontentsline{toc}{section}{Abstract}
+\input{Sections/0.Abstract}
+
+\clearpage
+\section*{R\'esum\'e}
+\label{sec:resume}
+\addcontentsline{toc}{section}{R\'esum\'e}
+\input{Sections/0bis.Resume}
+
+\clearpage
+\section*{Acknowledgements}
+\label{sec:acknowledgements}
+\addcontentsline{toc}{section}{Acknowledgements}
+\input{Utilities/Acknowledgements}
+
+\clearpage
+\tableofcontents
+
+%% tocbibind already lists these; no manual \addcontentsline, or they appear twice
+\clearpage
+\listoffigures
+
+\clearpage
+\listoftables
+
+\clearpage
+\pagenumbering{arabic}
+\section{Introduction}
+\label{sec:Introduction}
+\input{Sections/1.Introduction}
+
+\clearpage
+\section{Literature Review}
+\label{sec:Literature}
+\input{Sections/2.LiteratureReview}
+
+\clearpage
+\section{Methods}
+\label{sec:Methods}
+\input{Sections/3.Methods}
+
+\clearpage
+\section{Results and Discussion}
+\label{sec:Results}
+\input{Sections/4.ResultsDiscussion}
+
+\clearpage
+\section{Conclusion}
+\label{sec:Conclusion}
+\input{Sections/5.Conclusion}
+
+\clearpage
+\printbibliography[heading=bibintoc, title={References}]
+
+%% Only acronyms actually used in this thesis are listed (no \glsaddall)
+\clearpage
+\printnoidxglossaries{}
+
+\clearpage
+\appendix
+\input{Sections/Appendices/A.Ethics}
+\input{Sections/Appendices/B.SourceReviewGrid}
+\input{Sections/Appendices/C.Protocol}
+\input{Sections/Appendices/D.CalibrationTables}
+\input{Sections/Appendices/E.VolumeProtocol}
+
+\end{document}

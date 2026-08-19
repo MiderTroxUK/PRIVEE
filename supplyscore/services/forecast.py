@@ -56,6 +56,7 @@ from supplyscore.domain.events import (
     N0_PSEUDO_OBSERVATIONS,
     WEEK_HOURS,
 )
+from supplyscore.domain.milestones import next_active_milestone
 from supplyscore.domain.models import TaskStatus
 from supplyscore.mc.lead_time import LoiLeadTime, SimulateurLeadTime, resoudre_loi, tirer_lead_times
 
@@ -376,6 +377,10 @@ class _Contexte:
     beta_post: _FloatArray
     lois: list[LoiLeadTime]
     d0: _FloatArray
+    #: Part de travail RESTANTE du jalon actif de chaque nœud, dans [0, 1]
+    #: (1.0 sans jalon actif). Le lead time tiré vaut un cycle COMPLET : c'est
+    #: cette part qu'il reste réellement à parcourir. Cf. ``_simuler_branche``.
+    reste: _FloatArray
     diagnostics: dict[str, DiagnosticAjustement]
 
 
@@ -820,6 +825,7 @@ class ForecastService:
         beta_post: list[float] = []
         lois: list[LoiLeadTime] = []
         d0: list[float] = []
+        reste: list[float] = []
         deadlines: dict[str, float] = {}
         diagnostics: dict[str, DiagnosticAjustement] = {}
         for nid in sim_ids:
@@ -834,9 +840,12 @@ class ForecastService:
             loi = resoudre_loi(node)
             # Réutilise le calcul canonique des échéances du simulateur E13
             # (prochain jalon ACTIF en heures-projet, sinon kpis.time.deadline_h).
-            echeance = SimulateurLeadTime._deadline_h(
-                node, service.registry.list_milestones(nid), t0
-            )
+            jalons = service.registry.list_milestones(nid)
+            echeance = SimulateurLeadTime._deadline_h(node, jalons, t0)
+            m_star = next_active_milestone(jalons)
+            # Part du cycle qu'il reste à parcourir : le lead time tiré est un
+            # cycle COMPLET, or un jalon déjà avancé n'a plus à le refaire.
+            reste.append(1.0 if m_star is None else min(max(1.0 - m_star.progress, 0.0), 1.0))
             x0.append(float(valeurs[-1]))
             mu.append(moyenne)
             phi_hat.append(phi)
@@ -912,6 +921,7 @@ class ForecastService:
             beta_post=np.asarray(beta_post, dtype=np.float64),
             lois=lois,
             d0=np.asarray(d0, dtype=np.float64),
+            reste=np.asarray(reste, dtype=np.float64),
             diagnostics=diagnostics,
         )
 
@@ -1082,7 +1092,13 @@ class ForecastService:
         )
         evenement_cum = np.zeros((s, n), dtype=bool)
         jalon_cum = np.zeros((s, n), dtype=bool)
-        completion = ctx.t_h + tirages.lead_times
+        # Achèvement = maintenant + le TRAVAIL RESTANT, pas un cycle complet.
+        # ``lead_times`` tire la durée d'un cycle entier ; un jalon avancé à
+        # 90 % n'a plus que 10 % de ce cycle devant lui. Sans ce facteur, tout
+        # nœud dont le lead time nominal dépasse la marge est déclaré perdu
+        # d'avance quel que soit son avancement (mesuré sur HÉLIOS : 99,6 % de
+        # P(jalon raté) sur un jalon livré à l'heure).
+        completion = ctx.t_h + tirages.lead_times * ctx.reste
         actifs_prec = np.zeros(s, dtype=bool)
         issue = np.zeros((s, n, h), dtype=bool)
         jalon = np.zeros((s, n, h), dtype=bool)

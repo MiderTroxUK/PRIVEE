@@ -1,0 +1,55 @@
+<svg width="1280" height="720" viewBox="0 0 1280 720" xmlns="http://www.w3.org/2000/svg">
+  <rect id="bg" x="0" y="0" width="1280" height="720" fill="#FFFFFF"/>
+
+  <g id="p17-header">
+    <text x="56" y="60" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" letter-spacing="2" fill="#6B7A85">PARTIE III · DÉMONSTRATION 1/8</text>
+    <text x="54" y="104" font-family="Segoe UI, Arial, sans-serif" font-size="42" font-weight="800" fill="#1E4258">Quatre volets, une transaction atomique</text>
+    <rect x="56" y="118" width="64" height="4" fill="#2C5F7C"/>
+  </g>
+
+  <g id="p17-figure">
+    <text x="76" y="160" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#9AA5AC">Écran /hebdo · nœud en mode crise</text>
+    <image href="../images/14-hebdo-noeud-crise-pleine-page.png" x="76" y="170" width="227" height="480" preserveAspectRatio="xMidYMid meet"/>
+    <rect x="76" y="170" width="227" height="480" fill="none" stroke="#D8DEE3" stroke-width="1"/>
+  </g>
+
+  <g id="p17-content">
+    <text x="340" y="196" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#22313A">
+      <tspan x="340" dy="0">Chaque nœud revit sa semaine en 4 étapes signées</tspan>
+      <tspan x="340" dy="26">par l'opérateur, <tspan font-weight="700" fill="#2C5F7C">tout ou rien</tspan>, jamais de revue</tspan>
+      <tspan x="340" dy="26">partielle ou anonyme.</tspan>
+    </text>
+
+    <rect x="340" y="320" width="430" height="80" fill="#F4F6F8" stroke="#D8DEE3"/>
+    <text x="356" y="346" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700" fill="#1E4258">1 · AHP</text>
+    <text x="356" y="370" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#6B7A85">Pré-rempli · «&#160;Confirmer à l'identique&#160;»</text>
+    <text x="356" y="388" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#6B7A85">en un clic si rien n'a changé</text>
+
+    <rect x="794" y="320" width="430" height="80" fill="#F4F6F8" stroke="#D8DEE3"/>
+    <text x="810" y="346" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700" fill="#1E4258">2 · KPIs</text>
+    <text x="810" y="370" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#6B7A85">Table de diff S-1 vs nouveau,</text>
+    <text x="810" y="388" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#6B7A85">changements mis en évidence</text>
+
+    <rect x="340" y="412" width="430" height="80" fill="#F4F6F8" stroke="#D8DEE3"/>
+    <text x="356" y="438" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700" fill="#1E4258">3 · Jalons</text>
+    <text x="356" y="462" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#6B7A85">p_th = (t−début)/(échéance−début)</text>
+    <text x="356" y="480" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#6B7A85">comparé au déclaré</text>
+
+    <rect x="794" y="412" width="430" height="80" fill="#F4F6F8" stroke="#D8DEE3"/>
+    <text x="810" y="438" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700" fill="#1E4258">4 · Événements &amp; décision</text>
+    <text x="810" y="462" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#6B7A85">Déclaration + décision signée,</text>
+    <text x="810" y="480" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#6B7A85">commit atomique en base</text>
+
+    <text x="340" y="540" font-family="Segoe UI, Arial, sans-serif" font-size="17" fill="#22313A">
+      <tspan x="340" dy="0">Chaque écriture est signée par l'identifiant opérateur</tspan>
+      <tspan x="340" dy="26">et groupée dans une seule transaction SQLite.</tspan>
+    </text>
+  </g>
+
+  <g id="p17-footer">
+    <line x1="56" y1="676" x2="1224" y2="676" stroke="#D8DEE3" stroke-width="1"/>
+    <text x="56" y="700" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#9AA5AC">SupplyScore · Soutenance de thèse</text>
+    <text x="640" y="700" text-anchor="middle" font-family="Consolas, 'Courier New', monospace" font-size="15" fill="#9AA5AC">supplyscore/services/weekly.py</text>
+    <text x="1224" y="700" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#9AA5AC" text-anchor="end">17 / 28</text>
+  </g>
+</svg>

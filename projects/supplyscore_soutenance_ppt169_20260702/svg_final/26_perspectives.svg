@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <rect id="bg" x="0" y="0" width="1280" height="720" fill="#FFFFFF" />
+
+  <g id="p26-header">
+    <text x="56" y="60" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" letter-spacing="2" fill="#6B7A85">PARTIE IV · SYNTHÈSE</text>
+    <text x="54" y="104" font-family="Segoe UI, Arial, sans-serif" font-size="42" font-weight="800" fill="#1E4258">De la surveillance passive à la recommandation active</text>
+    <rect x="56" y="118" width="64" height="4" fill="#2C5F7C" />
+  </g>
+
+  <line x1="640" y1="160" x2="640" y2="590" stroke="#D8DEE3" stroke-width="1" />
+
+  <g id="p26-detection">
+    <text x="76" y="176" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="700" fill="#1E4258">Détection de patterns cognitifs</text>
+
+    <rect x="76" y="204" width="540" height="112" fill="#F4F6F8" stroke="#D8DEE3" />
+    
+  <g transform="translate(96, 220)" fill="none" stroke="#B06000" stroke-width="2">
+    <path d="M12 9v4" />
+    <path d="M10.363 3.591l-8.106 13.534a1.914 1.914 0 0 0 1.636 2.871h16.214a1.914 1.914 0 0 0 1.636 -2.87l-8.106 -13.536a1.914 1.914 0 0 0 -3.274 0" />
+    <path d="M12 16h.01" />
+  </g>
+    <text x="130" y="238" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700" fill="#1E4258">Coordinateur paniqué</text>
+    <text x="96" y="266" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#22313A">Δ_panic = Ud − Ur ≥ 0.50</text>
+    <text x="96" y="290" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#6B7A85">sans retard opérationnel réel</text>
+
+    <rect x="76" y="328" width="540" height="112" fill="#F4F6F8" stroke="#D8DEE3" />
+    
+  <g transform="translate(96, 344)" fill="none" stroke="#B3261E" stroke-width="2">
+    <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+    <path d="M21 12c-2.4 4 -5.4 6 -9 6c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6" />
+  </g>
+    <text x="130" y="362" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700" fill="#1E4258">Goulot silencieux</text>
+    <text x="96" y="390" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#22313A">Δ_silent = Ur − Ud ≥ 0.50</text>
+    <text x="96" y="414" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#6B7A85">avec glissement de jalon actif</text>
+
+    <text font-size="15" fill="#6B7A85" font-family="Segoe UI, Arial, sans-serif" x="76" y="474">Réseaux temporels (TGN) + LSTM sur l'historique</text><text font-size="15" fill="#6B7A85" font-family="Segoe UI, Arial, sans-serif" x="76" y="494">Effet Bullwhip : pics de Ud client amplifiés en amont</text></g>
+
+  <g id="p26-agent">
+    <text x="660" y="176" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="700" fill="#1E4258">Agent de décision (MDP)</text>
+
+    <text x="660" y="212" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#22313A"><tspan font-weight="700" fill="#2C5F7C">État S</tspan> : Ud, Ur, A, marges de jalons</text>
+    <text x="660" y="244" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#22313A"><tspan font-weight="700" fill="#2C5F7C">Action A</tspan> : activer backup, expédier, ajuster jalon</text>
+    <text x="660" y="276" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#22313A"><tspan font-weight="700" fill="#2C5F7C">Transition P(s'|s,a)</tspan> : simulation Monte Carlo sous décision</text>
+
+    <text x="660" y="316" font-family="Segoe UI, Arial, sans-serif" font-size="17" fill="#6B7A85">Récompense : maximiser l'adéquation, minimiser le coût</text>
+    <image href="data:image/png;base64,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" x="660" y="324.19" width="360" height="69.61" />
+
+    <text font-size="15" fill="#6B7A85" font-family="Segoe UI, Arial, sans-serif" x="660" y="450">Exécution agentique : raisonneur LLM (ReAct)</text><text font-size="15" fill="#6B7A85" font-family="Segoe UI, Arial, sans-serif" x="660" y="470">appelant SupplyScoreService pour simuler chaque option</text></g>
+
+  <g id="p26-shift">
+    <text x="640" y="616" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="700" fill="#2C5F7C">
+      Suivi passif → Classification active → Guidage autonome
+    </text>
+  </g>
+
+  <g id="p26-citation">
+    <text x="640" y="646" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#9AA5AC">Réf. : Sterman (1989), Management Science · sous-réaction aux signaux amont (effet bullwhip)</text>
+  </g>
+
+  <g id="p26-footer">
+    <line x1="56" y1="676" x2="1224" y2="676" stroke="#D8DEE3" stroke-width="1" />
+    <text x="56" y="700" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#9AA5AC">SupplyScore · Soutenance de thèse</text>
+    <text x="1224" y="700" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#9AA5AC" text-anchor="end">26 / 28</text>
+  </g>
+</svg>

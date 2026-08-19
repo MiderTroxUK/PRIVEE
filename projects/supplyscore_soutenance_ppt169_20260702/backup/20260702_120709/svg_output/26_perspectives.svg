@@ -1,0 +1,64 @@
+<svg width="1280" height="720" viewBox="0 0 1280 720" xmlns="http://www.w3.org/2000/svg">
+  <rect id="bg" x="0" y="0" width="1280" height="720" fill="#FFFFFF"/>
+
+  <g id="p26-header">
+    <text x="56" y="60" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" letter-spacing="2" fill="#6B7A85">PARTIE IV · SYNTHÈSE</text>
+    <text x="54" y="104" font-family="Segoe UI, Arial, sans-serif" font-size="42" font-weight="800" fill="#1E4258">De la surveillance passive à la recommandation active</text>
+    <rect x="56" y="118" width="64" height="4" fill="#2C5F7C"/>
+  </g>
+
+  <line x1="640" y1="160" x2="640" y2="590" stroke="#D8DEE3" stroke-width="1"/>
+
+  <g id="p26-detection">
+    <text x="76" y="176" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="700" fill="#1E4258">Détection de patterns cognitifs</text>
+
+    <rect x="76" y="204" width="540" height="112" fill="#F4F6F8" stroke="#D8DEE3"/>
+    <use data-icon="tabler-outline/alert-triangle" x="96" y="220" width="24" height="24" fill="#B06000" stroke-width="2"/>
+    <text x="130" y="238" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700" fill="#1E4258">Coordinateur paniqué</text>
+    <text x="96" y="266" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#22313A">Δ_panic = Ud − Ur ≥ 0.50</text>
+    <text x="96" y="290" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#6B7A85">sans retard opérationnel réel</text>
+
+    <rect x="76" y="328" width="540" height="112" fill="#F4F6F8" stroke="#D8DEE3"/>
+    <use data-icon="tabler-outline/eye" x="96" y="344" width="24" height="24" fill="#B3261E" stroke-width="2"/>
+    <text x="130" y="362" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700" fill="#1E4258">Goulot silencieux</text>
+    <text x="96" y="390" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#22313A">Δ_silent = Ur − Ud ≥ 0.50</text>
+    <text x="96" y="414" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#6B7A85">avec glissement de jalon actif</text>
+
+    <text x="76" y="474" font-family="Segoe UI, Arial, sans-serif" font-size="15" fill="#6B7A85">
+      <tspan x="76" dy="0">Réseaux temporels (TGN) + LSTM sur l'historique</tspan>
+      <tspan x="76" dy="20">Effet Bullwhip : pics de Ud client amplifiés en amont</tspan>
+    </text>
+  </g>
+
+  <g id="p26-agent">
+    <text x="660" y="176" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="700" fill="#1E4258">Agent de décision (MDP)</text>
+
+    <text x="660" y="212" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#22313A"><tspan font-weight="700" fill="#2C5F7C">État S</tspan> : Ud, Ur, A, marges de jalons</text>
+    <text x="660" y="244" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#22313A"><tspan font-weight="700" fill="#2C5F7C">Action A</tspan> : activer backup, expédier, ajuster jalon</text>
+    <text x="660" y="276" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#22313A"><tspan font-weight="700" fill="#2C5F7C">Transition P(s'|s,a)</tspan> : simulation Monte Carlo sous décision</text>
+
+    <text x="660" y="316" font-family="Segoe UI, Arial, sans-serif" font-size="17" fill="#6B7A85">Récompense : maximiser l'adéquation, minimiser le coût</text>
+    <image href="../images/f14_mdp_reward.png" x="660" y="324" width="360" height="70" preserveAspectRatio="xMidYMid meet"/>
+
+    <text x="660" y="450" font-family="Segoe UI, Arial, sans-serif" font-size="15" fill="#6B7A85">
+      <tspan x="660" dy="0">Exécution agentique : raisonneur LLM (ReAct)</tspan>
+      <tspan x="660" dy="20">appelant SupplyScoreService pour simuler chaque option</tspan>
+    </text>
+  </g>
+
+  <g id="p26-shift">
+    <text x="640" y="616" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="700" fill="#2C5F7C">
+      Suivi passif → Classification active → Guidage autonome
+    </text>
+  </g>
+
+  <g id="p26-citation">
+    <text x="640" y="646" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#9AA5AC">Réf. : Sterman (1989), Management Science · sous-réaction aux signaux amont (effet bullwhip)</text>
+  </g>
+
+  <g id="p26-footer">
+    <line x1="56" y1="676" x2="1224" y2="676" stroke="#D8DEE3" stroke-width="1"/>
+    <text x="56" y="700" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#9AA5AC">SupplyScore · Soutenance de thèse</text>
+    <text x="1224" y="700" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#9AA5AC" text-anchor="end">26 / 28</text>
+  </g>
+</svg>

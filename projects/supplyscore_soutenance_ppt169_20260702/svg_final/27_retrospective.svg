@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <rect id="bg" x="0" y="0" width="1280" height="720" fill="#FFFFFF" />
+
+  <g id="p27-header">
+    <text x="56" y="60" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" letter-spacing="2" fill="#6B7A85">PARTIE IV · SYNTHÈSE</text>
+    <text x="54" y="104" font-family="Segoe UI, Arial, sans-serif" font-size="42" font-weight="800" fill="#1E4258">Le temps comme variable de première classe</text>
+    <rect x="56" y="118" width="64" height="4" fill="#2C5F7C" />
+  </g>
+
+  <g id="p27-clocks">
+    
+  <g transform="translate(229, 180) scale(2.91667)" fill="none" stroke="#2C5F7C" stroke-width="2">
+    <path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" />
+    <path d="M12 7v5l3 3" />
+  </g>
+    <text x="264" y="298" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="26" font-weight="700" fill="#1E4258">SystemClock</text>
+    <text font-size="16" fill="#6B7A85" font-family="Segoe UI, Arial, sans-serif" text-anchor="middle" x="264" y="326">Production réelle,</text><text font-size="16" fill="#6B7A85" font-family="Segoe UI, Arial, sans-serif" text-anchor="middle" x="264" y="348">horloge système</text><g transform="translate(605, 180) scale(2.91667)" fill="none" stroke="#2C5F7C" stroke-width="2">
+    <path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" />
+    <path d="M12 7v5l3 3" />
+  </g>
+    <text x="640" y="298" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="26" font-weight="700" fill="#1E4258">FixedClock</text>
+    <text font-size="16" fill="#6B7A85" font-family="Segoe UI, Arial, sans-serif" text-anchor="middle" x="640" y="326">Tests déterministes,</text><text font-size="16" fill="#6B7A85" font-family="Segoe UI, Arial, sans-serif" text-anchor="middle" x="640" y="348">temps figé</text><g transform="translate(981, 180) scale(2.91667)" fill="none" stroke="#2C5F7C" stroke-width="2">
+    <path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" />
+    <path d="M12 7v5l3 3" />
+  </g>
+    <text x="1016" y="298" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="26" font-weight="700" fill="#1E4258">GameClock</text>
+    <text font-size="16" fill="#6B7A85" font-family="Segoe UI, Arial, sans-serif" text-anchor="middle" x="1016" y="326">Serious game,</text><text font-size="16" fill="#6B7A85" font-family="Segoe UI, Arial, sans-serif" text-anchor="middle" x="1016" y="348">avance semaine par semaine</text></g>
+
+  <g id="p27-notes">
+    <text font-size="18" fill="#22313A" font-family="Segoe UI, Arial, sans-serif" x="140" y="420"><tspan><tspan font-weight="700" fill="#2C5F7C">weekly.py</tspan> calcule la couverture AHP et signale chaque</tspan>
+      </text><text font-size="18" fill="#22313A" font-family="Segoe UI, Arial, sans-serif" x="140" y="446">nœud : à jour, en retard, ou manquant.</text><text font-size="18" fill="#22313A" font-family="Segoe UI, Arial, sans-serif" x="140" y="476"><tspan><tspan font-weight="700" fill="#2C5F7C">simulate_shock</tspan> recalcule ΔUr dans tout le réseau sans</tspan>
+      </text><text font-size="18" fill="#22313A" font-family="Segoe UI, Arial, sans-serif" x="140" y="502">jamais écrire en base : tester la résilience avant la crise.</text></g>
+
+  <g id="p27-insight">
+    <rect x="140" y="560" width="5" height="56" fill="#B06000" />
+    <text x="164" y="588" font-family="Segoe UI, Arial, sans-serif" font-size="22" font-weight="700" fill="#1E4258">
+      Trois horloges, un seul moteur de propagation.
+    </text>
+  </g>
+
+  <g id="p27-footer">
+    <text x="56" y="700" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#9AA5AC">SupplyScore · Soutenance de thèse</text>
+    <text x="640" y="700" text-anchor="middle" font-family="Consolas, 'Courier New', monospace" font-size="15" fill="#9AA5AC">supplyscore/core/clock.py</text>
+    <text x="1224" y="700" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#9AA5AC" text-anchor="end">27 / 28</text>
+  </g>
+</svg>

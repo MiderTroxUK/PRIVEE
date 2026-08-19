@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 790" width="1200" height="790" font-family="Calibri, Carlito, Arial, Helvetica, sans-serif">
+<rect width="1200" height="790" fill="#fff"/>
+<defs><marker id="al" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L12 6 L0 12 z" fill="#008BD2"/></marker><marker id="ol" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L12 6 L0 12 z" fill="#FFDA65"/></marker></defs>
+<text x="20" y="42" font-size="35" font-weight="700" fill="#043962">DECLARED  U<tspan font-size="23" dy="9">d</tspan></text>
+<text x="20" y="82" font-size="28" fill="#8C8C9A">four criteria, once a week</text>
+<rect x="946" y="10" width="234" height="96" rx="9" fill="#fff" stroke="#008BD2" stroke-width="4"/>
+<rect x="966" y="28" width="15" height="15" rx="3" fill="#008BD2"/>
+<rect x="990" y="32" width="166" height="7" rx="3.5" fill="#CDCEDA"/>
+<rect x="966" y="48" width="15" height="15" rx="3" fill="#008BD2"/>
+<rect x="990" y="52" width="144" height="7" rx="3.5" fill="#CDCEDA"/>
+<rect x="966" y="68" width="15" height="15" rx="3" fill="#008BD2"/>
+<rect x="990" y="72" width="122" height="7" rx="3.5" fill="#CDCEDA"/>
+<rect x="966" y="88" width="15" height="15" rx="3" fill="#008BD2"/>
+<rect x="990" y="92" width="100" height="7" rx="3.5" fill="#CDCEDA"/>
+<path d="M1150 138 C 720 184, 430 184, 34 144" fill="none" stroke="#008BD2" stroke-width="11" marker-end="url(#al)" stroke-linecap="round"/>
+<text x="600" y="218" font-size="30" fill="#043962" text-anchor="middle">descends the chain, attenuated by γ</text>
+<rect x="36" y="252" width="194" height="66" rx="12" fill="#B2E0F5"/>
+<text x="133.0" y="295" font-size="28" fill="#043962" font-weight="700" text-anchor="middle">wafers</text>
+<line x1="230" y1="285.0" x2="266" y2="285.0" stroke="#CDCEDA" stroke-width="3"/>
+<rect x="266" y="252" width="194" height="66" rx="12" fill="#7DCAED"/>
+<text x="363.0" y="295" font-size="28" fill="#043962" font-weight="700" text-anchor="middle">foundry</text>
+<line x1="460" y1="285.0" x2="496" y2="285.0" stroke="#CDCEDA" stroke-width="3"/>
+<rect x="496" y="252" width="194" height="66" rx="12" fill="#008BD2"/>
+<text x="593.0" y="295" font-size="28" fill="#fff" font-weight="700" text-anchor="middle">board EMS</text>
+<line x1="690" y1="285.0" x2="726" y2="285.0" stroke="#CDCEDA" stroke-width="3"/>
+<rect x="726" y="252" width="194" height="66" rx="12" fill="#176F98"/>
+<text x="823.0" y="295" font-size="28" fill="#fff" font-weight="700" text-anchor="middle">freight</text>
+<line x1="920" y1="285.0" x2="956" y2="285.0" stroke="#CDCEDA" stroke-width="3"/>
+<rect x="956" y="252" width="194" height="66" rx="12" fill="#043962"/>
+<text x="1053.0" y="295" font-size="28" fill="#fff" font-weight="700" text-anchor="middle">satellite</text>
+<text x="133" y="350" font-size="24" fill="#8C8C9A" text-anchor="middle">deep supplier</text>
+<text x="1053" y="350" font-size="24" fill="#8C8C9A" text-anchor="middle">final customer</text>
+<path d="M34 400 C 430 446, 720 446, 1150 406" fill="none" stroke="#FFDA65" stroke-width="11" marker-end="url(#ol)" stroke-linecap="round"/>
+<text x="600" y="482" font-size="30" fill="#043962" text-anchor="middle">climbs the chain, scaled by β</text>
+<text x="20" y="542" font-size="35" font-weight="700" fill="#043962">MEASURED  U<tspan font-size="23" dy="9">r</tspan></text>
+<text x="20" y="582" font-size="28" fill="#8C8C9A">six families of indicators</text>
+<rect x="946" y="518" width="30" height="30" rx="6" fill="#043962"/>
+<rect x="986" y="518" width="30" height="30" rx="6" fill="#FFDA65"/>
+<rect x="1026" y="518" width="30" height="30" rx="6" fill="#043962"/>
+<rect x="1066" y="518" width="30" height="30" rx="6" fill="#043962"/>
+<rect x="1106" y="518" width="30" height="30" rx="6" fill="#043962"/>
+<rect x="1146" y="518" width="30" height="30" rx="6" fill="#043962"/>
+<line x1="20" y1="610" x2="1180" y2="610" stroke="#CDCEDA" stroke-width="2"/>
+<text x="20" y="660" font-size="28" fill="#043962">declared</text>
+<rect x="235" y="632" width="315" height="32" rx="6" fill="#008BD2"/>
+<text x="20" y="732" font-size="28" fill="#043962">measured</text>
+<rect x="235" y="704" width="605" height="32" rx="6" fill="#FFDA65"/>
+<path d="M550 672 L550 694 L840 694 L840 672" fill="none" stroke="#043962" stroke-width="4"/>
+<text x="600" y="784" font-size="33" font-weight="700" fill="#043962" text-anchor="middle">this distance is the score</text>
+</svg>

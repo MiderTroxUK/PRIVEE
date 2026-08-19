@@ -1,0 +1,28 @@
+In mutualised logistics networks the urgency an operator declares often diverges from the
+urgency computable from the operational state. Over-declaration wastes shared capacity;
+under-declaration hides rupture risk. No existing digital twin measures that divergence or
+propagates it across a supplier network.
+
+This thesis builds and tests one. Real urgency is aggregated at each node from six KPI blocks
+through a weighted probabilistic OR and propagated upstream across a directed acyclic supply
+graph; declared urgency is elicited through a consistency-gated pairwise questionnaire and
+propagated downstream; their mismatch is scored on $[0,100]$ with an asymmetric
+Prospect-Theory penalty. The system was evaluated through a pre-registered campaign replaying
+the 2020 to 2022 semiconductor shortage over nineteen turns and eight nodes, with a blind
+control arm and a forecast-assisted treatment arm on a frozen scenario.
+
+The results are negative and diagnostically precise. The forecast layer shows no
+discrimination above chance and is severely miscalibrated, at a Brier skill between $-3.4$
+and $-6.9$ against a base-rate forecaster. Forecasts below $0.1$ are well calibrated, while
+twenty-one announcing a mean probability of $0.948$ were followed by the predicted outcome
+exactly zero times. One block explains it: the time block reads a lead-time distribution that
+no shock ever reaches. In the treatment arm, on the turn the forecast first became visible,
+all eight declarants revised their urgency downward or held it and none revised upward, two
+turns before the scenario's critical event. Both arms carry identical forecasts, so the effect
+belongs to the display. Substituting a plausible but naive outcome definition improves the
+apparent skill fivefold while leaving discrimination unchanged.
+
+\vspace{0.5cm}
+
+\noindent\textbf{Keywords:} supply chain digital twin, urgency adequacy, cognitive bias,
+multi-criteria decision analysis, forecast calibration, automation bias, serious game.

@@ -1,0 +1,398 @@
+%% Consignes : « La presentation doit etre structuree autour de la demarche
+%% de projet presentee precedemment. [...] Chaque fois que necessaire,
+%% indiquer les productions. [...] Il est aussi pertinent d'indiquer les
+%% problemes rencontres et les solutions ou strategies mises en oeuvre. »
+
+This section follows the phases of Section~\ref{sec:planning}: the model, the system built
+from it, the experiment designed to test it, what the experiment measured, and the problems
+met along the way.
+
+\subsection{The Model}
+\label{sec:realisation_modele}
+
+\subsubsection{Real urgency}
+
+Real urgency is not read from a single deadline-proximity signal. It is aggregated at each
+node from six indicator blocks selected from the literature of
+Section~\ref{sec:etatdelart}: time, capacity, performance, risk, cost and carbon. Each
+produces a partial urgency $u_m \in [0,1]$, and the aggregation is a weighted probabilistic
+OR:
+
+\begin{equation}
+    U_{r,\text{local}} = 1 - \prod_{m} (1 - u_m)^{\omega_m}.
+    \label{eq:ur}
+\end{equation}
+
+The choice of that form over a weighted average is the central modelling decision. A weighted
+average is fully compensatory: a node with a completely failed capacity and healthy cost,
+carbon and performance readings would score as moderately urgent. Equation~\ref{eq:ur} is
+not: any block approaching its maximum drives the aggregate toward the maximum regardless of
+the others. For a signal whose purpose is to catch the node that is about to fail,
+non-compensatory behaviour is the required property.
+
+\begin{table}[htbp]
+\centering
+\caption{The six indicator blocks and what each measures}
+\label{tab:blocs}
+\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{2.0cm} >{\raggedright\arraybackslash}p{2.7cm} X}
+\toprule
+\textbf{Block} & \textbf{Role} & \textbf{What it measures} \\
+\midrule
+Time & Direct cause & Probability that the realistic lead time exceeds the margin to the
+next deadline. The only resource whose exhaustion cannot be reversed \\
+Capacity & Direct cause & Saturation of storage, weight and throughput, which adds waiting
+time a nominal lead time does not show \\
+Performance & Direct cause & Drift in the productive health of the resource making the part,
+through a composite availability, performance and quality proxy \\
+Risk & Direct cause & Expected unavailability: failure probability times recovery time times
+severity, revised weekly from declared events \\
+Cost & Arbitration & Financial strain. Paying premium freight to protect a deadline is a
+symptom, not a cause, and it bounds which responses stay affordable \\
+Carbon & Arbitration & Emissions above target. Restricts the admissible set of responses,
+typically in the sea-against-air trade-off \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Table~\ref{tab:blocs} gives the six and separates them by role. Four describe a mechanism
+that leads to rupture; two constrain which responses remain available once it threatens. Each
+candidate indicator was screened against four questions before being retained: does it have a
+plausible causal link to rupture, can it be measured or credibly estimated, can an operator
+act on it, and does it add information the retained blocks do not already carry.
+Figure~\ref{fig:blocs} draws the resulting structure.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.80\linewidth]{Images/4.Operations/causal_tree_blocks.png}
+    \caption{Causal structure behind the six-block selection}
+    \label{fig:blocs}
+\end{figure}
+
+Three properties of that equation were specified explicitly, because a bare formula does not
+state what its bounds mean. At $u_m = 0$ the block is nominal and its factor is $1$, leaving
+the product unchanged. At $u_m = 1$ the factor is $0$ and the aggregate saturates. A block
+whose data is unavailable is given weight $\omega_m = 0$, which is deliberately distinct from
+$u_m = 0$: the first says nothing is known, the second asserts the block is healthy.
+
+\paragraph{The assumption that the blocks are exchangeable.}
+The product is symmetric in its factors, so it treats the six blocks as interchangeable up to
+their weights. That does not hold cleanly. A value of $u_{\text{time}} = 0.3$ is a
+probability of missing a deadline; $u_{\text{cost}} = 0.3$ is an ordinal position on a
+normalising scale wearing a cardinal number. They are not equally informative about rupture.
+The consequence was carried rather than hidden: the aggregate is used for ranking and for
+comparison against the declared value, never as a calibrated probability in its own right.
+
+\subsubsection{Declared urgency and the adequacy score}
+
+Declared urgency is not collected as a free-text estimate. At each node the operator compares
+four criteria pairwise through AHP, which yields a consistency-checked weight per criterion,
+then rates each on a severity scale. The four criteria were chosen so that each has a
+computed counterpart: operational impact and downstream dependencies mirror the severity the
+propagation amplifies, the time window mirrors the time block, and recoverability mirrors the
+recovery term of the risk block. Without that correspondence the later comparison would be
+between unrelated quantities.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.76\linewidth]{Images/4.Operations/questionnaire_screenshot.png}
+    \caption{The pairwise comparison questionnaire and its consistency gate}
+    \label{fig:questionnaire}
+\end{figure}
+
+Figure~\ref{fig:questionnaire} shows the questionnaire as the operator meets it. A weight
+vector whose consistency ratio exceeds the accepted threshold is refused, and the operator is
+sent back to the most contradictory of their own comparisons before the assessment can enter
+the network. Without that gate an incoherent judgment would propagate as though it were a
+considered one.
+
+Both signals then propagate across the supplier network, and in opposite directions: declared
+urgency descends from the customer toward suppliers, real risk ascends from suppliers toward
+the customer. The asymmetry is deliberate. Demand pressure is something a customer transmits
+to its suppliers; physical risk is something suppliers transmit to their customer. A model
+that propagated both the same way would be describing neither.
+
+Figure~\ref{fig:propagation} shows the two signals travelling in opposite directions across
+the same graph.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.80\linewidth]{Images/4.Operations/urgency_propagation.png}
+    \caption{Bidirectional propagation across the supply network}
+    \label{fig:propagation}
+\end{figure}
+
+Their mismatch, once both are propagated, splits into two named pathologies: false urgency
+where the declaration exceeds the state, hidden risk where the state exceeds the declaration.
+It is scored on $[0,100]$ through an asymmetric penalty that prices hidden risk at roughly
+twice false urgency, following the clinical principle of Section~\ref{sec:pourquoi}.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.80\linewidth]{Images/2.Problem/urgency_gap.png}
+    \caption{Declared and real urgency, and the two mismatch pathologies}
+    \label{fig:gap}
+\end{figure}
+
+Figure~\ref{fig:gap} shows the two signals over the life of a task. The step line is the
+declaration, which moves only when a review is submitted; the smooth curve is the computed
+state, which moves continuously. Where the step line sits above the curve the enclosed area
+is false urgency; where the curve sits above the step line it is hidden risk.
+
+\subsection{The System}
+\label{sec:realisation_systeme}
+
+The model was delivered as SupplyScore, a standalone Python application of 73 modules across
+10 packages, covered by 1\,779 automated test functions in 106 test files, driving a
+multi-page web interface over a per-node database layer.
+
+Four architectural decisions carry the engineering weight. Every operation passes through a
+single orchestrating facade, so there is no second write path. Data is split into one
+registry database plus one database per node, which enforces that one supplier's history is
+not readable through another's. Every business write crosses a single mutation service that
+validates ranges, diffs against current state and records the change with its author, making
+the audit trail a property of the architecture rather than a convention. And each project
+carries its own clock, which is what allows a six-month scenario to be replayed in
+compressed time without touching the model.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.76\linewidth]{Images/4.Operations/hebdo.png}
+    \caption{The weekly review page}
+    \label{fig:hebdo}
+\end{figure}
+
+Figure~\ref{fig:hebdo} shows the operator's main entry point. Its four sections, the
+questionnaire, the week's indicator values, milestone progress and any events, commit as a
+single signed transaction so that no partial review can enter a node's history.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.74\linewidth]{Images/4.Operations/uml_architecture.png}
+    \caption{System architecture: single facade, audited writes, per-node persistence}
+    \label{fig:archi}
+\end{figure}
+
+Figure~\ref{fig:archi} shows how those pieces relate. The single entry point is what makes
+the audit guarantee enforceable rather than aspirational: there is no path into the data that
+bypasses it, including from the administration interface.
+
+Two capabilities proved more important than anticipated. The explainability page reconstructs
+any score term by term, decomposing the declared value into one contribution per criterion
+and the computed value into one per block, so that a coordinator asking why a node scored as
+it did receives an exact answer rather than a plausible one
+(Figure~\ref{fig:explain}). That is what made the diagnosis in
+Section~\ref{sec:realisation_resultats} possible from the application rather than by hand.
+The export produces frozen data for analysis outside the tool, which the whole experimental
+analysis relies on.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.78\linewidth]{Images/4.Operations/explainability_waterfall.png}
+    \caption{Per-node explainability: exact decomposition of both signals}
+    \label{fig:explain}
+\end{figure}
+
+\subsection{The Experiment}
+\label{sec:realisation_experience}
+
+Building a system that computes a number establishes nothing about whether the number means
+anything. The mission therefore included an experiment designed before the system was
+finished.
+
+The campaign replays the 2020 to 2022 semiconductor shortage over nineteen turns across an
+eight-node satellite supply chain, from a raw wafer supplier through a foundry, a
+distributor, a freight operator and an electronics manufacturer to the satellite prime. Real
+urgency is fed from public time series of the actual crisis; declared urgency comes from the
+participants through the weekly questionnaire. The two signals therefore have independent
+sources, which is the precondition for the gap between them to mean anything.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.94\linewidth]{Images/4.Operations/helios_network_coefficients.png}
+    \caption{The campaign network and its per-arc coefficients}
+    \label{fig:reseau}
+\end{figure}
+
+Figure~\ref{fig:reseau} gives the network, with the coefficient attenuating demand as it
+descends and the one amplifying risk as it ascends, and each node's tier. The foundry at the
+deepest tier is the expected bottleneck. The dashed arc into the secondary foundry is
+deliberately inert: it represents the announced alternative supplier that in the real crisis
+had no spare capacity, and modelling it as present but carrying nothing is the point.
+
+Four artefacts were frozen before any data existed: the scenario with its twelve calibrated
+events, the data pack with a hash recorded per file, the role cards, and a register of six
+hypotheses each carrying a numeric threshold. Freezing the thresholds in advance is what
+prevents a disappointing result from being rescued by moving the bar afterwards.
+
+The design compares two arms on the identical frozen scenario. In the control arm, eight
+isolated declarants each see only their own role card and turn briefing and declare blind. In
+the treatment arm, the same declarants are additionally shown the system's own predictive
+analysis of their node before declaring, and record whether it influenced them. Because the
+scenario is frozen, the forecasts are identical between arms, so any behavioural difference
+belongs to the act of displaying them.
+
+\subsection{Results}
+\label{sec:realisation_resultats}
+
+\subsubsection{The signal does not predict outcomes}
+
+Scored against the outcome definition the system itself applies, meaning a missed milestone,
+an abandoned node or a critical event within four weeks, the forecast layer fails on both
+axes that matter.
+
+Discrimination is indistinguishable from chance: the area under the ROC curve ranges from
+$0.37$ to $0.56$ across horizons and every confidence interval contains $0.5$. That statement
+carries a caveat, since the positive class holds between two and six observations, which is
+too few to conclude in either direction.
+
+Calibration fails much more clearly, and does not depend on that small sample. The Brier
+skill against a forecaster that simply announces the base rate is between $-3.4$ and $-6.9$,
+meaning the model is several times worse than the trivial baseline.
+Table~\ref{tab:fiabilite} localises the failure.
+
+\begin{table}[htbp]
+\centering
+\caption{Reliability of the four-week forecast}
+\label{tab:fiabilite}
+\small
+\begin{tabularx}{\linewidth}{l >{\centering\arraybackslash}X >{\centering\arraybackslash}X >{\centering\arraybackslash}X >{\raggedright\arraybackslash}p{3.6cm}}
+\toprule
+\textbf{Announced band} & \textbf{$n$} & \textbf{Mean announced} & \textbf{Observed} &
+\textbf{Reading} \\
+\midrule
+$[0.0,\ 0.1)$ & 74 & 0.070 & 0.081 & Well calibrated \\
+$[0.1,\ 0.2)$ & 24 & 0.128 & 0.000 & None materialised \\
+$[0.2,\ 0.5)$ & 1  & 0.354 & 0.000 & None materialised \\
+$[0.5,\ 0.9)$ & 7  & 0.859 & 0.000 & None materialised \\
+$[0.9,\ 1.0]$ & 14 & 0.992 & 0.000 & None materialised \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The pattern is unambiguous, and Figure~\ref{fig:fiabilite} shows it, with each marker's area
+proportional to the number of forecasts in its band and the diagonal marking perfect
+calibration. Where the model announces a low probability it is right: 74 forecasts averaging
+$0.070$ were followed by an adverse outcome $8.1\%$ of the time. Where it announces a high
+probability it is wrong every time: twenty-one forecasts announcing a mean of $0.948$ were
+followed by the predicted outcome zero times.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.84\linewidth]{Images/armA_reliability.png}
+    \caption{Reliability of the four-week forecast}
+    \label{fig:fiabilite}
+\end{figure}
+
+Separating these two failures matters for what happens next, and it is the distinction Murphy
+established for exactly this purpose~\autocite{murphy1973vector}. A forecast that orders
+outcomes correctly but announces the wrong numbers is repaired by a thin post-hoc layer that
+leaves the model untouched. A forecast that does not order outcomes at all needs the model
+changed. On this campaign the evidence for the second is weak, resting on very few positive
+observations, while the evidence for the first is strong and does not depend on that sample
+at all.
+
+\subsubsection{Why: one block explains all of it}
+
+The explainability layer localised the cause. Across all twenty-one confident forecasts, the
+four-week probability and the milestone-miss probability never differ by more than $0.020$:
+the confident tail is the milestone channel and nothing else. Set against the registry, ten
+of the eighteen campaign milestones completed, eight remained active and only one was
+actually missed. The model announced near-certain misses for six nodes that all delivered.
+
+Reading the time block directly at the turn the scenario's critical event lands confirms it
+from the other side: the block reads numerically zero at six of the eight nodes in the middle
+of a crisis. The cause is structural. The block computes milestone risk from a lead-time
+distribution against a deadline, while the event engine writes to capacity, cost and failure
+probability and never to lead time. No path connects a shock to the quantity the block reads,
+so the block cannot respond to a disruption. It is blind by construction, and because it
+drives the entire confident tail, so is the forecast.
+
+This is a defect in the model rather than a property of the scenario. Any deployment would
+inherit it, and the repair is a change to the event mapping rather than to the mathematics.
+It is the single most actionable finding of the mission.
+
+\subsubsection{What happens when the forecast is shown to the operator}
+
+The treatment arm produced a second result, and one that was not sought.
+
+For the first four turns the forecast is hidden and all eight declarants record no influence.
+At the turn it first becomes visible, all eight record one, and the direction is entirely
+one-sided: five revised their declared urgency downward and three had their existing
+assessment confirmed. Not one revised upward. The first upward revision anywhere appears the
+following turn, and the scenario's single critical event lands two turns after the moment
+every declarant was either reassured or confirmed.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.90\linewidth]{Images/armB_influence.png}
+    \caption{Influence of the displayed forecast, by turn}
+    \label{fig:armB}
+\end{figure}
+
+Figure~\ref{fig:armB} shows the distribution turn by turn. Over the full campaign the balance
+is close to even, 15 upward against 16 downward, so the one-sided effect belongs to first
+contact rather than being a permanent bias.
+
+Two things make this worse than a curiosity. The forecast being displayed comes from the same
+layer whose confident predictions never materialise, and whose time block is blind to the
+very shock about to arrive. And it is displayed as a numeric probability with a confidence
+interval, a format the automation-bias literature identifies as increasing
+reliance~\autocite{goddard2012automation,bansal2021whole}. The system was presenting an
+unfounded reassurance in its most persuasive available form, immediately before the event it
+had failed to anticipate.
+
+One qualification cuts against the strongest reading: the recorded field captures the effect
+on the declared level, not on the action taken, and the free-text notes show declarants still
+acting protectively. The effect is on the measurement, which is nonetheless the input the
+whole adequacy layer consumes.
+
+\subsubsection{The outcome definition moves the answer}
+
+A final measurement concerns how these results should be read at all. Scoring the identical
+forecasts against a plausible but naive outcome definition, counting any recorded event
+rather than the production definition, moves the base rate from $5.0\%$ to $38.7\%$ and
+improves the apparent Brier skill from $-3.36$ to $-0.64$, while leaving discrimination
+essentially unchanged.
+
+The model did not change. Only the definition of truth did. An analyst choosing the easier
+target would report a system five times better calibrated without a line of code being
+touched. A calibration figure quoted without its outcome definition therefore carries little
+information, which is a methodological result worth more to the programme than the score
+itself.
+
+\subsection{Problems Encountered and How They Were Resolved}
+\label{sec:problemes}
+
+Four difficulties shaped the mission, beyond the risks of Section~\ref{sec:risques}.
+
+\paragraph{The first model could not represent the problem.}
+The initial formulation expressed urgency as a single time-driven curve. It could not
+represent a node on schedule but out of capacity, which is a common and dangerous state. The
+resolution was to abandon it in April in favour of multi-block aggregation. The cost was
+roughly three weeks; the alternative was building a validated implementation of an
+inadequate model.
+
+\paragraph{Measuring the gap requires two independent signals, which is harder than it looks.}
+The same difficulty recurred three times in different disguises. A first synthetic dry run
+derived the declared value from the computed one, so no gap could appear. The blind arm used
+declarants who read their briefings so carefully that their declaration reproduced the
+computed state. The treatment arm closed the loop deliberately by showing the model's output
+to the declarant. Each time the symptom looked like a modelling problem and each time the
+cause was circularity in the measurement. The resolution was to state the independence
+requirement as a first-class design constraint and to record, for every result, which of the
+two signals could have contaminated the other.
+
+\paragraph{The literature was not accessible from inside the company.}
+As set out in Section~\ref{sec:risques}, ALTEN's Direction de l'Innovation holds no journal or
+database subscriptions. The state of the art was built entirely on ESTIA and Cranfield
+library access. The practical resolution was to front-load literature retrieval into the first
+weeks while planning which sources would be needed later, since retrieving a paper was never
+a same-hour operation.
+
+\paragraph{Compute was limited to a CPU.}
+No GPU was available. This bounded what could be attempted and is the reason one comparison
+was run at reduced scale. The resolution was methodological rather than material: choosing
+approaches whose cost is dominated by the quantity of data rather than by model size, and
+accepting the reduced scale explicitly in the reporting instead of quietly omitting the
+comparison.

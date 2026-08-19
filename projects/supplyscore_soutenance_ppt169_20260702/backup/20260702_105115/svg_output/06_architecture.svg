@@ -1,0 +1,96 @@
+<svg width="1280" height="720" viewBox="0 0 1280 720" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arrowPrimary" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#2C5F7C"/>
+    </marker>
+  </defs>
+  <rect id="bg" x="0" y="0" width="1280" height="720" fill="#FFFFFF"/>
+
+  <g id="p06-header">
+    <text x="56" y="60" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" letter-spacing="2" fill="#6B7A85">PARTIE I · FONDATIONS</text>
+    <text x="54" y="104" font-family="Segoe UI, Arial, sans-serif" font-size="42" font-weight="800" fill="#1E4258">Une façade unique, deux niveaux de bases SQLite</text>
+    <rect x="56" y="118" width="64" height="4" fill="#2C5F7C"/>
+  </g>
+
+  <g id="p06-flow">
+    <rect x="76" y="160" width="444" height="56" fill="#F4F6F8" stroke="#D8DEE3" stroke-width="1"/>
+    <text x="298" y="193" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="600" fill="#22313A">Interface Dash · Questionnaire / Hebdo / Graphe</text>
+
+    <line x1="298" y1="216" x2="298" y2="248" stroke="#2C5F7C" stroke-width="2" marker-end="url(#arrowPrimary)"/>
+
+    <rect x="76" y="252" width="444" height="56" fill="#2C5F7C"/>
+    <text x="298" y="285" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700" fill="#FFFFFF">SupplyScoreService · façade</text>
+
+    <line x1="298" y1="308" x2="181" y2="376" stroke="#2C5F7C" stroke-width="2" marker-end="url(#arrowPrimary)"/>
+    <line x1="298" y1="308" x2="415" y2="376" stroke="#2C5F7C" stroke-width="2" marker-end="url(#arrowPrimary)"/>
+
+    <rect x="76" y="380" width="210" height="56" fill="#F4F6F8" stroke="#D8DEE3" stroke-width="1"/>
+    <text x="181" y="413" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" fill="#1E4258">MutationService</text>
+
+    <rect x="310" y="380" width="210" height="56" fill="#F4F6F8" stroke="#D8DEE3" stroke-width="1"/>
+    <text x="415" y="404" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="700" fill="#1E4258">PropagationEngine</text>
+    <text x="415" y="422" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#6B7A85">(graphe mémoire)</text>
+
+    <line x1="181" y1="436" x2="181" y2="496" stroke="#2C5F7C" stroke-width="2" marker-end="url(#arrowPrimary)"/>
+    <line x1="415" y1="436" x2="415" y2="496" stroke="#2C5F7C" stroke-width="2" marker-end="url(#arrowPrimary)"/>
+
+    <rect x="76" y="500" width="210" height="56" fill="#FFFFFF" stroke="#2C5F7C" stroke-width="2"/>
+    <use data-icon="tabler-outline/database" x="92" y="514" width="26" height="26" fill="#2C5F7C" stroke-width="2"/>
+    <text x="128" y="533" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="700" fill="#1E4258">registry.sqlite</text>
+
+    <rect x="310" y="500" width="210" height="56" fill="#FFFFFF" stroke="#2C5F7C" stroke-width="2"/>
+    <use data-icon="tabler-outline/database" x="326" y="514" width="26" height="26" fill="#2C5F7C" stroke-width="2"/>
+    <text x="362" y="527" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="700" fill="#1E4258">
+      <tspan x="362" dy="0">&lt;client_id&gt;.sqlite</tspan>
+      <tspan x="362" dy="17" font-weight="400" fill="#6B7A85">× N nœuds</tspan>
+    </text>
+
+    <text x="76" y="596" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#6B7A85">
+      <tspan x="76" dy="0">Isolation stricte : un registre global, une base privée</tspan>
+      <tspan x="76" dy="22">par nœud, aucun verrou d'écriture concurrent.</tspan>
+    </text>
+  </g>
+
+  <g id="p06-mutation">
+    <text x="610" y="176" font-family="Segoe UI, Arial, sans-serif" font-size="26" font-weight="700" fill="#1E4258">MutationService · le seul point d'écriture</text>
+
+    <line x1="624" y1="204" x2="624" y2="356" stroke="#D8DEE3" stroke-width="2"/>
+
+    <circle cx="624" cy="214" r="14" fill="#2C5F7C"/>
+    <text x="624" y="219" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="700" fill="#FFFFFF">1</text>
+    <text x="654" y="220" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#22313A">Diff · éviter les écritures redondantes</text>
+
+    <circle cx="624" cy="256" r="14" fill="#2C5F7C"/>
+    <text x="624" y="261" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="700" fill="#FFFFFF">2</text>
+    <text x="654" y="262" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#22313A">Validation · plages physiques respectées</text>
+
+    <circle cx="624" cy="298" r="14" fill="#2C5F7C"/>
+    <text x="624" y="303" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="700" fill="#FFFFFF">3</text>
+    <text x="654" y="304" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#22313A">Audit · journalisé dans audit_log</text>
+
+    <circle cx="624" cy="340" r="14" fill="#2C5F7C"/>
+    <text x="624" y="345" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="700" fill="#FFFFFF">4</text>
+    <text x="654" y="346" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#22313A">Synchronisation · graphe mémoire à jour</text>
+  </g>
+
+  <g id="p06-code">
+    <rect x="610" y="400" width="614" height="222" fill="#1E4258"/>
+    <text x="634" y="432" font-family="Consolas, 'Courier New', monospace" font-size="15" fill="#FFFFFF">
+      <tspan x="634" dy="0" fill="#9FB6C6">-- registry.sqlite --</tspan>
+      <tspan x="634" dy="24">CREATE TABLE nodes (id, name, rank,</tspan>
+      <tspan x="634" dy="22">  kpis_json, status ...);</tspan>
+      <tspan x="634" dy="24">CREATE TABLE arcs (source_id, target_id,</tspan>
+      <tspan x="634" dy="22">  gamma, beta, delta ...);</tspan>
+      <tspan x="634" dy="26" fill="#9FB6C6">-- &lt;client_id&gt;.sqlite --</tspan>
+      <tspan x="634" dy="24">CREATE TABLE assessments, weekly_reviews,</tspan>
+      <tspan x="634" dy="22">  kpi_snapshots, audit_log ...</tspan>
+    </text>
+  </g>
+
+  <g id="p06-footer">
+    <line x1="56" y1="676" x2="1224" y2="676" stroke="#D8DEE3" stroke-width="1"/>
+    <text x="56" y="700" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#9AA5AC">SupplyScore · Soutenance de thèse</text>
+    <text x="640" y="700" text-anchor="middle" font-family="Consolas, 'Courier New', monospace" font-size="15" fill="#9AA5AC">supplyscore/services/mutations.py</text>
+    <text x="1224" y="700" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#9AA5AC" text-anchor="end">06 / 28</text>
+  </g>
+</svg>

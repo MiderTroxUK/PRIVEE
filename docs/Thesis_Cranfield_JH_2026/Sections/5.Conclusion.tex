@@ -1,0 +1,296 @@
+%% ═══════════════════════════════════════════════════════════════════════════
+\subsection{Contributions}
+\label{sec:contributions}
+%% ═══════════════════════════════════════════════════════════════════════════
+
+This research set out to determine whether the gap between declared and computed urgency can
+be measured reliably enough, inside a working digital twin, to be used as a decision aid
+rather than as a descriptive statistic. On the evidence gathered the answer is not yet, and
+the value of the work lies in establishing why with enough precision to act on.
+
+Four contributions are claimed.
+
+\paragraph{An implemented adequacy architecture.} A multi-block noisy-OR real urgency model,
+propagated bidirectionally across a supply chain DAG and confronted with a
+consistency-gated, structurally elicited declared urgency through an asymmetric
+Prospect-Theory penalty, is specified, implemented and operable. It fills the combination
+that Section~\ref{sec:lit_gaps} identifies as absent from the reviewed literature. Its
+decomposition is exact rather than approximate, which is what made the diagnosis below
+possible from the application rather than by hand.
+
+\paragraph{A diagnosed failure with an identified and repairable cause.} The forecast layer is
+shown to be badly miscalibrated on the campaign, with a Brier skill between $-3.4$ and
+$-6.9$ against a base-rate forecaster and twenty-one confident predictions of which none
+materialised. That failure is traced to a single block: the time block computes milestone
+risk from a lead-time distribution while the event engine writes only to capacity, cost and
+failure probability, so no path connects a shock to the quantity the milestone probability
+reads. Mid-crisis the block reads as numerically zero at six of eight nodes. This is a
+property of the model, not of the scenario, and the repair is a change to the event mapping
+rather than to the mathematics.
+
+\paragraph{A measured first-exposure effect of showing a forecast to the declarant.} On the
+turn the predictive analysis first became visible, all eight declarants either revised their
+declared urgency downward or had it confirmed, and none revised upward, two turns before the
+scenario's one critical event. Because the two arms are shown to carry numerically identical
+forecasts, the effect is attributable to the display rather than to a different prediction.
+The finding is reported for a population of language-model agents, and its extension to
+human operators is unestablished.
+
+\paragraph{A demonstration that the outcome definition dominates the reported calibration.}
+Scoring identical forecasts against a plausible but naive outcome definition instead of the
+production one moves the base rate from $5.0\%$ to $38.7\%$ and improves the apparent Brier
+skill by a factor of more than five, while leaving discrimination essentially unchanged. A
+calibration figure reported without its outcome definition carries little information.
+
+A fifth result, reported as an opening rather than a contribution, establishes that
+individual loading docks are not observable from directly overhead because of canopy
+occlusion rather than insufficient resolution, and that the reframed problem of delimiting an
+equipped facade is both learnable and sufficient for capacity estimation.
+
+%% ═══════════════════════════════════════════════════════════════════════════
+\subsection{Status of the Research Hypotheses}
+\label{sec:hypothesis_status}
+%% ═══════════════════════════════════════════════════════════════════════════
+
+Table~\ref{tab:hypothesis_status} gives the status of each pre-registered hypothesis across
+the three runs. It is the single authoritative statement of those verdicts in this thesis.
+
+\begin{table}[htbp]
+\centering
+\caption{Status of the six hypotheses across the executed runs}
+\label{tab:hypothesis_status}
+\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{2.5cm} >{\raggedright\arraybackslash}p{2.1cm} >{\raggedright\arraybackslash}p{2.1cm} X}
+\toprule
+\textbf{Hypothesis} & \textbf{Dry run} & \textbf{Arm A} & \textbf{Reading} \\
+\midrule
+H1 latency & Not confirmed & Not confirmed & 1 of 8 nodes on the dry run, 3 of 8 in arm A
+against a threshold of 5. The direction is right and the level is short. \\
+\midrule
+H2 early detection & Not confirmed & Not confirmed & $H$ peaks at $0.070$ then $0.017$
+against a threshold of $0.3$. The declared signal tracks the computed one too closely for a
+gap to open. \\
+\midrule
+H3 criticality & Not confirmed & Not confirmed & Top-1 on 7 of 10 informative turns, $70\%$
+against a threshold of $80\%$. Identical across runs, since the test does not depend on
+$U_d$. \\
+\midrule
+H4 predictive validity & Not confirmed & Not confirmed & Precision and recall both $0.00$ at
+the threshold. Section~\ref{sec:res_mechanism} attributes this to the time block rather than
+to the adequacy formulation. \\
+\midrule
+H5 contagion & Not confirmed & \textbf{Confirmed} & $\Delta U_d = +0.079$ on press turns
+against $+0.005$ on calm turns. The mere-urgency effect reproduced at network scale. \\
+\midrule
+H6 hysteresis & Not applicable & Not applicable & Real urgency shows no measurable decline
+over the recovery turns, so the comparison is not meaningful on this scenario. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+One hypothesis of six is confirmed. Two qualifications belong with that count. H4 fails for
+an identified mechanical reason rather than because the adequacy concept is unsound, and its
+verdict should be revisited once the time block is repaired. H6 was never testable on this
+scenario, because the script does not de-escalate far enough for a decay rate to be
+compared, which is a design fault in the scenario rather than a result.
+
+%% ═══════════════════════════════════════════════════════════════════════════
+\subsection{Limitations}
+\label{sec:limitations}
+%% ═══════════════════════════════════════════════════════════════════════════
+
+Table~\ref{tab:limitations} lists the limitations judged material enough to state directly,
+with their operational implication.
+
+\begin{table}[htbp]
+\centering
+\caption{Documented limitations and their implications}
+\label{tab:limitations}
+\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{4.4cm} X}
+\toprule
+\textbf{Limitation} & \textbf{Implication} \\
+\midrule
+The time block is blind to shocks & Measured, not suspected: the calibrated events write to
+capacity, cost and failure probability but never to lead time, so milestone risk cannot
+respond to a disruption and reads as numerically zero mid-crisis at six of eight nodes. This
+is the cause of the H4 failure and the first thing to repair. \\[3pt]
+\midrule
+Validation rests on agent declarants & The campaign was executed with eight isolated
+language-model agents, not human consultants. Every statement about declaration behaviour is
+a statement about that population. The human campaign, for which the protocol is frozen, has
+not been run. \\[3pt]
+\midrule
+A single scenario, with a very small positive class & All results come from one
+nineteen-turn scenario in which between two and six node-weeks are positive depending on
+horizon. Discrimination claims are correspondingly weak in both directions. \\[3pt]
+\midrule
+No probabilistic guarantee & The framework produces probabilities, scores and confidence
+intervals, not certainties, and the campaign showed those probabilities to be poorly
+calibrated at the top of their range. \\[3pt]
+\midrule
+Score freshness follows input cadence & Without an ERP connector, a node's score is never
+more current than its last submitted weekly review. Manual entry is an accepted trade-off,
+not an oversight, and Section~\ref{sec:res_volume} reports one route out of it for a single
+block. \\[3pt]
+\midrule
+Blocks are assumed independent & The noisy-OR aggregation requires it, and the campaign
+produced a counter-example: two blocks were perfectly correlated on the arm A run, which the
+tool flagged on its own. \\[3pt]
+\midrule
+AHP is limited to four criteria & Saaty's method degrades past roughly seven pairwise
+compared criteria, which is why declared urgency stays on four while the larger set of KPI
+blocks is weighted through Fuzzy BWM instead. \\[3pt]
+\midrule
+Event calibration priors are defensible, not measured & The Beta-Bernoulli prior weight and
+the EMA reactivity coefficients follow standard conjugate Bayesian revision but are not
+empirically fitted. \\[3pt]
+\midrule
+Event reversibility is conditional & Reverting a declared event is guaranteed correct only if
+no other write has touched the same KPI in the meantime; otherwise the system raises an
+explicit conflict rather than silently rebasing later writes. \\[3pt]
+\midrule
+Double counting is possible & An operator can both declare a calibrated event and manually
+correct the same KPI in the same week. The interface warns but does not forbid it, since the
+human operator remains the final authority. \\[3pt]
+\midrule
+The satellite capacity model is not connected & It reaches one block of six, covers
+metropolitan France only, produces a structural capacity rather than a live occupancy, and
+its trained segmentation model is not yet wired into the production capacity path. \\[3pt]
+\midrule
+The fill factor is not reproducible from the retained data & The production constant of
+$0.80$ comes from a 122-site calibration whose detailed output was not kept. Recomputing over
+the 68 sites still on disk gives a median of $0.97$. Volumetric outputs therefore carry an
+unquantified bias of order twenty per cent until the corpus is recollected. Dock capacity,
+which depends on the pitch constant instead, is unaffected. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+%% ═══════════════════════════════════════════════════════════════════════════
+\subsection{Future Work}
+\label{sec:future_work}
+%% ═══════════════════════════════════════════════════════════════════════════
+
+The work divides into what must happen before the framework can be evaluated fairly, and
+what becomes worth doing afterwards.
+
+\paragraph{Repair the time block first.} Nothing else should be measured until the calibrated
+events write a lead-time impact alongside their existing capacity, cost and failure-probability
+effects. Until then the forecast layer cannot respond to a disruption, H4 cannot be tested
+fairly, and any campaign run against it will reproduce the same result. This is the single
+highest-value change identified by this thesis and it is small.
+
+\paragraph{Add a calibration layer, trained off-scenario.} The reliability profile of
+Section~\ref{sec:res_armA_scored} is the shape that post-hoc calibration
+addresses~\autocite{niculescu2005predicting,guo2017calibration}, and the correction is a thin
+layer rather than a model change. One methodological constraint should be respected: the
+calibration must be fitted on data other than the evaluation scenario, otherwise it is tuned
+to the test and the system's generality is lost.
+
+\paragraph{Make the forecast state its own ignorance.} Given the arm B result, an advisory layer
+that cannot anticipate exogenous shocks should not present a low probability in a confident
+numeric format. Two changes follow directly: make the horizon salient in the display, so a
+low four-week figure cannot be read as general safety, and state explicitly which risk
+classes the model does not cover.
+
+\paragraph{Re-run the comparison with the display controlled.} Arm B is not blinded. A design in
+which some turns display a deliberately uninformative forecast would separate the effect of
+the content from the effect of the display, and would establish whether the first-exposure
+effect is a response to the numbers or to being given a number at all.
+
+\paragraph{Run the human campaign, then arm C.} The frozen protocol, the hashed data pack and
+the operating scripts are ready. Only the human campaign can decide the hypotheses as they
+were written, and it should be run only after the time block is repaired, since running it
+against a known-defective forecast would waste the participants. Arm C, the closed loop in
+which declarants act on the terrain, follows: it cannot be scored by prediction accuracy,
+because an averted rupture makes a correct prediction look wrong, so it must be judged by
+comparing its final state against arm A.
+
+\paragraph{Put the outcome definition in the pre-registration.} Section~\ref{sec:res_target_trap}
+shows the outcome definition moving the reported skill by a factor of five. It belongs
+alongside the numeric thresholds in the H1 to H6 register, where it currently is not.
+
+\paragraph{Connect the observed capacity channel.} Three steps stand between the satellite work
+and a usable input: wire the trained segmentation model into the production capacity path in
+place of the trailer-span method, re-measure the no-signature rate on an unbiased draw, and
+recollect the regulatory corpus cleanly to re-derive the fill factor. Beyond those, the
+surface model from LiDAR is the most promising unexplored route, because the canopy step is
+several metres lower than the main roof and would give both the canopy extent and the true
+roof edge, correcting the 0 to 14.4~m overhang that currently displaces the apron boundary.
+One governance question must also be settled rather than deferred: the detection library is
+distributed under a copyleft licence, which is immaterial for internal use but becomes
+determinative the moment the capability is distributed or exposed over a network.
+
+\paragraph{Broaden the elicitation and couple the platforms.} Two directions identified but
+deliberately descoped remain open: replacing single-operator AHP elicitation with a
+multi-expert protocol aggregating several judgments per node, and coupling SupplyScore with
+the DISCO platform it currently runs alongside rather than inside. Neither is a design
+commitment, and both depend on what a repaired system shows.
+
+%% ═══════════════════════════════════════════════════════════════════════════
+\subsection{Personal Conclusion}
+\label{sec:personal}
+%% ═══════════════════════════════════════════════════════════════════════════
+
+\subsubsection{Technical Skills Developed}
+
+The project drew on four distinct areas, and the difficulty of the subject lay mostly in
+making them work together rather than in any one of them.
+
+\begin{itemize}
+    \item \textbf{Multi-criteria decision analysis}: pairwise elicitation through AHP and
+    Fuzzy BWM, consistency validation, and outranking aggregation through PROMETHEE~II.
+    \item \textbf{Probabilistic modelling}: noisy-OR aggregation, Monte Carlo simulation,
+    conjugate Bayesian revision in a sparse-data regime, and, added during the campaign
+    analysis, probabilistic forecast verification through proper scoring rules and
+    reliability decomposition.
+    \item \textbf{Graph algorithms}: propagation over a multi-rank directed acyclic graph,
+    topological ordering, shock simulation and network criticality.
+    \item \textbf{Software engineering}: architecture of a multi-tenant Python system,
+    hardened SQLite persistence with write-ahead logging, backup and migrations, a Dash web
+    interface, and a milestone-based quality process with blocking test coverage and
+    automated end-to-end tests.
+\end{itemize}
+
+The satellite work added a fifth: geospatial data engineering against public web services,
+dataset construction and annotation, and the training and evaluation of a segmentation model
+under a strict CPU budget.
+
+\subsubsection{What I Learned}
+
+The hardest problem was not mathematical. It was recognising, three separate times, that the
+system was measuring itself. The dry run anchored declared urgency on real urgency by
+construction; the agents in arm A read their briefings so carefully that their declaration
+reproduced the computed state; and arm B closed the loop deliberately by showing the model's
+own output to the declarant. Each time the symptom looked like a modelling problem and each
+time the cause was circularity in the measurement. I would now design the independence of
+the two signals first, before designing either of them.
+
+The second lesson concerns what counts as a result. For a long stretch of the project I
+treated a negative outcome as a failure to be fixed before reporting. The most useful
+findings in this thesis are negative: the forecast layer is badly calibrated, the confident
+tail is entirely false, one block is structurally blind, and showing that forecast to a
+declarant is counterproductive. None of those would have been found by a project optimising
+for a positive result, and each of them is actionable in a way that a marginal improvement
+would not have been. The related discipline, which the annotation episode of
+Section~\ref{sec:res_volume} taught bluntly, is that a confident self-report is not evidence,
+whether it comes from an automated process or from oneself, and that the cheap verification
+step should always come before the expensive one.
+
+With hindsight I would change two things. I would have scored the forecast layer against
+recorded outcomes far earlier, since doing so took a few hundred lines and revealed the time
+block defect immediately, where months of implementation had not. And I would have written
+the outcome definition into the pre-registration alongside the thresholds, having since
+measured how much it moves the answer.
+
+The skill that progressed most was not a technical one. It was the willingness to state a
+result that does not flatter the work, in enough detail that someone else can act on it. The
+subject of this thesis is, after all, the gap between what people declare and what is
+actually true, and it would be a poor outcome to have measured that gap in a supply chain
+while reproducing it in the reporting.
+
+Professionally, the project confirmed a direction. I want to work where a model meets the
+person who has to act on it, because that boundary is where the interesting failures live:
+not in the mathematics, which can be checked, but in what a number does to the judgment of
+the person reading it.

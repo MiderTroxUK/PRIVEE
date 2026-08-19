@@ -1,0 +1,132 @@
+%% Consignes : « Incontournable pour le rapport de MFE, l'etat de l'art
+%% presente les solutions techniques, methodes, outils, organisations
+%% existants qui repondent pour tout ou en partie a la problematique posee.
+%% Il s'agit de realiser une analyse critique des travaux existants. »
+
+The question of Section~\ref{sec:question} touches several fields that do not usually cite
+one another. This section reviews each for what it settles and, more importantly, for what it
+leaves open. A structured evaluation of every source, recording its argument, method and
+limitations, was maintained throughout the mission and informs the appraisals below.
+
+\subsection{Deadline-Driven Value and Risk Propagation}
+
+Real-time systems research models the value of a task as a function of when it completes.
+Chen and M\"uhlethaler show that utility typically holds constant until a deadline and then
+decreases~\autocite{cheng1996due}, and a wider survey confirms structured degradation past
+critical thresholds~\autocite{cheng2025survey}. This establishes that urgency is legitimately
+time-varying.
+
+Separately, supply chain research formalises the ripple effect, whereby a local disruption
+cascades through downstream tiers and amplifies as it
+travels~\autocite{ivanov2020digital,ivanov2019viable,li2020exploring}. This establishes that
+urgency is legitimately network-dependent.
+
+\emph{Critical appraisal.} The first stream stops at a single isolated task and offers
+nothing on combining heterogeneous indicators. The second models propagation but treats the
+node-level score as given. Neither addresses a declared signal at all. Between them they
+justify treating urgency as time-varying and propagated, and leave the aggregation question
+entirely open.
+
+\subsection{Indicators of Delivery Rupture}
+
+If urgency is to be aggregated, the indicators must come from somewhere. Heckmann, Comes and
+Nickel establish rupture as the terminal event a supply risk measure should anticipate, and
+criticise the field for measuring exposure without connecting it to that
+event~\autocite{heckmann2015critical}. Indicator-based supplier monitoring proceeds by
+identifying observable precursors~\autocite{mokhtar2019supplier}.
+
+Five families recur. Slack is the only indicator whose exhaustion is
+irreversible~\autocite{cohen2021assigning,sun2020combating}. Capacity saturation adds waiting
+time a nominal lead time does not
+show~\autocite{tomlin2006value,hosseini2019resilient}. Resource performance is monitored
+through composite proxies because supplier-side data is rarely
+available~\autocite{mokhtar2019supplier,hlioui2017joint}. Adverse-event exposure is treated
+probabilistically~\autocite{hosseini2020ripple,liu2021robust}. Cost signals are read as
+symptoms of strain rather than causes~\autocite{shen2019managing}, and emissions constraints
+restrict the admissible responses rather than causing
+rupture~\autocite{hoen2014effect,smartfreight2023glec}.
+
+\emph{Critical appraisal.} This literature names precursors and monitors them individually.
+It supplies no criterion for deciding which belong in one composite, and says nothing about
+whether equal numerical values on structurally different indicators carry equal risk meaning.
+Both questions are inherited by any multi-block model, and
+Section~\ref{sec:realisation_modele} treats the second explicitly.
+
+\subsection{Cognitive Bias in Declared Urgency}
+
+Zhu, Yang and Hsee report the mere-urgency effect across five controlled experiments:
+participants consistently preferred imminent low-value tasks to distant high-value ones, and
+the bias survived being told about it~\autocite{zhu2018mere}. Steel gives a formal
+discounting model in which immediacy becomes more salient as a deadline
+approaches~\autocite{steel2006integrating}. Field studies confirm the pattern under
+workload~\autocite{rusou2020psychology,diwa2020task}.
+
+\emph{Critical appraisal.} This stream diagnoses the problem and quantifies it in controlled
+settings, but the magnitude in industrial supply chains is uncalibrated, and it prescribes no
+operational correction. It justifies treating the declared signal as biased; it does not say
+what to do about it.
+
+\subsection{Multi-Criteria Elicitation and Aggregation}
+
+Structured elicitation of a human judgment is a solved problem in outline. The Analytic
+Hierarchy Process derives criteria weights from pairwise comparisons and validates them
+through a consistency ratio~\autocite{saaty1980analytic}, though it is vulnerable to rank
+reversal and to cognitive noise~\autocite{dyer1990,triantaphyllou2024}. The Best-Worst Method
+reduces the number of comparisons required~\autocite{rezaei2015best}, and its fuzzy extension
+absorbs judgment uncertainty~\autocite{guo2017fuzzy,liang2020}. For ranking alternatives
+without letting a good score on one criterion mask a catastrophic one on another, outranking
+methods such as PROMETHEE~II establish pairwise preference
+flows~\autocite{brans1986promethee,behzadian2010promethee}.
+
+The composite indicator literature supplies the necessary warning: nominal weights often
+diverge from effective importance because of correlation and normalisation
+effects~\autocite{greco2018,becker2017,borgonovo2021global}.
+
+\emph{Critical appraisal.} These are static tools. They elicit and aggregate, and none is
+routinely compared against a computed operational counterpart. The composite-index critique
+is generally raised as a caveat at the end of a paper rather than turned into something a
+running system checks on its own data.
+
+\subsection{Digital Twins and Decision Support}
+
+The digital twin concept was formalised by Grieves~\autocite{grieves2014digital} and extended
+to manufacturing~\autocite{tao2018digital,fuller2020digital}. In supply chains it integrates
+simulation, optimisation and machine learning~\autocite{ivanov2021digital}, with demonstrated
+capability in disruption monitoring and
+replanning~\autocite{ding2023realtime,leung2022digital,hrusovsky2021realtime}. Recent
+human-in-the-loop cognitive twins capture human feedback to synchronise mental models with
+simulated operations~\autocite{niloofar2023}.
+
+\emph{Critical appraisal.} This is the family the delivered system belongs to, and the gap is
+here. No retrieved system combines a declared urgency input, a computed operational urgency
+and their propagated mismatch. A second gap matters for this mission specifically: these
+systems are evaluated on how accurately they estimate physical state, and their inputs are
+assumed to arrive. Where an input depends on the same operator whose judgment the system
+exists to support, that circularity is not treated as a measurement problem.
+
+\subsection{Verifying a Probabilistic Signal}
+
+Because this mission scores a probabilistic signal against outcomes, it inherits forecast
+verification. Brier introduced the mean squared error of probabilistic
+forecasts~\autocite{brier1950verification}, and Murphy decomposed it into reliability,
+resolution and uncertainty~\autocite{murphy1973vector}, establishing the distinction the
+results of this report depend on: a forecast can order outcomes correctly while announcing
+the wrong probabilities, and the two failures need different repairs. Machine learning
+rediscovered the same point, finding strong classifiers that produce distorted probabilities
+correctable by a cheap post-hoc layer~\autocite{niculescu2005predicting,guo2017calibration}.
+
+\emph{Critical appraisal.} This literature assumes the outcome being predicted is
+unambiguously defined. In an operational supply chain it is a modelling choice, and
+Section~\ref{sec:realisation_resultats} measures that choice moving the reported result by a
+factor of five.
+
+\subsection{What the Review Establishes}
+\label{sec:gap}
+
+Each stream closes on a limit. Collected, those limits describe one absence rather than
+several. The reviewed work covers multi-block risk aggregation, network propagation, digital
+twin operation, multi-criteria elicitation and probabilistic verification. No retrieved work
+combines them with a structured declared-urgency input and an empirical test of the resulting
+adequacy signal against recorded outcomes.
+
+That missing combination is what this mission set out to build and to test.

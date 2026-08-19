@@ -1,0 +1,164 @@
+{
+  "tour": 11,
+  "horodatage": 1784119980.6268778,
+  "couverture": {
+    "a_jour": 0,
+    "total_actifs": 8
+  },
+  "nodes": {
+    "orbitalys": {
+      "name": "Orbitalys",
+      "rank": 0,
+      "status": "active",
+      "ud": 0.9411052628114351,
+      "ur": 1.0,
+      "adequation": 81.01429822324333,
+      "false_urgency": 0.0,
+      "hidden_risk": 0.05889473718856486,
+      "ud_local": 0.9411052628114351,
+      "ur_local": 1.0
+    },
+    "aviosys": {
+      "name": "AvioSys Intégration",
+      "rank": 1,
+      "status": "active",
+      "ud": 0.9956649989077542,
+      "ur": 1.0,
+      "adequation": 97.92489005932562,
+      "false_urgency": 0.0,
+      "hidden_risk": 0.004335001092245827,
+      "ud_local": 0.9716676342111328,
+      "ur_local": 1.0
+    },
+    "electis": {
+      "name": "Électis EMS",
+      "rank": 2,
+      "status": "active",
+      "ud": 0.9938700165459373,
+      "ur": 0.8870067121973533,
+      "adequation": 85.42039572007991,
+      "false_urgency": 0.10686330434858404,
+      "hidden_risk": 0.0,
+      "ud_local": 0.9698724938185006,
+      "ur_local": 0.40690576611265394
+    },
+    "compodis": {
+      "name": "CompoDis Europe",
+      "rank": 3,
+      "status": "active",
+      "ud": 0.914660407808777,
+      "ur": 0.8530939613435968,
+      "adequation": 90.78601672134634,
+      "false_urgency": 0.06156644646518017,
+      "hidden_risk": 0.0,
+      "ud_local": 0.5835142422591029,
+      "ur_local": 0.1999168184840069
+    },
+    "transglobal": {
+      "name": "TransGlobal Fret",
+      "rank": 3,
+      "status": "active",
+      "ud": 0.8829338616063651,
+      "ur": 1.0,
+      "adequation": 67.72365432986409,
+      "false_urgency": 0.0,
+      "hidden_risk": 0.11706613839363489,
+      "ud_local": 0.7672942058803482,
+      "ur_local": 1.0
+    },
+    "meridian": {
+      "name": "Meridian Semi",
+      "rank": 4,
+      "status": "active",
+      "ud": 0.9691617666680151,
+      "ur": 0.23611130158710114,
+      "adequation": 40.44871235399308,
+      "false_urgency": 0.733050465080914,
+      "hidden_risk": 0.0,
+      "ud_local": 0.9691617666680151,
+      "ur_local": 0.23611130158710114
+    },
+    "novafab": {
+      "name": "NovaFab Semiconductors",
+      "rank": 4,
+      "status": "active",
+      "ud": 0.9676805850835007,
+      "ur": 0.9070961591517877,
+      "adequation": 90.91005995247943,
+      "false_urgency": 0.06058442593171309,
+      "hidden_risk": 0.0,
+      "ud_local": 0.8172037034498834,
+      "ur_local": 0.8957188333370621
+    },
+    "silpure": {
+      "name": "SilPure Materials",
+      "rank": 5,
+      "status": "active",
+      "ud": 0.9507158435422549,
+      "ur": 0.18183733744080266,
+      "adequation": 38.771863687375564,
+      "false_urgency": 0.7688785061014523,
+      "hidden_risk": 0.0,
+      "ud_local": 0.8472394520490775,
+      "ur_local": 0.18183733744080266
+    }
+  },
+  "criticite": [
+    {
+      "node_id": "silpure",
+      "rank": 1,
+      "delta_ur_final": 0.0,
+      "delta_ur_max": 0.8181626625591973,
+      "nb_impactes": 4
+    },
+    {
+      "node_id": "meridian",
+      "rank": 2,
+      "delta_ur_final": 0.0,
+      "delta_ur_max": 0.7638886984128989,
+      "nb_impactes": 1
+    },
+    {
+      "node_id": "compodis",
+      "rank": 3,
+      "delta_ur_final": 0.0,
+      "delta_ur_max": 0.14690603865640317,
+      "nb_impactes": 2
+    },
+    {
+      "node_id": "electis",
+      "rank": 4,
+      "delta_ur_final": 0.0,
+      "delta_ur_max": 0.11299328780264672,
+      "nb_impactes": 1
+    },
+    {
+      "node_id": "novafab",
+      "rank": 5,
+      "delta_ur_final": 0.0,
+      "delta_ur_max": 0.09290384084821235,
+      "nb_impactes": 3
+    },
+    {
+      "node_id": "aviosys",
+      "rank": 6,
+      "delta_ur_final": 0.0,
+      "delta_ur_max": 0.0,
+      "nb_impactes": 0
+    },
+    {
+      "node_id": "orbitalys",
+      "rank": 7,
+      "delta_ur_final": 0.0,
+      "delta_ur_max": 0.0,
+      "nb_impactes": 0
+    },
+    {
+      "node_id": "transglobal",
+      "rank": 8,
+      "delta_ur_final": 0.0,
+      "delta_ur_max": 0.0,
+      "nb_impactes": 0
+    }
+  ]
+}

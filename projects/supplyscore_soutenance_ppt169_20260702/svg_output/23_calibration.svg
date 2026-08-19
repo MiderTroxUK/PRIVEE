@@ -1,0 +1,34 @@
+<svg width="1280" height="720" viewBox="0 0 1280 720" xmlns="http://www.w3.org/2000/svg">
+  <rect id="bg" x="0" y="0" width="1280" height="720" fill="#FFFFFF"/>
+
+  <g id="p23-header">
+    <text x="56" y="60" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" letter-spacing="2" fill="#6B7A85">PARTIE III · DÉMONSTRATION 7/8</text>
+    <text x="54" y="104" font-family="Segoe UI, Arial, sans-serif" font-size="42" font-weight="800" fill="#1E4258">Le risque caché prédit-il vraiment les incidents ?</text>
+    <rect x="56" y="118" width="64" height="4" fill="#2C5F7C"/>
+  </g>
+
+  <g id="p23-figure">
+    <image href="../images/10-rapport.png" x="302" y="158" width="675" height="330" preserveAspectRatio="xMidYMid meet"/>
+    <rect x="302" y="158" width="675" height="330" fill="none" stroke="#D8DEE3" stroke-width="1"/>
+  </g>
+
+  <g id="p23-analysis">
+    <text x="640" y="524" text-anchor="middle" font-family="Consolas, 'Courier New', monospace" font-size="19" font-weight="700" fill="#22313A">Matrice de confusion : TP=1 · FP=1 · FN=1 · TN=1</text>
+
+    <text x="76" y="586" font-family="Segoe UI, Arial, sans-serif" font-size="15" fill="#6B7A85">PRÉCISION</text>
+    <text x="76" y="636" font-family="Segoe UI, Arial, sans-serif" font-size="44" font-weight="800" fill="#2C5F7C">50%</text>
+
+    <text x="453" y="586" font-family="Segoe UI, Arial, sans-serif" font-size="15" fill="#6B7A85">RAPPEL</text>
+    <text x="453" y="636" font-family="Segoe UI, Arial, sans-serif" font-size="44" font-weight="800" fill="#2C5F7C">50%</text>
+
+    <text x="850" y="586" font-family="Segoe UI, Arial, sans-serif" font-size="15" fill="#6B7A85">F1-SCORE</text>
+    <text x="850" y="636" font-family="Segoe UI, Arial, sans-serif" font-size="44" font-weight="800" fill="#2C5F7C">50%</text>
+  </g>
+
+  <g id="p23-footer">
+    <line x1="56" y1="676" x2="1224" y2="676" stroke="#D8DEE3" stroke-width="1"/>
+    <text x="56" y="700" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#9AA5AC">SupplyScore · Soutenance de thèse</text>
+    <text x="640" y="700" text-anchor="middle" font-family="Consolas, 'Courier New', monospace" font-size="15" fill="#9AA5AC">supplyscore/services/calibration.py · CalibrationService</text>
+    <text x="1224" y="700" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#9AA5AC" text-anchor="end">23 / 28</text>
+  </g>
+</svg>

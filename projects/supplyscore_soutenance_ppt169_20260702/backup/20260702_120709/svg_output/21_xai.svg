@@ -1,0 +1,53 @@
+<svg width="1280" height="720" viewBox="0 0 1280 720" xmlns="http://www.w3.org/2000/svg">
+  <rect id="bg" x="0" y="0" width="1280" height="720" fill="#FFFFFF"/>
+
+  <g id="p21-header">
+    <text x="56" y="60" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" letter-spacing="2" fill="#6B7A85">PARTIE III · DÉMONSTRATION 5/8</text>
+    <text x="54" y="104" font-family="Segoe UI, Arial, sans-serif" font-size="42" font-weight="800" fill="#1E4258">Chaque score se décompose jusqu'au dernier pourcent</text>
+    <rect x="56" y="118" width="64" height="4" fill="#2C5F7C"/>
+  </g>
+
+  <g id="p21-content">
+    <text x="76" y="176" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#22313A">
+      <tspan x="76" dy="0">Un coordinateur ne devrait jamais avoir à deviner</tspan>
+      <tspan x="76" dy="26">pourquoi l'algorithme conclut à un score bas :</tspan>
+      <tspan x="76" dy="26">chaque contribution est affichée sans reliquat.</tspan>
+    </text>
+
+    <text x="76" y="284" font-family="Segoe UI, Arial, sans-serif" font-size="17" fill="#6B7A85">Décomposition exacte de Ud (AHP)</text>
+    <text x="76" y="310" font-family="Consolas, 'Courier New', monospace" font-size="17" font-weight="700" fill="#2C5F7C">κⱼ = wⱼ · (sⱼ − 1) / 8  →  Ud = Σ κⱼ</text>
+
+    <text x="76" y="356" font-family="Segoe UI, Arial, sans-serif" font-size="17" fill="#6B7A85">Décomposition de Ur (log-survie Noisy-OR)</text>
+    <image href="../images/f12_xai_noisyor.png" x="76" y="364" width="630" height="79" preserveAspectRatio="xMidYMid meet"/>
+
+    <text x="76" y="486" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700" fill="#1E4258">Exemple : part de chaque bloc KPI dans Ur_local</text>
+    <rect x="76" y="502" width="340" height="40" fill="#2C5F7C"/>
+    <rect x="416" y="502" width="263" height="40" fill="#1E4258"/>
+    <rect x="679" y="502" width="87" height="40" fill="#B06000"/>
+    <text x="76" y="562" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#22313A">Temps 49%</text>
+    <text x="416" y="562" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#22313A">Capacité 38%</text>
+    <text x="679" y="562" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#22313A">Risque 13%</text>
+
+    <text x="76" y="616" font-family="Segoe UI, Arial, sans-serif" font-size="17" fill="#22313A">
+      <tspan x="76" dy="0">Séparation systématique : risque local</tspan>
+      <tspan x="76" dy="24">vs risque propagé depuis l'amont.</tspan>
+    </text>
+  </g>
+
+  <g id="p21-figure">
+    <text x="798" y="160" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#9AA5AC">Écran /node/&lt;id&gt;/explication</text>
+    <image href="../images/13-explication-pleine-page.png" x="798" y="170" width="426" height="480" preserveAspectRatio="xMidYMid meet"/>
+    <rect x="798" y="170" width="426" height="480" fill="none" stroke="#D8DEE3" stroke-width="1"/>
+  </g>
+
+  <g id="p21-citation">
+    <text x="76" y="656" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#9AA5AC">Réf. : Pearl (1988) · décomposition Noisy-OR en réseaux bayésiens</text>
+  </g>
+
+  <g id="p21-footer">
+    <line x1="56" y1="676" x2="1224" y2="676" stroke="#D8DEE3" stroke-width="1"/>
+    <text x="56" y="700" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#9AA5AC">SupplyScore · Soutenance de thèse</text>
+    <text x="640" y="700" text-anchor="middle" font-family="Consolas, 'Courier New', monospace" font-size="15" fill="#9AA5AC">supplyscore/services/explain.py</text>
+    <text x="1224" y="700" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#9AA5AC" text-anchor="end">21 / 28</text>
+  </g>
+</svg>

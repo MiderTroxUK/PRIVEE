@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>HOARAU — MSc CSTE Poster — SupplyScore</title>
+<style>
+/* ══════════════════════════════════════════════════════════════════════════
+   MSc CSTE / ESTIA / ALTEN DIN, Individual Research Project poster
+   A1 portrait, 594 × 841 mm, one page, print to PDF from Chrome.
+   V3: Print-optimised, larger type, punchier copy, catchy narrative.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+:root{
+  --navy:#043962; --azure:#008BD2; --ochre:#FFDA65;
+  --ochre-mark:#FFBA00; --azure-dark:#176F98; --azure-light:#B2E0F5;
+  --navy-light:#8D9CAD; --navy-pale:#D2D7DE;
+  --bg:#EBF3F9; --line:#CDCEDA; --caption:#6A6A7A;
+  --gap:3.5mm; --logo-h:20mm;
+}
+
+@page{ size:594mm 841mm; margin:0; }
+*{ box-sizing:border-box; margin:0; padding:0; }
+html{ background:#5c6672; }
+
+body{
+  font-family:Calibri,Carlito,Arial,"Helvetica Neue",sans-serif;
+  color:var(--navy);
+  -webkit-print-color-adjust:exact; print-color-adjust:exact;
+  font-kerning:normal; text-rendering:geometricPrecision;
+}
+
+.poster{
+  width:594mm; height:841mm; margin:0 auto; background:#fff; position:relative;
+  padding:13mm 17mm 11mm 17mm;
+  display:flex; flex-direction:column; overflow:hidden;
+  font-size:13pt; line-height:1.32;
+}
+@media screen{ .poster{ box-shadow:0 0 28mm rgba(0,0,0,.45); margin:10mm auto; } }
+
+/* ── header ────────────────────────────────────────────────────────────── */
+.headrow{ display:flex; align-items:center; gap:7mm; }
+.headrow .logo-wrap{
+  flex:0 0 auto; display:flex; align-items:center; justify-content:center;
+  height:var(--logo-h);
+}
+.headrow .logo-wrap img{ height:100%; width:auto; display:block; object-fit:contain; }
+.headrow .titles{ flex:1; }
+
+.msc{ font-size:14pt; font-weight:700; color:var(--azure-dark); margin-bottom:1.6mm; }
+h1{ font-size:36pt; line-height:1.04; font-weight:700; letter-spacing:-.016em;
+    margin-bottom:2mm; white-space:nowrap; }
+h1 em{ font-style:normal; color:var(--azure); }
+.sub{ font-size:15pt; line-height:1.22; font-weight:400; }
+
+.byline{ margin-top:3mm; padding-top:2.4mm; border-top:1.1mm solid var(--navy);
+         display:flex; align-items:baseline; gap:5mm; font-size:12.6pt; }
+.byline b{ font-size:13.8pt; }
+.byline .dot{ color:var(--line); }
+
+/* top banner: key findings */
+.key-banner { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 4mm; margin-top: 4mm; }
+.key-banner .key-card { background: var(--navy); color: #fff; padding: 5mm 6mm; line-height: 1.3; font-size: 18.5pt; }
+.key-banner .key-card b { color: var(--ochre); font-weight: 700; }
+.key-banner .key-card .lbl { display: block; font-size: 17pt; letter-spacing: .05em; font-weight: 700; color: var(--ochre); margin-bottom: 2.5mm; }
+.key-banner .key-card .num { color: var(--ochre); font-weight: 700; }
+
+/* ── the spine ─────────────────────────────────────────────────────────── */
+.body{ flex:1; display:flex; flex-direction:column; min-height:0; margin-top:5mm; }
+.tl{ flex:1; display:grid; grid-template-columns:33% minmax(0,1fr);
+     grid-template-rows:80mm 106mm 106mm minmax(0,1fr) 36mm;
+     column-gap:7mm; min-height:0; }
+
+.step{ position:relative; padding-left:14mm; padding-bottom:4mm; overflow:hidden; }
+.step::before{
+  content:""; position:absolute; left:4.6mm; top:2mm; bottom:0;
+  width:1.2mm; background:var(--navy-pale);
+}
+.step.last::before{ bottom:auto; height:9mm; }
+.step .dot{
+  position:absolute; left:0; top:0; width:11mm; height:11mm; border-radius:50%;
+  background:var(--azure); color:#fff; display:flex; align-items:center;
+  justify-content:center; font-weight:700; font-size:14.5pt; letter-spacing:-.02em;
+}
+.step.hero .dot{ background:var(--navy); }
+.step h3{ font-size:17pt; font-weight:700; line-height:1.08; margin:.4mm 0 1.4mm;
+          letter-spacing:-.01em; }
+.step p{ font-size:12.6pt; line-height:1.28; color:var(--navy); }
+.step ul{ font-size:12.6pt; line-height:1.28; color:var(--navy);
+          list-style:none; padding:0; margin:0; }
+.step ul li{ position:relative; padding-left:4.6mm; margin-bottom:.8mm; }
+.step ul li::before{ content:"▸"; position:absolute; left:0; top:0;
+                     color:var(--azure); font-weight:700; font-size:13pt; }
+.step .when{ display:block; font-size:10pt; font-weight:700; letter-spacing:.06em;
+             color:var(--caption); margin-bottom:.6mm; }
+
+.pane{ padding-bottom:4mm; min-height:0; display:flex; flex-direction:column;
+       gap:2mm; overflow:hidden; }
+.pane > *{ flex:0 0 auto; }
+
+/* ── image grids ──────────────────────────────────────────────────────── */
+.img-row{ display:grid; gap:var(--gap); flex:1; min-height:0; }
+.img-row.cols-3{ grid-template-columns:1fr 1fr 1fr; }
+.img-row.layout-2plus1{
+  grid-template-columns:3fr 2fr; grid-template-rows:1fr 1fr;
+}
+.img-row.layout-2plus1 .span-rows{ grid-row:1 / -1; }
+
+.img-row figure{ display:flex; flex-direction:column; min-height:0; overflow:hidden; }
+.img-row figure img{
+  flex:1; min-height:0; width:100%; display:block;
+  object-fit:contain; object-position:center center;
+}
+.img-row figure.crop img{ object-fit:cover; object-position:center top; }
+
+figure{ position:relative; }
+figure img{ display:block; width:100%; }
+figcaption{
+  font-size:10pt; color:var(--caption); line-height:1.2;
+  margin-top:0; padding:1mm 1.4mm .8mm; flex:0 0 auto;
+}
+.frame{ border:.3mm solid var(--line); }
+
+.fig-single{
+  display:flex; flex-direction:column; flex:1; min-height:0; overflow:hidden;
+}
+.fig-single img{
+  flex:1; min-height:0; width:100%; display:block;
+  object-fit:contain; object-position:left center;
+}
+.fig-single figcaption{ flex:0 0 auto; padding:1mm 0 0; }
+
+/* ── key findings box ─────────────────────────────────────────────────── */
+.key{ background:var(--navy); color:#fff; padding:3mm 3.6mm; line-height:1.28;
+      font-size:12pt; }
+.key b{ color:var(--ochre); font-weight:700; }
+.key .lbl{ display:block; font-size:10pt; letter-spacing:.07em; font-weight:700;
+           color:var(--ochre); margin-bottom:1.4mm; }
+.key .num{ color:var(--ochre); font-weight:700; }
+
+
+
+/* ── footer ────────────────────────────────────────────────────────────── */
+.foot{ margin-top:4mm; padding-top:2.6mm; border-top:1.1mm solid var(--azure);
+       display:flex; align-items:flex-end; gap:7mm; }
+.foot .logos{ display:flex; align-items:center; gap:7mm; }
+.foot .logos img{ height:var(--logo-h); width:auto; display:block; object-fit:contain; }
+.foot .sup{ flex:1; font-size:10.6pt; line-height:1.3; }
+.foot .cran{ text-align:right; font-size:10.6pt; line-height:1.3; white-space:nowrap; }
+.foot .cran .url{ font-weight:700; font-size:12.6pt; }
+.foot .cran .conf{ color:var(--caption); }
+</style>
+</head>
+<body>
+<div class="poster">
+
+<!-- ══════════════════════════ HEADER ══════════════════════════ -->
+<header>
+  <div class="headrow">
+    <div class="logo-wrap"><img src="img/true/LogoCranfield.png" alt="Cranfield University"></div>
+    <div class="logo-wrap"><img src="img/true/LogoESTIA.png" alt="ESTIA Institute of Technology"></div>
+    <div class="logo-wrap"><img src="img/true/LogoALTEN.png" alt="ALTEN"></div>
+    <div class="titles">
+      <div class="msc">MSc in Computational Software Techniques in Engineering : Digital Engineering Design</div>
+      <h1>Measuring the gap between <em>declared</em> and <em>real</em> urgency</h1>
+      <div class="sub">SupplyScore, a cognitive digital twin that tells you
+        when you are not worried enough, before the line stops.</div>
+    </div>
+  </div>
+  <div class="byline">
+    <b>John HOARAU 484338</b>
+    <span class="dot">|</span> R&amp;D Intern, Direction Innovation Numérique, ALTEN
+    <span class="dot">|</span> Individual Research Project 2025/2026
+  </div>
+  <div class="key-banner">
+    <div class="key-card">
+      <span class="lbl">BOTTLENECK FOUND UNAIDED</span>
+      The twin correctly diagnosed the bottleneck. Without any manual hints, the system flagged the semiconductor foundry as the #1 critical risk in <span class="num">7 out of 10</span> decisive turns, mirroring the 2021 chip crisis.
+    </div>
+    <div class="key-card">
+      <span class="lbl">PANIC IS CONTAGIOUS</span>
+      Panic contagion is quantifiable. Nodes with zero physical disruptions artificially inflated their urgency by <span class="num">+0.079</span> purely due to negative press news. The tool successfully filters out this media-driven panic.
+    </div>
+    <div class="key-card">
+      <span class="lbl">HIDDEN RISK PREDICTS TROUBLE</span>
+      Hidden risk is a precursor to operational failure. When human operators under-report urgency (Hidden Risk H), the probability of missing critical milestones jumps from <span class="num">10%</span> to <span class="num">25%</span>. The tool provides an early warning system.
+    </div>
+  </div>
+</header>
+
+<!-- ══════════════════════════ BODY ══════════════════════════ -->
+<div class="body">
+<div class="tl">
+
+  <!-- ─────────── 1. THE PROBLEM ─────────── -->
+  <div class="step">
+    <span class="dot">1</span>
+    <span class="when">THE PROBLEM</span>
+    <h3>Urgency is felt, not measured</h3>
+    <ul>
+      <li>Coordinators triage by <b>what is loudest</b> instead of what matters most</li>
+      <li>The Mere-Urgency Effect makes a minor late parcel outrank a severe wafer shortage that stops an assembly line six weeks later</li>
+      <li>The default human response to delay is to declare every shipment as critically urgent</li>
+      <li>This "crying wolf" cycle saturates premium transport capacities and causes severe cognitive fatigue for supply chain teams</li>
+      <li>Traditional scheduling systems (MRPs) remain operationally fragile because they completely ignore these subjective cognitive states</li>
+      <li>No existing tool formally measures the mathematical gap between subjective declared urgency and objective physical reality</li>
+    </ul>
+  </div>
+  <div class="pane">
+    <figure class="fig-single frame">
+      <img src="img/generated/urgency_scale.jpg" alt="Subjective urgency outweighs physical reality">
+      <figcaption>The Mere-Urgency Effect: Subjective panic and perceived urgency heavily outweigh objective physical reality, driving the "crying wolf" cycle.</figcaption>
+    </figure>
+  </div>
+
+  <!-- ─────────── 2. THE INSTRUMENT ─────────── -->
+  <div class="step">
+    <span class="dot">2</span>
+    <span class="when">WHAT WAS BUILT</span>
+    <h3>Two flows, one score</h3>
+    <ul>
+      <li>Real urgency U<sub>r</sub> is computed from 6 physical KPIs (time, capacity, performance, risk, cost, CO₂) using noisy-OR to prevent double-counting</li>
+      <li>These physical KPIs are weighted using the Triangular Fuzzy Best-Worst Method (F-BWM) to solve non-linear constrained optimization</li>
+      <li>Declared urgency U<sub>d</sub> is elicited via human pairwise comparisons (AHP) on 4 subjective criteria, guarded by a strict consistency check</li>
+      <li>The system propagates subjective urgency downstream and physical risk upstream through a Directed Acyclic Graph (DAG)</li>
+      <li>Adequacy Score A(t) measures the final gap. It uses prospect theory to penalize <b>Hidden Risk</b> exactly 2.25× more than False Urgency</li>
+    </ul>
+  </div>
+  <div class="pane">
+    <div class="img-row" style="grid-template-columns: repeat(3, 1fr); grid-template-rows: 1fr 1fr;">
+      <!-- 1: 6 KPIs -->
+      <figure class="frame">
+        <img src="img/generated/noisy_or_kpi.jpg" alt="Noisy-OR KPIs">
+      </figure>
+
+      <!-- 2: F-BWM -->
+      <figure class="frame">
+        <img src="img/generated/fbwm_optimization.jpg" alt="F-BWM Optimization">
+      </figure>
+
+      <!-- 3: AHP -->
+      <figure class="frame">
+        <img src="img/generated/ahp_criteria.jpg" alt="AHP Criteria">
+      </figure>
+
+      <!-- 4: DAG -->
+      <figure class="frame">
+        <img src="img/generated/dag_propagation.jpg" alt="DAG Propagation">
+      </figure>
+
+      <!-- 5: Adequacy Score -->
+      <figure class="frame">
+        <img src="img/generated/prospect_theory_curve.jpg" alt="Prospect Theory Curve">
+      </figure>
+
+      <!-- 6: Final Score Output Badge -->
+      <figure class="frame" style="display:flex; align-items:center; justify-content:center; background:#043962;">
+        <div style="color:#fff; font-weight:bold; font-size:32pt; font-family:sans-serif;">A(t)</div>
+        <div style="color:#FFDA65; margin-left:15px; font-size:14pt; font-family:sans-serif; font-weight:700;">Output<br>Score</div>
+      </figure>
+
+    </div>
+    <figcaption style="flex:none">Step-by-step processing pipeline: (1) Noisy-OR KPIs (2) F-BWM (3) AHP Criteria (4) Graph Propagation (5) Adequacy Penalty Computation.</figcaption>
+  </div>
+
+  <!-- ─────────── 3. DELIVERED ─────────── -->
+  <div class="step">
+    <span class="dot">3</span>
+    <span class="when">DELIVERED</span>
+    <h3>Built for production</h3>
+    <ul>
+      <li><b>65 Python modules</b>, backed by 1,425 unit tests and 90%+ code coverage</li>
+      <li>Multi-tenant SQLite architecture ensures total data isolation and security between competing suppliers</li>
+      <li>Strict MutationService intercepts all data writes to guarantee complete forensic auditability</li>
+      <li>The stochastic PERT engine runs 10,000 Monte Carlo simulations to calculate objective delay probabilities</li>
+      <li>Real-time Dash interface processes the AHP questionnaires and instantly outputs PROMETHEE II priority rankings</li>
+    </ul>
+  </div>
+  <div class="pane">
+    <div class="img-row cols-3">
+      <figure class="frame crop">
+        <img src="img/true/3/1.jpg" alt="Dashboard — network adequacy">
+        <figcaption>Network adequacy per node, live.</figcaption>
+      </figure>
+      <figure class="frame crop">
+        <img src="img/true/3/2.jpg" alt="PROMETHEE ranking & time series">
+        <figcaption>PROMETHEE II priority ranking &amp; temporal evolution.</figcaption>
+      </figure>
+      <figure class="frame crop">
+        <img src="img/true/3/3.jpg" alt="Node detail table">
+        <figcaption>Per-node scores: U<sub>d</sub>, U<sub>r</sub>, A, F, H.</figcaption>
+      </figure>
+    </div>
+  </div>
+
+  <!-- ─────────── 4. THE PROOF ─────────── -->
+  <div class="step hero">
+    <span class="dot">4</span>
+    <span class="when">THE PROOF</span>
+    <h3>HÉLIOS: the chip crisis replayed</h3>
+    <ul>
+      <li>A serious game validated the twin against 12 historical supply chain disruptions across 8 global nodes</li>
+      <li>The simulation accurately modeled the 2021 Texas freeze, the Suez Canal blockage, and the Taiwan drought</li>
+      <li>Over 18 rigorous turns, we compared human operator decisions against 8 autonomous LLM pilot agents</li>
+      <li>Nothing told the digital twin which node mattered most during the cascading failures</li>
+      <li><b>It found the semiconductor foundry on its own</b> and successfully predicted the exact week the final assembly line would halt</li>
+    </ul>
+  </div>
+  <div class="pane">
+    <div class="img-row layout-2plus1">
+
+      <figure class="frame span-rows">
+        <img src="img/true/4/2.png" alt="Validation: DryRun vs LLM Pilot per node">
+        <figcaption>DryRun (synthetic) vs LLM Pilot (8 autonomous agents) over 18 turns.</figcaption>
+      </figure>
+
+      <figure class="frame">
+        <img src="img/true/4/3.png" alt="Network graph — final adequacy">
+        <figcaption>The foundry was identified as the bottleneck unaided.</figcaption>
+      </figure>
+
+      <figure class="frame">
+        <img src="img/true/4/1.png" alt="Adequacy per turn">
+        <figcaption>Network adequacy through the five crisis phases.</figcaption>
+      </figure>
+
+    </div>
+
+
+  </div>
+
+  <!-- ─────────── 5. NEXT ─────────── -->
+  <div class="step last">
+    <span class="dot">5</span>
+    <span class="when">NEXT</span>
+    <h3>From weekly review to live arbitration</h3>
+    <ul>
+      <li><b>Phase 1</b>: Deploying the frozen instrument across ALTEN's aerospace tier-1 supply networks next quarter</li>
+      <li><b>Phase 2</b>: Calibrating the Prospect Theory thresholds using live operator feedback and historical anomaly data</li>
+      <li><b>Phase 3</b>: Full integration with live SAP ERP data streams to replace the weekly manual questionnaire cycle</li>
+      <li><b>Phase 4</b>: Launching autonomous decision-guidance agents to proactively suggest optimal expediting paths and transport modes</li>
+    </ul>
+  </div>
+  <div class="pane">
+  </div>
+
+</div>
+</div><!-- /body -->
+
+<!-- ══════════════════════════ FOOTER ══════════════════════════ -->
+<footer class="foot">
+  <div class="logos">
+    <img src="img/true/LogoCranfield.png" alt="Cranfield University">
+    <img src="img/true/LogoESTIA.png" alt="ESTIA Institute of Technology">
+    <img src="img/true/LogoALTEN.png" alt="ALTEN">
+  </div>
+  <div class="sup">
+    <b>Industrial supervisors:</b> Sébastien Perthuisot, Research Programme Director DIN ALTEN, Quality and
+    Supply Chain Expert <br> Fabien Jules, Innovation Officer, ALTEN<br>
+    <b>Academic supervisors:</b> David Gomez, ESTIA Institute of Technology <br> Dr Peter
+    Sherar, CCES, Cranfield University
+  </div>
+  <div class="cran">
+    <span class="url">WWW.CRANFIELD.AC.UK</span><br>
+    Individual Research Project 2025/2026<br>
+    <span class="conf">ALTEN, Direction Innovation Numérique</span>
+  </div>
+</footer>
+
+</div><!-- /poster -->
+</body>
+</html>

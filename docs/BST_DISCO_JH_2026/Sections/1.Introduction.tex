@@ -16,11 +16,13 @@ articulates three complementary pillars:
     \item \textbf{Lean}: Minimisation of waste (cost, delay, over-stock) through
           pull-flow logic and real-time scheduling.
     \item \textbf{Green}: Minimisation of carbon footprint per transport leg, aligned with the \gls{glec} Framework v3.2~\autocite{smartfreight2023glec} and ISO~14083:2023~\autocite{iso14083}.
-    \item \textbf{Predictive}: Anticipation of disruptions through probabilistic modelling and machine learning, consistent with the digital supply chain twin paradigm~\autocite{ivanov2020digital}.
+    \item \textbf{Predictive}: Anticipation of disruptions through probabilistic modelling and machine learning, consistent with the digital supply chain twin approach~\autocite{ivanov2020digital}.
 \end{itemize}
 
-This programme places ALTEN-DIN within the broader Industry~4.0 movement \autocite{kagermann2013industry}, which leverages cyber-physical systems, \gls{iot}, and
-digital twins to transform reactive supply chains into adaptive, self-organising networks. The Physical Internet framework~\autocite{montreuil2011toward}, proposing
+This programme places ALTEN-DIN within the broader Industry~4.0 movement \autocite{kagermann2013industry}, which uses cyber-physical systems, \gls{iot}, and
+digital twins to transform reactive supply chains into adaptive, self-organising networks.
+
+The Physical Internet framework~\autocite{montreuil2011toward}, proposing
 open, mutualized logistics networks analogous to internet routing protocols, provides the theoretical backdrop for the supply chain simulation environment described below.
 
 \subsubsection{Project: DISCO Digital Twin}
@@ -28,6 +30,13 @@ open, mutualized logistics networks analogous to internet routing protocols, pro
 DISCO (Supply Chain Illustrator) is a serious game and digital twin developed by the DIN to simulate a complete supply chain for a fictitious satellite product. It involves
 22 component suppliers in domains such as structural assemblies, optical systems, and embedded electronics~\autocite{baxas2025architecture}. Players assume the role of
 supply chain buyers and make decisions about supplier selection, transport routes, and factory allocation. The DISCO technology stack is summarised in Table~\ref{tab:disco_stack}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\linewidth]{Images/1.Introduction/disco_map.png}
+    \caption{The DISCO serious game: 22 suppliers, transport decisions, and the three scored dimensions.}
+    \label{fig:todraw_disco}
+\end{figure}
 
 The scoring engine applies Min-Max normalisation over the values of the current game
 session:
@@ -57,10 +66,9 @@ session:
 	\end{tabularx}
 	\end{table}
 
-with analogous formulae for cost and risk. The scale ranges from $[1, 10]$, where $1 \to$ best
-performance and $10 \to$ worst.
+with analogous formulae for cost and risk. The scale ranges from 1 to 10, where 1 corresponds to the best possible performance and 10 to the worst.
 
-To support the showcase and continuous improvement of mature supply chain capabilities, the DISCO digital twin incorporates several specialized modules developed in prior research cycles: The routing module~\autocite{baulain2024internet}, the risk scorer~\autocite{kabouche2025scoring}, the CO\textsubscript{2} quantification methodology~\autocite{cordova2024green}, and the software integration framework~\autocite{auclin2025bst}.
+To support the demonstration and continuous improvement of mature supply chain capabilities, the DISCO digital twin incorporates several specialized modules developed in prior research cycles: The routing module~\autocite{baulain2024internet}, the risk scorer~\autocite{kabouche2025scoring}, the CO\textsubscript{2} quantification methodology~\autocite{cordova2024green}, and the software integration framework~\autocite{auclin2025bst}.
 
 
 	\begin{table}[ht]
@@ -85,11 +93,11 @@ To support the showcase and continuous improvement of mature supply chain capabi
 \subsubsection{Capitalisation of Prior ALTEN-DIN Research}
 %% ─────────────────────────────────────────────────────────────────────────
 
-This R\&D operation is situated within a body of prior DIN research on the DISCO
-programme. These works form the organisational and thematic context of the present
+This R\&D operation is situated within a body of prior DIN research conducted under
+the Smart Green Digital Supply Chain programme. These works form the organisational and thematic context of the present
 operation; the system delivered here (SupplyScore, Section~\ref{sec:Operations}) is
-a standalone Python application and does not integrate with these modules yet ---
-their coupling is a stated perspective (Section~\ref{sec:Conclusions}), not a
+a standalone Python application and does not integrate with these modules yet.
+Their coupling is a stated perspective of the programme, not a
 delivered capability.
 
 \textbf{Baxas~\autocite{baxas2025architecture}} defines the DISCO software
@@ -113,35 +121,7 @@ System interface providing real-time transit-time extraction.
 
 
 %% ─────────────────────────────────────────────────────────────────────────
-\subsection{R\&D Operation Brief}
+\subsection{Document Structure}
 %% ─────────────────────────────────────────────────────────────────────────
 
-\subsubsection{Title and Objectives}
-
-The R\&D operation is entitled: \textit{``Adequacy Score Between Declared and Real
-Urgency in a Smart Green Supply Chain Digital Twin''}. Its four operational objectives
-are:
-
-\begin{enumerate}[label=\textbf{O\arabic*.}]
-    \item Define a multi-block, DAG-propagated real urgency $U_r(t)$ and a cognitive adequacy score $A(t) \in [0, 100]$ to measure the gap between the human planner's declared urgency $U_d$ and the digital twin's operational state.
-    \item Develop and implement a network propagation and criticality-driven prioritisation layer, combining PROMETHEE~II outranking with systematic shock simulation, to identify structurally critical nodes.
-    \item Validate the adequacy-driven prioritisation logic empirically, through worked scenarios and a calibration service comparing the hidden-risk signal against recorded operational outcomes.
-    \item Operationalise the framework within a persistent, multi-tenant digital twin exercised as a weekly-cadence serious game, integrating a calibrated event engine, explainability, export, and administrative hardening.
-\end{enumerate}
-
-\subsubsection{Research Questions}
-
-Four core research questions drive the scientific approach:
-
-\begin{description}
-    \item[RQ1 (Multi-block Real Urgency)] How can a physically and operationally grounded real urgency $U_r(t)$ be computed dynamically in a digital twin from heterogeneous KPI blocks, and propagated coherently across a multi-tier supply chain graph?
-    \item[RQ2 (Cognitive Adequacy)] How should an adequacy score $A(t)$ be formulated to measure the alignment between operator declared urgency $U_d$ and computed real urgency $U_r(t)$, asymmetrically penalizing under-triage vs.\ over-triage, and can this scoring demonstrate predictive validity against real outcomes?
-    \item[RQ3 (Network Prioritisation)] How can pairwise elicitation (AHP, Fuzzy-BWM) be combined with outranking (PROMETHEE~II) and shock simulation to identify structurally critical nodes?
-    \item[RQ4 (Operational Validation)] How can this cognitive-physical framework be operationalised and empirically validated within a persistent, multi-tenant digital twin exercised as a weekly-cadence serious game?
-\end{description}
-
-These questions define the scientific scope of this \gls{bst}: \textbf{RQ1} addresses multi-block urgency computation and propagation, \textbf{RQ2} defines the adequacy score formulation and its empirical validity, \textbf{RQ3} addresses network-wide criticality and prioritisation, and \textbf{RQ4} addresses operational validation within the digital twin.
-
-\subsubsection{Document Structure}
-
-This document is structured as follows. Section~\ref{sec:Problem} formalises the scientific problem and outlines the primary research challenges. Section~\ref{sec:SOTA} reviews the state of the art across thematic subsections. Section~\ref{sec:Operations} details the R\&D iterations, methodology, and experimental results. Finally, Section~\ref{sec:Conclusions} evaluates the research questions and discusses the project's evolution.
+This document is structured as follows. Section~\ref{sec:Problem} formalises the scientific problem, states the operation's objectives, research questions and hypotheses, and outlines the primary research challenges. Section~\ref{sec:SOTA} reviews the state of the art across thematic subsections. Section~\ref{sec:Operations} details the R\&D iterations, the methodology, and the serious-game validation campaign. Finally, Section~\ref{sec:Conclusions} states the documented limitations of the delivered framework and closes with a personal assessment.

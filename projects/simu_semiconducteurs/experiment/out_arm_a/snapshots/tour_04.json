@@ -1,0 +1,268 @@
+{
+  "tour": 4,
+  "horodatage": 1785163988.7610426,
+  "couverture": {
+    "a_jour": 0,
+    "total_actifs": 8
+  },
+  "nodes": {
+    "orbitalys": {
+      "name": "Orbitalys",
+      "rank": 0,
+      "status": "active",
+      "ud": 0.038640033301680976,
+      "ur": 0.7599929171297186,
+      "adequation": 8.887092384205154,
+      "false_urgency": 0.0,
+      "hidden_risk": 0.7213528838280376,
+      "ud_local": 0.03864003330168093,
+      "ur_local": 0.035159152756720546,
+      "blocs": {
+        "u_time": 6.659769458128295e-09,
+        "u_cap": null,
+        "u_perf": null,
+        "u_risk": 0.03515914633110295,
+        "u_cost": null,
+        "u_co2": null
+      }
+    },
+    "aviosys": {
+      "name": "AvioSys Intégration",
+      "rank": 1,
+      "status": "active",
+      "ud": 0.4720010595550368,
+      "ur": 0.9390587142480233,
+      "adequation": 23.562757582363993,
+      "false_urgency": 0.0,
+      "hidden_risk": 0.46705765469298655,
+      "ud_local": 0.4529777991015079,
+      "ur_local": 0.8783524244826004,
+      "blocs": {
+        "u_time": 0.8652504715859256,
+        "u_cap": 0.0,
+        "u_perf": null,
+        "u_risk": 0.09723190166880302,
+        "u_cost": null,
+        "u_co2": null
+      }
+    },
+    "electis": {
+      "name": "Électis EMS",
+      "rank": 2,
+      "status": "active",
+      "ud": 0.5989331077168161,
+      "ur": 0.7129058735827998,
+      "adequation": 68.35708820518177,
+      "false_urgency": 0.0,
+      "hidden_risk": 0.1139727658659837,
+      "ud_local": 0.3556114420062696,
+      "ur_local": 0.3935041099934641,
+      "blocs": {
+        "u_time": 0.00016667554635929616,
+        "u_cap": 0.30000000000000004,
+        "u_perf": 0.07768194264999995,
+        "u_risk": 0.04048869005511624,
+        "u_cost": 0.02079999999979198,
+        "u_co2": null
+      }
+    },
+    "compodis": {
+      "name": "CompoDis Europe",
+      "rank": 3,
+      "status": "active",
+      "ud": 0.8240472291836736,
+      "ur": 0.6382065827954547,
+      "adequation": 77.26134532437959,
+      "false_urgency": 0.18584064638821884,
+      "hidden_risk": 0.0,
+      "ud_local": 0.6621837692451056,
+      "ur_local": 0.46263161710946843,
+      "blocs": {
+        "u_time": 0.3280062024464093,
+        "u_cap": 0.17142857142857149,
+        "u_perf": null,
+        "u_risk": 0.03488982982102917,
+        "u_cost": 0.0,
+        "u_co2": null
+      }
+    },
+    "transglobal": {
+      "name": "TransGlobal Fret",
+      "rank": 3,
+      "status": "active",
+      "ud": 0.4846700425103888,
+      "ur": 0.08208144931412709,
+      "adequation": 59.562425839416996,
+      "false_urgency": 0.4025885931962617,
+      "hidden_risk": 0.0,
+      "ud_local": 0.26437494122807015,
+      "ur_local": 0.08208144931412709,
+      "blocs": {
+        "u_time": 0.0,
+        "u_cap": null,
+        "u_perf": null,
+        "u_risk": 0.08208144931412709,
+        "u_cost": 0.0,
+        "u_co2": null
+      }
+    },
+    "meridian": {
+      "name": "Meridian Semi",
+      "rank": 4,
+      "status": "active",
+      "ud": 0.46414894444444443,
+      "ur": 0.1347401601988254,
+      "adequation": 64.94001717295203,
+      "false_urgency": 0.32940878424561904,
+      "hidden_risk": 0.0,
+      "ud_local": 0.46414894444444443,
+      "ur_local": 0.1347401601988254,
+      "blocs": {
+        "u_time": 2.663907788802433e-09,
+        "u_cap": 0.10071942445952592,
+        "u_perf": null,
+        "u_risk": 0.037831055578933515,
+        "u_cost": null,
+        "u_co2": null
+      }
+    },
+    "novafab": {
+      "name": "NovaFab Semiconductors",
+      "rank": 4,
+      "status": "active",
+      "ud": 0.8645626062383858,
+      "ur": 0.3630345614256064,
+      "adequation": 53.04511671463944,
+      "false_urgency": 0.5015280448127794,
+      "hidden_risk": 0.0,
+      "ud_local": 0.47577524536333227,
+      "ur_local": 0.3128065482320218,
+      "blocs": {
+        "u_time": 5.327818297651277e-09,
+        "u_cap": 0.10071942445952592,
+        "u_perf": 0.10652500000000009,
+        "u_risk": 0.14473362720107086,
+        "u_cost": 0.0,
+        "u_co2": null
+      }
+    },
+    "silpure": {
+      "name": "SilPure Materials",
+      "rank": 5,
+      "status": "active",
+      "ud": 0.7787670289335131,
+      "ur": 0.12181919822906828,
+      "adequation": 44.233817572757644,
+      "false_urgency": 0.6569478307044448,
+      "hidden_risk": 0.0,
+      "ud_local": 0.4396415640872203,
+      "ur_local": 0.12181919822906828,
+      "blocs": {
+        "u_time": 0.00016667021854371855,
+        "u_cap": 0.0,
+        "u_perf": null,
+        "u_risk": 0.10301553027377996,
+        "u_cost": 0.02079999999979198,
+        "u_co2": null
+      }
+    }
+  },
+  "criticite": [
+    {
+      "node_id": "orbitalys",
+      "rank": 1,
+      "delta_ur_final": 0.24000708287028139,
+      "delta_ur_max": 0.24000708287028139,
+      "delta_ell_final": 20.687473748847047,
+      "delta_ell_max": 20.687473748847047,
+      "nb_impactes": 1,
+      "p_impact_final": 0.094,
+      "q50_ell": 0.47503350738469585,
+      "q90_ell": 1.1681806879446408
+    },
+    {
+      "node_id": "aviosys",
+      "rank": 2,
+      "delta_ur_final": 0.04703891342162558,
+      "delta_ur_max": 0.06094128575197666,
+      "delta_ell_final": 0.218143182695423,
+      "delta_ell_max": 18.616638725292745,
+      "nb_impactes": 2,
+      "p_impact_final": 0.0,
+      "q50_ell": 0.0,
+      "q90_ell": 0.03549971689356157
+    },
+    {
+      "node_id": "electis",
+      "rank": 3,
+      "delta_ur_final": 0.018869981463073837,
+      "delta_ur_max": 0.2870941264172002,
+      "delta_ell_final": 0.08188555719807655,
+      "delta_ell_max": 20.223208538031148,
+      "nb_impactes": 3,
+      "p_impact_final": 0.0,
+      "q50_ell": 0.0008424441852667996,
+      "q90_ell": 0.040543227069376186
+    },
+    {
+      "node_id": "compodis",
+      "rank": 4,
+      "delta_ur_final": 0.01115905285039931,
+      "delta_ur_max": 0.3617934172045453,
+      "delta_ell_final": 0.04761027588449207,
+      "delta_ell_max": 20.102194447221834,
+      "nb_impactes": 4,
+      "p_impact_final": 0.0,
+      "q50_ell": 0.0,
+      "q90_ell": 0.02075163908663402
+    },
+    {
+      "node_id": "novafab",
+      "rank": 5,
+      "delta_ur_final": 0.00950160915472853,
+      "delta_ur_max": 0.6369654385743936,
+      "delta_ell_final": 0.04039382551224091,
+      "delta_ell_max": 20.34812642801168,
+      "nb_impactes": 5,
+      "p_impact_final": 0.0,
+      "q50_ell": 0.005035829518881263,
+      "q90_ell": 0.022558562199728627
+    },
+    {
+      "node_id": "transglobal",
+      "rank": 6,
+      "delta_ur_final": 0.007163643304337386,
+      "delta_ur_max": 0.9179185506858729,
+      "delta_ell_final": 0.030302140308467562,
+      "delta_ell_max": 20.637619248187363,
+      "nb_impactes": 4,
+      "p_impact_final": 0.0,
+      "q50_ell": 0.010391449668643915,
+      "q90_ell": 0.020297241373454344
+    },
+    {
+      "node_id": "silpure",
+      "rank": 7,
+      "delta_ur_final": 0.0054012651191074346,
+      "delta_ur_max": 0.8781808017709317,
+      "delta_ell_final": 0.02276170032956193,
+      "delta_ell_max": 20.593363083250026,
+      "nb_impactes": 6,
+      "p_impact_final": 0.0,
+      "q50_ell": 0.007154301907930316,
+      "q90_ell": 0.02014349252055192
+    },
+    {
+      "node_id": "meridian",
+      "rank": 8,
+      "delta_ur_final": 0.0,
+      "delta_ur_max": 0.8652598398011746,
+      "delta_ell_final": 0.0,
+      "delta_ell_max": 20.57854044090292,
+      "nb_impactes": 1,
+      "p_impact_final": 0.0,
+      "q50_ell": 0.0,
+      "q90_ell": 0.0
+    }
+  ]
+}

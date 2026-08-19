@@ -1,0 +1,114 @@
+<svg width="1280" height="720" viewBox="0 0 1280 720" xmlns="http://www.w3.org/2000/svg">
+  <rect id="bg" x="0" y="0" width="1280" height="720" fill="#FFFFFF"/>
+
+  <g id="p05-header">
+    <text x="56" y="60" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" letter-spacing="2" fill="#6B7A85">PARTIE I · FONDATIONS</text>
+    <text x="54" y="104" font-family="Segoe UI, Arial, sans-serif" font-size="42" font-weight="800" fill="#1E4258">Neuf hypothèses qui garantissent la cohérence du système</text>
+    <rect x="56" y="118" width="64" height="4" fill="#2C5F7C"/>
+  </g>
+
+  <g id="p05-card-01">
+    <rect x="56" y="150" width="373" height="154" fill="#F4F6F8" stroke="#D8DEE3" stroke-width="1"/>
+    <text x="409" y="170" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#9AA5AC">01</text>
+    <use data-icon="tabler-outline/sitemap" x="76" y="168" width="28" height="28" fill="#2C5F7C" stroke-width="2"/>
+    <text x="118" y="189" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700" fill="#1E4258">DAG acyclique</text>
+    <text x="76" y="222" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#6B7A85">
+      <tspan x="76" dy="0">Rang 0 = client final ; tri topologique</tspan>
+      <tspan x="76" dy="21">O(V+E), cycles rejetés en base</tspan>
+    </text>
+  </g>
+
+  <g id="p05-card-02">
+    <rect x="453" y="150" width="373" height="154" fill="#F4F6F8" stroke="#D8DEE3" stroke-width="1"/>
+    <text x="806" y="170" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#9AA5AC">02</text>
+    <use data-icon="tabler-outline/calendar" x="473" y="168" width="28" height="28" fill="#2C5F7C" stroke-width="2"/>
+    <text x="515" y="189" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700" fill="#1E4258">Discrétisation ISO</text>
+    <text x="473" y="222" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#6B7A85">
+      <tspan x="473" dy="0">Cycle hebdomadaire strict ; clé</tspan>
+      <tspan x="473" dy="21">iso_week, comparaisons alignées</tspan>
+    </text>
+  </g>
+
+  <g id="p05-card-03">
+    <rect x="850" y="150" width="373" height="154" fill="#F4F6F8" stroke="#D8DEE3" stroke-width="1"/>
+    <text x="1203" y="170" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#9AA5AC">03</text>
+    <use data-icon="tabler-outline/trending-down" x="870" y="168" width="28" height="28" fill="#2C5F7C" stroke-width="2"/>
+    <text x="912" y="189" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700" fill="#1E4258">Damping descendant</text>
+    <text x="870" y="222" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#6B7A85">
+      <tspan x="870" dy="0">Ud amorti en aval, facteur γ ∈ [0,1] :</tspan>
+      <tspan x="870" dy="21">la panique ne sature jamais le réseau</tspan>
+    </text>
+  </g>
+
+  <g id="p05-card-04">
+    <rect x="56" y="328" width="373" height="154" fill="#F4F6F8" stroke="#D8DEE3" stroke-width="1"/>
+    <text x="409" y="348" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#9AA5AC">04</text>
+    <use data-icon="tabler-outline/trending-up" x="76" y="346" width="28" height="28" fill="#2C5F7C" stroke-width="2"/>
+    <text x="118" y="367" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700" fill="#1E4258">Contamination ascendante</text>
+    <text x="76" y="400" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#6B7A85">
+      <tspan x="76" dy="0">Ur amplifié en amont, facteur β ∈ [0,1] :</tspan>
+      <tspan x="76" dy="21">le risque physique remonte la chaîne</tspan>
+    </text>
+  </g>
+
+  <g id="p05-card-05">
+    <rect x="453" y="328" width="373" height="154" fill="#F4F6F8" stroke="#D8DEE3" stroke-width="1"/>
+    <text x="806" y="348" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#9AA5AC">05</text>
+    <use data-icon="tabler-outline/calculator" x="473" y="346" width="28" height="28" fill="#2C5F7C" stroke-width="2"/>
+    <text x="515" y="367" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700" fill="#1E4258">Indépendance Noisy-OR</text>
+    <text x="473" y="400" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#6B7A85">
+      <tspan x="473" dy="0">6 blocs KPI indépendants ;</tspan>
+      <tspan x="473" dy="21">agrégation probabiliste</tspan>
+    </text>
+  </g>
+
+  <g id="p05-card-06">
+    <rect x="850" y="328" width="373" height="154" fill="#F4F6F8" stroke="#D8DEE3" stroke-width="1"/>
+    <text x="1203" y="348" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#9AA5AC">06</text>
+    <use data-icon="tabler-outline/circle-check" x="870" y="346" width="28" height="28" fill="#2C5F7C" stroke-width="2"/>
+    <text x="912" y="367" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700" fill="#1E4258">Règles de statut</text>
+    <text x="870" y="400" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#6B7A85">
+      <tspan x="870" dy="0">DONE → Ur local = 0 (Ud propage toujours) ;</tspan>
+      <tspan x="870" dy="21">ABANDONED → Ur local = 1</tspan>
+    </text>
+  </g>
+
+  <g id="p05-card-07">
+    <rect x="56" y="506" width="373" height="154" fill="#F4F6F8" stroke="#D8DEE3" stroke-width="1"/>
+    <text x="409" y="526" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#9AA5AC">07</text>
+    <use data-icon="tabler-outline/dice-5" x="76" y="524" width="28" height="28" fill="#2C5F7C" stroke-width="2"/>
+    <text x="118" y="545" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700" fill="#1E4258">Indépendance PERT</text>
+    <text x="76" y="578" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#6B7A85">
+      <tspan x="76" dy="0">Délais stochastiques indépendants ;</tspan>
+      <tspan x="76" dy="21">simulation Monte Carlo rapide O(N·n)</tspan>
+    </text>
+  </g>
+
+  <g id="p05-card-08">
+    <rect x="453" y="506" width="373" height="154" fill="#F4F6F8" stroke="#D8DEE3" stroke-width="1"/>
+    <text x="806" y="526" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#9AA5AC">08</text>
+    <use data-icon="tabler-outline/scale" x="473" y="524" width="28" height="28" fill="#B06000" stroke-width="2"/>
+    <text x="515" y="545" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700" fill="#1E4258">Perte cognitive asymétrique</text>
+    <text x="473" y="578" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#6B7A85">
+      <tspan x="473" dy="0"><tspan font-weight="700" fill="#B06000">λ_under=2.25</tspan> &gt; λ_over=1.0 :</tspan>
+      <tspan x="473" dy="21">la complaisance coûte plus cher</tspan>
+    </text>
+  </g>
+
+  <g id="p05-card-09">
+    <rect x="850" y="506" width="373" height="154" fill="#F4F6F8" stroke="#D8DEE3" stroke-width="1"/>
+    <text x="1203" y="526" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#9AA5AC">09</text>
+    <use data-icon="tabler-outline/shield-check" x="870" y="524" width="28" height="28" fill="#2C5F7C" stroke-width="2"/>
+    <text x="912" y="545" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700" fill="#1E4258">Isolation multi-tenant</text>
+    <text x="870" y="578" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#6B7A85">
+      <tspan x="870" dy="0">1 base SQLite par nœud :</tspan>
+      <tspan x="870" dy="21">pas de verrous concurrents</tspan>
+    </text>
+  </g>
+
+  <g id="p05-footer">
+    <text x="56" y="700" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#9AA5AC">SupplyScore · Soutenance de thèse</text>
+    <text x="640" y="700" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#9AA5AC">Réf. hyp. DAG / asymétrie : Pearl (1988) ; Kim, Tong &amp; Peden (2020)</text>
+    <text x="1224" y="700" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#9AA5AC" text-anchor="end">05 / 28</text>
+  </g>
+</svg>

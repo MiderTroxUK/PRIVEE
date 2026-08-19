@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 
 from supplyscore.core.status_rules import effective_ur_local
 from supplyscore.domain.milestones import Milestone, next_active_milestone, theoretical_progress
-from supplyscore.domain.models import KPIBundle, TaskStatus
+from supplyscore.domain.models import KPIBundle, TaskStatus, TimeKPIs
 
 #: Noms des blocs d'urgence, dans l'ordre d'agrégation.
 BLOCKS: tuple[str, ...] = ("time", "cap", "perf", "risk", "cost", "co2")
@@ -207,6 +207,39 @@ class UrModel:
             return 1.0 if mu > slack_h else 0.0
         return _clip01(_normal_sf(slack_h, mu, std))
 
+    def u_base_jalon(self, slack_h: float, tk: TimeKPIs, progress: float) -> float:
+        """Socle probabiliste du retard, porté par le TRAVAIL RESTANT d'un jalon.
+
+        Le lead time nominal μ mesure un cycle COMPLET. Le comparer tel quel à
+        la marge d'un jalon déjà avancé confond « démarrer ET finir » avec
+        « finir » : le socle sature dès que μ dépasse la marge, quel que soit
+        l'avancement. Le travail restant vaut la fraction (1 − progress) du
+        cycle, donc par linéarité de la loi normale
+        L_restant ~ Normale((1 − p)·μ, (1 − p)·σ).
+
+        Conséquence voulue : un jalon à 90 % dont le cycle nominal est long
+        n'est plus déclaré perdu d'avance ; un jalon à 0 % retrouve
+        exactement le socle antérieur (la formule est un sur-ensemble).
+
+        Args:
+            slack_h: marge restante avant l'échéance du jalon (heures, >= 0).
+            tk: bloc ``time`` des KPIs (lead time nominal et sa dispersion).
+            progress: avancement du jalon actif dans [0, 1].
+
+        Returns:
+            P(L_restant > slack) dans [0, 1] ; 0.0 si le lead time est absent
+            (choix documenté : socle nul, la modulation planning joue seule).
+        """
+        if tk.lead_time_h is None:
+            return 0.0
+        reste = _clip01(1.0 - progress)
+        std = tk.lead_time_std_h
+        return self._p_late(
+            slack_h,
+            tk.lead_time_h * reste,
+            None if std is None else std * reste,
+        )
+
     def u_time(
         self,
         t: float,
@@ -229,7 +262,10 @@ class UrModel:
 
         - si t > d* : u_time = 1.0 (retard avéré) ;
         - sinon :
-            - u_base = P(L > d* − t), même loi normale qu'en v1 ;
+            - u_base = P(L_restant > d* − t) avec L_restant ~ Normale(
+              (1 − progress)·μ, (1 − progress)·σ) — cf.
+              :meth:`u_base_jalon` : le socle porte sur le travail RESTANT,
+              pas sur un cycle complet ;
             - p_th = clip01((t − s*) / (d* − s*)), avancement théorique
               (1.0 si d* <= s*) ;
             - r = p_th − M*.progress ∈ [−1, 1], retard d'avancement ;
@@ -241,6 +277,12 @@ class UrModel:
         Choix documenté : si ``lead_time_h`` est None alors qu'un jalon est
         actif, u_base = 0.0 (et non None) — le jalon fournit l'échéance et
         l'avancement, la modulation planning s'applique donc quand même.
+
+        Le socle réagit aux chocs par ``time.lead_time_h`` : c'est la seule
+        grandeur du bloc ``time`` qu'un événement peut déplacer. Voir
+        :func:`supplyscore.domain.events._arret_impact`, qui y route la durée
+        d'arrêt effective des chocs de capacité — sans quoi ce bloc reste
+        aveugle aux pannes, accidents, grèves et ruptures.
 
         Args:
             t: date courante (heures depuis t0 projet).
@@ -266,10 +308,7 @@ class UrModel:
         d_star = (m_star.deadline_ts - t0_ts) / 3600.0
         if t > d_star:
             return 1.0
-        if tk.lead_time_h is None:
-            u_base = 0.0  # Pas de lead time : socle nul, modulation planning seule.
-        else:
-            u_base = self._p_late(d_star - t, tk.lead_time_h, tk.lead_time_std_h)
+        u_base = self.u_base_jalon(d_star - t, tk, m_star.progress)
         p_th = theoretical_progress(m_star, t0_ts + t * 3600.0)
         r = p_th - m_star.progress
         return _clip01(u_base + self.kappa_retard * max(r, 0.0) - self.kappa_avance * max(-r, 0.0))

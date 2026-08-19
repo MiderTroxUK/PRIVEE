@@ -1,0 +1,53 @@
+<svg width="1280" height="720" viewBox="0 0 1280 720" xmlns="http://www.w3.org/2000/svg">
+  <rect id="bg" x="0" y="0" width="1280" height="720" fill="#FFFFFF"/>
+
+  <g id="p02-header">
+    <text x="56" y="60" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" letter-spacing="2" fill="#6B7A85">PARTIE 0 · OUVERTURE</text>
+    <text x="54" y="104" font-family="Segoe UI, Arial, sans-serif" font-size="42" font-weight="800" fill="#1E4258">Contexte, porteur du projet &amp; origine industrielle</text>
+    <rect x="56" y="118" width="64" height="4" fill="#2C5F7C"/>
+  </g>
+
+  <g id="p02-identity">
+    <text x="56" y="210" font-family="Segoe UI, Arial, sans-serif" font-size="34" font-weight="800" fill="#1E4258">John Hoarau</text>
+    <text x="56" y="240" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="400" fill="#6B7A85">Ingénieur industriel &amp; data scientist supply chain</text>
+
+    <use data-icon="tabler-outline/brain" x="56" y="280" width="22" height="22" fill="#2C5F7C" stroke-width="2"/>
+    <text x="86" y="297" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#22313A">Recherche opérationnelle &amp; simulation stochastique</text>
+
+    <use data-icon="tabler-outline/users" x="56" y="316" width="22" height="22" fill="#2C5F7C" stroke-width="2"/>
+    <text x="86" y="333" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#22313A">Facteurs humains en logistique</text>
+
+    <use data-icon="tabler-outline/database" x="56" y="352" width="22" height="22" fill="#2C5F7C" stroke-width="2"/>
+    <text x="86" y="369" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#22313A">Terrain : automobile &amp; aéronautique</text>
+
+    <rect x="56" y="410" width="56" height="3" fill="#B06000"/>
+
+    <text x="56" y="454" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="400" fill="#22313A">
+      <tspan x="56" dy="0">Né d'un constat répété : les MRP sont</tspan>
+      <tspan x="56" dy="34">optimaux sur le papier mais fragiles en</tspan>
+      <tspan x="56" dy="34">pratique, car ils ignorent l'état cognitif</tspan>
+      <tspan x="56" dy="34">des équipes qui les pilotent.</tspan>
+    </text>
+
+    <text x="56" y="606" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="400" fill="#22313A">
+      <tspan x="56" dy="0">Objectif : formaliser ces heuristiques avec</tspan>
+      <tspan x="56" dy="34">des outils <tspan font-weight="700" fill="#2C5F7C">MCDA et stochastiques robustes</tspan>,</tspan>
+      <tspan x="56" dy="34">puis les déployer dans un vrai logiciel.</tspan>
+    </text>
+  </g>
+
+  <g id="p02-figure">
+    <image href="../images/02-onboarding.png" x="548" y="212" width="628" height="306" preserveAspectRatio="xMidYMid meet"/>
+    <rect x="548" y="212" width="628" height="306" fill="none" stroke="#D8DEE3" stroke-width="1"/>
+    <text x="548" y="548" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="400" fill="#6B7A85">
+      <tspan x="548" dy="0">Onboarding d'un nouveau nœud en 4 étapes : identité,</tspan>
+      <tspan x="548" dy="24">cahier des charges, KPIs, première évaluation AHP</tspan>
+    </text>
+  </g>
+
+  <g id="p02-footer">
+    <line x1="56" y1="676" x2="1224" y2="676" stroke="#D8DEE3" stroke-width="1"/>
+    <text x="56" y="700" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#9AA5AC">SupplyScore · Soutenance de thèse</text>
+    <text x="1224" y="700" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#9AA5AC" text-anchor="end">02 / 28</text>
+  </g>
+</svg>

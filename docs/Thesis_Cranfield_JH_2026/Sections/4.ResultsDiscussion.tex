@@ -1,0 +1,928 @@
+%% ═══════════════════════════════════════════════════════════════════════════
+\subsection{Introduction}
+\label{sec:res_intro}
+%% ═══════════════════════════════════════════════════════════════════════════
+
+This section reports what was measured, in five parts. The delivered system and its
+mechanical validation come first, establishing that the pipeline runs end to end. The blind
+declaration arm follows, giving the pre-registered hypothesis verdicts. The forecast layer
+is then scored against recorded outcomes, which produces the central negative result of this
+thesis and, through it, a diagnosis of the mechanism behind it. The forecast-assisted arm
+measures what happens when that same forecast is placed in front of the declarant. Finally,
+a short opening reports a separate system that addresses the freshness limitation the rest
+of this work documents about itself.
+
+Every number below is regenerated from raw artifacts by the derivation script described in
+Section~\ref{sec:methods_repro}.
+
+%% ═══════════════════════════════════════════════════════════════════════════
+\subsection{The Delivered System}
+\label{sec:res_system}
+%% ═══════════════════════════════════════════════════════════════════════════
+
+SupplyScore is delivered as a standalone Python application: 73 modules across 10 packages,
+covered by 1\,779 automated test functions in 106 test files, driving a multi-page Dash web
+interface over a multi-tenant SQLite persistence layer. All of the mathematical objects of
+Section~\ref{sec:math_framework} are implemented and exercised: the six-block noisy-OR
+aggregation, the AHP elicitation with its consistency gate, the Fuzzy BWM weighting, the
+bidirectional DAG propagation, the asymmetric adequacy score, the Monte Carlo lead-time
+estimate, the PROMETHEE~II network outranking and the systematic shock-simulation
+criticality index.
+
+Three operational capabilities matter for what follows rather than being peripheral. The
+per-node explainability page reconstructs any score term by term, which is what allowed the
+diagnosis in Section~\ref{sec:res_mechanism} to be made from the application rather than by
+hand. The Excel export produces frozen data for analysis outside the tool, which the
+campaign relies on. The hardened persistence layer, with write-ahead logging, pre-backup
+integrity checks and automatic snapshots, is what makes a campaign database an auditable
+record weeks after the run.
+
+Two pages carry most of the operator's interaction with the system.
+Figure~\ref{fig:hebdo} shows the weekly review, whose four sections commit as one signed
+transaction so that no partial review can enter a node's history.
+Figure~\ref{fig:criticite} shows the ranking the shock simulation produces, which is the
+view a coordinator would use to decide where to look first.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.78\linewidth]{Images/4.Operations/hebdo.png}
+    \caption{The weekly review page}
+    \label{fig:hebdo}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.78\linewidth]{Images/4.Operations/criticite.png}
+    \caption{Network criticality ranking}
+    \label{fig:criticite}
+\end{figure}
+
+%% ═══════════════════════════════════════════════════════════════════════════
+\subsection{Mechanical Validation: The Synthetic Dry Run}
+\label{sec:res_dryrun}
+%% ═══════════════════════════════════════════════════════════════════════════
+
+Before any declaration data existed, the full campaign mechanics were exercised end to end on
+a disposable database. Five iterations calibrated the scenario and eliminated engine
+artefacts, and the final iteration replayed all nineteen turns with synthetic respondents
+standing in for the eight declarants.
+
+This is an engineering check, not a scientific one. The reason is in how the synthetic
+declarations were made: each one is anchored on the node's own local real urgency, following
+$1 + 8 \times U_{r,\text{local}}$ with a fixed panic, under-report or neutral bias per role.
+A declaration built that way cannot lag the signal it is derived from. It cannot under-report
+that signal for long, and it cannot react at all to a press event it never reads. Run against
+the pre-registered tests, it therefore returns not confirmed or not applicable on all six
+hypotheses by construction. That is the expected outcome, and an informative one.
+
+What it does establish is that injection, weekly decay, milestone drift, event calibration,
+propagation, criticality, snapshotting and backup all run correctly under the two-turns-per-day
+cadence the campaign requires. It also calibrated the null baseline detector, a raw threshold
+$U_{r,\text{local}} \ge 0.5$, at precision $0.16$ and recall $0.27$: the bar the adequacy
+signal must clear to demonstrate value beyond a raw KPI reading.
+
+Figure~\ref{fig:helios_dryrun_trajectories} shows the circularity visually. Real urgency is
+drawn solid and synthetic declared urgency dashed, for all eight nodes across the full
+replay. The two track each other closely at every node rather than one lagging or decoupling
+from the other, which is the signature of the construction and not a property the campaign is
+expected to reproduce. It is also why H1, H2, H5 and H6 cannot be read off this run: each of
+them asks about a divergence that the generator cannot produce.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.86\linewidth]{Images/4.Operations/helios_dryrun_trajectories.png}
+    \caption{Real against synthetic declared urgency, dry run}
+    \label{fig:helios_dryrun_trajectories}
+\end{figure}
+
+%% ═══════════════════════════════════════════════════════════════════════════
+\subsection{Arm A: Blind Declaration by Eight Isolated Agents}
+\label{sec:res_armA}
+%% ═══════════════════════════════════════════════════════════════════════════
+
+Arm A replaced the synthetic generator with eight isolated language-model agents, one per
+role. Each was confined to its own role card and turn briefings, with no sight of the other
+roles, the dashboard, or any future turn. Each read its briefing in character, then answered
+the real AHP questionnaire of Section~\ref{sec:ahp_tool}; pairwise comparisons and severity
+scores passed through the production consistency-ratio code untouched.
+
+The difference from the dry run matters. This arm drove the full production pipeline.
+Campaign setup, turn injection and questionnaire submission all went through the same
+weekly-cycle service a browser-based participant would reach.
+
+Table~\ref{tab:helios_armA} gives the verdicts on the six pre-registered tests.
+
+\begin{table}[htbp]
+\centering
+\caption{Arm A verdicts on the six pre-registered hypotheses}
+\label{tab:helios_armA}
+\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{3.4cm} >{\raggedright\arraybackslash}p{2.4cm} X}
+\toprule
+\textbf{Test} & \textbf{Verdict} & \textbf{Measured value} \\
+\midrule
+H1 latency & Not confirmed & 3 of 8 nodes at lag $\ge 1$ turn (threshold: 5 of 8) \\
+H2 early detection & Not confirmed & $H(\text{NovaFab})$ peaks at $0.017$ on turns 6 to 12
+(threshold: $0.3$) \\
+H3 criticality & Not confirmed & NovaFab top-1 on 7 of 10 informative turns, $70\%$
+(threshold: $80\%$; saturated turns excluded per Section~\ref{sec:criticality}) \\
+H4 predictive validity & Not confirmed & precision $0.00$, recall $0.00$ at $H \ge 0.5$ \\
+H5 contagion & Confirmed & non-affected nodes: $\Delta U_d = +0.079$ on press turns against
+$+0.005$ on calm turns \\
+H6 hysteresis & Not applicable & real urgency shows no measurable decline over the recovery
+turns \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Two results stand out. The urgency-contagion hypothesis H5 is confirmed: declared urgency at
+nodes that are not physically affected rises by $0.079$ on press-event turns against $0.005$
+on calm turns, matching the pre-registered direction and ordering. This is the mere-urgency
+effect~\autocite{zhu2018mere} reproduced at network scale. The latency hypothesis H1 moves
+from 1 of 8 nodes on the synthetic dry run to 3 of 8 at a lag of one turn or more, closer to
+but still short of the threshold of 5.
+
+H4 stays not confirmed for a specific and informative reason. These agents read their
+briefing carefully and declared urgency close to what the briefing in fact described, so
+their $U_d$ tracks $U_r$ too closely to leave the gap that $H$ is built to catch. The
+tracking is even tighter than the fixed-bias dry run, with $H(\text{NovaFab})$ peaking at
+$0.017$ against $0.070$. H3 is unchanged from the dry run because it depends only on the
+network's real-urgency criticality ranking, not on $U_d$ at all.
+
+The arm left behind a live project, reloadable in the same dashboard a coordinator would use
+in production. Read directly from that project after the eighteenth turn, the network-average
+adequacy is $65.5$, four of the eight nodes carry a hidden-risk reading above $0.1$, one
+carries a false-urgency reading above $0.1$, and the worst-scoring node by a wide margin is
+Orbitalys at $A = 15.3$. Table~\ref{tab:armA_snapshot} gives the full per-node snapshot.
+
+\begin{table}[htbp]
+\centering
+\caption{Final per-node snapshot of the arm A project}
+\label{tab:armA_snapshot}
+\small
+\begin{tabularx}{\linewidth}{l >{\centering\arraybackslash}X >{\centering\arraybackslash}X >{\centering\arraybackslash}X >{\centering\arraybackslash}X >{\centering\arraybackslash}X}
+\toprule
+\textbf{Node} & $U_d$ & $U_r$ & $A$ & $F$ & $H$ \\
+\midrule
+Orbitalys & 0.409 & 1.000 & 15.3 & 0.000 & 0.591 \\
+AvioSys Int\'egration & 0.727 & 0.698 & 95.2 & 0.029 & 0.000 \\
+\'Electis EMS & 0.914 & 0.965 & 82.9 & 0.000 & 0.052 \\
+CompoDis Europe & 0.882 & 1.000 & 67.5 & 0.000 & 0.118 \\
+TransGlobal Fret & 0.819 & 1.000 & 56.0 & 0.000 & 0.181 \\
+Meridian Semi & 0.841 & 0.998 & 60.1 & 0.000 & 0.157 \\
+NovaFab Semiconductors & 0.912 & 0.915 & 98.5 & 0.000 & 0.003 \\
+SilPure Materials & 0.876 & 0.304 & 48.9 & 0.572 & 0.000 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Orbitalys' own explanation page traces the chain from a single scripted event to its score
+without manual computation. Its next milestone had slipped past its deadline by turn 18,
+which forces $u_{\text{time}}$ to $1$ under the rule of Table~\ref{tab:ur_blocks}; with the
+node's real urgency already saturated by this cause alone, the page attributes the whole of
+it to the local block and none to the upstream network. The agent playing Orbitalys declared
+$U_d = 0.41$, so the hidden risk is $H = 0.59$, penalised through
+Equation~\ref{eq:penalty} at $2.25 \times 0.59^{0.88} = 1.42$, giving
+$A = 100 \times (e^{-1.42}-e^{-2.25})/(1-e^{-2.25}) = 15.3$, the same number the dashboard
+reports. The network-wide PROMETHEE~II ranking places NovaFab and Orbitalys at the top of
+the priority list, at $\phi = +0.220$ and $+0.215$, which are the expected bottleneck and
+the node its own missed milestone makes most urgent. The same ranking carries a caveat the
+tool raises on its own: on this run the time and performance blocks are perfectly
+correlated, $\rho = 1.00$, which is exactly the composite-indicator risk flagged in
+Section~\ref{sec:lit_mcdm}.
+
+%% ═══════════════════════════════════════════════════════════════════════════
+\subsection{Arm A Rescored: Discrimination Without Calibration}
+\label{sec:res_armA_scored}
+%% ═══════════════════════════════════════════════════════════════════════════
+
+The hypothesis verdicts above test the adequacy signal at a single threshold. The forecast
+layer that the system also emits, a probability of an adverse outcome at horizons of one to
+four weeks, deserves a fuller treatment, because a single operating point cannot distinguish
+a forecast that orders outcomes badly from one that orders them well but announces the wrong
+numbers. This subsection scores all 120 prospective forecasts of arm A, covering turns 4 to
+18 across eight nodes, against the production outcome definition of
+Section~\ref{sec:methods_scoring}.
+
+\subsubsection{Discrimination}
+
+Table~\ref{tab:armA_scores} gives the results at each horizon.
+
+\begin{table}[htbp]
+\centering
+\caption{The arm A forecast layer, scored by horizon}
+\label{tab:armA_scores}
+\small
+\begin{tabularx}{\linewidth}{c >{\centering\arraybackslash}X >{\centering\arraybackslash}X >{\centering\arraybackslash}p{3.0cm} >{\centering\arraybackslash}X >{\centering\arraybackslash}X}
+\toprule
+\textbf{Horizon} & \textbf{Positives} & \textbf{Base rate} & \textbf{AUC [95\% CI]} &
+\textbf{Brier} & \textbf{Brier skill} \\
+\midrule
+1 week  & 2 & 0.017 & 0.555 [0.470, 0.639] & 0.130 & $-6.93$ \\
+2 weeks & 4 & 0.033 & 0.372 [0.258, 0.492] & 0.166 & $-4.14$ \\
+3 weeks & 5 & 0.042 & 0.428 [0.315, 0.546] & 0.191 & $-3.77$ \\
+4 weeks & 6 & 0.050 & 0.485 [0.389, 0.583] & 0.207 & $-3.36$ \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The discrimination result is that there is none to speak of. The AUC ranges from $0.372$ to
+$0.555$ and every 95\% interval contains $0.5$, so on this campaign the forecast does not
+order node-weeks better than chance. That statement must be made with its sample size
+attached: the positive class contains between 2 and 6 observations depending on horizon,
+which is far too few to support a confident claim in either direction. What can be said is
+that the campaign provides no evidence of discrimination, not that discrimination has been
+refuted.
+
+\subsubsection{Calibration}
+
+The calibration result is much stronger, because it does not depend on the small positive
+class in the same way. The Brier skill against climatology is between $-3.36$ and $-6.93$,
+meaning the forecast is between four and eight times worse, in mean squared error, than a
+trivial forecaster that announces the base rate every time. A negative skill of that
+magnitude is not a marginal shortfall.
+
+The reliability table shows where it comes from. Table~\ref{tab:armA_reliability} bands the
+four-week forecasts by announced probability and compares the mean announced value with the
+observed frequency in each band.
+
+\begin{table}[htbp]
+\centering
+\caption{Reliability of the arm A four-week forecasts}
+\label{tab:armA_reliability}
+\small
+\begin{tabularx}{\linewidth}{l >{\centering\arraybackslash}X >{\centering\arraybackslash}X >{\centering\arraybackslash}X >{\raggedright\arraybackslash}p{3.4cm}}
+\toprule
+\textbf{Announced band} & \textbf{$n$} & \textbf{Mean announced} & \textbf{Observed} &
+\textbf{Reading} \\
+\midrule
+$[0.0,\ 0.1)$ & 74 & 0.070 & 0.081 & Well calibrated \\
+$[0.1,\ 0.2)$ & 24 & 0.128 & 0.000 & None materialised \\
+$[0.2,\ 0.5)$ & 1  & 0.354 & 0.000 & None materialised \\
+$[0.5,\ 0.9)$ & 7  & 0.859 & 0.000 & None materialised \\
+$[0.9,\ 1.0]$ & 14 & 0.992 & 0.000 & None materialised \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The pattern is unambiguous, and Figure~\ref{fig:armA_reliability} shows it, with each
+marker's area proportional to the number of forecasts in its band and the diagonal marking
+perfect calibration. Where the model announces a low probability, it is right: 74 forecasts
+announcing a mean of $0.070$ were followed by an adverse outcome $8.1\%$ of the time. Where it announces a high probability, it
+is wrong every single time. Twenty-one forecasts announced a mean probability of $0.948$, and
+none of the twenty-one was followed by the outcome it predicted. The confusion matrix at the
+pre-registered threshold of $0.5$ records this as 0 true positives, 21 false positives, 6
+false negatives and 93 true negatives, which is why H4 returns precision $0.00$ and recall
+$0.00$.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.86\linewidth]{Images/armA_reliability.png}
+    \caption{Reliability of the four-week forecast, arm A}
+    \label{fig:armA_reliability}
+\end{figure}
+
+The two failures are therefore of different kinds, and this is the dissociation that
+Murphy's decomposition anticipates~\autocite{murphy1973vector}: the ordering is
+uninformative, and the level is badly wrong at the top of the range while being close to
+right at the bottom.
+
+\subsubsection{Ruling Out Right-Censoring}
+
+An obvious objection is that forecasts made near the end of the campaign have observation
+windows extending past the last turn, so their outcomes could not be recorded even if they
+occurred. If the confident forecasts were concentrated at the end, censoring rather than
+miscalibration would explain the result.
+
+They are not. The twenty-one confident forecasts are spread over turns 5 to 18 and across
+seven of the eight nodes. Repeating the scoring with every forecast whose window would run
+past the final turn removed leaves $n = 88$ forecasts, still 0 true positives against 16
+false positives, and the Brier skill becomes worse rather than better, moving from $-3.36$ to
+$-7.82$. Censoring is not the explanation.
+
+\subsubsection{The Mechanism}
+\label{sec:res_mechanism}
+
+The confident tail has a single source, and the explainability layer of
+Section~\ref{sec:explain_export} makes it visible without instrumentation. Across all
+twenty-one confident forecasts, the four-week probability and the milestone-miss probability
+never differ by more than $0.020$. The confident tail is the milestone channel, and nothing
+else contributes to it.
+
+Set against the registry, this is decisive. Of the eighteen milestones in the campaign, ten
+completed and eight remained active, and none was abandoned. Exactly one was actually
+missed at its deadline, the Orbitalys delivery of Table~\ref{tab:armA_snapshot}. The model
+announced near-certain misses for AvioSys, CompoDis, \'Electis, NovaFab, TransGlobal and
+Meridian, and all of them delivered.
+
+The same defect is visible directly in the state snapshots, from the opposite side. Reading
+the $u_{\text{time}}$ block at turn 6, the turn on which the scenario's one critical event
+lands, gives the values of Table~\ref{tab:u_time_turn6}.
+
+\begin{table}[htbp]
+\centering
+\caption{The time block at turn 6}
+\label{tab:u_time_turn6}
+\small
+\begin{tabularx}{\linewidth}{lX}
+\toprule
+\textbf{Node} & \textbf{$u_{\text{time}}$} \\
+\midrule
+Orbitalys & $7.3 \times 10^{-9}$ \\
+AvioSys Int\'egration & $1.2 \times 10^{-8}$ \\
+\'Electis EMS & $0.0$ \\
+CompoDis Europe & $0.99996$ \\
+TransGlobal Fret & $1.7 \times 10^{-4}$ \\
+Meridian Semi & $2.9 \times 10^{-9}$ \\
+NovaFab Semiconductors & $0.0216$ \\
+SilPure Materials & $0.0$ \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Six of the eight nodes read as numerically zero in the middle of a crisis, and the seventh
+reads as saturated. The block behaves as a step function rather than as a risk gradient: it
+is either off or fully on, with almost nothing in between. The cause is structural. The
+block compares a lead-time distribution against the time remaining to the next deadline,
+and the scripted events act on capacity, cost and failure probability without acting on the
+lead time itself, so a shock never moves the quantity that the milestone probability is
+computed from. The block is blind to the crisis by construction, and because that block
+drives the entire confident tail, so is the forecast.
+
+This is a defect in the model rather than a property of the scenario, and it is the single
+most actionable finding of the campaign. It also invalidates, for this run, the assumption
+recorded in Section~\ref{sec:model_blocks} that each block contributes useful information to
+the aggregate. One block did not.
+
+%% ═══════════════════════════════════════════════════════════════════════════
+\subsection{The Target-Definition Trap}
+\label{sec:res_target_trap}
+%% ═══════════════════════════════════════════════════════════════════════════
+
+The scores above depend on a choice that is easy to overlook: what counts as an adverse
+outcome. Section~\ref{sec:methods_scoring} uses the production definition, requiring a missed
+milestone, an abandoned node, or an event of gravity critical or defect. A plausible
+alternative, and the one an evaluator without access to the model's own definition would
+most likely reach for, is simply any event recorded on the node.
+
+Scoring the identical forecasts against that naive target gives
+Table~\ref{tab:target_trap}.
+
+\begin{table}[htbp]
+\centering
+\caption{The same forecasts under two outcome definitions}
+\label{tab:target_trap}
+\small
+\begin{tabularx}{\linewidth}{l >{\centering\arraybackslash}X >{\centering\arraybackslash}X >{\centering\arraybackslash}X >{\centering\arraybackslash}X}
+\toprule
+\textbf{Outcome definition (4-week horizon)} & \textbf{$n$} & \textbf{Base rate} &
+\textbf{AUC} & \textbf{Brier skill} \\
+\midrule
+Production definition (missed milestone, abandonment, or critical event) & 120 & 0.050 &
+0.485 & $-3.36$ \\
+Naive definition (any recorded event) & 75 & 0.387 & 0.484 & $-0.64$ \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The model is identical, the forecasts are identical, and the horizon is identical. Only the
+definition of truth changes. The measured base rate moves from $5.0\%$ to $38.7\%$, and the
+Brier skill improves by a factor of more than five, from $-3.36$ to $-0.64$. An analyst
+choosing the easier target would report a system that appears five times better calibrated
+without a single line of the model having changed.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.86\linewidth]{Images/armA_roc.png}
+    \caption{ROC under both outcome definitions}
+    \label{fig:armA_roc}
+\end{figure}
+
+Discrimination, by contrast, is almost untouched, moving from $0.485$ to $0.484$
+(Figure~\ref{fig:armA_roc}). That
+contrast is itself informative: the ordering of node-weeks is a property of the forecast,
+while the apparent quality of the probabilities is substantially a property of how often the
+target fires. A frequent target flatters a forecaster who announces high probabilities,
+because more of those high announcements happen to land on a positive.
+
+The practical consequence is that a calibration figure reported without its outcome
+definition is close to meaningless. This has a direct bearing on how the framework of this
+thesis should be evaluated in future work: the outcome definition belongs in the
+pre-registration alongside the thresholds, and it is not currently part of the H1 to H6
+register.
+
+%% ═══════════════════════════════════════════════════════════════════════════
+\subsection{Arm B: What Happens When the Forecast Is Shown}
+\label{sec:res_armB}
+%% ═══════════════════════════════════════════════════════════════════════════
+
+Arm B replays the identical frozen scenario with the identical eight agents, changing one
+thing: from turn 4 onward, each agent is shown the predictive analysis of its own node
+before declaring its urgency. The loop stays open, so the terrain does not change and the
+forecasts remain scorable.
+
+One property of the design must be established before any interpretation. The prediction
+layer is deterministic, so the two arms should carry identical forecasts on the turns they
+share, and they do: all 72 shared node-turn forecasts are numerically identical between the
+arms. Any behavioural difference therefore comes from the act of displaying the forecast,
+not from a different forecast being displayed.
+
+The dataset comprises 97 declaration records, reduced to 96 after removing one duplicate
+submission by a single node at turn 1. Each carries an influence field recording whether the
+displayed forecast had no influence, confirmed the agent's own assessment, or caused an
+upward or downward revision. Table~\ref{tab:armB_turns} gives the distribution turn by turn.
+
+\begin{table}[htbp]
+\centering
+\caption{Arm B: influence of the displayed forecast, by turn}
+\label{tab:armB_turns}
+\small
+\begin{tabularx}{\linewidth}{c >{\centering\arraybackslash}X >{\centering\arraybackslash}X >{\centering\arraybackslash}X >{\centering\arraybackslash}X >{\raggedright\arraybackslash}p{3.5cm}}
+\toprule
+\textbf{Turn} & \textbf{No influence} & \textbf{Confirms} & \textbf{Revised up} &
+\textbf{Revised down} & \textbf{Note} \\
+\midrule
+T0 & 8 & 0 & 0 & 0 & forecast hidden \\
+T1 & 8 & 0 & 0 & 0 & forecast hidden \\
+T2 & 8 & 0 & 0 & 0 & forecast hidden \\
+T3 & 8 & 0 & 0 & 0 & forecast hidden \\
+\midrule
+\textbf{T4} & \textbf{0} & \textbf{3} & \textbf{0} & \textbf{5} & \textbf{first exposure} \\
+T5 & 0 & 5 & 3 & 0 & first upward revisions \\
+T6 & 1 & 3 & 2 & 2 & critical accident event \\
+T7 & 0 & 4 & 3 & 1 & \\
+T8 & 1 & 1 & 3 & 3 & \\
+T9 & 2 & 5 & 1 & 0 & \\
+T10 & 2 & 3 & 2 & 1 & \\
+T11 & 0 & 3 & 1 & 4 & \\
+\midrule
+\textbf{Total} & 38 & 27 & 15 & 16 & $n = 96$ \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The first exposure is the result, and Figure~\ref{fig:armB_influence} shows it. At turn 4,
+when the forecast becomes visible for the first time, all eight agents record an influence,
+and the direction is entirely one-sided: five revised their declared urgency downward and
+three had their existing assessment confirmed. Not one revised upward. The first upward
+revision anywhere in the campaign appears at turn 5, and the scenario's single critical
+event, the foundry accident, lands at turn 6, two turns after the moment every declarant was
+either reassured or confirmed.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.86\linewidth]{Images/armB_influence.png}
+    \caption{Arm B: influence of the displayed forecast, by turn}
+    \label{fig:armB_influence}
+\end{figure}
+
+Over the full campaign the distribution is close to balanced, with 15 upward against 16
+downward revisions, so the one-sided effect is specific to first contact rather than a
+persistent bias. That distinction matters for interpretation: what the data shows is a
+strong first-exposure effect, not a permanent suppression of declared urgency.
+
+Two aggravating factors follow from Section~\ref{sec:res_armA_scored}. First, the forecast
+being displayed at turn 4 is drawn from the same layer whose confident predictions never
+materialise, and whose $u_{\text{time}}$ block is blind to the very shock that is about to
+arrive. Second, the forecast is displayed as a numeric probability with a confidence
+interval, a presentation format the automation-bias literature identifies as increasing
+reliance~\autocite{goddard2012automation,bansal2021whole}. The system was, in effect,
+presenting an unfounded reassurance in the most persuasive available form, immediately
+before the event it had failed to anticipate.
+
+One qualification is important and cuts against the strongest reading. The influence field
+records the effect on the declared urgency level, not on the decision taken. Inspection of
+the free-text notes shows that agents continued to take protective actions at the same turn,
+including negotiating allocation, alerting the customer and ordering ahead of schedule. The
+measured effect is on what was declared, not on what was done. Given that the declared value
+is precisely the input the adequacy layer consumes, this is a consequential effect on the
+measurement system even where it is not, on this evidence, an effect on behaviour.
+
+%% ═══════════════════════════════════════════════════════════════════════════
+\subsection{Discussion}
+\label{sec:res_discussion}
+%% ═══════════════════════════════════════════════════════════════════════════
+
+\paragraph{The circularity problem is the central methodological finding.}
+Across the dry run, arm A and arm B, the same difficulty recurs in three different forms.
+In the dry run, synthetic declared urgency was anchored on real urgency by construction, so
+the gap the system exists to measure could not appear. In arm A, agents read their briefings
+carefully and declared close to what the briefing described, so the gap again did not
+appear, with $H$ peaking at $0.017$ where the hypothesis required $0.3$. In arm B, showing
+the model's own output to the declarant closed the loop explicitly, so the declaration is
+no longer independent of the model at all. A system that measures the divergence between a
+human judgment and a computed state is only measuring anything when those two quantities
+have independent sources, and preserving that independence is harder than it appears.
+
+\paragraph{Ordering and level are separate problems needing separate fixes.}
+The scores of Section~\ref{sec:res_armA_scored} do not support a single verdict on the
+forecast layer. On this campaign it neither orders well nor announces well, but the
+evidence for those two claims is of very different strength: discrimination rests on between
+two and six positive observations and is therefore inconclusive, while the calibration
+failure rests on 21 confident forecasts none of which materialised and is not plausibly a
+sampling artefact. The remedies differ accordingly. Miscalibration of this shape is
+routinely corrected by a post-hoc layer without touching the underlying
+model~\autocite{niculescu2005predicting,guo2017calibration}. Poor discrimination is not, and
+would require the model to change.
+
+\paragraph{The specific defect is repairable and general.}
+The mechanism identified in Section~\ref{sec:res_mechanism} is not a scenario artefact. The
+$u_{\text{time}}$ block computes milestone risk from a lead-time distribution against a
+deadline, while the event engine writes to capacity, cost and failure probability. No path
+connects a shock to the lead time, so the block cannot respond to a disruption. Any
+deployment of this framework would inherit that gap. The repair is to make the calibrated
+events write a lead-time impact, which is a change to the event mapping rather than to the
+mathematics.
+
+\paragraph{Communicating ignorance is a design requirement, not a nicety.}
+The arm B result reframes what an advisory layer owes its reader. Faced with an exogenous
+shock, a weather event, a fire, a geopolitical decision, the model has no basis for
+prediction at all. Displaying a low probability in a confident format is then worse than
+displaying nothing, because it converts an absence of information into an apparent
+reassurance. Two mitigations follow directly and neither requires new science: make the
+horizon salient, so that a low four-week probability cannot be read as a general statement of
+safety, and state explicitly which classes of risk the model does not cover.
+
+\paragraph{Threats to validity.}
+Four limit what the above can support. The declarants are language models, so the external
+validity of any claim about human declaration behaviour is unestablished; this is the
+principal threat, and it is why arm B is reported as a measured effect on this population
+rather than as a finding about operators. The campaign is a single scenario, so the outcome
+base rate, the event mix and the milestone structure are all properties of one script. The
+positive class is very small, which bounds every discrimination claim. Finally, arm B is
+not blinded, since the agents are told they are being shown a predictive analysis; a design
+in which some turns show a deliberately uninformative forecast would separate the effect of
+the content from the effect of the display.
+
+\paragraph{Against the pre-registered thresholds.}
+Five of the six hypotheses are not confirmed and one, H5 on urgency contagion, is confirmed.
+That is a largely negative result against the register, and it is reported as such. The
+value of the campaign lies less in those verdicts than in the diagnosis they made possible:
+the register asked whether the signal works, and the answer, with its mechanism, is that one
+identifiable block prevents it from working and that showing the resulting forecast to the
+declarant is actively counterproductive until that block is fixed.
+
+%% ═══════════════════════════════════════════════════════════════════════════
+\subsection{Opening: Grounding Real Urgency in Observed Capacity}
+\label{sec:res_volume}
+%% ═══════════════════════════════════════════════════════════════════════════
+
+\subsubsection{Motivation}
+
+The framework above has a structural dependency that the campaign brought into focus. Every
+KPI reaching the six blocks arrives either through a manual weekly review or through a
+scripted event, so a node's score is never fresher than its last submitted review, and the
+capacity block in particular depends on the same operator whose declaration the adequacy
+score exists to audit. The independence that Section~\ref{sec:res_discussion} identifies as
+the precondition for the whole measurement is therefore not structurally guaranteed.
+
+A second system, developed alongside the main work, addresses one part of that dependency. It
+estimates the physical capacity of a warehouse from public satellite imagery, which is an
+observation no operator supplies and none can bias. This subsection reports it at the depth
+that claim requires. It is an opening rather than a second contribution: the two systems have
+not been connected, and no claim is made that they have.
+
+\subsubsection{Method and Calibrated Constants}
+
+The pipeline takes a coordinate, retrieves the building footprint from the French national
+topographic database, retrieves 20~cm orthophotography and, where available, a LiDAR surface
+model, and derives a storable volume and a transfer capacity. Its four constants are
+calibrated rather than assumed, and each is reported with the sample behind it in
+Table~\ref{tab:volume_constants}.
+
+\begin{table}[htbp]
+\centering
+\caption{Calibrated constants of the capacity model}
+\label{tab:volume_constants}
+\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{3.4cm} >{\centering\arraybackslash}p{2.0cm} X}
+\toprule
+\textbf{Constant} & \textbf{Value} & \textbf{Basis} \\
+\midrule
+Fill factor & $0.80$ & Median of declared volume over footprint $\times$ height across 122
+regulated warehouses, IQR $[0.52,\ 1.22]$ \\
+Dock pitch & $3.8$~m & Median $3.83$~m, coefficient of variation $9.6\%$ over 19
+independently measured facades \\
+Default height & $11.6$~m & Median of the corpus, IQR $9.8$ to $13.7$~m, used only when the
+topographic database gives no height \\
+Ground sample distance & $0.25$~m & Measured optimum for the pre-trained detector; at
+$0.50$~m the model collapses \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The storable volume follows as $0.80 \times \text{footprint} \times \text{height}$ and the
+transfer capacity as the equipped facade length divided by $3.8$~m. The coefficient of
+variation of $9.6\%$ on the dock pitch is the result that makes the second of these
+generalisable: because the pitch is stable across sites, capacity depends only on how much
+facade is equipped, and no per-site measurement of the pitch is needed.
+
+One constraint is enforced throughout and is worth stating because it is unusual. The
+regulatory database of classified installations is used only to calibrate the fill factor,
+never to infer a result for a specific site. Many warehouses fall below the classification
+thresholds and do not appear in it at all, so a system that inferred from it would silently
+fail on exactly the smaller sites a supply chain twin most needs to see.
+
+One of these four constants does not survive audit, and the discrepancy is reported here
+rather than left in the code. The fill factor of $0.80$ is the value implemented in
+production and attributed in the source to a 122-site calibration, but the detailed output of
+that run was not retained. The corpus that is still on disk contains 68 matched sites, and
+recomputing the same ratio over it gives a median of $0.97$ with an interquartile range of
+$[0.80,\ 2.00]$, with only $47\%$ of sites falling inside the $[0.7,\ 1.4]$ band against the
+$70\%$ the calibration script itself sets as its acceptance target
+(Figure~\ref{fig:volume_calibration}). Two readings are possible and the available data does
+not separate them: either the retained corpus is a biased remnant of the original sample, or
+the production constant understates the true fill factor by roughly twenty per cent. Either
+way the constant is not currently reproducible from the artifacts, which is why recollecting
+the regulatory corpus cleanly and rederiving the factor is listed in
+Section~\ref{sec:future_work} rather than presented as settled. The volumetric figures in
+this section should be read with that uncertainty attached; the dock capacity results, which
+depend on the pitch constant rather than on the fill factor, are unaffected.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.86\linewidth]{Images/volume_calibration.png}
+    \caption{The fill factor against the auditable corpus}
+    \label{fig:volume_calibration}
+\end{figure}
+
+\subsubsection{The Physical Limit and the Reframing}
+
+The original objective was to count loading docks. That objective is unreachable, and
+establishing why is the most transferable result of this work.
+
+An empty dock door under a canopy produces no measurable signal from directly overhead.
+Measured contrast at verified empty bays is $0.18\sigma$, $0.22\sigma$ and $0.01\sigma$
+across a full sweep of assumed depths, while occupied bays on the same facades register at
+$5.3\sigma$ to $6.4\sigma$. The measurement is therefore sensitive enough; the signal is
+absent. Repeating the test on 8~cm very-high-resolution imagery leaves the doors equally
+invisible, which shows the cause to be occlusion by the canopy roof rather than insufficient
+resolution. Any method claiming to count empty doors one by one from a nadir view is
+recovering an artefact.
+
+Figure~\ref{fig:volume_resolution} shows the same equipped facade at both resolutions,
+20~cm on the left and 8~cm on the right. The trailers, the apron and the dark canopy band
+along the building edge are legible at 20~cm and sharper still at 8~cm, yet no individual
+door resolves inside the canopy band at either scale. A gain of $2.5\times$ in ground sample
+distance recovers no additional door. What improves with resolution is everything except the
+quantity of interest.
+
+\begin{figure}[htbp]
+    \centering
+    \begin{minipage}[b]{0.48\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{Images/5.Volume/resolution_hr20.png}\\[3pt]
+        {\small (a) 20~cm orthophotography}
+    \end{minipage}\hfill
+    \begin{minipage}[b]{0.48\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{Images/5.Volume/resolution_thr8.png}\\[3pt]
+        {\small (b) 8~cm very-high-resolution imagery}
+    \end{minipage}
+    \caption{The same equipped facade at 20~cm and at 8~cm}
+    \label{fig:volume_resolution}
+\end{figure}
+
+That finding splits the problem in two, and the distinction should not be blurred:
+
+\begin{itemize}
+    \item counting each door individually is not observable at nadir, and no amount of
+    resolution changes it;
+    \item recognising that a facade is equipped for docking, and delimiting its extent, is
+    observable, because the canopy, the apron and the bay rhythm remain visible whether or
+    not a vehicle is present.
+\end{itemize}
+
+The second formulation is learnable, and it is sufficient, because capacity is a function of
+equipped length rather than of individually identified doors. Figure~\ref{fig:volume_proof}
+is the direct evidence. It shows three facades, of 135~m, 105~m and 15~m, on which the
+automatic trailer detector found no vehicle at all. Individual doors are not resolvable on
+any of them, yet the regular bay markings and the canopy edge remain plainly legible, which
+is exactly the distinction the reframing turns on.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.82\linewidth]{Images/5.Volume/preuve_facade_sans_camion.png}
+    \caption{Equipped facades on which no trailer was detected}
+    \label{fig:volume_proof}
+\end{figure}
+
+One reservation is recorded honestly. The proportion of sites showing no usable dock
+signature was measured on a subsample that required vehicles to be present to establish
+ground truth, and is therefore biased toward sites with vehicles. It should be
+re-measured on an independent draw.
+
+\subsubsection{Approaches Tested and Rejected}
+
+Five approaches were tried and abandoned, each for a measured reason.
+Table~\ref{tab:volume_failed} records them, because the reasons constrain what a successful
+method can look like.
+
+\begin{table}[htbp]
+\centering
+\caption{Approaches tested and rejected}
+\label{tab:volume_failed}
+\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{4.2cm} X}
+\toprule
+\textbf{Approach} & \textbf{Measured outcome} \\
+\midrule
+Photometric thresholding of the apron & Recall of 5 of 6 on true aprons, but roads, an
+aeronautical tarmac and small-business forecourts all pass the same test \\
+\midrule
+Vehicle density to reject car parks & Fails on a car park that was empty at the time of
+capture \\
+\midrule
+Open-vocabulary detection from a text prompt & Confidence of $0.11$ to $0.12$, at the level
+of noise; the model is trained on ground-level imagery \\
+\midrule
+Region growing from detected trailers & Returns 222 docks where 57 exist: the paved surface
+of an industrial estate is a single connected component, and the region spills onto
+neighbouring roofs of similar tone \\
+\midrule
+Frequency analysis to count bays & Three real rhythms coexist on one facade, at 3.3 to
+4.6~m for bays, 5.5~m for canopy posts and 8.9 to 10.7~m for portal frames. A frequency
+analysis returns a frequency, never its meaning \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+A related finding constrains the zero-shot approach that preceded the learned model. Parked
+trailers are not a proxy for docks: median trailer distance to the building reaches 126~m on
+large platforms, and at one site only 8 of 89 detected trailers lay within 26~m of the
+building, the rest being in holding yards. With a proximity and perpendicularity filter
+applied, the zero-shot pipeline produced a capacity figure for only $36\%$ of sites, 25 of
+70 measured. Elsewhere it returned nothing, which is a gap in coverage rather than a wrong
+answer.
+
+\subsubsection{Learned Dock-Zone Segmentation}
+
+The reframed problem was addressed by training a segmentation model to delimit equipped
+facade zones directly. Table~\ref{tab:volume_training} gives the progression across four
+training runs, read at the best epoch of each by mask mAP50-95.
+
+\begin{table}[htbp]
+\centering
+\caption{Segmentation training progression}
+\label{tab:volume_training}
+\small
+\begin{tabularx}{\linewidth}{l >{\centering\arraybackslash}X >{\centering\arraybackslash}X >{\centering\arraybackslash}X >{\centering\arraybackslash}X >{\centering\arraybackslash}X >{\centering\arraybackslash}X}
+\toprule
+\textbf{Run} & \textbf{Train / val} & \textbf{Image size} & \textbf{Precision} &
+\textbf{Recall} & \textbf{mAP50} & \textbf{mAP50-95} \\
+\midrule
+1 & 86 & 640 & 0.461 & 0.404 & 0.363 & 0.155 \\
+2 & 203 / 50 & 640 & 0.635 & 0.539 & 0.610 & 0.283 \\
+3 & 351 / 91 & 640 & \textbf{0.702} & \textbf{0.606} & \textbf{0.618} & \textbf{0.305} \\
+4 & 351 / 91 & 1280 & 0.652 & 0.547 & 0.570 & 0.272 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Two observations follow, and Figure~\ref{fig:volume_training} shows both. Annotated data
+drove the gain: quadrupling the training set from 86 to 351 images roughly doubled mask
+mAP50-95. Resolution did not: run 4 is identical to run 3 except for a doubled input size,
+and it is worse on every metric. At a fixed data budget and model capacity, on a CPU-only
+training budget, the additional pixels cost more than they bought.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.86\linewidth]{Images/volume_training.png}
+    \caption{Validation mask mAP50-95 across the four runs}
+    \label{fig:volume_training}
+\end{figure}
+
+A second methodological point concerns what is measured. Standard detection metrics score
+shape overlap, but the operational quantity here is capacity, which depends only on the
+length of the equipped zone. A polygon drawn too deep, or with imprecise edges, still yields
+the correct dock count. The project therefore scores itself on the error in the derived dock
+count rather than on mAP, and that business metric, not the detection metric, is the one
+used to decide whether a model is good enough to deploy. On the reference run that metric
+reported a global bias of $-35\%$, a median error of $62\%$ on images containing docks, and
+$89\%$ of true negatives correctly left empty, which is a system that is directionally
+useful and quantitatively not yet trustworthy.
+Figure~\ref{fig:volume_predictions} shows predictions on held-out imagery. The model
+delimits equipped facades on buildings of varying shape and orientation, rotation invariance
+having been obtained by augmentation rather than by rectifying the geometry first.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.82\linewidth]{Images/5.Volume/segmentation_predictions.jpg}
+    \caption{Predicted dock zones on held-out imagery}
+    \label{fig:volume_predictions}
+\end{figure}
+
+\subsubsection{Annotation Integrity}
+
+One episode in this work bears directly on research method and is reported for that reason.
+An automated third-party annotation process produced 442 annotations and reported its own
+output as verified and complete. The annotations were unusable: the process had placed a
+dock zone along every edge of every building without examining the imagery at all, then
+subdivided each zone at the nominal pitch, producing an implausible $88\%$ positive rate.
+
+All of it was discarded and the dataset was re-annotated by hand. An audit of the manual
+work found 11 genuine problems across 687 annotated zones, a defect rate of $1.6\%$. A
+verification tool was then written and placed ahead of training, checking format, geometry
+and consistency against the project's own measured thresholds, so that no external
+annotation enters the pipeline unaudited. That tool caught a defect in its own first
+implementation, where distance was measured to the largest building in a scene rather than
+to all buildings, generating 26 false alarms on correct annotations of neighbouring
+buildings.
+
+The transferable point is that a confident self-assessment from an automated process is not
+evidence, and that the cost of the verification step was small relative to the cost of
+training on corrupted labels.
+
+\subsubsection{What This Can and Cannot Feed}
+
+The pipeline runs end to end on a geographic area, retrieving footprints, presenting each to
+the trained model, assigning predicted zones to the correct building and writing capacity
+figures (Figure~\ref{fig:volume_deployment}). One defect found during that deployment is
+worth recording, because it illustrates the difference between a model error and a systems
+error.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.82\linewidth]{Images/5.Volume/deployment_zone.png}
+    \caption{End-to-end output on one deployment site}
+    \label{fig:volume_deployment}
+\end{figure} The national topographic database
+fragments a single large warehouse into several polygons, so a 434~m dock apron was initially
+attributed in full to a 5\,149~m\textsuperscript{2} fragment, yielding an implausible 221
+docks per hectare against a corpus median of 7.9. The fix was geometric rather than
+statistical: each predicted zone is now clipped so that a building receives only the portion
+facing its own facade, and the quality control was changed from a density threshold, which
+must be calibrated per site type, to the ratio of dock length to building perimeter, which is
+dimensionless and cannot legitimately exceed one.
+
+The honest boundary is as follows. The system supplies a storable volume, a pallet-position
+estimate and, where a dock zone is detected, a transfer capacity and an occupancy ratio.
+Those map onto the capacity block of Equation~\ref{eq:ur_local} and onto nothing else: it
+says nothing about lead time, cost or emissions. Coverage is metropolitan France, bounded by
+the public data services it draws on. The trained segmentation model is not yet wired into
+the production capacity path, which still uses the zero-shot trailer method and its $36\%$
+coverage. And the imagery is a snapshot, so the resulting figure is a structural capacity
+rather than a live occupancy.
+
+What it does change is the provenance of one input. A capacity figure derived from imagery
+is not supplied by the operator whose declaration the adequacy score audits, which is
+precisely the independence Section~\ref{sec:res_discussion} identifies as the precondition
+for the measurement to mean anything. Figure~\ref{fig:volume_bridge} states where that input
+would enter and, equally important, which blocks it would leave untouched.
+
+\figuretodraw{%
+A two-band schematic in the ALTEN palette: navy (043962) outlines, azure (008BD2) fill for
+computed quantities, ochre (FFBA00) for the observed channel, no red.
+\textbf{Upper band, ``as delivered'':} a supplier node with the six $U_r$ blocks stacked as
+small azure tiles ($u_{time}$, $u_{cap}$, $u_{perf}$, $u_{risk}$, $u_{cost}$, $u_{CO_2}$),
+all fed by a single arrow from a human icon labelled ``weekly review, manual''. The same
+human icon also feeds $U_d$ through an AHP questionnaire glyph, and the two meet at an
+adequacy gauge $A(t)$. A dashed navy loop from the human icon back to itself carries the
+caption ``the same observer supplies both sides''.
+\textbf{Lower band, ``with observation'':} an identical node, but $u_{cap}$ is now fed by a
+second, ochre arrow originating from a satellite glyph and passing through three small
+labelled boxes, ``BD TOPO footprint'', ``ortho 20 cm'' and ``dock-zone segmentation'',
+carrying the three outputs \texttt{volume\_m3}, \texttt{palettes} and
+\texttt{taux\_occupation}. The dashed self-loop is broken, marked with an ochre cross. The
+remaining five blocks are greyed out in the lower band, to make explicit that only one block
+is grounded so far.}%
+{Where satellite-observed capacity would enter the real-urgency model, and which blocks it
+does not reach.}%
+{fig:volume_bridge}
+
+%% ═══════════════════════════════════════════════════════════════════════════
+\subsection{Synthesis Against the Research Questions}
+\label{sec:res_synthesis}
+%% ═══════════════════════════════════════════════════════════════════════════
+
+\paragraph{RQ1, multi-block real urgency.} A six-block noisy-OR aggregation with bidirectional
+DAG propagation was specified, implemented and exercised on a nineteen-turn campaign across
+eight nodes. The construction works as designed and is exactly decomposable, which is what
+allowed its own defect to be found. The answer is qualified rather than clean: five of the
+six blocks behaved as intended, and the sixth, the time block, was shown to be structurally
+unable to respond to a disruption, because the event engine writes to no quantity it reads.
+
+\paragraph{RQ2, cognitive adequacy formulation.} The asymmetric Prospect-Theory formulation
+produces a bounded, interpretable score whose every term can be reconstructed, as
+demonstrated on the Orbitalys node. Predictive validity was not demonstrated: at the
+pre-registered threshold the signal returns precision and recall of zero, and the underlying
+forecast layer shows no discrimination above chance on this campaign while being
+substantially worse calibrated than a base-rate forecaster.
+Section~\ref{sec:res_mechanism} attributes that failure to one identified and repairable
+cause rather than to the formulation itself.
+
+\paragraph{RQ3, network prioritisation and criticality.} AHP and Fuzzy BWM elicitation,
+PROMETHEE~II outranking and systematic shock simulation were combined into a working
+ranking that placed the expected bottleneck at the top. Two documented behaviours bound it:
+the criticality index degenerates when many nodes saturate at once, which is common in
+precisely the network-wide crisis where it would be most useful, and the outranking
+inherited a perfect correlation between two of its criteria on this run, which the tool
+flagged on its own.
+
+\paragraph{RQ4, operational validation and the effect of showing the forecast.} The framework
+was operationalised as a persistent digital twin and exercised through a pre-registered
+weekly-cadence campaign with a control arm and a treatment arm on a frozen scenario. Five of
+six hypotheses are not confirmed and H5 on urgency contagion is confirmed. On the second
+half of the question the answer is unambiguous within its population: at first exposure, all
+eight declarants were either reassured or confirmed by the displayed forecast, none revised
+upward, and the scenario's critical event arrived two turns later.

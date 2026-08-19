@@ -1,0 +1,154 @@
+%% Consignes §6.2.3.2 : presenter l'entreprise du general au particulier,
+%% de facon succincte, sans copier-coller de brochure commerciale, en ne
+%% retenant que ce qui est utile a la comprehension du travail realise.
+%% Le paragraphe RSE est en francais, comme exige.
+
+\subsection{The ALTEN Group}
+\label{sec:alten}
+
+ALTEN is a French engineering and technology consulting group founded in 1988, with its
+head office in Boulogne-Billancourt. It sells engineering expertise rather than products:
+its consultants are placed on the technical projects of client companies, across the
+aerospace, defence, energy, transport, telecommunications, health and finance sectors. The
+group operates in more than thirty countries, and France remains its largest market.
+
+Two features of that model matter for understanding this mission. First, ALTEN's asset is
+the technical capability of its people, so anything that raises the level of a whole
+practice has leverage that a single client project does not. Second, a consulting group
+sees the same problem recur across many clients, which puts it in an unusual position to
+notice that a difficulty is structural rather than particular. The urgency assessment
+problem treated in this report is of that kind.
+
+\subsection{The Direction de l'Innovation}
+\label{sec:din}
+
+The \gls{din} is the entity responsible for ALTEN's own research and development, as
+distinct from the work its consultants deliver to clients. It operates a network of ALTEN
+Labs in France and abroad, and brings together permanent researchers, doctoral candidates,
+consultants, interns and apprentices on multidisciplinary projects. Its output is not
+billable hours but reusable assets: methods, prototypes and expertise that consultants and
+clients can subsequently draw on.
+
+This mission took place at the Toulouse Lab, within the Smart Green Supply Chain research
+programme. The programme pursues three aims simultaneously. The lean aim targets waste,
+meaning cost, delay and excess stock. The green aim targets the carbon footprint of each
+transport leg, working to the \gls{glec} Framework v3.2~\autocite{smartfreight2023glec} and
+ISO~14083:2023~\autocite{iso14083}. The predictive aim, where this work sits, targets the
+anticipation of disruption.
+
+The programme's central artefact is DISCO, a serious game and digital twin simulating a
+complete supply chain for a satellite product across 22 component
+suppliers~\autocite{baxas2025architecture}. Successive placements have built its components:
+the Physical Internet routing module~\autocite{baulain2024internet}, the supplier risk
+scorer~\autocite{kabouche2025scoring}, the per-route carbon
+quantification~\autocite{cordova2024green} and the transport management
+interface~\autocite{mondelice2025tms}. The work described here adds a layer none of them
+covers, and it ran alongside a parallel placement on the network representation and
+geographic modelling side of the same programme, which is discussed in
+Section~\ref{sec:parties_prenantes}.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.82\linewidth]{Images/1.Introduction/disco_map.png}
+    \caption{The DISCO serious game network}
+    \label{fig:disco_map}
+\end{figure}
+
+Figure~\ref{fig:disco_map} shows the supplier network players work with and the three
+dimensions their decisions are scored on. It is the environment the present work was
+designed to be compatible with, although the delivered system runs alongside DISCO rather
+than inside it, for reasons given in Section~\ref{sec:mission_perimetre}.
+
+\subsection{Politique RSE d'ALTEN}
+\label{sec:rse}
+
+\begin{frenchBox}
+\noindent\textbf{Ce paragraphe est r\'edig\'e en fran\c{c}ais, conform\'ement aux consignes
+de r\'edaction du rapport de MFE.}
+
+\medskip
+
+ALTEN a adh\'er\'e au Pacte Mondial des Nations Unies en 2010 et structure depuis sa
+politique de responsabilit\'e soci\'etale autour de trois piliers~: l'humain,
+l'environnement et l'innovation durable. La d\'emarche n'est pas seulement d\'eclarative.
+En 2025, le Groupe a obtenu un score EcoVadis de 85/100, niveau Platinum, qui le place dans
+le premier centile mondial, et a confirm\'e sa note A\textminus{} au Carbon Disclosure
+Project. Sa trajectoire de r\'eduction des \'emissions a \'et\'e valid\'ee par la Science
+Based Targets initiative en 2023, avec un objectif de neutralit\'e carbone \`a l'horizon
+2050.
+
+Sur le pilier humain, le Groupe r\'eunit plus de cent nationalit\'es et a sign\'e les
+\emph{Women's Empowerment Principles} des Nations Unies. L'index d'\'egalit\'e
+professionnelle publi\'e au titre de 2025 s'\'el\`eve \`a 88/100 pour ALTEN Sud-Ouest,
+l'entit\'e juridique dans laquelle s'est d\'eroul\'ee cette mission. Ce m\^eme document
+montre que la repr\'esentation f\'eminine reste de 20~\% parmi les cadres dirigeants
+d'ALTEN Sud-Ouest et de 14~\% au sein des instances dirigeantes, \'ecart que le Groupe
+reconna\^it publiquement et qu'il entend traiter par le programme INSPIRE 2026-2030. Il
+para\^it plus honn\^ete de citer cet \'ecart que de n'en retenir que l'index.
+
+Sur le pilier environnemental, les actions internes sont concr\`etes et v\'erifiables~:
+100~\% d'\'electricit\'e renouvelable pour les b\^atiments fran\c{c}ais dont la puissance
+souscrite d\'epasse 36~kVA, 80~\% des surfaces couvertes par le tri s\'electif, et une
+certification ISO~14001 en cours d'extension. La sensibilisation passe par des ateliers
+Fresque du Climat et des formations aux \'eco-gestes.
+
+C'est n\'eanmoins le troisi\`eme pilier qui \'eclaire le mieux cette mission. ALTEN
+consacre 31~\% de sa R\&D \`a l'innovation environnementale, et le programme dans lequel ce
+stage s'est inscrit en fait partie~: un programme nomm\'e \emph{Smart Green} Supply Chain,
+o\`u les \'emissions de CO\textsubscript{2} constituent l'un des six blocs du mod\`ele
+d'urgence d\'evelopp\'e ici, au m\^eme rang que le co\^ut ou le d\'elai, et non une
+correction appliqu\'ee apr\`es coup. Autrement dit, la politique RSE du Groupe n'a pas
+seulement encadr\'e ce travail~: elle en a d\'etermin\'e une variable de mod\'elisation.
+
+\medskip
+
+\noindent\textbf{Prise de recul.} Deux observations m\'eritent d'\^etre faites. D'abord, la
+RSE d'ALTEN est nettement plus visible au niveau du Groupe qu'au niveau du quotidien d'un
+laboratoire~: en six mois, je l'ai rencontr\'ee davantage sous la forme d'un objet de
+recherche que sous celle d'une pratique de bureau. Ensuite, et c'est le point qui m'a le
+plus marqu\'e, le bloc carbone du mod\`ele s'est r\'ev\'el\'e le moins sollicit\'e des six
+lors de la campagne exp\'erimentale. Une entreprise peut donc afficher une politique
+environnementale solide, financer un programme de recherche qui la porte, et produire
+malgr\'e tout un mod\`ele o\`u la dimension environnementale reste la moins active, faute
+de donn\'ees pour l'alimenter. L'\'ecart ne tient pas \`a l'intention mais \`a la
+disponibilit\'e de la mesure. Il est signal\'e comme tel en
+Section~\ref{sec:conclusion_limites}.
+\end{frenchBox}
+
+\paragraph{English translation of the above.}
+ALTEN joined the United Nations Global Compact in 2010 and structures its corporate social
+responsibility policy around three pillars: people, environment and sustainable innovation.
+The approach is measured rather than merely stated. In 2025 the group scored 85/100 on
+EcoVadis, reaching Platinum level and the top one per cent worldwide, and confirmed its
+A\textminus{} rating with the Carbon Disclosure Project. Its emissions reduction pathway was
+validated by the Science Based Targets initiative in 2023, targeting carbon neutrality by
+2050.
+
+On the people pillar, the group spans more than a hundred nationalities and is a signatory
+of the UN Women's Empowerment Principles. The 2025 gender equality index stands at 88/100
+for ALTEN Sud-Ouest, the legal entity in which this mission took place. The same publication
+shows female representation still at 20\% among senior executives of ALTEN Sud-Ouest and
+14\% on its governing bodies, a gap the group states publicly and intends to address through
+its INSPIRE 2026-2030 programme. Citing that gap seems more honest than citing only the
+index.
+
+On the environmental pillar the internal measures are concrete and checkable: 100\%
+renewable electricity for French buildings above 36~kVA of subscribed power, 80\% of floor
+area covered by waste sorting, and ISO~14001 certification being extended. Awareness is
+raised through Fresque du Climat workshops and eco-practice training.
+
+It is the third pillar that bears most directly on this mission. ALTEN devotes 31\% of its
+R\&D to environmental innovation, and the programme hosting this placement is part of that
+share: a programme named \emph{Smart Green} Supply Chain, in which CO\textsubscript{2}
+emissions form one of the six blocks of the urgency model developed here, ranked alongside
+cost and delay rather than applied as an afterthought. The group's CSR policy did not merely
+frame this work; it determined one of its modelling variables.
+
+Two observations follow. ALTEN's CSR is considerably more visible at group level than in the
+daily life of a laboratory: over six months I encountered it more as an object of research
+than as an office practice. And the carbon block of the model turned out to be the least
+exercised of the six during the experimental campaign. A company can therefore hold a solid
+environmental policy, fund a research programme that carries it, and still produce a model
+in which the environmental dimension is the least active one, for want of data to feed it.
+The gap is not one of intent but of measurement availability, and it is recorded as such in
+Section~\ref{sec:conclusion_limites}.

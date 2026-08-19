@@ -1,0 +1,63 @@
+<svg width="1280" height="720" viewBox="0 0 1280 720" xmlns="http://www.w3.org/2000/svg">
+  <rect id="bg" x="0" y="0" width="1280" height="720" fill="#FFFFFF"/>
+
+  <g id="p25-header">
+    <text x="56" y="60" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" letter-spacing="2" fill="#6B7A85">PARTIE IV · SYNTHÈSE</text>
+    <text x="54" y="104" font-family="Segoe UI, Arial, sans-serif" font-size="42" font-weight="800" fill="#1E4258">Un seul indicateur pour tout faire converger</text>
+    <rect x="56" y="118" width="64" height="4" fill="#2C5F7C"/>
+  </g>
+
+  <g id="p25-equation">
+    <text x="640" y="170" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="17" fill="#6B7A85">Proposition : score d'urgence unifié US(t)</text>
+    <image href="../images/f13_unified_score.png" x="140" y="180" width="1000" height="69" preserveAspectRatio="xMidYMid meet"/>
+  </g>
+
+  <g id="p25-terms">
+    <rect x="56" y="280" width="220" height="150" fill="#F4F6F8" stroke="#D8DEE3"/>
+    <text x="72" y="318" font-family="Consolas, 'Courier New', monospace" font-size="26" font-weight="700" fill="#2C5F7C">ωA·A(t)</text>
+    <text x="72" y="346" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="700" fill="#1E4258">Adéquation</text>
+    <text x="72" y="368" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#6B7A85"><tspan x="72" dy="0">Score Prospect Theory,</tspan><tspan x="72" dy="16">A(t) ∈ [0,100]</tspan></text>
+    <text x="72" y="418" font-family="Consolas, 'Courier New', monospace" font-size="12" fill="#9AA5AC">terme positif</text>
+
+    <rect x="292" y="280" width="220" height="150" fill="#F4F6F8" stroke="#D8DEE3"/>
+    <text x="308" y="318" font-family="Consolas, 'Courier New', monospace" font-size="26" font-weight="700" fill="#2C5F7C">ωV·V_mc</text>
+    <text x="308" y="346" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="700" fill="#1E4258">Volatilité MC</text>
+    <text x="308" y="368" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#6B7A85"><tspan x="308" dy="0">Risque de délai</tspan><tspan x="308" dy="16">Monte Carlo, ∈ [0,1]</tspan></text>
+    <text x="308" y="418" font-family="Consolas, 'Courier New', monospace" font-size="12" fill="#9AA5AC">terme positif</text>
+
+    <rect x="528" y="280" width="220" height="150" fill="#F4F6F8" stroke="#D8DEE3"/>
+    <text x="544" y="318" font-family="Consolas, 'Courier New', monospace" font-size="26" font-weight="700" fill="#2C5F7C">ωO·O_meta</text>
+    <text x="544" y="346" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="700" fill="#1E4258">Métadonnées</text>
+    <text x="544" y="368" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#6B7A85"><tspan x="544" dy="0">Indicateur de chemin</tspan><tspan x="544" dy="16">critique, ∈ [0,1]</tspan></text>
+    <text x="544" y="418" font-family="Consolas, 'Courier New', monospace" font-size="12" fill="#9AA5AC">terme positif</text>
+
+    <rect x="764" y="280" width="220" height="150" fill="#F4F6F8" stroke="#D8DEE3"/>
+    <text x="780" y="318" font-family="Consolas, 'Courier New', monospace" font-size="26" font-weight="700" fill="#B06000">−ωC·C_crise</text>
+    <text x="780" y="346" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="700" fill="#1E4258">Amortissement</text>
+    <text x="780" y="368" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#6B7A85"><tspan x="780" dy="0">Tampon de crise actif,</tspan><tspan x="780" dy="16">C_crise(t) ≥ 0</tspan></text>
+    <text x="780" y="418" font-family="Consolas, 'Courier New', monospace" font-size="12" fill="#B06000">terme soustrait</text>
+
+    <rect x="1000" y="280" width="168" height="150" fill="#F4F6F8" stroke="#D8DEE3"/>
+    <text x="1016" y="318" font-family="Consolas, 'Courier New', monospace" font-size="22" font-weight="700" fill="#B06000">−ωL·L_macro</text>
+    <text x="1016" y="346" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="700" fill="#1E4258">Macro-logistique</text>
+    <text x="1016" y="368" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#6B7A85"><tspan x="1016" dy="0">Capacité transport</tspan><tspan x="1016" dy="16">régionale, ≥ 0</tspan></text>
+    <text x="1016" y="418" font-family="Consolas, 'Courier New', monospace" font-size="12" fill="#B06000">terme soustrait</text>
+  </g>
+
+  <g id="p25-constraint">
+    <text x="640" y="480" text-anchor="middle" font-family="Consolas, 'Courier New', monospace" font-size="22" font-weight="700" fill="#1E4258">Contrainte : ωA + ωV + ωO = 1.0</text>
+    <text x="640" y="530" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="19" fill="#22313A">
+      US(t) ∈ [0, 100] : sentiment humain, risque physique,
+    </text>
+    <text x="640" y="558" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="19" fill="#22313A">
+      variance stochastique et capacité macro-environnementale en un seul indicateur
+    </text>
+  </g>
+
+  <g id="p25-footer">
+    <line x1="56" y1="676" x2="1224" y2="676" stroke="#D8DEE3" stroke-width="1"/>
+    <text x="56" y="700" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#9AA5AC">SupplyScore · Soutenance de thèse</text>
+    <text x="640" y="700" text-anchor="middle" font-family="Consolas, 'Courier New', monospace" font-size="15" fill="#9AA5AC">supplyscore/services/report.py · web_ui/components/figures.py</text>
+    <text x="1224" y="700" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#9AA5AC" text-anchor="end">25 / 28</text>
+  </g>
+</svg>

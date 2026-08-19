@@ -7,6 +7,41 @@
 \usepackage[T1]{fontenc}
 \usepackage{microtype}
 
+%% ALTEN Brandbook 2025 — main font is Metropolis; in its absence the
+%% brand prescribes Arial or Calibri. Carlito is the metric-compatible
+%% free Calibri, so the whole document is set in it.
+\usepackage[sfdefault,lining]{carlito}
+
+%% ─────────────────────────────────────────
+%%  ALTEN BRAND COLOURS (Brandbook EN, Sept. 2025)
+%% ─────────────────────────────────────────
+\usepackage{xcolor}
+% Main trio
+\definecolor{altenAzure}{HTML}{008BD2}   % Azure blue
+\definecolor{altenNavy}{HTML}{043962}    % Navy blue — running text colour
+\definecolor{altenOchre}{HTML}{FFDA65}   % Ochre yellow
+% Official shades
+\definecolor{altenAzureDark}{HTML}{176F98}
+\definecolor{altenAzureLight}{HTML}{7DCAED}
+\definecolor{altenAzurePale}{HTML}{B2E0F5}
+\definecolor{altenNavyShade}{HTML}{4A617D}
+\definecolor{altenOchreDark}{HTML}{FFBA00}
+\definecolor{altenOchrePale}{HTML}{FFEF86}
+% Greyscale / bluescale (backgrounds, lines, secondary text)
+\definecolor{altenGreyBg}{HTML}{EBECF0}
+\definecolor{altenGreyLine}{HTML}{CDCEDA}
+\definecolor{altenGreyText}{HTML}{8C8C9A}
+\definecolor{altenBlueBg}{HTML}{EBF3F9}
+\definecolor{altenBlueBg2}{HTML}{DAE8F3}
+\definecolor{altenBlueBg3}{HTML}{CBEAF8}
+
+%% Coloured section headings (azure titles on navy text, per charter)
+\usepackage{sectsty}
+\sectionfont{\color{altenNavy}}
+\subsectionfont{\color{altenAzureDark}}
+\subsubsectionfont{\color{altenAzureDark}}
+\paragraphfont{\color{altenNavy}}
+
 %% ─────────────────────────────────────────
 %%  PAGE STYLE
 %% ─────────────────────────────────────────
@@ -20,6 +55,12 @@
     \renewcommand{\headrulewidth}{0pt}
     \renewcommand{\footrulewidth}{1pt}
 }
+
+%% ─────────────────────────────────────────
+%%  PARAGRAPH LAYOUT — uniform spacing, no indents
+%%  (fixes irregular tabulation at paragraph starts)
+%% ─────────────────────────────────────────
+\usepackage[skip=8pt plus 2pt, indent=0pt]{parskip}
 
 %% ─────────────────────────────────────────
 %%  TOC DEPTH
@@ -86,10 +127,10 @@
 %% ─────────────────────────────────────────
 \hypersetup{
     colorlinks  = true,
-    linkcolor   = blue,
-    filecolor   = magenta,
-    urlcolor    = blue,
-    citecolor   = blue,
+    linkcolor   = altenAzure,
+    filecolor   = altenAzure,
+    urlcolor    = altenAzure,
+    citecolor   = altenAzure,
     pdfpagemode = FullScreen,
 }
 
@@ -108,13 +149,12 @@
 %% ─────────────────────────────────────────
 \usepackage[strict]{changepage}
 \usepackage{framed}
-\usepackage{xcolor}
 
-\definecolor{definitionshade}{rgb}{0.95,0.95,1}
+\colorlet{definitionshade}{altenBlueBg2}
 \newenvironment{definitionBox}{%
   \def\FrameCommand{%
     \hspace{1pt}%
-    {\color{blue}\vrule width 2pt}%
+    {\color{altenNavy}\vrule width 2pt}%
     {\color{definitionshade}\vrule width 4pt}%
     \colorbox{definitionshade}%
   }%
@@ -124,12 +164,11 @@
   \vspace{2pt}\vspace{2pt}%
 }{\vspace{2pt}\end{adjustwidth}\endMakeFramed}
 
-\definecolor{emerald}{rgb}{0.0, 0.56, 0.0}
-\definecolor{exampleShade}{rgb}{0.94, 1.0, 0.94}
+\colorlet{exampleShade}{altenBlueBg}
 \newenvironment{exampleBox}{%
   \def\FrameCommand{%
     \hspace{1pt}%
-    {\color{emerald}\vrule width 2pt}%
+    {\color{altenAzure}\vrule width 2pt}%
     {\color{exampleShade}\vrule width 4pt}%
     \colorbox{exampleShade}%
   }%
@@ -139,11 +178,12 @@
   \vspace{2pt}\vspace{2pt}%
 }{\vspace{2pt}\end{adjustwidth}\endMakeFramed}
 
-\definecolor{attentionShade}{rgb}{1.0, 0.98, 0.8}
+%% Brand charter excludes red: attention accents use ochre yellow instead
+\colorlet{attentionShade}{altenOchrePale!45!white}
 \newenvironment{attentionBox}{%
   \def\FrameCommand{%
     \hspace{1pt}%
-    {\color{red}\vrule width 2pt}%
+    {\color{altenOchreDark}\vrule width 2pt}%
     {\color{attentionShade}\vrule width 4pt}%
     \colorbox{attentionShade}%
   }%
@@ -152,6 +192,25 @@
   \begin{adjustwidth}{}{7pt}%
   \vspace{2pt}\vspace{2pt}%
 }{\vspace{2pt}\end{adjustwidth}\endMakeFramed}
+
+%% ─────────────────────────────────────────
+%%  FIGURE PLACEHOLDERS — red boxes describing figures
+%%  to be hand-drawn, then swapped for \includegraphics
+%% ─────────────────────────────────────────
+\newcommand{\figuretodraw}[3]{%
+  \begin{figure}[H]
+    \centering
+    \fcolorbox{red}{red!4}{%
+      \parbox{0.9\linewidth}{%
+        \centering\color{red}%
+        \textbf{[FIGURE TO DRAW]}\\[5pt]
+        \small #1\par
+      }%
+    }
+    \caption{#2}
+    \label{#3}
+  \end{figure}
+}
 
 %% ─────────────────────────────────────────
 %%  COMMENTS
@@ -163,6 +222,9 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \begin{document}
+
+%% ALTEN charter: running text is navy blue, never black
+\color{altenNavy}
 
 \input{Utilities/Cover}
 
@@ -216,7 +278,7 @@
 \input{Sections/4.Operations}
 
 \clearpage
-\section{Conclusions and Perspectives}
+\section{Conclusions}
 \label{sec:Conclusions}
 \input{Sections/5.Conclusions}
 

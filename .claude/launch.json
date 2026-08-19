@@ -1,0 +1,18 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "helios-llm-pilot",
+      "runtimeExecutable": "C:\\PRIVEE\\AZURE\\.venv\\Scripts\\python.exe",
+      "runtimeArgs": [
+        "-m",
+        "supplyscore.cli",
+        "--db-dir",
+        "C:\\Users\\jhoarau\\AppData\\Local\\SupplyScore\\simu_semiconducteurs_llm_pilot",
+        "--port",
+        "8060"
+      ],
+      "port": 8060
+    }
+  ]
+}

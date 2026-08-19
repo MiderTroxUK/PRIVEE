@@ -1,0 +1,56 @@
+<svg width="1280" height="720" viewBox="0 0 1280 720" xmlns="http://www.w3.org/2000/svg">
+  <rect id="bg" x="0" y="0" width="1280" height="720" fill="#FFFFFF"/>
+
+  <g id="p19-header">
+    <text x="56" y="60" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" letter-spacing="2" fill="#6B7A85">PARTIE III · DÉMONSTRATION 3/8</text>
+    <text x="54" y="104" font-family="Segoe UI, Arial, sans-serif" font-size="42" font-weight="800" fill="#1E4258">Stress-tester sans toucher aux données réelles</text>
+    <rect x="56" y="118" width="64" height="4" fill="#2C5F7C"/>
+  </g>
+
+  <g id="p19-figure">
+    <text x="76" y="160" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#9AA5AC">Écran /simulation · choc &amp; scénarios</text>
+    <image href="../images/15-simulation-choc-pleine-page.png" x="76" y="170" width="298" height="480" preserveAspectRatio="xMidYMid meet"/>
+    <rect x="76" y="170" width="298" height="480" fill="none" stroke="#D8DEE3" stroke-width="1"/>
+  </g>
+
+  <g id="p19-content">
+    <text x="410" y="196" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#22313A">
+      <tspan x="410" dy="0">Un choc simulé recalcule instantanément la</tspan>
+      <tspan x="410" dy="26">propagation ascendante en mémoire, sans jamais</tspan>
+      <tspan x="410" dy="26">écrire dans les bases ni altérer l'historique.</tspan>
+    </text>
+
+    <rect x="410" y="320" width="258" height="90" fill="#F4F6F8" stroke="#D8DEE3"/>
+    <use data-icon="tabler-outline/map" x="426" y="334" width="24" height="24" fill="#2C5F7C" stroke-width="2"/>
+    <text x="426" y="378" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" fill="#1E4258">Scénarios nommés</text>
+    <text x="426" y="398" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#6B7A85">Table scenarios, snapshot complet</text>
+
+    <rect x="688" y="320" width="258" height="90" fill="#F4F6F8" stroke="#D8DEE3"/>
+    <use data-icon="tabler-outline/flask" x="704" y="334" width="24" height="24" fill="#2C5F7C" stroke-width="2"/>
+    <text x="704" y="378" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" fill="#1E4258">Choc simulé</text>
+    <text x="704" y="398" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#6B7A85">Ur_local → 1.0 sur un nœud cible</text>
+
+    <rect x="966" y="320" width="258" height="90" fill="#F4F6F8" stroke="#D8DEE3"/>
+    <use data-icon="tabler-outline/shield-check" x="982" y="334" width="24" height="24" fill="#2C5F7C" stroke-width="2"/>
+    <text x="982" y="378" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" fill="#1E4258">Sandbox mémoire</text>
+    <text x="982" y="398" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#6B7A85">Zéro écriture SQLite</text>
+
+    <text x="410" y="452" font-family="Consolas, 'Courier New', monospace" font-size="18" font-weight="700" fill="#2C5F7C">ΔUr_i = Ur_i^choc − Ur_i^baseline</text>
+
+    <rect x="410" y="480" width="814" height="150" fill="#1E4258"/>
+    <text x="434" y="510" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#FFFFFF">
+      <tspan x="434" dy="0" fill="#9FB6C6">// payload_json (table scenarios)</tspan>
+      <tspan x="434" dy="22">{ "node_overrides": {</tspan>
+      <tspan x="434" dy="20">    "node_supplier_T2": { "ur_local": 0.90 } },</tspan>
+      <tspan x="434" dy="20">  "arc_overrides": {</tspan>
+      <tspan x="434" dy="20">    "T2-&gt;T1": { "gamma": 0.85, "beta": 0.60 } } }</tspan>
+    </text>
+  </g>
+
+  <g id="p19-footer">
+    <line x1="56" y1="676" x2="1224" y2="676" stroke="#D8DEE3" stroke-width="1"/>
+    <text x="56" y="700" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#9AA5AC">SupplyScore · Soutenance de thèse</text>
+    <text x="640" y="700" text-anchor="middle" font-family="Consolas, 'Courier New', monospace" font-size="15" fill="#9AA5AC">supplyscore/graph/scenario.py · orchestrator.py</text>
+    <text x="1224" y="700" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#9AA5AC" text-anchor="end">19 / 28</text>
+  </g>
+</svg>

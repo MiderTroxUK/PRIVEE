@@ -297,9 +297,11 @@ class TestComputeImpactsValidation:
 
 class TestImpactsIgnoresSiNone:
     def test_greve_sans_availability(self):
+        # oee.availability absent -> ignoré ; le lead time est en revanche
+        # TOUJOURS impacté (initialisé à la durée d'arrêt effective).
         bundle = KPIBundle()
         impacts = compute_impacts("greve", {"duree_prevue_h": 48.0, "part_effectif": 0.5}, bundle)
-        assert [impact.kpi_path for impact in impacts] == ["risk.severity"]
+        assert [impact.kpi_path for impact in impacts] == ["risk.severity", "time.lead_time_h"]
         assert impacts[0].new == pytest.approx(0.5)
 
     def test_hausse_energie_sans_op_cost(self):
@@ -316,7 +318,7 @@ class TestImpactsIgnoresSiNone:
         )
         paths = [impact.kpi_path for impact in impacts]
         assert "inventory.flow_rate" not in paths
-        assert paths == ["risk.failure_probability", "risk.severity"]
+        assert paths == ["risk.failure_probability", "risk.severity", "time.lead_time_h"]
 
     def test_bayes_prior_par_defaut_si_none(self):
         # failure_probability None -> prior 0.02 documenté dans la règle.
@@ -392,3 +394,70 @@ class TestProprietes:
         avant = copy.deepcopy(bundle)
         compute_impacts(event_type, params, bundle)
         assert bundle == avant
+
+
+# --- Chaîne causale : choc de capacité -> lead time ----------------------------------
+
+
+class TestChaineCausaleArret:
+    """Tout choc qui immobilise la production doit atteindre ``time.lead_time_h``.
+
+    Régression du défaut structurel mesuré sur la campagne HÉLIOS : le bloc
+    temporel du modèle Ur ne lit que ``time.lead_time_h``, or aucun choc de
+    CAPACITÉ n'y touchait. P(jalon raté) valait 0,0 % pour un nœud à l'arrêt
+    quatre semaines, dont le jalon a effectivement été raté.
+    """
+
+    #: Chocs immobilisants -> durée d'arrêt EFFECTIVE attendue (heures).
+    CHOCS_IMMOBILISANTS: dict[str, float] = {
+        "panne_machine": 24.0,           # duree_arret_h
+        "accident": 8.0,                 # duree_arret_h
+        "cyber_incident": 36.0,          # duree_arret_h
+        "greve": 48.0 * 0.5,             # duree_prevue_h x part_effectif
+        "rupture_matiere": 72.0 * 0.6,   # duree_prevue_h x criticite
+    }
+
+    @pytest.mark.parametrize("event_type", sorted(CHOCS_IMMOBILISANTS))
+    def test_arret_allonge_le_lead_time(self, event_type: str):
+        bundle = make_bundle({"time.lead_time_h": 200.0})
+        impacts = compute_impacts(event_type, VALID_PARAMS[event_type], bundle)
+        paths = [impact.kpi_path for impact in impacts]
+        assert "time.lead_time_h" in paths, f"{event_type} n'atteint pas le bloc temporel"
+        assert impact_for(impacts, "time.lead_time_h").new > 200.0
+
+    @pytest.mark.parametrize("event_type", sorted(CHOCS_IMMOBILISANTS))
+    def test_duree_effective_lissee_lambda_04(self, event_type: str):
+        # EMA(obs = ancien + duree_effective, lambda = 0.4), comme retard_fournisseur.
+        duree = self.CHOCS_IMMOBILISANTS[event_type]
+        bundle = make_bundle({"time.lead_time_h": 200.0})
+        impact = impact_for(
+            compute_impacts(event_type, VALID_PARAMS[event_type], bundle), "time.lead_time_h"
+        )
+        assert impact.new == pytest.approx(200.0 + 0.4 * duree, abs=TOL)
+
+    @pytest.mark.parametrize("event_type", sorted(CHOCS_IMMOBILISANTS))
+    def test_lead_time_absent_initialise_a_la_duree(self, event_type: str):
+        impact = impact_for(
+            compute_impacts(event_type, VALID_PARAMS[event_type], KPIBundle()),
+            "time.lead_time_h",
+        )
+        assert impact.old is None
+        assert impact.new == pytest.approx(self.CHOCS_IMMOBILISANTS[event_type], abs=TOL)
+
+    def test_monotone_en_duree_arret(self):
+        # Un arrêt plus long ne peut pas produire un lead time plus court.
+        precedent = 0.0
+        for duree in (1.0, 24.0, 168.0, 672.0):
+            bundle = make_bundle({"time.lead_time_h": 200.0})
+            impact = impact_for(
+                compute_impacts("accident", {"duree_arret_h": duree, "gravite": "critique"}, bundle),
+                "time.lead_time_h",
+            )
+            assert impact.new >= precedent
+            precedent = impact.new
+
+    def test_perte_capacite_ne_touche_pas_le_lead_time(self):
+        # Exclusion VOULUE : ce qui est perdu est du volume de STOCKAGE, pas
+        # du temps de production — la saturation est portée par u_cap.
+        impacts = compute_impacts("perte_capacite", VALID_PARAMS["perte_capacite"], full_bundle())
+        assert "time.lead_time_h" not in [impact.kpi_path for impact in impacts]

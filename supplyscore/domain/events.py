@@ -16,6 +16,13 @@ Trois opérateurs de calibration sont utilisés :
 Certains impacts en « cliquet » (max de l'ancien et du nouveau niveau) modélisent
 des expositions qui ne redescendent pas spontanément (risque politique, sévérité).
 
+**Chaîne causale vers le bloc temporel.** Tout choc qui immobilise la production
+route sa durée d'arrêt EFFECTIVE vers ``time.lead_time_h`` via
+:func:`_arret_impact` — panne, grève, rupture matière, accident, cyber-incident,
+en plus des retards fournisseur et transport qui l'atteignaient déjà. C'est la
+seule grandeur du bloc ``time`` qu'un événement peut déplacer, et donc le seul
+chemin par lequel un choc peut atteindre P(jalon raté).
+
 Module PUR : aucune IO, aucune écriture — les impacts sont calculés et retournés,
 jamais appliqués. Chaque valeur ``new`` est bornée par
 :func:`supplyscore.domain.constraints.clamp_kpi_value`.
@@ -480,6 +487,38 @@ def _ema_impact(kpis: KPIBundle, kpi_path: str, obs: float, lam: float, contexte
     return _impact(kpi_path, old, ema_update(old, obs, lam), rule)
 
 
+def _arret_impact(kpis: KPIBundle, duree_effective_h: float, contexte: str) -> KpiImpact:
+    """Impact d'un arrêt sur le lead time : le travail non fait est repoussé d'autant.
+
+    Un nœud arrêté ``D`` heures ne produit pas pendant ``D`` heures : le
+    travail restant est décalé de ``D``, donc le lead time observé vaut
+    ``lead time courant + D``. Lissé à λ=0.4, comme
+    :func:`_retard_fournisseur` — même opérateur pour la même grandeur.
+
+    Pourquoi cet impact existe : ``time.lead_time_h`` est la seule grandeur
+    du bloc ``time`` qu'un événement peut déplacer, et
+    :meth:`~supplyscore.core.ur_model.UrModel.u_base_jalon` (le socle de
+    P(jalon raté)) ne lit qu'elle. Sans cet impact, les chocs de CAPACITÉ
+    — panne, accident, grève, rupture, cyber — n'atteignaient que
+    ``oee.*`` et ``risk.*``, jamais le bloc temporel : la chaîne causale
+    « événement → capacité → retard → jalon » n'existait pas. Mesuré sur la
+    campagne HÉLIOS : P(jalon raté) = 0,0 % pour un nœud à l'arrêt quatre
+    semaines, dont le jalon a effectivement été raté.
+
+    Args:
+        kpis: bundle KPI du nœud.
+        duree_effective_h: heures de production effectivement perdues (déjà
+            pondérées par la part d'effectif ou la criticité s'il y a lieu).
+        contexte: libellé de la règle auditable.
+
+    Returns:
+        L'impact EMA sur ``time.lead_time_h``.
+    """
+    old_lead = _kpi_value(kpis, "time.lead_time_h")
+    obs_lead = duree_effective_h if old_lead is None else old_lead + duree_effective_h
+    return _ema_impact(kpis, "time.lead_time_h", obs_lead, 0.4, contexte)
+
+
 def _ratchet_impact(kpis: KPIBundle, kpi_path: str, niveau: float, contexte: str) -> KpiImpact:
     """Impact en cliquet : ``max(ancien ou 0, niveau)`` — ne redescend jamais."""
     old = _kpi_value(kpis, kpi_path)
@@ -492,7 +531,7 @@ def _ratchet_impact(kpis: KPIBundle, kpi_path: str, niveau: float, contexte: str
 
 
 def _panne_machine(params: _Params, kpis: KPIBundle) -> list[KpiImpact]:
-    """Panne machine : BAYES gradué, EMA récupération (λ=0.4), EMA disponibilité (λ=0.3)."""
+    """Panne machine : BAYES gradué, EMA récupération (λ=0.4), disponibilité et lead time."""
     duree = _num(params, "duree_arret_h")
     gravite = _choice(params, "gravite")
     k, n = _GRAVITE_PANNE_BAYES[gravite]
@@ -507,6 +546,7 @@ def _panne_machine(params: _Params, kpis: KPIBundle) -> list[KpiImpact]:
             0.3,
             f"disponibilité hebdomadaire après {duree:g} h d'arrêt",
         ),
+        _arret_impact(kpis, duree, f"production repoussée par {duree:g} h de panne"),
     ]
 
 
@@ -522,7 +562,7 @@ def _retard_fournisseur(params: _Params, kpis: KPIBundle) -> list[KpiImpact]:
 
 
 def _greve(params: _Params, kpis: KPIBundle) -> list[KpiImpact]:
-    """Grève : disponibilité réduite au prorata (ignorée si None), sévérité en cliquet."""
+    """Grève : disponibilité réduite au prorata, sévérité en cliquet, lead time décalé."""
     duree = _num(params, "duree_prevue_h")
     part = _num(params, "part_effectif")
     impacts: list[KpiImpact] = []
@@ -532,6 +572,15 @@ def _greve(params: _Params, kpis: KPIBundle) -> list[KpiImpact]:
         rule = f"DIRECT : disponibilité × (1 − {part:g} × min({duree:g}/168, 1))"
         impacts.append(_impact("oee.availability", old_avail, new, rule))
     impacts.append(_ratchet_impact(kpis, "risk.severity", part, "part de l'effectif en grève"))
+    # Arrêt effectif = durée × part de l'effectif : une grève partielle ne
+    # stoppe qu'une fraction de la production.
+    impacts.append(
+        _arret_impact(
+            kpis,
+            duree * part,
+            f"production repoussée par {duree:g} h de grève à {part:g} de l'effectif",
+        )
+    )
     return impacts
 
 
@@ -555,7 +604,8 @@ def _hausse_tarif(params: _Params, kpis: KPIBundle) -> list[KpiImpact]:
 
 
 def _rupture_matiere(params: _Params, kpis: KPIBundle) -> list[KpiImpact]:
-    """Rupture matière : débit réduit (ignoré si None), BAYES(k=criticité), cliquet sévérité."""
+    """Rupture matière : débit réduit, BAYES(k=criticité), cliquet sévérité, lead time décalé."""
+    duree = _num(params, "duree_prevue_h")
     criticite = _num(params, "criticite")
     impacts: list[KpiImpact] = []
     old_flow = _kpi_value(kpis, "inventory.flow_rate")
@@ -564,11 +614,20 @@ def _rupture_matiere(params: _Params, kpis: KPIBundle) -> list[KpiImpact]:
         impacts.append(_impact("inventory.flow_rate", old_flow, old_flow * (1.0 - criticite), rule))
     impacts.append(_bayes_impact(kpis, criticite, 1.0, "rupture matière pondérée par la criticité"))
     impacts.append(_ratchet_impact(kpis, "risk.severity", criticite, "criticité de la rupture"))
+    # Arrêt effectif = durée × criticité : le débit tombe de la criticité,
+    # donc la même fraction du temps de rupture est perdue en production.
+    impacts.append(
+        _arret_impact(
+            kpis,
+            duree * criticite,
+            f"production repoussée par {duree:g} h de rupture à {criticite:g} de criticité",
+        )
+    )
     return impacts
 
 
 def _accident(params: _Params, kpis: KPIBundle) -> list[KpiImpact]:
-    """Accident : BAYES gradué, EMA récupération réactive (λ=0.5), sévérité forfaitaire."""
+    """Accident : BAYES gradué, EMA récupération (λ=0.5), sévérité forfaitaire, lead time."""
     duree = _num(params, "duree_arret_h")
     gravite = _choice(params, "gravite")
     k, n = _GRAVITE_PANNE_BAYES[gravite]
@@ -579,6 +638,7 @@ def _accident(params: _Params, kpis: KPIBundle) -> list[KpiImpact]:
         _ratchet_impact(
             kpis, "risk.severity", severite, f"sévérité forfaitaire accident {gravite}"
         ),
+        _arret_impact(kpis, duree, f"production repoussée par {duree:g} h d'arrêt accidentel"),
     ]
 
 
@@ -623,7 +683,7 @@ def _instabilite_politique(params: _Params, kpis: KPIBundle) -> list[KpiImpact]:
 
 
 def _cyber_incident(params: _Params, kpis: KPIBundle) -> list[KpiImpact]:
-    """Cyber-incident : défaillance franche (BAYES k=1, n=1), EMA disponibilité (λ=0.3)."""
+    """Cyber-incident : défaillance franche (BAYES k=1, n=1), disponibilité et lead time."""
     duree = _num(params, "duree_arret_h")
     obs_avail = max(0.0, 1.0 - duree / WEEK_HOURS)
     return [
@@ -635,6 +695,7 @@ def _cyber_incident(params: _Params, kpis: KPIBundle) -> list[KpiImpact]:
             0.3,
             f"disponibilité hebdomadaire après {duree:g} h d'arrêt",
         ),
+        _arret_impact(kpis, duree, f"production repoussée par {duree:g} h d'arrêt cyber"),
     ]
 
 
@@ -670,7 +731,13 @@ def _alerte_financiere_fournisseur(params: _Params, kpis: KPIBundle) -> list[Kpi
 
 
 def _perte_capacite(params: _Params, kpis: KPIBundle) -> list[KpiImpact]:
-    """Perte de capacité : volume max réduit (ignoré si None), exposition en cliquet."""
+    """Perte de capacité : volume max réduit (ignoré si None), exposition en cliquet.
+
+    Pas d'impact sur ``time.lead_time_h`` contrairement aux autres chocs de
+    capacité : ce qui est perdu ici est du volume de STOCKAGE, pas du temps
+    de production. La saturation qui en résulte est portée par ``u_cap``,
+    pas par le bloc temporel.
+    """
     pct = _num(params, "pct_volume_perdu")
     impacts: list[KpiImpact] = []
     old_volume = _kpi_value(kpis, "inventory.max_volume_m3")

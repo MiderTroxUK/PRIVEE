@@ -1,0 +1,47 @@
+<svg width="1280" height="720" viewBox="0 0 1280 720" xmlns="http://www.w3.org/2000/svg">
+  <rect id="bg" x="0" y="0" width="1280" height="720" fill="#FFFFFF"/>
+  <rect id="bg-accent-bar" x="0" y="0" width="10" height="720" fill="#2C5F7C"/>
+
+  <g id="p04-header">
+    <text x="56" y="60" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" letter-spacing="2" fill="#6B7A85">FEUILLE DE ROUTE DE LA PRÉSENTATION</text>
+    <text x="54" y="104" font-family="Segoe UI, Arial, sans-serif" font-size="42" font-weight="800" fill="#1E4258">Trois heures, quatre mouvements</text>
+    <rect x="56" y="118" width="64" height="4" fill="#2C5F7C"/>
+  </g>
+
+  <g id="p04-row1">
+    <text x="76" y="216" font-family="Segoe UI, Arial, sans-serif" font-size="44" font-weight="800" fill="#2C5F7C">I</text>
+    <text x="160" y="206" font-family="Segoe UI, Arial, sans-serif" font-size="32" font-weight="700" fill="#22313A">Fondations</text>
+    <text x="160" y="238" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#6B7A85">Hypothèses de modélisation, architecture logicielle, panorama fonctionnel</text>
+    <text x="1180" y="206" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#9AA5AC">P05-P07</text>
+    <line x1="56" y1="272" x2="1224" y2="272" stroke="#D8DEE3" stroke-width="1"/>
+  </g>
+
+  <g id="p04-row2">
+    <text x="76" y="336" font-family="Segoe UI, Arial, sans-serif" font-size="44" font-weight="800" fill="#2C5F7C">II</text>
+    <text x="160" y="326" font-family="Segoe UI, Arial, sans-serif" font-size="32" font-weight="700" fill="#22313A">Six deep dives mathématiques</text>
+    <text x="160" y="358" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#6B7A85">AHP, F-BWM, PROMETHEE II, Monte Carlo, propagation DAG, adéquation asymétrique</text>
+    <text x="1180" y="326" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#9AA5AC">P08-P16</text>
+    <line x1="56" y1="392" x2="1224" y2="392" stroke="#D8DEE3" stroke-width="1"/>
+  </g>
+
+  <g id="p04-row3">
+    <text x="76" y="456" font-family="Segoe UI, Arial, sans-serif" font-size="44" font-weight="800" fill="#2C5F7C">III</text>
+    <text x="160" y="446" font-family="Segoe UI, Arial, sans-serif" font-size="32" font-weight="700" fill="#22313A">Huit démonstrations opérationnelles</text>
+    <text x="160" y="478" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#6B7A85">Du cycle hebdomadaire aux exports : le logiciel en fonctionnement réel</text>
+    <text x="1180" y="446" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#9AA5AC">P17-P24</text>
+    <line x1="56" y1="512" x2="1224" y2="512" stroke="#D8DEE3" stroke-width="1"/>
+  </g>
+
+  <g id="p04-row4">
+    <text x="76" y="576" font-family="Segoe UI, Arial, sans-serif" font-size="44" font-weight="800" fill="#2C5F7C">IV</text>
+    <text x="160" y="566" font-family="Segoe UI, Arial, sans-serif" font-size="32" font-weight="700" fill="#22313A">Synthèse &amp; perspectives</text>
+    <text x="160" y="598" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#6B7A85">Score unifié, agents de décision autonomes, rétrospective</text>
+    <text x="1180" y="566" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#9AA5AC">P25-P28</text>
+    <line x1="56" y1="632" x2="1224" y2="632" stroke="#D8DEE3" stroke-width="1"/>
+  </g>
+
+  <g id="p04-footer">
+    <text x="56" y="700" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#9AA5AC">SupplyScore · Soutenance de thèse</text>
+    <text x="1224" y="700" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#9AA5AC" text-anchor="end">04 / 28</text>
+  </g>
+</svg>

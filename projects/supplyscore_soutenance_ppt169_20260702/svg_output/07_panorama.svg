@@ -1,0 +1,91 @@
+<svg width="1280" height="720" viewBox="0 0 1280 720" xmlns="http://www.w3.org/2000/svg">
+  <rect id="bg" x="0" y="0" width="1280" height="720" fill="#FFFFFF"/>
+
+  <g id="p07-header">
+    <text x="56" y="60" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" letter-spacing="2" fill="#6B7A85">PARTIE I · FONDATIONS</text>
+    <text x="54" y="104" font-family="Segoe UI, Arial, sans-serif" font-size="42" font-weight="800" fill="#1E4258">Un logiciel complet, pas une preuve de concept</text>
+    <rect x="56" y="118" width="64" height="4" fill="#2C5F7C"/>
+  </g>
+
+  <g id="p07-grid-row1">
+    <rect x="56" y="150" width="277" height="90" fill="#F4F6F8" stroke="#D8DEE3"/>
+    <use data-icon="tabler-outline/target" x="72" y="164" width="22" height="22" fill="#2C5F7C" stroke-width="2"/>
+    <text x="104" y="180" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700" fill="#1E4258">Projets</text>
+    <text x="72" y="206" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#6B7A85"><tspan x="72" dy="0">Créer un projet, nœuds,</tspan><tspan x="72" dy="16">horloge jeu / réel</tspan></text>
+
+    <rect x="353" y="150" width="277" height="90" fill="#F4F6F8" stroke="#D8DEE3"/>
+    <use data-icon="tabler-outline/users" x="369" y="164" width="22" height="22" fill="#2C5F7C" stroke-width="2"/>
+    <text x="401" y="180" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700" fill="#1E4258">Onboarding</text>
+    <text x="369" y="206" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#6B7A85"><tspan x="369" dy="0">Wizard 4 étapes,</tspan><tspan x="369" dy="16">brouillon persisté</tspan></text>
+
+    <rect x="650" y="150" width="277" height="90" fill="#F4F6F8" stroke="#D8DEE3"/>
+    <use data-icon="tabler-outline/calendar" x="666" y="164" width="22" height="22" fill="#2C5F7C" stroke-width="2"/>
+    <text x="698" y="180" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700" fill="#1E4258">Hebdo</text>
+    <text x="666" y="206" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#6B7A85"><tspan x="666" dy="0">Revue hebdo guidée,</tspan><tspan x="666" dy="16">4 volets</tspan></text>
+
+    <rect x="947" y="150" width="277" height="90" fill="#F4F6F8" stroke="#D8DEE3"/>
+    <use data-icon="tabler-outline/calculator" x="963" y="164" width="22" height="22" fill="#2C5F7C" stroke-width="2"/>
+    <text x="995" y="180" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700" fill="#1E4258">Questionnaire</text>
+    <text x="963" y="206" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#6B7A85"><tspan x="963" dy="0">Mode expert, Ud calculé</tspan><tspan x="963" dy="16">en direct (CR live)</tspan></text>
+  </g>
+
+  <g id="p07-grid-row2">
+    <rect x="56" y="266" width="277" height="90" fill="#F4F6F8" stroke="#D8DEE3"/>
+    <use data-icon="tabler-outline/flask" x="72" y="280" width="22" height="22" fill="#2C5F7C" stroke-width="2"/>
+    <text x="104" y="296" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700" fill="#1E4258">Simulation</text>
+    <text x="72" y="322" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#6B7A85"><tspan x="72" dy="0">What-if, chocs,</tspan><tspan x="72" dy="16">criticité, scénarios</tspan></text>
+
+    <rect x="353" y="266" width="277" height="90" fill="#F4F6F8" stroke="#D8DEE3"/>
+    <use data-icon="tabler-outline/adjustments" x="369" y="280" width="22" height="22" fill="#2C5F7C" stroke-width="2"/>
+    <text x="401" y="296" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700" fill="#1E4258">Édition</text>
+    <text x="369" y="322" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#6B7A85"><tspan x="369" dy="0">Tableau KPI éditable,</tspan><tspan x="369" dy="16">audit à la volée</tspan></text>
+
+    <rect x="650" y="266" width="277" height="90" fill="#F4F6F8" stroke="#D8DEE3"/>
+    <use data-icon="tabler-outline/scale" x="666" y="280" width="22" height="22" fill="#2C5F7C" stroke-width="2"/>
+    <text x="698" y="296" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700" fill="#1E4258">Pondération</text>
+    <text x="666" y="322" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#6B7A85"><tspan x="666" dy="0">F-BWM, poids des</tspan><tspan x="666" dy="16">blocs de Ur</tspan></text>
+
+    <rect x="947" y="266" width="277" height="90" fill="#F4F6F8" stroke="#D8DEE3"/>
+    <use data-icon="tabler-outline/topology-star-3" x="963" y="280" width="22" height="22" fill="#2C5F7C" stroke-width="2"/>
+    <text x="995" y="296" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700" fill="#1E4258">Graphe</text>
+    <text x="963" y="322" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#6B7A85"><tspan x="963" dy="0">Éditeur DAG, arcs γ/β,</tspan><tspan x="963" dy="16">anti-cycle</tspan></text>
+  </g>
+
+  <g id="p07-grid-row3">
+    <rect x="56" y="382" width="277" height="90" fill="#F4F6F8" stroke="#D8DEE3"/>
+    <use data-icon="tabler-outline/report" x="72" y="396" width="22" height="22" fill="#2C5F7C" stroke-width="2"/>
+    <text x="104" y="412" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700" fill="#1E4258">Rapport</text>
+    <text x="72" y="438" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#6B7A85"><tspan x="72" dy="0">Rapport HTML autonome,</tspan><tspan x="72" dy="16">calibration prédictive</tspan></text>
+
+    <rect x="353" y="382" width="277" height="90" fill="#F4F6F8" stroke="#D8DEE3"/>
+    <use data-icon="tabler-outline/database-export" x="369" y="396" width="22" height="22" fill="#2C5F7C" stroke-width="2"/>
+    <text x="401" y="412" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700" fill="#1E4258">Admin</text>
+    <text x="369" y="438" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#6B7A85"><tspan x="369" dy="0">Données brutes,</tspan><tspan x="369" dy="16">sauvegardes</tspan></text>
+
+    <rect x="650" y="382" width="277" height="90" fill="#F4F6F8" stroke="#D8DEE3"/>
+    <use data-icon="tabler-outline/server" x="666" y="396" width="22" height="22" fill="#2C5F7C" stroke-width="2"/>
+    <text x="698" y="412" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700" fill="#1E4258">Fiche nœud</text>
+    <text x="666" y="438" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#6B7A85"><tspan x="666" dy="0">Vue 360°, jalons,</tspan><tspan x="666" dy="16">évaluations, audit</tspan></text>
+
+    <rect x="947" y="382" width="277" height="90" fill="#F4F6F8" stroke="#D8DEE3"/>
+    <use data-icon="tabler-outline/eye" x="963" y="396" width="22" height="22" fill="#2C5F7C" stroke-width="2"/>
+    <text x="995" y="412" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700" fill="#1E4258">Explication</text>
+    <text x="963" y="438" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#6B7A85"><tspan x="963" dy="0">Décomposition XAI</tspan><tspan x="963" dy="16">du score</tspan></text>
+  </g>
+
+  <g id="p07-hub">
+    <rect x="56" y="498" width="1168" height="110" fill="#2C5F7C"/>
+    <text x="80" y="524" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="700" letter-spacing="1" fill="#BFD3DE">13 / 13 · LA PAGE CENTRALE</text>
+    <use data-icon="tabler-outline/topology-star-3" x="80" y="536" width="34" height="34" fill="#FFFFFF" stroke-width="2"/>
+    <text x="128" y="558" font-family="Segoe UI, Arial, sans-serif" font-size="22" font-weight="800" fill="#FFFFFF">Dashboard · le cœur du système</text>
+    <text x="128" y="584" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#EAF1F5">
+      <tspan x="128" dy="0">DAG coloré par adéquation A, badges hebdo, priorités PROMETHEE II,</tspan>
+      <tspan x="128" dy="22">tableau détaillé Ud/Ur/A/F/H, évolution temporelle</tspan>
+    </text>
+  </g>
+
+  <g id="p07-footer">
+    <text x="56" y="700" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#9AA5AC">SupplyScore · Soutenance de thèse</text>
+    <text x="1224" y="700" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#9AA5AC" text-anchor="end">07 / 28</text>
+  </g>
+</svg>

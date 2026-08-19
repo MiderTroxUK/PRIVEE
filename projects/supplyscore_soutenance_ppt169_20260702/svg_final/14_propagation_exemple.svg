@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <defs>
+    <marker id="arrowUd2" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L9,4.5 L0,9 Z" fill="#2C5F7C" />
+    </marker>
+    <marker id="arrowUr2" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L9,4.5 L0,9 Z" fill="#1E4258" />
+    </marker>
+  </defs>
+  <rect id="bg" x="0" y="0" width="1280" height="720" fill="#FFFFFF" />
+
+  <g id="p14-header">
+    <text x="56" y="60" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" letter-spacing="2" fill="#6B7A85">PARTIE II · DEEP DIVE 5/6 · PROPAGATION</text>
+    <text x="54" y="104" font-family="Segoe UI, Arial, sans-serif" font-size="42" font-weight="800" fill="#1E4258">Trois nœuds, deux vagues de calcul</text>
+    <rect x="56" y="118" width="64" height="4" fill="#2C5F7C" />
+  </g>
+
+  <g id="p14-dag">
+    <rect x="76" y="210" width="250" height="90" fill="#F4F6F8" stroke="#D8DEE3" />
+    <rect x="266" y="218" width="50" height="22" fill="#1D7A3E" />
+    <text x="291" y="234" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="700" fill="#FFFFFF">DONE</text>
+    <text x="92" y="248" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="700" fill="#1E4258">Nœud 3 · Matières premières</text>
+    <text x="92" y="274" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#22313A">Ud_loc=0.50 · Ur_loc=0.60</text>
+
+    <line x1="510" y1="235" x2="326" y2="235" stroke="#2C5F7C" stroke-width="3" marker-end="url(#arrowUd2)" />
+    <text x="418" y="228" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="700" fill="#2C5F7C">γ₂₃=0.8</text>
+    <line x1="326" y1="266" x2="510" y2="266" stroke="#1E4258" stroke-width="3" marker-end="url(#arrowUr2)" />
+    <text x="418" y="282" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="700" fill="#1E4258">β₃₂=0.9</text>
+
+    <rect x="510" y="210" width="250" height="90" fill="#F4F6F8" stroke="#D8DEE3" />
+    <text x="526" y="248" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="700" fill="#1E4258">Nœud 2 · Sous-ensemble</text>
+    <text x="526" y="274" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#22313A">Ud_loc=0.30 · Ur_loc=0.40</text>
+
+    <line x1="944" y1="235" x2="760" y2="235" stroke="#2C5F7C" stroke-width="3" marker-end="url(#arrowUd2)" />
+    <text x="852" y="228" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="700" fill="#2C5F7C">γ₁₂=0.9</text>
+    <line x1="760" y1="266" x2="944" y2="266" stroke="#1E4258" stroke-width="3" marker-end="url(#arrowUr2)" />
+    <text x="852" y="282" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="700" fill="#1E4258">β₂₁=0.7</text>
+
+    <rect x="944" y="210" width="250" height="90" fill="#2C5F7C" />
+    <text x="960" y="248" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="700" fill="#FFFFFF">Nœud 1 · Assemblage final</text>
+    <text x="960" y="274" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#DCE7EC">Ud_loc=0.80 · Ur_loc=0.00</text>
+
+    <text x="201" y="332" text-anchor="middle" font-family="Consolas, 'Courier New', monospace" font-size="17" font-weight="700" fill="#2C5F7C">Ud₃=0.8216 · Ur₃=0.00</text>
+    <text x="635" y="332" text-anchor="middle" font-family="Consolas, 'Courier New', monospace" font-size="17" font-weight="700" fill="#2C5F7C">Ud₂=0.8040 · Ur₂=0.40</text>
+    <text x="1069" y="332" text-anchor="middle" font-family="Consolas, 'Courier New', monospace" font-size="17" font-weight="700" fill="#2C5F7C">Ud₁=0.80 · Ur₁=0.28</text>
+  </g>
+
+  <g id="p14-steps">
+    <text x="76" y="388" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#22313A">
+      <tspan font-weight="700" fill="#2C5F7C">Étape 1</tspan> (Ud, ordre 1→2→3) : le score descend du client final vers les fournisseurs.
+    </text>
+    <text x="76" y="420" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#22313A">
+      <tspan font-weight="700" fill="#1E4258">Étape 2</tspan> (Ur, ordre 3→2→1) : le risque remonte des fournisseurs vers le client.
+    </text>
+  </g>
+
+  <g id="p14-insight">
+    <rect x="76" y="470" width="5" height="96" fill="#B06000" />
+    <text font-size="22" fill="#22313A" font-family="Segoe UI, Arial, sans-serif" x="100" y="494"><tspan>Nœud 3 est <tspan font-weight="700">DONE</tspan> : son risque physique (Ur) tombe à</tspan>
+      </text><text font-size="22" fill="#22313A" font-family="Segoe UI, Arial, sans-serif" x="100" y="524">0, mais son urgence déclarée (Ud=0.50) continue</text><text font-size="22" fill="#22313A" font-family="Segoe UI, Arial, sans-serif" x="100" y="554">d'irriguer tout le réseau : la demande survit au risque.</text></g>
+
+  <g id="p14-citation">
+    <text x="76" y="656" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#9AA5AC">Réf. : Li &amp; Zobel (2020), International Journal of Production Economics · effet de ricochet (ripple effect)</text>
+  </g>
+
+  <g id="p14-footer">
+    <line x1="56" y1="676" x2="1224" y2="676" stroke="#D8DEE3" stroke-width="1" />
+    <text x="56" y="700" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#9AA5AC">SupplyScore · Soutenance de thèse</text>
+    <text x="1224" y="700" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#9AA5AC" text-anchor="end">14 / 28</text>
+  </g>
+</svg>

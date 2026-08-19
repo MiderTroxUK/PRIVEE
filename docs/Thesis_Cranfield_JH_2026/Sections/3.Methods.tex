@@ -1,0 +1,1028 @@
+%% ═══════════════════════════════════════════════════════════════════════════
+\subsection{Methodological Framework}
+\label{sec:methods_framework}
+%% ═══════════════════════════════════════════════════════════════════════════
+
+This research is structured as an agile test-and-learn programme rather than a linear
+sequence, operating through repeated iterations of literature analysis, mathematical
+specification, software implementation and scenario-based simulation
+(Figure~\ref{fig:test_learn_loop}). That structure is mapped onto the IMRaD form of this
+thesis as follows: the specification and implementation iterations are reported in this
+section as the method, and the simulation and campaign iterations are reported in
+Section~\ref{sec:Results} as the results.
+
+The programme is organised into four operational areas:
+
+\begin{itemize}
+    \item \textbf{Literature review and gap analysis}, establishing the psychological and
+          mathematical foundations of multi-block urgency aggregation and cognitive bias
+          (Section~\ref{sec:Literature}).
+    \item \textbf{Mathematical framework specification}, deriving the multi-block real
+          urgency function, its DAG propagation and the asymmetric adequacy score from
+          first principles, so that the result is dimensionally and probabilistically
+          consistent (Section~\ref{sec:math_framework}).
+    \item \textbf{Pairwise comparison elicitation}, formulating crisp AHP and Fuzzy
+          Best-Worst Method weight vectors to build a structured representation of
+          declared urgency (Section~\ref{sec:ahp_tool}).
+    \item \textbf{Implementation, simulation and validation}, building a modular, tested
+          Python library exercised through a multi-page Dash web application, running
+          controlled shock and scenario simulations on a persistent digital twin, and
+          confronting the resulting signal with recorded outcomes through a dedicated
+          calibration service and a serious game campaign
+          (Sections~\ref{sec:methods_impl} and~\ref{sec:methods_campaign}).
+\end{itemize}
+
+The remainder of this section keeps three things apart, because mixing them is what makes a
+framework of this kind hard to read. Section~\ref{sec:math_framework} states the
+mathematical model on its own terms, saying nothing about tooling.
+Section~\ref{sec:methods_impl} gives the application choices, meaning how each object in
+that model is elicited, computed and exposed. Section~\ref{sec:methods_campaign} gives the
+use case built to test it. The method's own limitations, its reproducibility provisions and
+its ethical considerations close the section.
+
+\subsubsection{The Proposed Structure}
+\label{sec:methods_axis}
+
+Section~\ref{sec:lit_gaps} identified one absence rather than several. The response designed
+here is a two-layer loop, and stating it before the mathematics makes the equations that
+follow easier to place.
+
+The first layer is a cognitive adequacy check. It captures the operator's declared urgency
+$U_d$ through consistency-gated pairwise comparisons, computes a real urgency $U_r(t)$ from
+live operational state, and scores their mismatch through an asymmetric penalty. The second
+layer propagates and prioritises. Local urgency travels across the supply network, declared
+urgency descending toward suppliers and real risk ascending toward the final customer, and
+the resulting network state feeds an outranking and a shock-simulation criticality index that
+together indicate which nodes warrant attention. Figure~\ref{fig:three_layer} shows how the
+two layers sit relative to each other and where the declared and computed signals meet.
+
+Two choices inside that design are worth naming immediately, since
+Section~\ref{sec:lit_temporal} left both open. The aggregation over blocks is a noisy-OR
+rather than a weighted average, because a complete capacity failure should not be offset by
+acceptable cost and carbon readings, and non-compensatory behaviour is the property that
+guarantees it. The penalty over the mismatch is asymmetric, pricing under-declaration above
+over-declaration, on the clinical analogy of Section~\ref{sec:lit_analogy}, where
+under-triage costs more than a queue. Both are design commitments open to challenge, and
+Section~\ref{sec:limitations} records what each one costs.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.82\linewidth]{Images/2.Problem/three_layer_architecture.png}
+    \caption{The layered adequacy architecture}
+    \label{fig:three_layer}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.82\linewidth]{Images/4.Operations/test_learn_loop.png}
+    \caption{The test-and-learn iteration loop}
+    \label{fig:test_learn_loop}
+\end{figure}
+
+%% ═══════════════════════════════════════════════════════════════════════════
+\subsection{Mathematical Model}
+\label{sec:math_framework}
+%% ═══════════════════════════════════════════════════════════════════════════
+
+This section states what real urgency and declared urgency are, how each propagates across
+the network, and how their mismatch is scored. It deliberately leaves out tooling,
+elicitation mechanics and operational cadence, which are application decisions addressed in
+Section~\ref{sec:methods_impl}.
+
+\subsubsection{Local Real Urgency}
+\label{sec:model_ur}
+
+Real urgency is not read from a single deadline-proximity signal. It is aggregated at each
+node from six independent KPI blocks, namely time, capacity, performance, risk, cost and
+carbon, each producing a partial urgency $u_m \in [0,1]$, or no value at all when the
+underlying KPI data is unavailable. The aggregation is a weighted probabilistic OR, so that
+a single saturated block is sufficient to drive local urgency toward its maximum regardless
+of how well the others score:
+
+\begin{equation}
+    U_{r,\text{local}} = 1 - \prod_{m} (1 - u_m)^{\omega_m},
+    \label{eq:ur_local}
+\end{equation}
+
+where $\omega_m \ge 0$ is the aggregation weight of block $m$ and the product runs over
+blocks with available data. Table~\ref{tab:ur_blocks} gives each block's schematic formula
+and what it measures. The notation $[x]_+ = \max(x, 0)$ denotes the positive part, and the
+per-term weights $\alpha_i$ and $\beta_i$ are renormalised over the terms whose data is
+actually available.
+
+\begin{table}[htbp]
+\centering
+\caption{The six real urgency blocks}
+\label{tab:ur_blocks}
+\small
+\begin{tabularx}{\linewidth}{l >{\raggedright\arraybackslash}p{4.6cm} X}
+\toprule
+\textbf{Block} & \textbf{Formula} & \textbf{Explanation} \\
+\midrule
+$u_{\text{time}}$ & $P(L > d^\ast - t) + \kappa_{\text{retard}}[r]_+ -
+\kappa_{\text{avance}}[-r]_+$ & Probability that the lead time $L$, modelled as
+Normal($\mu$, $\sigma$), exceeds the time left before the next active deadline $d^\ast$;
+forced to $1$ once the deadline has passed. The planning term $r$ compares theoretical with
+reported progress. \\
+\midrule
+$u_{\text{cap}}$ & $\alpha_1\bigl(1-\tfrac{V_{\text{rem}}}{V_{\max}}\bigr) +
+\alpha_2\bigl(1-\tfrac{W_{\text{rem}}}{W_{\max}}\bigr) +
+\alpha_3\bigl[\tfrac{D-\Phi}{D}\bigr]_+$ & Saturation of the node's capacity: how little
+storage volume and weight remain, plus the fraction of demand $D$ not covered by the
+current flow rate $\Phi$. \\
+\midrule
+$u_{\text{perf}}$ & $1 - \text{OEE}$ & Complement of Overall Equipment Effectiveness,
+itself availability $\times$ performance $\times$ quality. \\
+\midrule
+$u_{\text{risk}}$ & $1-\exp\bigl(-p_{\text{fail}} \times t_{\text{recov}} \times
+\text{sev}/T_{\text{ref}}\bigr)$ & Expected unavailability: failure probability times
+recovery time times impact severity, normalised by a reference horizon, then combined by
+probabilistic OR with environmental and political exposure. \\
+\midrule
+$u_{\text{cost}}$ & $\beta_1\,\tfrac{c_{\text{op}}-c_{\text{nom}}}{c_{\text{nom}}} +
+\beta_2\,[\text{tariff}-1]_+ + \beta_3\,\tfrac{c_{\text{stock}}}{C_{\text{ref}}}$ &
+Financial stress: operating cost drift above nominal, tariff multiplier above neutral, and
+storage cost relative to a reference. \\
+\midrule
+$u_{\text{co2}}$ & $\bigl[\tfrac{e - e_{\text{target}}}{e_{\max}-e_{\text{target}}}\bigr]_+$
+& Normalised overshoot of measured emissions above target, saturating at the maximum
+threshold. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+A bare formula does not say what its bounds mean, so three properties of
+Equation~\ref{eq:ur_local} are stated explicitly. They are also where the model is most
+open to challenge.
+
+\paragraph{What the endpoints mean.}
+Each raw KPI carries physical units, whether days, euros, kilograms or percent, and passes
+through a transfer function onto the dimensionless interval $[0,1]$. At $u_m = 0$ the block
+is nominal and contributes nothing: its factor $(1-0)^{\omega_m}$ equals $1$ and leaves the
+product unchanged. At $u_m = 1$ the factor is $0$, so the product collapses and
+$U_{r,\text{local}} = 1$ whatever the other blocks read. The upper endpoint therefore has a
+precise operational meaning: the block has reached the state past which it cannot make the
+node any more urgent, whether that state is a deadline already passed, a fully depleted
+buffer or a near-certain failure. The word used for it in this thesis, saturation, is a label
+adopted for this model and not a concept imported from the reviewed literature, which is why
+the endpoint is defined here by its effect on the product rather than by citation.
+
+\paragraph{How a missing block is handled.}
+When a KPI is unavailable the block is given weight $\omega_m = 0$, which sets its factor to
+$(1-u_m)^0 = 1$ and leaves the aggregate untouched. Absence is therefore not represented by
+$u_m = 0$, which would be a positive claim that the block is healthy, and the two cases are
+distinguished in the data model as well as in the mathematics. The remaining weights are
+renormalised so they still sum to their intended total, which keeps the aggregate comparable
+between a node with six live blocks and a node with three.
+
+\paragraph{Whether the blocks are exchangeable.}
+The product in Equation~\ref{eq:ur_local} is symmetric in its factors, so it treats the
+blocks as interchangeable up to their weights. That is the strongest assumption in the model
+and it does not hold cleanly. A value of $u_{\text{time}} = 0.3$ means a $30\%$ probability
+of missing the next deadline, a quantity with a frequentist reading. A value of
+$u_{\text{cost}} = 0.3$ means operating cost has drifted three tenths of the way along a
+normalising scale toward a reference, which is an ordinal statement dressed in a cardinal
+number. The two are not equally informative about rupture, and no transfer function makes
+them so.
+
+Three consequences follow, and they are carried forward rather than resolved. The weights
+$\omega_m$ are the only mechanism the model has for expressing that some blocks are more
+diagnostic than others, so they absorb a distinction that arguably belongs in the transfer
+functions instead. Any interpretation of the aggregate as a probability is therefore
+approximate, and the aggregate is used in this thesis for ranking and for comparison against
+$U_d$, never as a calibrated probability in its own right. And the assumption is testable:
+if two blocks carry the same information, the correlation between them is observable, which
+is exactly the check reported in Section~\ref{sec:res_armA} where two of the six turned out
+to be perfectly correlated on the campaign run. Section~\ref{sec:limitations} records the
+assumption among the framework's stated limits.
+
+Two lifecycle rules apply before aggregation. A node marked \texttt{DONE} has its effective
+local $U_r$ forced to $0.0$, since a completed task carries no further physical risk, and a
+node marked \texttt{ABANDONED} has it forced to $1.0$. These apply identically whether the
+local urgency comes from the analytic blocks or from the Monte Carlo estimate below.
+
+\paragraph{A stochastic variant of the time block.}
+\label{sec:model_mc}
+
+The analytic $u_{\text{time}}$ block assumes a Normal lead time at a single node. On a
+multi-tier network that assumption breaks, since a node can only start when all its
+predecessors have delivered, and the maximum of several skewed lead times has no convenient
+closed form. The module \texttt{mc/lead\_time.py} therefore replaces the analytic estimate
+with a stochastic one when enabled.
+
+The simulation works in three steps. Each node draws its lead time $L_i$ from a configurable
+distribution, either lognormal, normal clipped at zero, or triangular. Completion times then
+propagate along the DAG in topological order, a node starting when its last predecessor
+finishes, $S_i = \max_{j\in\text{Pred}(i)} C_j$, and completing after its own lead time,
+$C_i = S_i + L_i$. Finally the delay probability of each node is estimated as the fraction
+of draws in which it misses its deadline, $u_{\text{time}} = P(C_i > d_i)$, over
+$N = 10\,000$ draws by default, with a memory guardrail capping the simulation at
+$N \times n \le 5\times 10^7$ across $n$ nodes.
+
+\subsubsection{Why These Six Blocks}
+\label{sec:model_blocks}
+
+The six blocks are not an arbitrary KPI shortlist. The selection started from the question
+that defines urgency in a supply chain: which mechanisms make the risk of a delivery
+rupture rise? A rupture, meaning the inability to deliver at the agreed time, place,
+quantity and quality, is the terminal event the urgency signal must
+anticipate~\autocite{heckmann2015critical}. Working backwards from that event, and
+consistently with indicator-based supply risk monitoring~\autocite{mokhtar2019supplier},
+four direct causal mechanisms and two arbitration variables were identified.
+
+\begin{itemize}
+    \item \textbf{Time erosion} ($u_{\text{time}}$): the remaining slack between deadline
+    and realistic lead time. Time is the only non-compressible resource, so a task whose
+    slack reaches zero can no longer be
+    saved~\autocite{cohen2021assigning,bojarski2021,sun2020combating,sawik2013integrated}.
+    \item \textbf{System saturation} ($u_{\text{cap}}$): queues, transport capacity,
+    workshop load and bottlenecks. A saturated system introduces hidden waiting delays on
+    top of the nominal lead
+    time~\autocite{tomlin2006value,hosseini2019resilient,taghavi2024sustainable}.
+    \item \textbf{Critical-resource performance} ($u_{\text{perf}}$): drift in the
+    performance of the resource that produces the part. OEE is used as a composite proxy
+    because precise performance data is rarely accessible on the supplier
+    side~\autocite{mokhtar2019supplier,hlioui2017joint}.
+    \item \textbf{Adverse-event exposure} ($u_{\text{risk}}$): the expectation of
+    unavailability caused by a disruption. The default incident probability of $0.02$ is
+    revised weekly from declared events through the Bayesian operator of
+    Section~\ref{sec:weekly_cycle}, building on the DIN supplier risk
+    scorer~\autocite{kabouche2025scoring} and on probabilistic ripple-effect
+    models~\autocite{hosseini2020ripple,liu2021robust,hosseini2020bayesian}.
+    \item \textbf{Financial flexibility} ($u_{\text{cost}}$): expediting surcharges, tariff
+    rises and storage costs. Cost drift is not a rupture cause in itself but a stress
+    indicator, and it bounds which corrective actions remain economically
+    viable~\autocite{shen2019managing,tomlin2006value}.
+    \item \textbf{Carbon overshoot} ($u_{\text{co2}}$): emissions above target. Like cost,
+    it is an arbitration criterion rather than a rupture mechanism, becoming decisive only
+    when a regulatory or ESG constraint genuinely restricts the admissible
+    responses~\autocite{hoen2014effect,smartfreight2023glec,iso14083}.
+\end{itemize}
+
+Each candidate indicator was screened against the four filter questions of
+Table~\ref{tab:block_selection}. Only indicators passing all four were retained, which
+yields four direct causes plus two arbitration variables and explains why the list has six
+entries rather than four or eight. Figure~\ref{fig:causal_tree_blocks} draws the resulting
+structure, separating the four blocks that describe a mechanism leading to rupture from the
+two that constrain which responses remain available.
+
+\begin{table}[htbp]
+\centering
+\caption{Selection filter applied to each candidate block}
+\label{tab:block_selection}
+\small
+\begin{tabularx}{\linewidth}{lX}
+\toprule
+\textbf{Criterion} & \textbf{Question asked of each candidate indicator} \\
+\midrule
+Causal link & Does the indicator have a plausible mechanism linking it to delivery
+rupture? \\
+\midrule
+Observability & Can it be measured or credibly estimated from client, supplier or planning
+data? \\
+\midrule
+Actionability & Can an operator act on it, or use it to decide? \\
+\midrule
+Non-redundancy & Does it add information not already carried by a retained indicator? \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+At this stage the selection remains a conceptual construction. It must still be confirmed by
+the real availability of the underlying data and by sensitivity tests verifying that each
+block contributes useful information to the aggregate.
+Section~\ref{sec:res_discussion} returns to this point, because the campaign measured one
+block failing that test.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.82\linewidth]{Images/4.Operations/causal_tree_blocks.png}
+    \caption{Causal structure behind the six-block selection}
+    \label{fig:causal_tree_blocks}
+\end{figure}
+
+\subsubsection{Local Declared Urgency}
+\label{sec:model_ud}
+
+Symmetrically, declared urgency is not read as a single free-text estimate. It is
+reconstructed from a structured elicitation so that it can be scored, propagated and
+compared with $U_{r,\text{local}}$ on the same scale. At each node the operator compares
+four criteria pairwise through the Analytic Hierarchy Process, which yields a
+consistency-checked weight $w_j$ per criterion, then rates each criterion on a severity
+scale $s_j \in \{1, \ldots, 9\}$. Local declared urgency is the weight-averaged severity
+rescaled to $[0,1]$:
+
+\begin{equation}
+    U_{d,\text{local}} = \sum_{j=1}^{4} w_j\,\frac{s_j - 1}{8}, \qquad \sum_{j=1}^{4} w_j = 1.
+    \label{eq:ud_local}
+\end{equation}
+
+The elicitation tool, its four criteria and the consistency gate that rejects an incoherent
+weight vector are application choices described in Section~\ref{sec:ahp_tool}. What matters
+here is that $U_{d,\text{local}}$ and $U_{r,\text{local}}$ are both bounded, node-local
+quantities in $[0,1]$ before either is propagated.
+
+\subsubsection{Network Propagation}
+\label{sec:model_prop}
+
+Declared urgency propagates downstream, from the final customer at rank~0 toward
+raw-material suppliers, while real urgency propagates upstream, from suppliers toward the
+final customer. Both use a leaky product rule that keeps the signals bounded in $[0,1]$ and
+monotonically increasing as more neighbours become urgent:
+
+\begin{align}
+    U_{d,i} &= 1 - \bigl(1 - U_{d,\text{local},i}\bigr) \prod_{k \in \text{Succ}(i)}
+    \bigl(1 - \gamma_{ik} U_{d,k}\bigr), \label{eq:ud_prop} \\
+    U_{r,i} &= 1 - \bigl(1 - U_{r,\text{local},i}\bigr) \prod_{j \in \text{Pred}(i)}
+    \bigl(1 - \beta_{ji} U_{r,j}\bigr), \label{eq:ur_prop}
+\end{align}
+
+where $\gamma_{ik} \in [0,1]$ is the downstream attenuation coefficient on arc $(i,k)$ and
+$\beta_{ji} \in [0,1]$ the upstream amplification coefficient on arc $(j,i)$.
+Table~\ref{tab:propagation_components} defines each term, and
+Figure~\ref{fig:urgency_propagation} shows the two signals travelling in opposite directions
+across the same graph. Backup arcs are documentary and inert with respect to both
+propagations, a modelling choice that the campaign scenario exploits deliberately.
+
+\begin{table}[htbp]
+\centering
+\caption{Terms of the propagation equations}
+\label{tab:propagation_components}
+\small
+\begin{tabularx}{\linewidth}{llX}
+\toprule
+\textbf{Component} & \textbf{Type} & \textbf{Description} \\
+\midrule
+$U_{d,i}$, $U_{r,i}$ & Dependent variables & Propagated declared and real urgency at node
+$i$ \\
+$U_{d,\text{local},i}$, $U_{r,\text{local},i}$ & Input variables & Local urgency at node
+$i$ after status-rule adjustment \\
+$\gamma_{ik}$ & System parameter & Downstream demand attenuation coefficient on arc
+$i \to k$ \\
+$\beta_{ji}$ & System parameter & Upstream risk amplification coefficient on arc
+$j \to i$ \\
+$\text{Succ}(i)$, $\text{Pred}(i)$ & Structural sets & Nominal successors and predecessors
+of node $i$ \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\paragraph{When each quantity is computed.}
+The weekly cadence governs when new data \emph{arrives}, not when the model runs, and the
+two are easy to conflate. The sequence is as follows. A review submitted for one node writes
+that node's KPI values and questionnaire answers. That write immediately triggers
+recomputation of the node's own $u_m$ blocks and its two local quantities,
+$U_{r,\text{local}}$ and $U_{d,\text{local}}$. The new local values then propagate, but only
+along the directions that can be affected: a change in local real urgency is pushed through
+the node's downstream cone toward the final customer, following
+Equation~\ref{eq:ur_prop}, and a change in local declared urgency is pushed through its
+upstream cone toward the suppliers, following Equation~\ref{eq:ud_prop}. Nodes outside those
+two cones are not recomputed, because their values cannot have changed.
+
+Two consequences matter for reading the results. Nothing is computed on a global weekly
+timer, so the network is never in a state where all eight nodes were evaluated at the same
+instant; a node reviewed on Monday and a node reviewed on Thursday hold values one review
+apart, and the propagated figures reflect whatever the neighbours had most recently
+submitted. And the campaign turn, not the calendar week, is the unit that makes the state
+comparable across nodes, which is why every result in Section~\ref{sec:Results} is indexed by
+turn.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.82\linewidth]{Images/4.Operations/urgency_propagation.png}
+    \caption{Bidirectional urgency propagation on the DAG}
+    \label{fig:urgency_propagation}
+\end{figure}
+
+\subsubsection{Network Criticality Index}
+\label{sec:criticality}
+
+The criticality service answers one question systematically: which node, if it failed
+completely, would cause the most damage to final-customer delivery? For every active node
+in turn, the service forces the node's local real urgency to $1.0$, re-runs the ascending
+propagation, and measures two deltas, the rise of $U_r$ at the final-customer nodes and the
+largest rise anywhere in the network. Nodes are ranked by the first, then the second, then
+by name. Figure~\ref{fig:shock_simulation} traces a single iteration of that sweep, from
+the forced saturation of one node to the deltas it produces downstream.
+
+One behaviour of this index matters for interpretation. A node already saturated at
+$U_r \ge 1.0$ yields a delta of zero and sinks to the bottom of the ranking, since its risk
+is already realised in the baseline. In a network-wide crisis, where many nodes saturate at
+once, the index degenerates. This documented behaviour drives the exclusion rule used by
+hypothesis H3 in Section~\ref{sec:methods_campaign}.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.82\linewidth]{Images/4.Operations/shock_simulation.png}
+    \caption{One iteration of the shock simulation}
+    \label{fig:shock_simulation}
+\end{figure}
+
+\subsubsection{Asymmetric Cognitive Adequacy}
+\label{sec:model_adequacy}
+
+The mismatch between declared and real urgency is split into two named pathologies, false
+urgency $F$ for over-declaration and hidden risk $H$ for under-declaration:
+
+\begin{equation}
+    F = \max(U_d - U_r,\, 0), \qquad H = \max(U_r - U_d,\, 0).
+    \label{eq:fh}
+\end{equation}
+
+Drawing on Prospect Theory~\autocite{kahneman1979prospect}, the two are penalised
+asymmetrically and with diminishing marginal sensitivity to large errors:
+
+\begin{equation}
+    \text{penalty} = \lambda_{\text{under}} H^{\alpha} + \lambda_{\text{over}} F^{\alpha},
+    \label{eq:penalty}
+\end{equation}
+
+and the penalty is rescaled into an adequacy score $A \in [0, 100]$ through an exponential
+mapping bounded by the penalty of a maximal one-sided error, with each term defined in
+Table~\ref{tab:adequation_components}:
+
+\begin{equation}
+    A = 100 \times \frac{\exp(-\text{penalty}) - \exp(-\text{penalty}_{\max})}
+    {1 - \exp(-\text{penalty}_{\max})}, \qquad
+    \text{penalty}_{\max} = \max(\lambda_{\text{under}}, \lambda_{\text{over}}).
+    \label{eq:At}
+\end{equation}
+
+\begin{table}[htbp]
+\centering
+\caption{Terms and parameters of the adequacy equations}
+\label{tab:adequation_components}
+\small
+\begin{tabularx}{\linewidth}{llXl}
+\toprule
+\textbf{Component} & \textbf{Type} & \textbf{Description} & \textbf{Default} \\
+\midrule
+$F$ & Dependent variable & False urgency, from over-declaration & n/a \\
+$H$ & Dependent variable & Hidden risk, from under-declaration & n/a \\
+$\lambda_{\text{under}}$ & System parameter & Penalty weight on hidden risk & $2.25$ \\
+$\lambda_{\text{over}}$ & System parameter & Penalty weight on false urgency & $1.0$ \\
+$\alpha$ & System parameter & Psychophysical curvature & $0.88$ \\
+$A$ & Dependent variable & Adequacy score, $100$ meaning perfect alignment & $[0,100]$ \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The governing constraint is $\lambda_{\text{under}} > \lambda_{\text{over}}$: a coordinator
+who panics wastes premium transport capacity, but a coordinator who under-reports risk
+misses the window to prevent a line stoppage, so under-declaration is priced more
+expensively. The default ratio of $2.25$ reprises the loss-aversion coefficient, and
+$\alpha = 0.88$ the curvature of the value function, both measured by
+\textcite{kahneman1979prospect} and restated
+later~\autocite{kahneman2011thinking}. These are literature-derived starting
+points, not measured properties of supply chain coordinators. Both the aggregation weights
+$\omega_m$ and the penalty parameters are configurable per project rather than hard-coded,
+so recalibration requires no code change.
+
+%% ═══════════════════════════════════════════════════════════════════════════
+\subsection{System Implementation}
+\label{sec:methods_impl}
+%% ═══════════════════════════════════════════════════════════════════════════
+
+The model above is deliberately silent on tooling. This section describes how each object
+it defines is elicited from an operator, computed inside the running system, exposed back to
+a coordinator and kept safe. The delivered system, SupplyScore, comprises 73 Python modules
+across 10 packages, covered by 1\,779 automated test functions in 106 test files, including
+property-based tests.
+
+\subsubsection{Architecture}
+\label{sec:architecture}
+
+\paragraph{Single facade.}
+All operations go through one orchestrating facade
+(\texttt{services/}\allowbreak\texttt{orchestrator.py}) coordinating the mathematical core,
+the graph repository and the persistence layers behind a single thread-safe entry point.
+The web interface, the command-line entry point and the test suite all drive the system
+exclusively through this facade, and there is no second write path.
+
+\paragraph{Multi-tenant persistence.}
+Data is split between one global registry database holding projects, nodes, arcs,
+milestones and registry-level audit, and one SQLite database per node holding its private
+operational history. This isolation prevents write contention between operators reviewing
+different nodes and enforces the boundary that one supplier's raw history is not readable
+through another supplier's records. It is also what makes the campaign of
+Section~\ref{sec:methods_campaign} auditable per node after the fact.
+
+\paragraph{Gatekeeper writes.}
+Every business write crosses a single mutation service that whitelists the touched fields,
+validates ranges, diffs against current state so that a no-op write leaves no trace, records
+the change in the audit log with author and source, and synchronises the in-memory graph.
+Audit tables are immutable, including from the administration interface.
+
+\paragraph{Graph and propagation.}
+The network lives in an in-memory graph repository backed by networkx. Propagation is
+incremental, recomputing only the cones of nodes whose local urgency actually changed, which
+keeps the twin responsive at the scale validated by dedicated performance benchmarks.
+Figure~\ref{fig:uml_architecture} shows how the facade, the mutation gate and the two
+persistence layers relate.
+
+\paragraph{Decoupled clocks.}
+Each project carries its own clock: a system clock for live use, a game clock advancing week
+by week for serious-game sessions, and a fixed clock for deterministic tests. The weekly
+cycle, milestone pressure and event timestamps all read the project clock rather than the
+wall clock, which is what makes a compressed campaign possible without touching the model.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.78\linewidth]{Images/4.Operations/uml_architecture.png}
+    \caption{The SupplyScore architecture}
+    \label{fig:uml_architecture}
+\end{figure}
+
+\subsubsection{AHP Elicitation}
+\label{sec:ahp_tool}
+
+The module \texttt{core/ahp.py} implements the Saaty eigenvector method for a four-criterion
+questionnaire administered through the weekly review page, and is the tool that produces
+$U_{d,\text{local}}$. The four criteria are operational impact, meaning the downstream
+consequence of failure; time window, meaning how long before the situation becomes
+irredeemable; downstream dependencies, meaning how many tasks are blocked waiting; and
+recoverability, meaning whether lateness can be caught up, inverted so that lower is worse.
+
+The criteria set follows from two constraints. Cognitively, Saaty's method degrades as the
+number of pairwise-compared criteria grows, with consistency hard to maintain beyond roughly
+seven items and each additional criterion adding $n-1$ comparisons to the weekly
+workload~\autocite{saaty1990how,triantaphyllou2024}. Keeping $n = 4$ limits the
+questionnaire to six comparisons. Structurally, the four questions mirror how declared
+urgency is consumed downstream: impact and dependencies capture the severity dimension that
+propagation amplifies, the time window captures the slack dimension confronted with
+$u_{\text{time}}$, and recoverability captures the resilience dimension confronted with the
+recovery term of $u_{\text{risk}}$. Each declared criterion therefore has an operational
+counterpart in the computed signal, which is what makes the later comparison meaningful
+rather than a comparison of unrelated quantities. Figure~\ref{fig:ahp_criteria_mapping}
+draws those four correspondences. Larger criteria sets are deliberately routed to the Fuzzy
+BWM weighting of the KPI blocks instead.
+
+The consistency ratio is computed as $\gls{cr} = \gls{ci} / \gls{ri}[n]$ using Saaty's
+Random Index table. If $\gls{cr} > 0.10$ the interface flags the questionnaire as
+inconsistent and invites the operator to revise the most contradictory comparison before the
+assessment is accepted; Figure~\ref{fig:questionnaire} shows that gate in the interface.
+Declared urgency is further smoothed with an exponential moving average, $\rho = 0.3$,
+across consecutive weekly assessments, absorbing transient stress spikes without erasing a
+sustained change in perception.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.82\linewidth]{Images/4.Operations/ahp_criteria_mapping.png}
+    \caption{The four AHP criteria and their computed counterparts}
+    \label{fig:ahp_criteria_mapping}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.78\linewidth]{Images/4.Operations/questionnaire_screenshot.png}
+    \caption{The AHP questionnaire page}
+    \label{fig:questionnaire}
+\end{figure}
+
+\subsubsection{Fuzzy BWM and PROMETHEE II Network Outranking}
+\label{sec:fbwm_promethee}
+
+The modules \texttt{mcda/fbwm.py} and \texttt{mcda/promethee.py} implement two complementary
+methods. Fuzzy BWM offers a lower-effort elicitation route than crisp AHP for weighting the
+six KPI blocks, and PROMETHEE~II turns those weights into a network-wide, non-compensatory
+ranking of nodes.
+
+The linguistic scale maps five qualitative judgements to triangular fuzzy numbers on a
+1 to 4.5 scale, each carrying its own maximum consistency index. The consistency ratio is
+$\gls{cr}_{\text{BWM}} = \xi^*/\text{CI}$, where $\xi^*$ is the optimal consistency
+indicator returned by a constrained non-linear optimisation fitting the fuzzy weights to
+the elicited comparisons. If the optimisation fails to converge, the implementation falls
+back to uniform weights rather than raising an error, so a single malformed elicitation
+cannot break the weekly review. Fuzzy weights are defuzzified with the Graded Mean
+Integration Representation,
+
+\begin{equation}
+    w_j = \frac{a_j + 4 b_j + c_j}{6},
+    \label{eq:bwm_defuzz}
+\end{equation}
+
+then renormalised to sum to one. The triangular bounds are written $(a_j, b_j, c_j)$ rather
+than the more common $(l_j, m_j, u_j)$ to avoid colliding with the risk blocks $u_m$.
+
+PROMETHEE~II ranks the active nodes of a project on the same six weighted urgency blocks
+that feed local real urgency. For each pair of active nodes and each block, the preference
+intensity is computed with a Type~V linear preference function with an indifference
+threshold, and the aggregated preference index and net outranking flow follow the standard
+formulation:
+
+\begin{equation}
+    \pi(a,b) = \sum_m \omega_m P_m\bigl(g_m(a) - g_m(b)\bigr), \qquad
+    \phi(a) = \phi^+(a) - \phi^-(a).
+    \label{eq:promethee_net}
+\end{equation}
+
+The same weights $\omega_m$ used in the local aggregation are reused as the PROMETHEE
+criteria weights, so that the network ranking and the per-node urgency score remain mutually
+consistent rather than relying on a separately calibrated weight set.
+
+\subsubsection{Weekly Review Cycle and Calibrated Event Engine}
+\label{sec:weekly_cycle}
+
+The weekly review cycle keeps the twin's KPI state current without free-form manual data
+entry: every write is structured, signed and auditable. At each new week every active node
+is flagged as due for review, and the operator completes four sequential sections: the AHP
+questionnaire, pre-filled with the previous week's values; the week's KPI values, shown
+against the previous week; progress on active milestones, compared against theoretical
+planning progress; and any supply chain events that occurred during the week. All four are
+written as a single signed, atomic transaction, so no partial or anonymous review can
+corrupt a node's history.
+
+Rather than asking operators to recompute the KPI impact of a disruption by hand, the system
+exposes a taxonomy of fourteen calibrated event types, each mapped to one or more KPI
+updates through one of three calibration operators: a Beta-Bernoulli Bayesian update for
+failure probabilities,
+
+\begin{equation}
+    p_{\text{post}} = \text{clip}\!\left(\frac{p\times n_0 + k}{n_0+n},\, 10^{-4},\,
+    0.99\right),
+    \label{eq:bayes_update}
+\end{equation}
+
+with a prior weight $n_0 = 26$, roughly six months of weekly observations; an exponential
+moving average for continuous variables such as OEE,
+$x_{\text{new}} = (1-\lambda)x_{\text{old}} + \lambda x_{\text{obs}}$ with
+$\lambda \in [0.3, 0.5]$; and a ratchet update for severity,
+$s_{\text{new}} = \max(s_{\text{old}}, s_{\text{event}})$.
+Figure~\ref{fig:event_pipeline} follows one declared event through to the KPI fields it
+revises, showing which of the three operators applies where.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.82\linewidth]{Images/4.Operations/event_pipeline.png}
+    \caption{From a declared event to a calibrated KPI update}
+    \label{fig:event_pipeline}
+\end{figure}
+
+As a worked example, a node declaring a strike lasting $d = 24$ hours and affecting a
+fraction $p_f = 0.50$ of the workforce implies $H_{\text{lost}} = d \times p_f = 12$
+equivalent lost hours over a 168-hour week, so $f_{\text{lost}} \approx 0.0714$ and the
+observed availability is $A_{\text{obs}} \approx 0.9286$. Updating a baseline availability
+of $0.95$ with $\lambda = 0.5$ gives $A_{\text{new}} \approx 0.9393$, while risk severity
+updates in ratchet mode to $\max(0.30, 0.50) = 0.50$.
+
+\subsubsection{Explainability, Export and Operational Hardening}
+\label{sec:explain_export}
+
+When the twin flags a node, the coordinator's first question is why. The per-node
+explanation page answers it with exact decompositions rather than approximations. Declared
+urgency splits into one additive contribution per AHP criterion,
+$\kappa_j = w_j (s_j-1)/8$, summing exactly to $U_{d,\text{local}}$. Local real urgency
+splits the same way through the logarithm of Equation~\ref{eq:ur_local}: each block
+contributes $\ell_m = -\omega_m\ln(1-u_m)$, the shares $c_m = \ell_m / \sum_k \ell_k$ sum to
+one, and $U_{r,\text{local}} = 1-\exp(-\sum_m \ell_m)$ reconstructs the score exactly.
+Figure~\ref{fig:explainability_waterfall} shows both decompositions side by side for a
+single node. This matters for the results reported later, because it is what allows a score
+to be traced back to the block that produced it without any manual computation.
+
+One action compiles the global registry and per-node history into a twelve-worksheet Excel
+workbook, so that analyses can run outside the tool on frozen data. The persistence layer
+enables Write-Ahead Logging, runs an integrity check before every backup, and copies each
+database through the native \texttt{sqlite3.backup} API without locking the running
+application, with automatic backups every 24 hours and versioned schema migrations.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.78\linewidth]{Images/4.Operations/explainability_waterfall.png}
+    \caption{Per-node explainability decomposition}
+    \label{fig:explainability_waterfall}
+\end{figure}
+
+%% ═══════════════════════════════════════════════════════════════════════════
+\subsection{Experimental Design: The H\'ELIOS Campaign}
+\label{sec:methods_campaign}
+%% ═══════════════════════════════════════════════════════════════════════════
+
+Everything above establishes that the model is implemented, internally consistent and
+tested. It does not establish whether the adequacy signal says anything true about an
+operator facing a crisis. This section presents the experiment built for that purpose.
+
+\subsubsection{Scenario and Network}
+\label{sec:methods_scenario}
+
+The campaign, presented to participants under the cover story \emph{Programme H\'ELIOS},
+replays the 2020 to 2022 semiconductor shortage over eighteen weekly game turns plus a
+training turn. The supply network has eight nodes, one per participant, anchored on the real
+actor types of the crisis (Table~\ref{tab:helios_network}).
+
+\begin{table}[htbp]
+\centering
+\caption{The eight H\'ELIOS campaign nodes}
+\label{tab:helios_network}
+\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{3.1cm} >{\raggedright\arraybackslash}p{2.6cm} c X}
+\toprule
+\textbf{Node} & \textbf{Role} & \textbf{Rank} & \textbf{Real-world anchor} \\
+\midrule
+Orbitalys & Satellite prime, final customer & 0 & Fictional satellite programme,
+contractual delivery pressure \\
+AvioSys Int\'egration & Avionics integrator & 1 & Qualified-stock squeeze on avionics
+tier-1 suppliers \\
+\'Electis EMS & Electronics manufacturing services & 2 & EMS plants placed under
+allocation, 2021 \\
+CompoDis Europe & Component distributor & 3 & Distributor allocation and spot-market
+premiums \\
+TransGlobal Fret & Freight operator & 3 & Suez Canal blockage, West Coast port
+congestion \\
+NovaFab Semiconductors & Foundry, expected bottleneck & 4 & Composite of the Texas
+winter-storm freeze and the Taiwan drought \\
+Meridian Semi & Secondary foundry, inert backup arc & 4 & A foundry sold out through 2023,
+the announced plan B that delivers nothing \\
+SilPure Materials & Raw wafer supplier & 5 & Roughly 60\% of world wafer supply,
+polysilicon price roughly tripling in 2021 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Figure~\ref{fig:helios_network_coefficients} gives the network with its per-arc
+coefficients, $\gamma$ attenuating demand as it descends and $\beta$ amplifying risk as it
+ascends, together with each node's tier rank. NovaFab at rank 4 is the expected bottleneck.
+The dashed arc into Meridian is the inert backup arc of Section~\ref{sec:model_prop}: it
+appears in the diagram and carries nothing, which is the point of including it.
+
+The turns follow five acts drawn from the documented chronology: a baseline where early
+warning signs go unheeded, a tipping point where a foundry freeze, a competitor fire and a
+canal blockage make the crisis visible, a squeeze where spot prices reach ten to forty times
+catalogue, a rupture where a major manufacturer cuts production by roughly 40\% and the
+announced backup foundry turns out to have no spare capacity, and a slow, partial recovery
+that measures whether declared urgency lags the physical de-escalation. One game turn
+represents one real month, with real durations converted into engine hours at a fixed rate
+so that documented figures keep their true magnitude inside an eighteen-turn game.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\linewidth]{Images/4.Operations/helios_network_coefficients.png}
+    \caption{The H\'ELIOS network and its per-arc coefficients}
+    \label{fig:helios_network_coefficients}
+\end{figure}
+
+The twelve calibrated engine events driving the crisis are listed in
+Table~\ref{tab:helios_events}, with the turn numbers as recorded in the campaign databases.
+One encoding choice is worth noting: the Texas freeze is modelled as a production accident,
+which triggers the engine's Bayesian revision of the failure probability, a recovery clock
+and a severity ratchet, rather than as a capacity loss, which would only reduce storage
+volume. A hot shutdown of a fabrication line is mechanically closer to the former.
+
+\begin{table}[htbp]
+\centering
+\caption{The twelve calibrated engine events}
+\label{tab:helios_events}
+\small
+\begin{tabularx}{\linewidth}{c >{\raggedright\arraybackslash}p{2.3cm} >{\raggedright\arraybackslash}p{2.9cm} X}
+\toprule
+\textbf{Turn} & \textbf{Node} & \textbf{Event type} & \textbf{Real-world anchor} \\
+\midrule
+T3 & NovaFab & Demand spike & Automotive reorders on sold-out slots, Nov.\ 2020 \\
+T5 & CompoDis & Supplier delay & Distributor moves to allocation, Jan.\ 2021 \\
+T6 & NovaFab & Accident (critical) & Texas winter-storm fab freeze, Feb.\ 2021 \\
+T7 & NovaFab & Demand spike & Reorders after a competitor's fab fire, Mar.\ 2021 \\
+T7 & TransGlobal & Transport disruption & Suez Canal blockage, six days, Mar.\ 2021 \\
+T10 & NovaFab & Material shortage & Taiwan drought, ultrapure-water rationing, Jun.\ 2021 \\
+T12 & \'Electis & Capacity loss & Southeast-Asia backend lockdowns, Aug.\ 2021 \\
+T12 & TransGlobal & Transport disruption & Shift to saturated air freight, Aug.\ 2021 \\
+T13 & CompoDis & Demand spike & Bullwhip over-ordering, Sep.\ 2021 \\
+T14 & TransGlobal & Transport disruption & West Coast port congestion, Oct.\ 2021 \\
+T14 & CompoDis & Tariff increase & Allocation spot premiums, Oct.\ 2021 \\
+T16 & SilPure & Tariff increase & Polysilicon price pass-through, Dec.\ 2021 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsubsection{Data Provenance}
+\label{sec:methods_data}
+
+The two urgency signals come from different sources, which is the point of the design. Real
+urgency is fed from public time series of the actual crisis, namely INSEE production and
+price indices, WSTS worldwide semiconductor billings and a semiconductor-shortage dataset,
+frozen in a data pack whose SHA-256 hashes were recorded before the first turn. Declared
+urgency comes from the participants through the weekly AHP questionnaire, with the
+consistency gate active.
+
+Every third-party dataset is passed through an authenticity check before use. A logistics
+dataset initially considered for the freight node was rejected at this check for the
+signatures of synthetic training data, namely pre-computed target columns, GPS coordinates
+scattered outside the region the dataset claimed to cover, and uniformly flat
+distributions. The semiconductor-shortage dataset passed, showing a secular price decline, a
+genuine 2021 upturn and sectoral employment consistent with official series. The rejected
+dataset is retained in the raw-data folder for audit but is never loaded by the analysis
+pipeline, and the freight node's cost block is driven entirely by calibrated events instead.
+
+Two provenance rules protect the real-urgency series. A single-pilot rule forbids double
+counting: each KPI field of each node is driven either by a time series or by a calibrated
+event, never by both, so when an event writes a field on a given turn the series skips that
+turn. Second, one honest artefact of the real data is kept rather than smoothed away. The
+INSEE business-failures series falls through 2020 and 2021 under public support schemes, so
+a failure-rate indicator taken alone would lower external risk exactly while the sector
+crisis was worsening. Keeping it makes the multi-block argument concrete: a single
+macroeconomic indicator can tell the opposite of the ground truth.
+
+\subsubsection{The Three Arms}
+\label{sec:methods_arms}
+
+The experiment compares three arms on the same frozen scenario. The comparison is what
+allows the effect of a treatment to be separated from the behaviour of the scenario.
+
+\begin{description}
+    \item[Arm A, blind declaration.] Eight isolated agents declare their urgency each turn
+    seeing only their own role card and turn briefing. No forecast is shown. This is the
+    control condition and the source of the prospective forecasts that are scored in
+    Section~\ref{sec:res_armA_scored}.
+    \item[Arm B, forecast-assisted declaration.] The same agents, the same frozen scenario,
+    but from turn 4 onward each agent is additionally shown the predictive analysis of its
+    own node before declaring. The loop is open: nothing changes in the terrain, the
+    scenario stays frozen, so the forecasts remain scorable and the effect of the treatment
+    is measured on perception alone. Each declaration additionally records an
+    \texttt{influence\_prediction} field taking one of four values, meaning no influence,
+    confirms my assessment, revised upward, or revised downward. That field is the direct
+    measure of the treatment effect.
+    \item[Arm C, closed loop.] The agents act on the terrain through a catalogue of
+    interventions, so the ground truth itself changes. Arm C is designed but not executed,
+    and is reported in Section~\ref{sec:future_work} as future work.
+\end{description}
+
+The distinction between B and C is one of nature rather than degree. In arm B the ground
+truth is fixed, so the predictions are scorable with proper scoring rules and the treatment
+effect is measured on perception. In arm C, action destroys the reference truth, because a
+rupture avoided thanks to an alert makes a good prediction look wrong, so arm C could only
+be judged by comparing its final state with arm A.
+
+Two properties of this design are worth stating explicitly, because the results depend on
+them. First, the agents are language models, one per role, each confined to its own role
+card and turn briefings with no access to the other roles, the dashboard or future turns.
+This anti-lookahead discipline is enforced by the harness rather than by instruction. A
+single model instance per role has no statistical standing as a substitute for eight
+independent human judges, and Section~\ref{sec:res_discussion} treats that as the principal
+threat to external validity. Second, the declaration format in arm B is identical to arm A,
+which is what makes the two comparable, with the single addition of the influence field.
+
+\subsubsection{Scoring Protocol}
+\label{sec:methods_scoring}
+
+The forecast layer emits, for each node and each turn from turn 4 onward, a probability
+$p_h$ that an adverse outcome occurs at horizons $h \in \{1,2,3,4\}$ weeks. Scoring those
+forecasts requires an outcome definition, and this thesis uses the one the production
+calibration service itself applies, so that the model is judged against the target it was
+built for. A node-week is a positive observation when at least one of three conditions holds
+within the window $[S+1, S+h]$: a milestone of the node whose deadline falls in the window
+is abandoned or is still active with its deadline passed; the node is abandoned; or an event
+of gravity critical or defect is recorded and not subsequently reverted.
+
+Four quantities are computed, following standard forecast verification
+practice~\autocite{brier1950verification,murphy1973vector,gneiting2007strictly}:
+
+\begin{itemize}
+    \item \textbf{Discrimination}, by the area under the ROC curve, computed by mean ranks
+    so that tied forecasts are handled correctly, with a percentile bootstrap 95\% interval
+    over 2\,000 resamples. AUC answers whether the forecast orders node-weeks correctly.
+    \item \textbf{Calibration}, by the Brier score and its skill against the climatological
+    forecast that always announces the base rate. A negative skill means the forecast is
+    worse calibrated than announcing the base rate.
+    \item \textbf{Reliability}, by a banded table comparing the mean announced probability
+    with the observed frequency in each band. The bands are deliberately uneven, because a
+    uniform ten-bin split hides the failure mode that matters here.
+    \item \textbf{Operating point}, by the confusion matrix at the pre-registered threshold
+    of $0.5$ used by hypothesis H4.
+\end{itemize}
+
+Separating discrimination from calibration is essential rather than
+decorative~\autocite{murphy1973vector}: a forecast can order outcomes correctly while
+announcing the wrong probabilities, and the two failures call for different remedies.
+Section~\ref{sec:res_armA_scored} finds exactly that dissociation.
+
+One further check is built into the protocol. Because the outcome definition is a modelling
+choice rather than a given, the same forecasts are additionally scored against a
+deliberately naive target, namely any non-reverted event on the node regardless of gravity
+and ignoring milestones. The difference between the two scorings is reported in
+Section~\ref{sec:res_target_trap} and is treated as a result in its own right.
+
+\subsubsection{Protocol Integrity and Controls}
+\label{sec:methods_controls}
+
+The protocol was frozen before the first turn. Participants see only their own role sheet
+and questionnaire; dashboards and scores stay hidden until the debrief, and no discussion
+between roles is allowed. Two placebo sheets, a false de-escalation handed to one node at
+turn 9 and to another at turn 15, control for suggestibility: if a declared urgency follows
+the placebo, the measure is reflecting the sheet handed over rather than a reading of the
+situation. A weak-signal turn, where the press mentions a tension with no engine event
+behind it, measures who reacts to media noise alone. Roles are assigned so that the two most
+information-heavy nodes do not go to the most experienced participants, keeping a role
+effect from being confounded with an expertise effect. Every deviation from protocol is
+logged the same day in a campaign journal, and any analysis outside the pre-registered
+hypothesis register of Section~\ref{sec:hypotheses} is labelled exploratory.
+
+%% ═══════════════════════════════════════════════════════════════════════════
+\subsection{Limitations and Simplifications of the Method}
+\label{sec:methods_limits}
+%% ═══════════════════════════════════════════════════════════════════════════
+
+Four simplifications are built into the method itself, as distinct from the limitations of
+the delivered framework catalogued in Section~\ref{sec:limitations}.
+
+The six KPI blocks are treated as probabilistically independent so that the noisy-OR
+aggregation is admissible. They are not independent in reality: a capacity loss raises cost,
+and a performance drop lengthens lead time. The consequence is that correlated blocks
+double-count evidence, which the composite-indicator literature identifies as the standard
+failure mode of weighted aggregation~\autocite{greco2018,becker2017}. The explainability
+decomposition of Section~\ref{sec:explain_export} is the mitigation: the coordinator sees
+per-block contributions rather than only the aggregate, so a correlation is visible rather
+than hidden.
+
+The network is assumed acyclic, which permits a linear topological sort and makes
+propagation deterministic and cheap. Real supply networks contain feedback, most obviously
+in returns and rework loops.
+
+The scenario is scripted, which is what makes the ground truth knowable and the forecasts
+scorable, but it also means the events are the only source of adverse outcomes. The
+consequence, quantified in Section~\ref{sec:res_armA_scored}, is that the positive class is
+extremely small, and any conclusion about discrimination is correspondingly weak.
+
+The declarants are language models. This buys perfect protocol compliance, exact
+reproducibility and no scheduling cost, and it loses the property that matters most for
+hypothesis H4, namely a genuinely imperfect human perception of a crisis. This is discussed
+at length in Section~\ref{sec:res_discussion} rather than treated as a detail.
+
+%% ═══════════════════════════════════════════════════════════════════════════
+\subsection{Reproducibility}
+\label{sec:methods_repro}
+%% ═══════════════════════════════════════════════════════════════════════════
+
+Every numerical result in Section~\ref{sec:Results} is regenerated from raw artifacts by a
+single script, \texttt{Utilities/figures/derive.py}, which writes a JSON file that both the
+figures and the text of this thesis read. No number in this document is transcribed by hand
+from an intermediate report.
+
+The inputs to that script are the two campaign databases, one per arm, and the raw
+per-agent declaration and forecast logs. The outcome labels are not reimplemented: the
+script calls the production \texttt{CalibrationService} directly, so the thesis scores the
+model against the same target definition the running system applies. Random procedures are
+seeded, specifically the bootstrap interval on the AUC and the Monte Carlo lead-time
+simulation.
+
+Two provisions guard against silent drift. The script recomputes the arm A against arm B
+forecast comparison on every run and reports whether the two arms carry identical
+prediction-layer output, which they must, since the replay is deterministic and only the
+declarations differ. It also reports the outcome base rate at every horizon, so that a
+change in the underlying database would be visible immediately rather than absorbed into a
+summary statistic.
+
+One earlier analysis file in the campaign folder, \texttt{analysis/rapport\_experience.md}
+with its companion JSON, contains a superseded run whose participant-influence counts
+disagree with the raw logs. It is deliberately not used anywhere in this thesis, and the
+derivation script names it in an exclusion list so that the choice is recorded in the output
+rather than left implicit.
+
+The satellite observation system of Section~\ref{sec:res_volume} is a separate codebase with
+its own verification script. Its network calls are cached on disk, so a re-run does not
+depend on the availability of the public services it draws from, and its calibrated
+constants are stated in the source with the sample size behind each.
+
+%% ═══════════════════════════════════════════════════════════════════════════
+\subsection{Ethical Considerations}
+\label{sec:methods_ethics}
+%% ═══════════════════════════════════════════════════════════════════════════
+
+The research was conducted under the Cranfield University Research Ethics System. The study
+as executed involves no human participants: the eight declarants are language-model agents,
+and no personal data was collected, processed or stored at any point. The approval
+documentation is reproduced in Appendix~\ref{app:ethics}.
+
+The protocol was originally designed for eight human consultants, and that version would
+have required participant consent for two specific features. The first is the cover story:
+participants would be told they are playing a fictional satellite programme without being
+told that the scenario replays a documented historical crisis, since knowing it would
+destroy the measure. The second is the two placebo sheets, which deliberately hand a
+participant false information. Both are standard incomplete-disclosure designs and both
+would be resolved by a full debrief at the end of the campaign, in which the real scenario
+is revealed and each participant is asked at which turn they recognised it. Were that
+campaign to be run, informed consent, the right to withdraw, and the debrief would need to
+be in place before the first turn.
+
+Two further considerations apply to the work as it stands. The industrial data behind
+the scenario is public, namely INSEE and WSTS series and an open dataset, and the commercial
+material belonging to ALTEN is covered by the confidentiality statement at the front of this
+thesis. For the satellite observation work, all imagery and building data come from public
+French open-data services under their published licences, no imagery of private individuals
+is collected or retained, and the analysis operates on industrial buildings rather than on
+people. The regulatory database used there serves only to calibrate a constant and is never
+used to infer a result about a specific site, which is a deliberate constraint rather than
+an incidental property.
+
+%% ═══════════════════════════════════════════════════════════════════════════
+\subsection{Conclusion}
+\label{sec:methods_conclusion}
+%% ═══════════════════════════════════════════════════════════════════════════
+
+The method combines a probabilistic multi-block urgency model, a structured elicitation of
+declared urgency, a bidirectional propagation over the supply network, and an asymmetric
+scoring of the mismatch between the two, implemented as a tested, auditable and persistent
+system. Around that system, a pre-registered three-arm experiment on a frozen historical
+scenario allows the resulting forecast to be scored against recorded outcomes with proper
+scoring rules, and allows the effect of showing that forecast to the declarant to be
+isolated from the behaviour of the scenario itself.
+
+What this method can establish is bounded by its own design, and those bounds have been
+stated rather than left implicit. Section~\ref{sec:Results} reports what it measured.

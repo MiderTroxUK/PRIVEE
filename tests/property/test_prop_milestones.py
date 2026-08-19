@@ -151,20 +151,34 @@ class TestUTimeV2:
         eps=st.floats(min_value=1e-6, max_value=0.5),
     )
     def test_continuite_au_passage_r_zero(self, d: float, t_frac: float, eps: float) -> None:
-        # progress == p_th ± ε : le saut de u_time est borné par (κr + κa)·ε.
+        # progress == p_th ± ε : la MODULATION PLANNING contribue au plus
+        # (κr + κa)·ε au saut de u_time.
+        #
+        # Le socle dépend lui aussi de progress depuis qu'il porte sur le
+        # travail restant (u_base_jalon), et sa pente n'est PAS bornée
+        # uniformément : elle diverge quand progress -> 1 (l'écart-type du
+        # travail restant tend vers 0). On borne donc le saut total par
+        # « saut du socle + (κr + κa)·ε » — exact, puisque
+        # u_time = clip01(u_base + ajustement) et que clip01 est 1-lipschitzienne.
+        # La contrainte GLOBALE sur progress est la décroissance, testée ci-dessous.
         t = t_frac * (d - 1e-3)
         p_th = theoretical_progress(make_milestone(deadline_h=d), T0 + t * H)
         p_moins = max(p_th - eps, 0.0)
         p_plus = min(p_th + eps, 1.0)
+        kpis = make_kpis()
         u_moins = MODEL.u_time(
-            t, make_kpis(), milestones=[make_milestone(deadline_h=d, progress=p_moins)], t0_ts=T0
+            t, kpis, milestones=[make_milestone(deadline_h=d, progress=p_moins)], t0_ts=T0
         )
         u_plus = MODEL.u_time(
-            t, make_kpis(), milestones=[make_milestone(deadline_h=d, progress=p_plus)], t0_ts=T0
+            t, kpis, milestones=[make_milestone(deadline_h=d, progress=p_plus)], t0_ts=T0
         )
         assert u_moins is not None
         assert u_plus is not None
-        assert abs(u_plus - u_moins) <= KAPPA_SOMME * eps + 1e-9
+        saut_socle = abs(
+            MODEL.u_base_jalon(d - t, kpis.time, p_plus)
+            - MODEL.u_base_jalon(d - t, kpis.time, p_moins)
+        )
+        assert abs(u_plus - u_moins) <= saut_socle + KAPPA_SOMME * eps + 1e-9
 
     @given(
         d=st.floats(min_value=1.0, max_value=1000.0),

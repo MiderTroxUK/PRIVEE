@@ -1,0 +1,163 @@
+\section{Full Scoring Tables}
+\label{app:calibration}
+
+Every value in this appendix is written by the derivation script of
+Section~\ref{sec:methods_repro} and is reproduced here in full, so that the summary tables
+of Section~\ref{sec:Results} can be checked against the complete output.
+
+\subsection*{Turn to ISO Week Mapping}
+
+The campaign runs from ISO week 2026-S31 at T0 to 2026-S49 at T18, one turn per week. The
+outcome window of a forecast issued at turn $t$ with horizon $h$ therefore spans weeks
+$t+1$ to $t+h$ inclusive.
+
+\subsection*{Arm A, Production Outcome Definition}
+
+Table~\ref{tab:app_armA_full} gives every quantity behind the summary of
+Section~\ref{sec:res_armA_scored}, at all four horizons, including the confusion matrix at
+the pre-registered threshold and the climatological Brier score the skill is measured
+against.
+
+\begin{table}[htbp]
+\centering
+\caption{Complete arm A scoring, production outcome definition}
+\label{tab:app_armA_full}
+\small
+\begin{tabularx}{\linewidth}{l >{\centering\arraybackslash}X >{\centering\arraybackslash}X >{\centering\arraybackslash}X >{\centering\arraybackslash}X}
+\toprule
+\textbf{Quantity} & \textbf{h = 1} & \textbf{h = 2} & \textbf{h = 3} & \textbf{h = 4} \\
+\midrule
+Observations & 120 & 120 & 120 & 120 \\
+Positive outcomes & 2 & 4 & 5 & 6 \\
+Base rate & 0.017 & 0.033 & 0.042 & 0.050 \\
+\midrule
+AUC & 0.555 & 0.372 & 0.428 & 0.485 \\
+AUC 95\% CI, lower & 0.470 & 0.258 & 0.315 & 0.389 \\
+AUC 95\% CI, upper & 0.639 & 0.492 & 0.546 & 0.583 \\
+PR-AUC & 0.027 & 0.031 & 0.041 & 0.054 \\
+\midrule
+Brier score & 0.130 & 0.166 & 0.191 & 0.207 \\
+Brier, climatology & 0.016 & 0.032 & 0.040 & 0.047 \\
+Brier skill & $-6.93$ & $-4.14$ & $-3.77$ & $-3.36$ \\
+\midrule
+True positives at $0.5$ & 0 & 0 & 0 & 0 \\
+False positives at $0.5$ & 15 & 18 & 20 & 21 \\
+False negatives at $0.5$ & 2 & 4 & 5 & 6 \\
+True negatives at $0.5$ & 103 & 98 & 95 & 93 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection*{Arm A, Naive Outcome Definition}
+
+The naive definition counts any non-reverted event recorded on the node, regardless of
+gravity, and ignores milestones entirely. It is scorable on the 75 node-turns for which the
+node has at least one event in its history. Table~\ref{tab:app_wrong_target} repeats the
+scoring under that definition, and the contrast with
+Table~\ref{tab:app_armA_full} is the measurement reported in
+Section~\ref{sec:res_target_trap}.
+
+\begin{table}[htbp]
+\centering
+\caption{Complete arm A scoring, naive outcome definition}
+\label{tab:app_wrong_target}
+\small
+\begin{tabularx}{\linewidth}{l >{\centering\arraybackslash}X >{\centering\arraybackslash}X >{\centering\arraybackslash}X >{\centering\arraybackslash}X}
+\toprule
+\textbf{Quantity} & \textbf{h = 1} & \textbf{h = 2} & \textbf{h = 3} & \textbf{h = 4} \\
+\midrule
+Observations & 75 & 75 & 75 & 75 \\
+Positive outcomes & 11 & 19 & 25 & 29 \\
+Base rate & 0.147 & 0.253 & 0.333 & 0.387 \\
+AUC & 0.603 & 0.601 & 0.545 & 0.484 \\
+Brier score & 0.155 & 0.248 & 0.337 & 0.389 \\
+Brier skill & $-0.24$ & $-0.31$ & $-0.52$ & $-0.64$ \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection*{Right-Censoring Sensitivity}
+
+Dropping every forecast whose observation window would extend past the final campaign turn
+leaves the four-week scoring on 88 observations with 2 positives. The result does not
+improve: the operating point remains 0 true positives against 16 false positives, and the
+Brier skill moves from $-3.36$ to $-7.82$. Censoring is not the explanation for the confident
+tail.
+
+\subsection*{The Confident Tail, Forecast by Forecast}
+
+Table~\ref{tab:app_confident} lists every arm A forecast announcing a four-week probability
+of at least $0.5$. The rightmost column is the milestone-miss probability that the model
+reports alongside it. The two never differ by more than $0.020$, which is the evidence that
+the confident tail is the milestone channel and nothing else. None of the twenty-one was
+followed by the predicted outcome.
+
+\begin{table}[htbp]
+\centering
+\caption{Every arm A forecast at or above $0.5$ at four weeks}
+\label{tab:app_confident}
+\small
+\begin{tabularx}{\linewidth}{c >{\raggedright\arraybackslash}p{3.4cm} >{\centering\arraybackslash}X >{\centering\arraybackslash}X >{\centering\arraybackslash}X}
+\toprule
+\textbf{Turn} & \textbf{Node} & \textbf{$p$ (4 weeks)} & \textbf{$p$ (milestone miss)} &
+\textbf{Outcome} \\
+\midrule
+T5  & AvioSys Int\'egration & 0.898 & 0.880 & none \\
+T6  & CompoDis Europe & 0.996 & 0.996 & none \\
+T7  & CompoDis Europe & 1.000 & 1.000 & none \\
+T8  & CompoDis Europe & 1.000 & 1.000 & none \\
+T8  & NovaFab Semiconductors & 0.866 & 0.846 & none \\
+T8  & Orbitalys & 1.000 & 1.000 & none \\
+T9  & NovaFab Semiconductors & 1.000 & 1.000 & none \\
+T9  & Orbitalys & 1.000 & 1.000 & none \\
+T10 & AvioSys Int\'egration & 0.900 & 0.884 & none \\
+T10 & NovaFab Semiconductors & 1.000 & 1.000 & none \\
+T10 & Orbitalys & 1.000 & 1.000 & none \\
+T11 & AvioSys Int\'egration & 0.898 & 0.884 & none \\
+T11 & Orbitalys & 1.000 & 1.000 & none \\
+T11 & TransGlobal Fret & 0.854 & 0.838 & none \\
+T12 & Orbitalys & 1.000 & 1.000 & none \\
+T13 & \'Electis EMS & 1.000 & 1.000 & none \\
+T15 & AvioSys Int\'egration & 0.896 & 0.884 & none \\
+T17 & AvioSys Int\'egration & 0.894 & 0.884 & none \\
+T17 & CompoDis Europe & 0.998 & 0.998 & none \\
+T18 & CompoDis Europe & 1.000 & 1.000 & none \\
+T18 & Meridian Semi & 0.704 & 0.690 & none \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Set against the registry, ten of the eighteen campaign milestones completed, eight remained
+active, and none was abandoned. Exactly one was missed at its deadline. Every other node for
+which a near-certain miss was announced delivered.
+
+\subsection*{Arm B, Per-Node Influence Record}
+
+Table~\ref{tab:app_armB_t4} records the first-exposure turn node by node, which is the
+observation behind the result of Section~\ref{sec:res_armB}.
+
+\begin{table}[htbp]
+\centering
+\caption{Arm B at turn 4, node by node}
+\label{tab:app_armB_t4}
+\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{5.0cm} X}
+\toprule
+\textbf{Node} & \textbf{Recorded influence of the displayed forecast} \\
+\midrule
+AvioSys Int\'egration & Confirms existing assessment \\
+CompoDis Europe & Revised downward \\
+\'Electis EMS & Confirms existing assessment \\
+Meridian Semi & Confirms existing assessment \\
+NovaFab Semiconductors & Revised downward \\
+Orbitalys & Revised downward \\
+SilPure Materials & Revised downward \\
+TransGlobal Fret & Revised downward \\
+\midrule
+\textbf{Total} & \textbf{5 downward, 3 confirmed, 0 upward, 8 of 8 responding} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+NovaFab is the node that carries the scenario's critical accident event two turns later, at
+turn 6.

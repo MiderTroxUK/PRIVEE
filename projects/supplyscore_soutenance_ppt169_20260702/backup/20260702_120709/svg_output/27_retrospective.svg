@@ -1,0 +1,56 @@
+<svg width="1280" height="720" viewBox="0 0 1280 720" xmlns="http://www.w3.org/2000/svg">
+  <rect id="bg" x="0" y="0" width="1280" height="720" fill="#FFFFFF"/>
+
+  <g id="p27-header">
+    <text x="56" y="60" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" letter-spacing="2" fill="#6B7A85">PARTIE IV · SYNTHÈSE</text>
+    <text x="54" y="104" font-family="Segoe UI, Arial, sans-serif" font-size="42" font-weight="800" fill="#1E4258">Le temps comme variable de première classe</text>
+    <rect x="56" y="118" width="64" height="4" fill="#2C5F7C"/>
+  </g>
+
+  <g id="p27-clocks">
+    <use data-icon="tabler-outline/clock" x="229" y="180" width="70" height="70" fill="#2C5F7C" stroke-width="2"/>
+    <text x="264" y="298" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="26" font-weight="700" fill="#1E4258">SystemClock</text>
+    <text x="264" y="326" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#6B7A85">
+      <tspan x="264" dy="0">Production réelle,</tspan>
+      <tspan x="264" dy="22">horloge système</tspan>
+    </text>
+
+    <use data-icon="tabler-outline/clock" x="605" y="180" width="70" height="70" fill="#2C5F7C" stroke-width="2"/>
+    <text x="640" y="298" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="26" font-weight="700" fill="#1E4258">FixedClock</text>
+    <text x="640" y="326" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#6B7A85">
+      <tspan x="640" dy="0">Tests déterministes,</tspan>
+      <tspan x="640" dy="22">temps figé</tspan>
+    </text>
+
+    <use data-icon="tabler-outline/clock" x="981" y="180" width="70" height="70" fill="#2C5F7C" stroke-width="2"/>
+    <text x="1016" y="298" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="26" font-weight="700" fill="#1E4258">GameClock</text>
+    <text x="1016" y="326" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#6B7A85">
+      <tspan x="1016" dy="0">Serious game,</tspan>
+      <tspan x="1016" dy="22">avance semaine par semaine</tspan>
+    </text>
+  </g>
+
+  <g id="p27-notes">
+    <text x="140" y="420" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#22313A">
+      <tspan x="140" dy="0"><tspan font-weight="700" fill="#2C5F7C">weekly.py</tspan> calcule la couverture AHP et signale chaque</tspan>
+      <tspan x="140" dy="26">nœud : à jour, en retard, ou manquant.</tspan>
+    </text>
+    <text x="140" y="476" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#22313A">
+      <tspan x="140" dy="0"><tspan font-weight="700" fill="#2C5F7C">simulate_shock</tspan> recalcule ΔUr dans tout le réseau sans</tspan>
+      <tspan x="140" dy="26">jamais écrire en base : tester la résilience avant la crise.</tspan>
+    </text>
+  </g>
+
+  <g id="p27-insight">
+    <rect x="140" y="560" width="5" height="56" fill="#B06000"/>
+    <text x="164" y="588" font-family="Segoe UI, Arial, sans-serif" font-size="22" font-weight="700" fill="#1E4258">
+      Trois horloges, un seul moteur de propagation.
+    </text>
+  </g>
+
+  <g id="p27-footer">
+    <text x="56" y="700" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#9AA5AC">SupplyScore · Soutenance de thèse</text>
+    <text x="640" y="700" text-anchor="middle" font-family="Consolas, 'Courier New', monospace" font-size="15" fill="#9AA5AC">supplyscore/core/clock.py</text>
+    <text x="1224" y="700" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#9AA5AC" text-anchor="end">27 / 28</text>
+  </g>
+</svg>
