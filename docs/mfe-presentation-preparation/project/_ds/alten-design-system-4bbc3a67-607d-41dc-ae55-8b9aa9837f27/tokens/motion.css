@@ -1,0 +1,20 @@
+/* ALTEN — motion. PowerPoint is the source medium, so there is no authored
+   web motion in the templates: slide transitions are cuts and the only
+   animated asset found is one looping background video. Screen work should
+   therefore stay quiet — short, linear-ish fades and 1-2 px shifts. */
+:root{
+  --duration-instant:80ms; /* @kind other */
+  --duration-fast:140ms; /* @kind other */
+  --duration-base:220ms; /* @kind other */
+  --duration-slow:360ms; /* @kind other */
+  --ease-standard:cubic-bezier(.2,0,.2,1); /* @kind other */
+  --ease-out:cubic-bezier(0,0,.2,1); /* @kind other */
+  --ease-in-out:cubic-bezier(.4,0,.2,1); /* @kind other */
+
+  /* Interaction deltas used across the components */
+  --hover-tint:rgba(6,60,103,.06); /* @kind color */      /* light surfaces: navy at 6 % */
+  --hover-tint-dark:rgba(255,255,255,.10); /* @kind color */
+  --press-tint:rgba(6,60,103,.12); /* @kind color */
+  --focus-ring:0 0 0 2px #FFFFFF,0 0 0 4px #1D93C9; /* @kind shadow */
+  --disabled-opacity:.4; /* @kind other */
+}

@@ -1,0 +1,295 @@
+%% ═════════════════════════════════════════════════════════════════════════
+%%  ORAL CUE SHEET — the page to hold on the day of the defence
+%%  Condensed from Oral_Script.tex : keywords only, no written-out speech.
+%%  Compile : latexmk -pdf Oral_Antiseche.tex
+%% ═════════════════════════════════════════════════════════════════════════
+\documentclass[a4paper,8pt]{extarticle}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+\usepackage[sfdefault,lining]{carlito}
+\usepackage{microtype}
+\usepackage[a4paper,top=0.85cm,bottom=0.8cm,left=0.85cm,right=0.85cm,footskip=0.4cm]{geometry}
+\usepackage{multicol}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{array}
+
+%% ALTEN 2025 brand : navy for text, azure for accents, ochre kept for the
+%% stage directions only. No red.
+\definecolor{altenNavy}{HTML}{043962}
+\definecolor{altenAzure}{HTML}{008BD2}
+\definecolor{altenAzureDark}{HTML}{176F98}
+\definecolor{altenOchre}{HTML}{FFBA00}
+\definecolor{altenBlueBg}{HTML}{EBF3F9}
+\definecolor{altenGrey}{HTML}{CDCEDA}
+
+\color{altenNavy}
+\linespread{0.98}\selectfont
+\setlength{\columnsep}{0.55cm}
+\setlength{\parindent}{0pt}
+\setlength{\emergencystretch}{2em}
+\pagestyle{plain}
+
+\setlist[itemize]{leftmargin=0.95em, labelsep=0.32em, itemsep=0.2pt, topsep=1.1pt,
+                  parsep=0pt, partopsep=0pt,
+                  label=\textcolor{altenAzure}{\scriptsize\textbullet}}
+
+%% Slide header : number in a badge, title, start time on the right.
+\newcommand{\slidehead}[3]{%
+  \par\vspace{2.8pt}\noindent
+  \colorbox{altenNavy}{\textcolor{white}{\bfseries\,\footnotesize #1\,}}%
+  \hspace{4pt}{\bfseries\color{altenNavy}#2}%
+  \hfill{\bfseries\scriptsize\color{altenAzure}#3}\par\vspace{0.5pt}}
+
+%% Light band, full column width.
+\newcommand{\band}[1]{%
+  \par\noindent\colorbox{altenBlueBg}{%
+  \parbox{\dimexpr\linewidth-2\fboxsep\relax}{\vspace{3pt}#1\vspace{3pt}}}\par}
+
+%% Stage direction.
+\newcommand{\scene}[1]{{\bfseries\color{altenAzureDark}#1}}
+
+%% A question from the jury, answer underneath.
+\newcommand{\q}[1]{\par\vspace{3pt}\noindent
+  {\bfseries\color{altenNavy}``#1''}\par\vspace{0.5pt}}
+
+\newcommand{\num}[1]{\textbf{#1}}
+\newcommand{\dd}{\textperiodcentered\ }
+
+\begin{document}
+
+%% ── Full-width head ─────────────────────────────────────────────────────
+{\noindent\Large\bfseries\color{altenNavy}MFE oral, cue sheet}\hfill
+{\color{altenAzureDark}John Hoarau \dd ESTIA 2026 \dd ALTEN Sud-Ouest \dd 20 min, then 10 min of questions}
+
+\vspace{2pt}
+{\color{altenGrey}\hrule height 1.2pt}
+\vspace{4pt}
+
+\band{%
+{\bfseries\color{altenNavy}Three numbers the jury should leave with:}\quad
+{\bfseries\color{altenAzure}0.001}\quad\dd\quad
+{\bfseries\color{altenAzure}eight turns of warning}\quad\dd\quad
+{\bfseries\color{altenAzure}zero times across 328 snapshots}
+\par\vspace{3pt}
+\scene{Speak} the numbers, do not read them off the slide. \scene{Never say} \emph{the tool works}: say what it does and where.
+\scene{Protect} 14, 15, 16, six of your twenty minutes. \scene{Drop} 8 and 12 if you are behind, 126 words and no result between them.
+\scene{Times} are the start of each slide, full script runs 21:20.}
+
+\vspace{4pt}
+\begin{multicols}{2}
+
+\slidehead{1}{Title}{0:00}
+\begin{itemize}
+  \item ALTEN Sud-Ouest, Direction de l'Innovation, Toulouse Lab, six months
+  \item Hook: eight turns before the satellite prime missed its commitment, the tool had already flagged it
+  \item At that moment its own manager was declaring \num{0.001}
+  \item \emph{``That gap is what this mission is about.''}
+\end{itemize}
+
+\slidehead{2}{Plan}{0:34}
+\begin{itemize}
+  \item Five parts: context and problem \dd how the project was run \dd what I built \dd what the tests returned, which is where the value is \dd the assessment
+\end{itemize}
+
+\slidehead{3}{Company and programme}{0:49}
+\begin{itemize}
+  \item ALTEN: 1988, more than thirty countries, sells engineering expertise rather than products
+  \item A consulting group sees the same difficulty company after company $\rightarrow$ that is how a problem gets recognised as belonging to the industry rather than to one customer
+  \item \textbf{Smart Green Supply Chain}: lean, green, predictive. My work sits in the third
+  \item \textbf{DISCO}: serious game and digital twin, twenty-two suppliers
+  \item Earlier internships built routing, risk scoring, carbon, transport. \textbf{Not one of them computes urgency}
+\end{itemize}
+
+\slidehead{4}{The problem}{1:46}
+\begin{itemize}
+  \item A coordinator opens the week with a list of nodes and a finite amount of attention. The supplier that will stop the line is on that list, nothing on the screen says which one
+  \item The twin computes the physical state of every node. What it never sees is the human who decides
+  \item The declared signal is not neutral: Zhu, Yang \& Hsee, five controlled experiments, imminence bias, \textbf{survives being told about it}
+  \item Research question: can the gap between declared and computed urgency be measured \textbf{reliably} enough, inside a working twin, to be acted upon. The word carrying the weight is \emph{reliably}
+\end{itemize}
+
+\slidehead{5}{Literature and the patent gap}{3:01}
+\begin{itemize}
+  \item Six streams, each settles something and leaves something open: deadline-driven value stops at one task \dd ripple effect takes the node score as given \dd rupture indicators monitored one at a time \dd cognitive bias quantified in the lab with no operational correction \dd AHP captures a judgment cleanly but compares it to nothing \dd twins scored on physical state, inputs assumed to arrive
+  \item The patent record is where it is sharp: \textbf{IBM 2007} computes revenue at risk entirely from measured inputs \dd \textbf{Wipro 2019} replaces those inputs with language, the human narrates but is never assessed \dd the most recent, a control tower, the operator \emph{receives} decisions
+  \item \textbf{Fifteen years running away from the human declarant}
+  \item The gap: no system, published or patented, elicits a declared urgency, computes its counterpart on the same node, and scores the difference against recorded outcomes
+\end{itemize}
+
+\slidehead{6}{Objectives and indicators}{4:19}
+\begin{itemize}
+  \item Six objectives, each indicator chosen so it could be answered yes or no from an artefact rather than from an opinion
+  \item Press the \textbf{fourth}: its indicator required the signal to be compared against a trivial baseline
+  \item Holding to that clause turned a validation step into the main contribution
+\end{itemize}
+
+\slidehead{7}{How the week ran}{5:06}
+\begin{itemize}
+  \item Agile and Test and Learn applied literally: Monday planning \dd three scrums \dd Wednesday point with the programme director for the scientific decisions \dd \textbf{Friday demonstration, show something rather than describe it}
+  \item Four contact points a week: heavy for research and development, and the most useful organisational feature of the internship. It made it impossible to spend three weeks on an idea that would not survive a reviewer
+  \item Test and Learn means something only if things were abandoned: the first urgency model was a single time-driven curve, it could not represent a node on schedule but out of capacity. Dropped in April, \textbf{at a cost of three weeks}
+\end{itemize}
+
+\slidehead{8}{Phases and milestones}{6:10}
+\begin{itemize}
+  \item \scene{Droppable on the day.} Ten phases, nine milestones, seven closed
+  \item The decision that matters: the second half reallocated from extending the scope to validating what already existed
+  \item An unvalidated extension of an unvalidated model compounds the problem rather than advancing it. That is why I can state a measured result today
+\end{itemize}
+
+\slidehead{9}{Two signals and a score}{6:43}
+\begin{itemize}
+  \item Elicited independently, then compared
+  \item Left, \textbf{declared}: AHP, four criteria compared pairwise, a consistency-checked weight per criterion
+  \item Right, \textbf{computed}: aggregated from six indicator blocks
+  \item Every criterion has its computed counterpart: operational impact $\leftrightarrow$ performance and capacity \dd time window $\leftrightarrow$ time block \dd downstream dependencies $\leftrightarrow$ the severity propagation amplifies \dd recoverability $\leftrightarrow$ the recovery term. Without that correspondence the comparison would be between unrelated quantities
+  \item Score = the distance between the two, zero to one hundred, \textbf{asymmetric}: false urgency costs one, hidden risk costs twice as much
+  \item Clinical triage has applied that rule for decades: under-triage costs a life where over-triage costs a queue
+\end{itemize}
+
+\slidehead{10}{Real urgency and the OR}{7:49}
+\begin{itemize}
+  \item Read each block as an independent cause that could on its own put the node in trouble
+  \item In trouble if the time block fires, \textbf{or} capacity fires, \textbf{or} any of the four others does. $P = 1$ minus the probability that none of them fires
+  \item The OR is the logical connective, \textbf{not an arithmetic operation}
+  \item \textbf{Node A}: capacity failed at 0.9, everything else healthy. \textbf{Node B}: all six blocks at 0.2, nothing actually broken
+  \item Weighted average $\rightarrow$ ranks \textbf{B} first, sends the coordinator to the node where nothing is wrong, five healthy blocks average away the one that failed
+  \item Probabilistic OR $\rightarrow$ A \num{0.92} against B \num{0.74}, A first
+  \item Same six numbers, opposite ranking. Non-compensatory behaviour is \textbf{a requirement}, not a preference
+\end{itemize}
+
+\slidehead{11}{Declared urgency and the gate}{9:16}
+\begin{itemize}
+  \item Not a free-text estimate, it comes from pairwise comparisons
+  \item The \textbf{gate}: a weight vector whose consistency ratio exceeds the threshold is refused, and the operator is sent back to the most contradictory of \emph{their own} comparisons
+  \item Without it, an incoherent judgment would propagate as though it were a considered one
+  \item One hypothesis, said out loud: the weekly review is taken at face value, as a sincere report of what its author perceives. That is what makes the two signals independent in source
+\end{itemize}
+
+\slidehead{12}{Propagation}{10:00}
+\begin{itemize}
+  \item \scene{Droppable on the day.} Declared urgency descends from the customer towards suppliers, attenuated. Computed risk ascends the other way, amplified
+  \item The asymmetry is physical: demand pressure is what a customer transmits downwards, physical risk what a supplier transmits upwards
+\end{itemize}
+
+\slidehead{13}{Architecture}{10:22}
+\begin{itemize}
+  \item \textbf{SupplyScore}: standalone Python application over a per-node database layer
+  \item A single orchestrating facade, so there is no second write path into the domain, \textbf{the administration interface included}
+  \item A single mutation service: validates ranges, diffs against current state, records the author $\rightarrow$ \textbf{the audit trail becomes a property of the architecture}, not a convention someone has to remember
+  \item One database per node $\rightarrow$ tenant isolation follows from the storage layout, not from a query filter someone could forget
+  \item Operator side: the weekly review commits as \textbf{one signed transaction} \dd the explainability page reconstructs any score term by term, and it is what made the next diagnosis possible from the application rather than by hand
+\end{itemize}
+
+\slidehead{14}{Result one, early warning}{11:29}
+\begin{itemize}
+  \item \scene{Protect.} Four tests, all designed to try to break the tool rather than to show it working
+  \item Campaign one replays the 2020 to 2022 semiconductor shortage, nineteen turns, eight nodes. Real urgency from public time series of the actual crisis, declared urgency from the participants. \num{Four of the eight} go on to miss a commitment
+  \item Each turn: rank the nodes by hidden risk, flag those above \num{0.10}
+  \item \num{Six consecutive turns}, before the crisis is visible: exactly three nodes flagged, all three go on to miss. Precision \num{1.00}, recall \num{0.75}, \num{zero false alarms}
+  \item The worst-scoring throughout is the satellite prime. Flagged from turn zero, misses at turn eight. \num{Eight turns of warning}, raised while its own manager declares \num{0.001}
+  \item That flag does not come from a pessimistic declaration. It comes from an \textbf{optimistic declaration against a computed state that is not}
+  \item A system aggregating only indicators would have ranked that node by its indicators. A system collecting only declarations would have believed it
+  \item From turn six precision falls to 0.50 or below, \textbf{and that is not a failure}: the crisis becomes public, everyone raises their urgency, a measure defined as a difference closes mechanically $\rightarrow$ it \textbf{bounds where the measure applies}, early warning and not crisis management
+  \item State the limit before they ask: eight nodes, four positives, one scenario. An encouraging observation, \textbf{not an established rate}
+\end{itemize}
+
+\slidehead{15}{Result two, one block explained it}{13:25}
+\begin{itemize}
+  \item \scene{Protect.} A different question: turning that ranking into a \textbf{probability attached to a named week}
+  \item First version, scored against the outcome definition the system itself applies: failed on both axes. Discrimination indistinguishable from chance, Brier skill between \num{$-$3.4 and $-$6.9}, several times worse than a forecaster who announces the base rate
+  \item The reliability diagram localises it: right where it announces a low probability, \textbf{wrong every time} where it announces a high one. \num{Twenty-one forecasts announcing a mean of 0.948, not one materialised}
+  \item The cause, from the explainability layer, and it comes down to a count: across \num{328 indicator snapshots}, the accumulated-delay field the time block reads was written a non-zero value \num{exactly zero times}
+  \item The event engine writes to capacity, cost and failure probability. \textbf{Never to any quantity on the time axis.} The block is blind by construction, and because it drives the entire confident tail, so is the forecast
+  \item The repair is a change to the event mapping, \textbf{not to the mathematics}: lost production time is additive, a four-week freeze costs four weeks whether the order is a tenth done or nine tenths done
+  \item On the same \num{120 frozen forecasts}: Brier skill from \num{$-$1.278 to $-$0.646} at one week, the calibration deficit roughly halved at every horizon
+  \item Still negative everywhere, and I report it as such. On discrimination I claim nothing: twenty-six positives, the interval is too wide to read
+\end{itemize}
+
+\slidehead{16}{Result three, the domain}{15:30}
+\begin{itemize}
+  \item \scene{The densest slide. Breathe before ``So here is the boundary'', slow down for the three sentences that follow.}
+  \item A \textbf{negative} result, and the one I would defend hardest
+  \item A result measured on one scenario stays a property of that scenario $\rightarrow$ a second chain: an airframer's supply base, \num{fifteen nodes over five tiers}, no exogenous events, milestone truth computed from the indicators rather than written by me
+  \item Precision \num{0.00} across nineteen turns against a base rate of 0.20. \textbf{Worse than chance}
+  \item The reason is in the opening turn: the three suppliers that go on to miss declare the \num{first, second and fourth} highest urgencies in the chain, before anything has visibly gone wrong. The worst declares \num{0.982} against a computed state of \num{0.655}
+  \item Hidden risk is the positive part of computed minus declared $\rightarrow$ when the declaration is the higher of the two, \textbf{it clips to zero}. Hidden risk exactly zero for nineteen turns, \textbf{no threshold could have selected them}
+  \item The free text says why: all three intend to delay informing their customer until they have a recovery plan
+  \item \textbf{The boundary, and it is the contribution I would put first}: the tool measures \textbf{misperception}, not \textbf{non-disclosure}. It finds the supplier who has misread their own situation. It cannot find the one who has read it correctly and is managing what they say
+  \item Precision one on the first chain and zero on the second do not contradict. Together they \textbf{name the domain}
+  \item Right side, the fourth test: the cheapest thing that could replace the forecast layer, a one-line ratio of weeks remaining to weeks required, \textbf{beats five hundred Monte Carlo trajectories at six horizons of eight}
+  \item What the simulation buys is \textbf{calibration}. On this chain the forecast layer is a calibration wrapper around a lead-time ratio
+\end{itemize}
+
+\slidehead{17}{The result nobody planned}{17:51}
+\begin{itemize}
+  \item Treatment arm: declarants are shown the system's own forecast immediately before declaring. The scenario is frozen $\rightarrow$ any difference belongs to \textbf{the act of displaying them}
+  \item First contact: all \num{eight} declarants record an influence, and the direction is \textbf{entirely one-sided}. Five revise downward, three are confirmed, \textbf{not one revises upward}. The critical event lands two turns later. Reproduced at \num{fifteen declarants} on the second chain
+  \item The measurement an engineer should act on is the third: reported influence falls from \num{thirteen of fifteen to three} by the final turn, and they give a measurable reason
+  \item Between consecutive turns, \textbf{on an unchanged node}, the four-week probability moves by more than 0.20 on \num{one node in ten}, largest jump \num{0.93}
+  \item An advisory number that jumps like that teaches its reader to stop looking. \textbf{Disengagement is the rational response, not negligence}
+\end{itemize}
+
+\slidehead{18}{Objectives against outcomes}{19:06}
+\begin{itemize}
+  \item All six met, two with something added
+  \item The fourth is met \textbf{with its domain established}, which is more than the indicator asked for
+  \item The sixth was reframed on the way, because measurement rather than assumption established that docks cannot be counted from a nadir view
+  \item What the programme can now say about SupplyScore comes down to three statements: it detects misperception and not non-disclosure \dd it is early warning that closes by construction once a crisis is public \dd its forecast layer buys calibration rather than short-horizon discrimination
+  \item \textbf{Not one of those three was in the specification.} Each came from a test built to find it rather than to confirm the tool
+\end{itemize}
+
+\slidehead{19}{Limits, what comes next, what I take}{19:59}
+\begin{itemize}
+  \item Four limits, and I will not soften them: the declarants were agents, not human consultants \dd the positive class is small on both chains \dd the carbon block remains the least exercised for want of node-level data \dd every score depends on which outcome definition it is read against, \textbf{and no amount of extra data will fix that}
+  \item For ALTEN, four actions in order of cost: connect computed urgency to the quantity being forecast, one afternoon on forecasts that already exist \dd fill the indicators \emph{before} calibrating \dd make the forecast state its own ignorance \dd run the campaign with humans
+  \item What I take is a \textbf{method}: independence between two signals has to be designed before either of them is \dd before trusting a component, write the cheapest thing that could replace it and score them against each other
+  \item The difficulty was never the mathematics. It sits at the \textbf{two joins}: model to world, and output to the person who acts on it
+\end{itemize}
+
+\slidehead{20}{Close}{21:13}
+\begin{itemize}
+  \item Thank you. I am happy to take your questions
+\end{itemize}
+
+\vspace{6pt}
+\band{{\bfseries\color{altenNavy}Questions, ten minutes.}\par\vspace{2pt}
+\scene{Answer in three sentences and stop.} The instinct to keep talking is what turns a good answer into a weak one.}
+
+\q{Precision of 1.00 on eight nodes is not a result. Why should we believe it?}
+\textbf{You should not believe it as a rate, and I do not present it as one.} Eight nodes, four positives, three flagged, one scenario. What I claim is narrower: on this chain, over six consecutive turns, the measure selected only nodes that later missed, and the flag preceded the first miss by eight turns. Widening that base is the first of the three phases that close the internship.
+
+\q{Your Brier skill is negative everywhere. Your forecast is worse than announcing the base rate. Why keep it?}
+\textbf{Correct, and I say so on the slide.} I keep it for one measured reason: the baseline produces an ordering and has no means of turning it into a probability, and its own Brier skill is $-$4.85 against my $-$1.6. The layer buys calibration, not discrimination. If the programme only needs a ranking, the one-line ratio is the better instrument and I would tell them to use it.
+
+\q{A one-line formula beats five hundred Monte Carlo trajectories. Does that not invalidate the simulation?}
+\textbf{On this chain, at short horizons, yes, and that is why I ran the test.} The cause is nameable: the autoregressive state never reaches the milestone term, so the scored quantity depends on a lead-time draw and nothing else. It is a wiring defect, not a mathematical one, and the repair is measurable on forecasts I already have frozen.
+
+\q{Precision 0.00 on the second chain. Your core contribution does not work.}
+\textbf{It does not work on that chain, and understanding why is the contribution.} The three failing suppliers declared the highest urgencies in the chain from the opening turn, so a measure defined as computed minus declared clips to zero and cannot open. That separates two problems that were being treated as one: misperception, which a questionnaire reaches, and non-disclosure, which nothing that asks the supplier can reach.
+
+\q{Your declarants are language models, not people. What is any of this worth?}
+\textbf{Every behavioural claim applies to that population and I weakened all of them accordingly.} What the agents let me do is iterate: a full nineteen-turn campaign replays in an afternoon, so a design flaw was found and re-tested the same day. The \emph{structural} results, the blind time block and the missing path to the milestone term, do not depend on who the declarant is.
+
+\vspace{5pt}
+{\bfseries\color{altenNavy}Five more you should expect}
+\begin{itemize}
+  \item \emph{Why a noisy-OR rather than a weighted average?} Because a weighted average is compensatory. On the example on slide ten it ranks a node where nothing has failed above a node whose capacity has collapsed
+  \item \emph{Why price hidden risk at twice false urgency?} Over-declaring consumes shared capacity and \emph{somebody notices}. Under-declaring generates no signal at all and surfaces only as a missed delivery. Clinical triage has priced that asymmetry the same way for decades
+  \item \emph{How do you know the two signals are really independent?} It is a stated hypothesis, not a proof: the weekly review is taken as a sincere report. I designed for it rather than assuming it. Real urgency is fed from public time series, declarants never see the computed value, and every result records which of the two could have reached the other. The satellite workstream exists to put at least one indicator beyond the declarant's reach entirely
+  \item \emph{What would you do differently?} Two things. Score the forecast layer against recorded outcomes far earlier, since a few hundred lines located the defect immediately where months of implementation had not. And write the outcome definition into the pre-registration alongside the thresholds, having since measured that it moves the result by a factor of six
+  \item \emph{Is this deployable?} Not as a probability, and not on a chain where suppliers manage their disclosure. As a weekly ranking of where a coordinator should look, on a chain where the failing supplier is also the one misreading its own state, and before a crisis becomes public: yes. That is exactly the domain the third test established
+\end{itemize}
+
+\vspace{4pt}
+{\bfseries\color{altenNavy}Two from the ESTIA side}
+\begin{itemize}
+  \item \emph{Where is the systems engineering in this?} The V-cycle is \emph{on the model}: specification reviewed before implementation, then the campaign designed before the system was finished, so the tests could not be written to fit the results. Agile and Test and Learn ran the week inside that. Four things were abandoned, and the report records each one with its cost
+  \item \emph{What does this bring to your engineering training?} Three capabilities I did not have in April: supply chain modelling, software engineering built to be handed on rather than to run once, and applied artificial intelligence from two directions at once. But what I expect to reuse longest is a \textbf{habit}, not a skill: before trusting a component, write the cheapest thing that could replace it and score them against each other
+\end{itemize}
+
+\end{multicols}
+\end{document}

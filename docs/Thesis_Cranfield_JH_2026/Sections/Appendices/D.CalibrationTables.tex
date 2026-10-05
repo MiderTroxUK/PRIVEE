@@ -78,11 +78,9 @@ Brier skill & $-0.24$ & $-0.31$ & $-0.52$ & $-0.64$ \\
 
 \subsection*{Right-Censoring Sensitivity}
 
-Dropping every forecast whose observation window would extend past the final campaign turn
-leaves the four-week scoring on 88 observations with 2 positives. The result does not
-improve: the operating point remains 0 true positives against 16 false positives, and the
-Brier skill moves from $-3.36$ to $-7.82$. Censoring is not the explanation for the confident
-tail.
+Dropping every forecast whose observation window would extend past the final campaign
+turn leaves the four-week scoring on 88 observations with 2 positives, at 0 true positives
+against 16 false positives, and moves the Brier skill from $-3.36$ to $-7.82$.
 
 \subsection*{The Confident Tail, Forecast by Forecast}
 
@@ -219,77 +217,58 @@ registry's current-deadline reading.
 \subsection*{Arm A Rescored After Repair}
 \label{app:repair_tables}
 
-Tables~\ref{tab:app_repair_before} to \ref{tab:app_repair_after} give the complete scoring
-behind Table~\ref{tab:repair_scores}. All three score the same 120 forecasts against the
+Table~\ref{tab:app_repair_before} gives the complete scoring behind
+Table~\ref{tab:repair_scores}. The three models score the same 120 forecasts against the
 original-commitment target, censored points excluded, so the observation counts are identical
-across the three and only the model differs. The first is the frozen campaign as run, the
-second applies the structural repair of Equation~\ref{eq:completion_repaired} alone, and the
-third adds the progress-uncertainty term.
+and only the model differs: the frozen campaign as run, the structural repair of
+Equation~\ref{eq:completion_repaired} alone, and that repair with the progress-uncertainty
+term added.
 
 \begin{table}[htbp]
 \centering
-\caption{Arm A before repair, original-commitment target}
+\caption{Arm A rescored after repair, original-commitment target}
 \label{tab:app_repair_before}
 \small
-\begin{tabularx}{\linewidth}{l *{4}{>{\centering\arraybackslash}X}}
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{3.1cm} l *{4}{>{\centering\arraybackslash}X}}
 \toprule
-\textbf{Quantity} & \textbf{h = 1} & \textbf{h = 2} & \textbf{h = 3} & \textbf{h = 4} \\
+\textbf{Model} & \textbf{Quantity} & \textbf{h = 1} & \textbf{h = 2} & \textbf{h = 3} &
+\textbf{h = 4} \\
 \midrule
-Observations & 112 & 104 & 96 & 90 \\
-Positive outcomes & 7 & 14 & 20 & 26 \\
-Base rate & 0.062 & 0.135 & 0.208 & 0.289 \\
+\multicolumn{2}{l}{Observations} & 112 & 104 & 96 & 90 \\
+\multicolumn{2}{l}{Positive outcomes} & 7 & 14 & 20 & 26 \\
+\multicolumn{2}{l}{Base rate} & 0.062 & 0.135 & 0.208 & 0.289 \\
 \midrule
-Brier score & 0.1335 & 0.1969 & 0.2728 & 0.3190 \\
-Brier skill & $-1.278$ & $-0.690$ & $-0.654$ & $-0.553$ \\
-AUC & 0.736 & 0.636 & 0.641 & 0.654 \\
-AUC 95\% CI & [0.49, 0.93] & [0.37, 0.87] & [0.39, 0.85] & [0.42, 0.85] \\
-PR-AUC & 0.163 & 0.205 & 0.266 & 0.353 \\
+\multirow{4}{2.9cm}{Before repair}
+  & Brier score & 0.1335 & 0.1969 & 0.2728 & 0.3190 \\
+  & Brier skill & $-1.278$ & $-0.690$ & $-0.654$ & $-0.553$ \\
+  & AUC         & 0.736 & 0.636 & 0.641 & 0.654 \\
+  & PR-AUC      & 0.163 & 0.205 & 0.266 & 0.353 \\
+\midrule
+\multirow{4}{2.9cm}{Structural repair}
+  & Brier score & 0.0965 & 0.1633 & 0.2243 & 0.2613 \\
+  & Brier skill & $-0.646$ & $-0.401$ & $-0.360$ & $-0.272$ \\
+  & AUC         & 0.793 & 0.671 & 0.657 & 0.721 \\
+  & PR-AUC      & 0.355 & 0.305 & 0.355 & 0.484 \\
+\midrule
+\multirow{4}{2.9cm}{\raggedright With progress\\uncertainty}
+  & Brier score & 0.0988 & 0.1593 & 0.2120 & 0.2499 \\
+  & Brier skill & $-0.687$ & $-0.367$ & $-0.286$ & $-0.216$ \\
+  & AUC         & 0.729 & 0.634 & 0.602 & 0.584 \\
+  & PR-AUC      & 0.195 & 0.228 & 0.299 & 0.385 \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
-\begin{table}[htbp]
-\centering
-\caption{Arm A after the structural repair alone}
-\label{tab:app_repair_struct}
-\small
-\begin{tabularx}{\linewidth}{l *{4}{>{\centering\arraybackslash}X}}
-\toprule
-\textbf{Quantity} & \textbf{h = 1} & \textbf{h = 2} & \textbf{h = 3} & \textbf{h = 4} \\
-\midrule
-Brier score & 0.0965 & 0.1633 & 0.2243 & 0.2613 \\
-Brier skill & $-0.646$ & $-0.401$ & $-0.360$ & $-0.272$ \\
-AUC & 0.793 & 0.671 & 0.657 & 0.721 \\
-AUC 95\% CI & [0.60, 0.95] & [0.51, 0.88] & [0.47, 0.87] & [0.54, 0.92] \\
-PR-AUC & 0.355 & 0.305 & 0.355 & 0.484 \\
-\bottomrule
-\end{tabularx}
-\end{table}
-
-\begin{table}[htbp]
-\centering
-\caption{Arm A after the structural repair and the progress-uncertainty term}
-\label{tab:app_repair_after}
-\small
-\begin{tabularx}{\linewidth}{l *{4}{>{\centering\arraybackslash}X}}
-\toprule
-\textbf{Quantity} & \textbf{h = 1} & \textbf{h = 2} & \textbf{h = 3} & \textbf{h = 4} \\
-\midrule
-Brier score & 0.0988 & 0.1593 & 0.2120 & 0.2499 \\
-Brier skill & $-0.687$ & $-0.367$ & $-0.286$ & $-0.216$ \\
-AUC & 0.729 & 0.634 & 0.602 & 0.584 \\
-AUC 95\% CI & [0.56, 0.95] & [0.42, 0.83] & [0.29, 0.85] & [0.21, 0.87] \\
-PR-AUC & 0.195 & 0.228 & 0.299 & 0.385 \\
-\bottomrule
-\end{tabularx}
-\end{table}
+The cluster-bootstrap $95\%$ intervals on the AUC are $[0.49,\,0.93]$, $[0.60,\,0.95]$ and
+$[0.56,\,0.95]$ at one week for the three models respectively, and $[0.42,\,0.85]$,
+$[0.54,\,0.92]$ and $[0.21,\,0.87]$ at four weeks.
 
 The confidence intervals are cluster bootstraps resampling whole nodes rather than individual
 node-weeks, because forecasts on one node are strongly correlated and an i.i.d.\ bootstrap
-would understate the width. They are wide enough at every horizon to contain the AUC of every
-other table in this group, which is why the AUC movements between the three are reported as
-uninterpretable rather than as gains or losses, while the Brier skill movements, which do not
-depend on the size of the positive class in the same way, are reported as measured.
+would understate the width. They are wide enough at every horizon to contain the AUC of the
+other two models, which is why the AUC movements are reported as uninterpretable rather than
+as gains or losses, while the Brier skill movements, which do not depend on the size of the
+positive class in the same way, are reported as measured.
 
 \subsection*{Distribution of the Milestone Probability}
 \label{app:binarity}

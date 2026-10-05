@@ -54,11 +54,19 @@ D = json.loads((HERE / "derived.json").read_text(encoding="utf-8"))
 
 
 def save(fig, name: str) -> None:
+    """Write the figure as vector first, raster last.
+
+    The PDF is what pdflatex includes, so a curve stays sharp at any zoom and at
+    any print size; the SVG travels to the defence slides; the PNG remains for
+    quick previews and for anything that cannot read vector.
+    """
     out = IMAGES / name
     out.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(out, facecolor="white")
+    for suffix in (".pdf", ".svg", ".png"):
+        path = out.with_suffix(suffix)
+        fig.savefig(path, facecolor="white")
+        print(f"  wrote {path.relative_to(IMAGES.parent)}")
     plt.close(fig)
-    print(f"  wrote {out.relative_to(IMAGES.parent)}")
 
 
 def fig_reliability() -> None:

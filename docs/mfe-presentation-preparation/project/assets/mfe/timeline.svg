@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1206 52" preserveAspectRatio="xMidYMid meet" width="1206" height="52" role="img" aria-labelledby="timeline-title timeline-desc" font-family="Arial,Arimo,sans-serif">
+<title id="timeline-title">The campaign timeline, turns T0 to T18</title>
+<desc id="timeline-desc">Nineteen turns. The first six carry a sharp signal. From turn six the crisis is public and the gap closes. At turn eight the satellite prime misses its milestone.</desc>
+
+<!-- 19 cells on a 63.63 pitch: the ochre run ends where the card above it ends (6/19). -->
+<g id="turn-cells">
+<rect id="turn-0" x="0" y="0" width="60.63" height="26" fill="#FFC800"/>
+<rect id="turn-1" x="63.63" y="0" width="60.63" height="26" fill="#FFC800"/>
+<rect id="turn-2" x="127.26" y="0" width="60.63" height="26" fill="#FFC800"/>
+<rect id="turn-3" x="190.89" y="0" width="60.63" height="26" fill="#FFC800"/>
+<rect id="turn-4" x="254.52" y="0" width="60.63" height="26" fill="#FFC800"/>
+<rect id="turn-5" x="318.15" y="0" width="60.63" height="26" fill="#FFC800"/>
+<rect id="turn-6" x="381.78" y="0" width="60.63" height="26" fill="#E9E9ED"/>
+<rect id="turn-7" x="445.41" y="0" width="60.63" height="26" fill="#E9E9ED"/>
+<rect id="turn-8" x="509.04" y="0" width="60.63" height="26" fill="#063C67"/>
+<rect id="turn-9" x="572.67" y="0" width="60.63" height="26" fill="#E9E9ED"/>
+<rect id="turn-10" x="636.30" y="0" width="60.63" height="26" fill="#E9E9ED"/>
+<rect id="turn-11" x="699.93" y="0" width="60.63" height="26" fill="#E9E9ED"/>
+<rect id="turn-12" x="763.56" y="0" width="60.63" height="26" fill="#E9E9ED"/>
+<rect id="turn-13" x="827.19" y="0" width="60.63" height="26" fill="#E9E9ED"/>
+<rect id="turn-14" x="890.82" y="0" width="60.63" height="26" fill="#E9E9ED"/>
+<rect id="turn-15" x="954.45" y="0" width="60.63" height="26" fill="#E9E9ED"/>
+<rect id="turn-16" x="1018.08" y="0" width="60.63" height="26" fill="#E9E9ED"/>
+<rect id="turn-17" x="1081.71" y="0" width="60.63" height="26" fill="#E9E9ED"/>
+<rect id="turn-18" x="1145.34" y="0" width="60.63" height="26" fill="#E9E9ED"/>
+</g>
+
+<!-- One tick per turn, so the cells read as a scale rather than as a two-tone band. -->
+<g id="turn-ticks" stroke="#C0C0C8" stroke-width="1">
+<path d="M30.3 26 V31 M93.9 26 V31 M157.6 26 V31 M221.2 26 V31 M284.8 26 V31 M348.5 26 V31 M412.1 26 V31 M475.7 26 V31 M602.9 26 V31 M666.6 26 V31 M730.2 26 V31 M793.9 26 V31 M857.5 26 V31 M921.1 26 V31 M984.8 26 V31 M1048.4 26 V31 M1112.0 26 V31 M1175.7 26 V31"/>
+</g>
+<path id="tick-8" d="M539.4 26 V33" stroke="#063C67" stroke-width="2"/>
+
+<g id="turn-labels" font-size="16" fill="#858591" text-anchor="middle">
+<text id="label-t0" x="30.3" y="47">T0</text>
+<text id="label-t5" x="348.5" y="47">T5</text>
+<text id="label-t6" x="412.1" y="47">T6</text>
+<text id="label-t18" x="1175.7" y="47">T18</text>
+</g>
+
+<!-- Turn 8: the satellite prime misses, eight turns after the flag first raised it. -->
+<text id="label-t8" x="539.4" y="47" text-anchor="middle" font-size="16" font-weight="700" fill="#063C67">T8: THE PRIME MISSES</text>
+</svg>

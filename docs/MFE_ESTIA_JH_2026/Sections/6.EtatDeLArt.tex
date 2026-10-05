@@ -1,12 +1,7 @@
-%% Consignes : « Incontournable pour le rapport de MFE, l'etat de l'art
-%% presente les solutions techniques, methodes, outils, organisations
-%% existants qui repondent pour tout ou en partie a la problematique posee.
-%% Il s'agit de realiser une analyse critique des travaux existants. »
-
-The question of Section~\ref{sec:question} touches several fields that do not usually cite
-one another. This section reviews each for what it settles and, more importantly, for what it
-leaves open. A structured evaluation of every source, recording its argument, method and
-limitations, was maintained throughout the mission and informs the appraisals below.
+The question of Section~\ref{sec:question} sits at the meeting point of several fields that
+rarely cite one another. This section reviews each for what it settles and, more usefully,
+for what it leaves open. A structured appraisal of every source, recording its argument, its
+method and its limits, was maintained throughout the mission and informs the readings below.
 
 \subsection{Deadline-Driven Value and Risk Propagation}
 
@@ -21,11 +16,9 @@ cascades through downstream tiers and amplifies as it
 travels~\autocite{ivanov2020digital,ivanov2019viable,li2020exploring}. This establishes that
 urgency is legitimately network-dependent.
 
-\emph{Critical appraisal.} The first stream stops at a single isolated task and offers
-nothing on combining heterogeneous indicators. The second models propagation but treats the
-node-level score as given. Neither addresses a declared signal at all. Between them they
-justify treating urgency as time-varying and propagated, and leave the aggregation question
-entirely open.
+\emph{Appraisal.} The first stops at a single task, the second takes the node-level score as
+given, and neither addresses a declared signal. Together they justify treating urgency as
+time-varying and propagated, and leave aggregation open.
 
 \subsection{Indicators of Delivery Rupture}
 
@@ -46,11 +39,9 @@ symptoms of strain rather than causes~\autocite{shen2019managing}, and emissions
 restrict the admissible responses rather than causing
 rupture~\autocite{hoen2014effect,smartfreight2023glec}.
 
-\emph{Critical appraisal.} This literature names precursors and monitors them individually.
-It supplies no criterion for deciding which belong in one composite, and says nothing about
-whether equal numerical values on structurally different indicators carry equal risk meaning.
-Both questions are inherited by any multi-block model, and
-Section~\ref{sec:realisation_modele} treats the second explicitly.
+\emph{Appraisal.} This literature monitors precursors one at a time. It gives no criterion for
+which belong in one composite, nor whether equal values on structurally different indicators
+carry equal risk meaning; Section~\ref{sec:realisation_modele} treats the second.
 
 \subsection{Cognitive Bias in Declared Urgency}
 
@@ -61,10 +52,8 @@ discounting model in which immediacy becomes more salient as a deadline
 approaches~\autocite{steel2006integrating}. Field studies confirm the pattern under
 workload~\autocite{rusou2020psychology,diwa2020task}.
 
-\emph{Critical appraisal.} This stream diagnoses the problem and quantifies it in controlled
-settings, but the magnitude in industrial supply chains is uncalibrated, and it prescribes no
-operational correction. It justifies treating the declared signal as biased; it does not say
-what to do about it.
+\emph{Appraisal.} Quantified in controlled settings, uncalibrated in industrial ones. It
+justifies treating the declared signal as biased without saying what to do about it.
 
 \subsection{Multi-Criteria Elicitation and Aggregation}
 
@@ -82,10 +71,9 @@ The composite indicator literature supplies the necessary warning: nominal weigh
 diverge from effective importance because of correlation and normalisation
 effects~\autocite{greco2018,becker2017,borgonovo2021global}.
 
-\emph{Critical appraisal.} These are static tools. They elicit and aggregate, and none is
-routinely compared against a computed operational counterpart. The composite-index critique
-is generally raised as a caveat at the end of a paper rather than turned into something a
-running system checks on its own data.
+\emph{Appraisal.} These are static tools: they elicit and aggregate, and none is routinely
+compared against a computed counterpart. The composite-index critique stays a closing caveat
+rather than something a running system checks on its own data.
 
 \subsection{Digital Twins and Decision Support}
 
@@ -97,12 +85,73 @@ replanning~\autocite{ding2023realtime,leung2022digital,hrusovsky2021realtime}. R
 human-in-the-loop cognitive twins capture human feedback to synchronise mental models with
 simulated operations~\autocite{niloofar2023}.
 
-\emph{Critical appraisal.} This is the family the delivered system belongs to, and the gap is
-here. No retrieved system combines a declared urgency input, a computed operational urgency
-and their propagated mismatch. A second gap matters for this mission specifically: these
-systems are evaluated on how accurately they estimate physical state, and their inputs are
-assumed to arrive. Where an input depends on the same operator whose judgment the system
-exists to support, that circularity is not treated as a measurement problem.
+\emph{Appraisal.} This is the family the delivered system belongs to, and the gap is here. No
+retrieved system combines a declared urgency, a computed one and their propagated mismatch.
+Where an input depends on the operator the system exists to support, that circularity is not
+treated as a measurement problem.
+
+\subsection{Industrial Solutions and Patents}
+\label{sec:brevets}
+
+Academic absence would be weak evidence on its own, since a working technique can be
+commercialised without ever being published. The patent record was therefore searched for
+the same combination.
+
+Three sustained lines emerged, and Figure~\ref{fig:brevets} sets them out. IBM's quantifies
+revenue at risk across the quantity, time, location and quality dimensions of a disruption,
+entirely from measured or forecast inputs~\autocite{feldman2007measuring}. Wipro's replaces
+those inputs with language, extracting entities from a natural-language incident description
+and deriving association rules between risks~\autocite{karuppasamy2019predicting}; the human
+appears as a narrator, and nothing in the method compares what they say against a computed
+counterpart. The most recent is a digital twin control tower diagnosing delay sources and
+predicting maintenance needs across replicated value chain entities, with robotic process
+automation acting on the twin~\autocite{cella2022digitaltwin}.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    br/.style = {bloc, text width=3.4cm, minimum height=2.75cm, font=\scriptsize},
+    rol/.style = {blocPale, text width=3.4cm, minimum height=0.95cm, font=\scriptsize},
+    node distance = 4mm and 8mm]
+
+\node[br]              (p1) {\textbf{2007: IBM}\\[2pt]
+                             revenue at risk across quantity, time, location and quality,
+                             from bill of materials, costs, demand volatility and lead
+                             times, by simulation};
+\node[br, right=of p1] (p2) {\textbf{2019: Wipro}\\[2pt]
+                             a natural-language incident description, mapped onto component
+                             clusters, yielding association rules between risks};
+\node[br, right=of p2] (p3) {\textbf{2022: control tower}\\[2pt]
+                             a digital twin diagnosing delay sources, with robotic process
+                             automation acting on the twin};
+
+\node[rol, below=of p1] (r1) {the operator states nothing anywhere in the claims};
+\node[rol, below=of p2] (r2) {the operator \emph{narrates} an incident: a source of facts};
+\node[rol, below=of p3] (r3) {the operator \emph{receives} the decision};
+
+\foreach \a/\b in {p1/r1, p2/r2, p3/r3} \draw[flecheFine] (\a) -- (\b);
+\draw[fleche] (p1) -- (p2);
+\draw[fleche] (p2) -- (p3);
+
+\coordinate (mid) at ($(r1.south)!0.5!(r3.south)$);
+\node[etiquette, below=3mm of mid, fill=none]
+     {fifteen years, one direction: \emph{away} from the human declarant};
+
+\node[blocAlerte, below=11mm of mid, text width=11.6cm, font=\scriptsize]
+  {\textbf{The slot no retrieved claim occupies.} Elicit the urgency the operator declares,
+   compute its counterpart on the same node, and score the difference. Prior art protects how
+   to compute risk and how to act on it, never how well it was declared.};
+
+\end{tikzpicture}
+\caption[Fifteen years of prior art, and the slot it leaves empty]{The three sustained patent
+lines, ordered by what each does with the human. As the claims get more autonomous, the
+declarant is progressively written out, and the quantity this mission measures is never
+claimed.}
+\label{fig:brevets}
+\end{figure}
+
+\emph{Appraisal.} The absence extends past the patent record. Commercial offerings in the
+same space document risk scoring and event alerting rather than declaration quality.
 
 \subsection{Verifying a Probabilistic Signal}
 
@@ -115,18 +164,72 @@ the wrong probabilities, and the two failures need different repairs. Machine le
 rediscovered the same point, finding strong classifiers that produce distorted probabilities
 correctable by a cheap post-hoc layer~\autocite{niculescu2005predicting,guo2017calibration}.
 
-\emph{Critical appraisal.} This literature assumes the outcome being predicted is
-unambiguously defined. In an operational supply chain it is a modelling choice, and
-Section~\ref{sec:realisation_resultats} measures that choice moving the reported result by a
-factor of five.
+A second convention is inherited with it. A verification score is read against a reference
+forecast, not in absolute terms, and the reference is chosen to be the cheapest thing a
+practitioner could have done instead: climatology, persistence, or a one-line
+heuristic~\autocite{murphy1973vector}. Section~\ref{sec:temoin} applies that convention to
+the layer built here, and it is the most demanding test in this report.
+
+\emph{Appraisal.} It assumes the outcome is unambiguously defined. In an operational supply
+chain the outcome is a modelling choice, and Section~\ref{sec:cible} measures that choice
+moving the reported result by a factor of six.
 
 \subsection{What the Review Establishes}
 \label{sec:gap}
 
-Each stream closes on a limit. Collected, those limits describe one absence rather than
-several. The reviewed work covers multi-block risk aggregation, network propagation, digital
-twin operation, multi-criteria elicitation and probabilistic verification. No retrieved work
-combines them with a structured declared-urgency input and an empirical test of the resulting
-adequacy signal against recorded outcomes.
+%% Trois lignes tombaient seules sur une page neuve.
+\enlargethispage{3\baselineskip}
 
-That missing combination is what this mission set out to build and to test.
+Each stream closes on a limit, and the limits describe one absence rather than several.
+Figure~\ref{fig:streams} places them side by side.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=4mm]
+
+\node[bloc, text width=3.5cm] (s1)
+  {\textbf{Deadline value \& ripple}\\[2pt]
+   \scriptsize gives: urgency is time-varying and propagates\\[1pt]
+   \scriptsize leaves: how to aggregate};
+\node[bloc, text width=3.5cm, right=of s1] (s2)
+  {\textbf{Rupture indicators}\\[2pt]
+   \scriptsize gives: which precursors matter\\[1pt]
+   \scriptsize leaves: which belong in one composite};
+\node[bloc, text width=3.5cm, right=of s2] (s3)
+  {\textbf{Cognitive bias}\\[2pt]
+   \scriptsize gives: the declared signal is biased\\[1pt]
+   \scriptsize leaves: what to do about it};
+
+\node[bloc, text width=3.5cm, below=6mm of s1] (s4)
+  {\textbf{Elicitation \& MCDM}\\[2pt]
+   \scriptsize gives: how to capture a judgment cleanly\\[1pt]
+   \scriptsize leaves: nothing to check it against};
+\node[bloc, text width=3.5cm, right=of s4] (s5)
+  {\textbf{Digital twins}\\[2pt]
+   \scriptsize gives: the operating environment\\[1pt]
+   \scriptsize leaves: inputs assumed to arrive};
+\node[bloc, text width=3.5cm, right=of s5] (s6)
+  {\textbf{Patents \& industry}\\[2pt]
+   \scriptsize gives: how to compute risk and act on it\\[1pt]
+   \scriptsize leaves: the declarant unmeasured};
+
+\node[blocFort, text width=12.1cm, below=6mm of s5, font=\scriptsize] (gap)
+  {\textbf{Absent from every stream}\\[2pt]
+   elicit a declared urgency, compute its operational counterpart on the same node,
+   propagate both, and score the difference against recorded outcomes};
+
+\foreach \n in {s4,s5,s6} \draw[fleche] (\n) -- (\n |- gap.north);
+\draw[flecheFine] (s1) -- (s4);
+\draw[flecheFine] (s2) -- (s5);
+\draw[flecheFine] (s3) -- (s6);
+
+\end{tikzpicture}
+\caption[What each literature stream settles and leaves open]{Six streams, what each settles
+and what each leaves open. The lower box is the combination none of them provides, and the
+one this mission builds.}
+\label{fig:streams}
+\end{figure}
+
+No retrieved work, published or patented, combines those streams with a structured
+declared-urgency input and an empirical test of the resulting signal against recorded
+outcomes. That combination is what this mission built, and then bounded.

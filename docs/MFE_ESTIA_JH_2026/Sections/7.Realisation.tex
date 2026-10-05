@@ -1,11 +1,9 @@
-%% Consignes : « La presentation doit etre structuree autour de la demarche
-%% de projet presentee precedemment. [...] Chaque fois que necessaire,
-%% indiquer les productions. [...] Il est aussi pertinent d'indiquer les
-%% problemes rencontres et les solutions ou strategies mises en oeuvre. »
+%% Le travail realise, structure par la demarche annoncee : modele,
+%% systeme, les trois tests menes contre lui, difficultes rencontrees.
 
 This section follows the phases of Section~\ref{sec:planning}: the model, the system built
-from it, the experiment designed to test it, what the experiment measured, and the problems
-met along the way.
+from it, a parallel workstream that observes capacity instead of asking for it, and the three
+tests run against the system. The problems met along the way close the section.
 
 \subsection{The Model}
 \label{sec:realisation_modele}
@@ -15,22 +13,93 @@ met along the way.
 Real urgency is not read from a single deadline-proximity signal. It is aggregated at each
 node from six indicator blocks selected from the literature of
 Section~\ref{sec:etatdelart}: time, capacity, performance, risk, cost and carbon. Each
-produces a partial urgency $u_m \in [0,1]$, and the aggregation is a weighted probabilistic
-OR:
+produces a partial urgency $u_m \in [0,1]$.
+
+\paragraph{What the OR means, and why it is one.}
+Read each block as an independent cause that could on its own put the node in trouble, and
+read $u_m$ as the probability that it does. The node is then in trouble if the time block
+fires \emph{or} the capacity block fires \emph{or} any of the four others does. The
+probability of that disjunction is one minus the probability that none of them fires, which
+is exactly the form the model uses, with an exponent $\omega_m$ setting how much each block is
+allowed to contribute:
 
 \begin{equation}
     U_{r,\text{local}} = 1 - \prod_{m} (1 - u_m)^{\omega_m}.
     \label{eq:ur}
 \end{equation}
 
-The choice of that form over a weighted average is the central modelling decision. A weighted
-average is fully compensatory: a node with a completely failed capacity and healthy cost,
-carbon and performance readings would score as moderately urgent. Equation~\ref{eq:ur} is
-not: any block approaching its maximum drives the aggregate toward the maximum regardless of
-the others. For a signal whose purpose is to catch the node that is about to fail,
-non-compensatory behaviour is the required property.
+The \emph{OR} in the name is therefore the logical connective, not an arithmetic operation;
+the literature calls this form a \emph{noisy-OR}. Choosing it over a weighted average is the
+central modelling decision of the mission, because the two behave in opposite ways on the
+situation the tool exists to catch. A weighted average is fully \emph{compensatory}: healthy
+cost, carbon and performance readings average away a capacity that has failed outright, and
+the node scores as moderately urgent. Equation~\ref{eq:ur} does not compensate, since a block
+approaching its maximum drives the aggregate toward the maximum whatever the others say.
 
-\begin{table}[htbp]
+Figure~\ref{fig:ou} works both rules through on two nodes, and they rank them in opposite
+orders.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[x=1cm, y=1cm,
+    lib/.style = {font=\scriptsize, text=altenNavy, anchor=east, inner sep=1pt},
+    val/.style = {font=\scriptsize, text=altenAzureDark, anchor=west, inner sep=2pt},
+    ttl/.style = {font=\small\bfseries, text=altenNavy, align=center}]
+
+\def\W{2.05}
+\def\jauge#1#2#3{%
+  \draw[draw=altenGreyLine, line width=0.5pt, fill=white]
+       (#1,#2) rectangle ++(\W,0.26);
+  \fill[altenAzure!60] (#1,#2) rectangle ++({\W*#3},0.26);
+  \node[val] at ({#1+\W+0.06},{#2+0.13}) {$#3$};}
+
+%% ── noeud A : un seul bloc est tombe ─────────────────────────────────
+\node[ttl] at (2.5,1.05) {Node A\\[-2pt]\footnotesize\mdseries one block has failed};
+\node[lib] at (2.05,0.13)  {time};        \jauge{2.15}{0.00}{0.05}
+\node[lib] at (2.05,-0.29) {capacity};    \jauge{2.15}{-0.42}{0.90}
+\node[lib] at (2.05,-0.71) {performance}; \jauge{2.15}{-0.84}{0.05}
+\node[lib] at (2.05,-1.13) {risk};        \jauge{2.15}{-1.26}{0.05}
+\node[lib] at (2.05,-1.55) {cost};        \jauge{2.15}{-1.68}{0.05}
+\node[lib] at (2.05,-1.97) {carbon};      \jauge{2.15}{-2.10}{0.05}
+
+%% ── noeud B : rien n'est tombe, tout est mediocre ────────────────────
+\node[ttl] at (8.4,1.05) {Node B\\[-2pt]\footnotesize\mdseries nothing has failed};
+\node[lib] at (8.00,0.13)  {time};        \jauge{8.10}{0.00}{0.20}
+\node[lib] at (8.00,-0.29) {capacity};    \jauge{8.10}{-0.42}{0.20}
+\node[lib] at (8.00,-0.71) {performance}; \jauge{8.10}{-0.84}{0.20}
+\node[lib] at (8.00,-1.13) {risk};        \jauge{8.10}{-1.26}{0.20}
+\node[lib] at (8.00,-1.55) {cost};        \jauge{8.10}{-1.68}{0.20}
+\node[lib] at (8.00,-1.97) {carbon};      \jauge{8.10}{-2.10}{0.20}
+
+%% ── les deux agregations, cote a cote ────────────────────────────────
+\node[blocPale, anchor=north, text width=3.9cm, font=\scriptsize] (mA) at (2.5,-2.55)
+     {weighted average\\[1pt] $0.19$ \quad\textcolor{altenOchreDark}{$\leftarrow$ ranked
+      second}};
+\node[blocPale, anchor=north, text width=3.9cm, font=\scriptsize] (mB) at (8.4,-2.55)
+     {weighted average\\[1pt] $0.20$ \quad\textcolor{altenOchreDark}{$\leftarrow$ ranked
+      \textbf{first}}};
+
+\node[blocFort, anchor=north, text width=3.9cm, font=\scriptsize] (oA) at (2.5,-3.55)
+     {weighted probabilistic OR\\[1pt] $\mathbf{0.92}$ \quad ranked \textbf{first}};
+\node[blocFort, anchor=north, text width=3.9cm, font=\scriptsize] (oB) at (8.4,-3.55)
+     {weighted probabilistic OR\\[1pt] $0.74$ \quad ranked second};
+
+\node[blocAlerte, anchor=north, text width=10.6cm, font=\scriptsize] at (5.45,-4.6)
+  {The average would send the coordinator to Node B, where nothing has actually broken. The
+   OR sends them to Node A, where the capacity block has. Same six numbers, opposite
+   ranking.};
+
+\end{tikzpicture}
+\caption[Why the aggregation is an OR and not an average]{The same six block values under the
+two candidate rules, with $\omega_m = 1$ throughout.}
+\label{fig:ou}
+\end{figure}
+
+For a signal whose purpose is to catch the node that is about to fail, non-compensatory
+behaviour is the required property: the coordinator has to be sent to the node where
+something has broken, not to the node where nothing has.
+
+\begin{table}[H]
 \centering
 \caption{The six indicator blocks and what each measures}
 \label{tab:blocs}
@@ -55,33 +124,19 @@ typically in the sea-against-air trade-off \\
 \end{tabularx}
 \end{table}
 
-Table~\ref{tab:blocs} gives the six and separates them by role. Four describe a mechanism
-that leads to rupture; two constrain which responses remain available once it threatens. Each
-candidate indicator was screened against four questions before being retained: does it have a
-plausible causal link to rupture, can it be measured or credibly estimated, can an operator
-act on it, and does it add information the retained blocks do not already carry.
-Figure~\ref{fig:blocs} draws the resulting structure.
+Table~\ref{tab:blocs} gives the six. Four describe a mechanism that leads to rupture; two
+constrain which responses remain available once it threatens. Each candidate was screened on
+four questions: a plausible causal link to rupture, measurable or credibly estimable, open to
+operator action, and adding information the retained blocks do not already carry. A block with
+no data carries weight $\omega_m = 0$, kept distinct from $u_m = 0$: the first says nothing is
+known, the second asserts the block is healthy.
 
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.80\linewidth]{Images/4.Operations/causal_tree_blocks.png}
-    \caption{Causal structure behind the six-block selection}
-    \label{fig:blocs}
-\end{figure}
-
-Three properties of that equation were specified explicitly, because a bare formula does not
-state what its bounds mean. At $u_m = 0$ the block is nominal and its factor is $1$, leaving
-the product unchanged. At $u_m = 1$ the factor is $0$ and the aggregate saturates. A block
-whose data is unavailable is given weight $\omega_m = 0$, which is deliberately distinct from
-$u_m = 0$: the first says nothing is known, the second asserts the block is healthy.
-
-\paragraph{The assumption that the blocks are exchangeable.}
-The product is symmetric in its factors, so it treats the six blocks as interchangeable up to
-their weights. That does not hold cleanly. A value of $u_{\text{time}} = 0.3$ is a
-probability of missing a deadline; $u_{\text{cost}} = 0.3$ is an ordinal position on a
-normalising scale wearing a cardinal number. They are not equally informative about rupture.
-The consequence was carried rather than hidden: the aggregate is used for ranking and for
-comparison against the declared value, never as a calibrated probability in its own right.
+\paragraph{The blocks are treated as exchangeable, and they are not.}
+The product is symmetric, so it ranks the six blocks only by weight. Yet
+$u_{\text{time}} = 0.3$ is a probability of missing a deadline while $u_{\text{cost}} = 0.3$
+is an ordinal position wearing a cardinal number. The consequence was carried rather than
+hidden: the aggregate is used for ranking and for comparison against the declared value,
+never as a calibrated probability.
 
 \subsubsection{Declared urgency and the adequacy score}
 
@@ -93,140 +148,294 @@ propagation amplifies, the time window mirrors the time block, and recoverabilit
 recovery term of the risk block. Without that correspondence the later comparison would be
 between unrelated quantities.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
-    \includegraphics[width=0.76\linewidth]{Images/4.Operations/questionnaire_screenshot.png}
-    \caption{The pairwise comparison questionnaire and its consistency gate}
+    \includegraphics[width=0.94\linewidth]{Images/4.Operations/questionnaire_annotated.png}
+    \caption[The pairwise comparison questionnaire]{The pairwise comparison questionnaire, as
+    the operator meets it.}
     \label{fig:questionnaire}
 \end{figure}
 
-Figure~\ref{fig:questionnaire} shows the questionnaire as the operator meets it. A weight
-vector whose consistency ratio exceeds the accepted threshold is refused, and the operator is
-sent back to the most contradictory of their own comparisons before the assessment can enter
-the network. Without that gate an incoherent judgment would propagate as though it were a
-considered one.
+A weight vector whose consistency ratio exceeds the threshold is refused, and the operator is
+sent back to the most contradictory of their own comparisons (Figure~\ref{fig:questionnaire}).
+Without that gate an incoherent judgment would propagate as though it were a considered
+one.
 
-Both signals then propagate across the supplier network, and in opposite directions: declared
-urgency descends from the customer toward suppliers, real risk ascends from suppliers toward
-the customer. The asymmetry is deliberate. Demand pressure is something a customer transmits
-to its suppliers; physical risk is something suppliers transmit to their customer. A model
-that propagated both the same way would be describing neither.
+Both signals then propagate across the network in opposite directions, declared urgency
+descending from the customer toward suppliers and computed risk ascending the other way, since
+demand pressure is what a customer transmits and physical risk what a supplier transmits.
+Their mismatch splits into the two pathologies of Section~\ref{sec:pourquoi}, and the gap is
+scored on $[0,100]$ through a penalty that prices hidden risk at roughly twice false urgency.
+Figure~\ref{fig:gap} shows both signals over the life of a task.
 
-Figure~\ref{fig:propagation} shows the two signals travelling in opposite directions across
-the same graph.
-
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
-    \includegraphics[width=0.80\linewidth]{Images/4.Operations/urgency_propagation.png}
-    \caption{Bidirectional propagation across the supply network}
-    \label{fig:propagation}
-\end{figure}
-
-Their mismatch, once both are propagated, splits into two named pathologies: false urgency
-where the declaration exceeds the state, hidden risk where the state exceeds the declaration.
-It is scored on $[0,100]$ through an asymmetric penalty that prices hidden risk at roughly
-twice false urgency, following the clinical principle of Section~\ref{sec:pourquoi}.
-
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.80\linewidth]{Images/2.Problem/urgency_gap.png}
-    \caption{Declared and real urgency, and the two mismatch pathologies}
+    \includegraphics[width=0.68\linewidth]{Images/2.Problem/urgency_gap_en.pdf}
+    \caption[Declared and real urgency, and the two mismatch pathologies]{Declared and real
+    urgency over the life of a task.}
     \label{fig:gap}
 \end{figure}
-
-Figure~\ref{fig:gap} shows the two signals over the life of a task. The step line is the
-declaration, which moves only when a review is submitted; the smooth curve is the computed
-state, which moves continuously. Where the step line sits above the curve the enclosed area
-is false urgency; where the curve sits above the step line it is hidden risk.
 
 \subsection{The System}
 \label{sec:realisation_systeme}
 
-The model was delivered as SupplyScore, a standalone Python application of 73 modules across
-10 packages, covered by 1\,831 automated test functions in 106 test files, driving a
-multi-page web interface over a per-node database layer. The suite collects 2\,044 cases once
-parameterisation is expanded, of which 2\,028 pass, 15 are skipped for want of an optional
-dependency, and one fails on two missing screenshot files referenced by a presentation
-script outside the library.
+The model was delivered as SupplyScore, a standalone Python application driving a multi-page
+web interface over a per-node database layer. It runs a full project week by week: onboarding
+a network, collecting the weekly reviews, applying events, recomputing every score and
+exporting the result. Figure~\ref{fig:archi} gives the software architecture, and the four
+decisions that carry the engineering weight are visible in it.
 
-Four architectural decisions carry the engineering weight. Every operation passes through a
-single orchestrating facade, so there is no second write path. Data is split into one
-registry database plus one database per node, which enforces that one supplier's history is
-not readable through another's. Every business write crosses a single mutation service that
-validates ranges, diffs against current state and records the change with its author, making
-the audit trail a property of the architecture rather than a convention. And each project
-carries its own clock, which is what allows a six-month scenario to be replayed in
-compressed time without touching the model.
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    ui/.style  = {bloc, text width=2.45cm, minimum height=0.9cm, font=\scriptsize},
+    svc/.style = {blocFort, text width=11.35cm, minimum height=0.72cm, font=\scriptsize},
+    dom/.style = {bloc, text width=2.45cm, minimum height=1.05cm, font=\scriptsize},
+    db/.style  = {blocPale, text width=3.55cm, minimum height=1.05cm, font=\scriptsize},
+    node distance = 5mm]
 
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.76\linewidth]{Images/4.Operations/hebdo.png}
-    \caption{The weekly review page}
-    \label{fig:hebdo}
+%% ── couche interface : quatre pages, aucune n'ecrit directement ──────
+\node[ui]              (u1) {weekly review};
+\node[ui, right=of u1] (u2) {explainability};
+\node[ui, right=of u2] (u3) {dashboard};
+\node[ui, right=of u3] (u4) {admin \& export};
+
+%% ── point d'entree unique, puis service de mutation unique ───────────
+\coordinate (mid) at ($(u1.south)!0.5!(u4.south)$);
+\node[svc, below=8mm of mid] (fac)
+     {\textbf{orchestrating facade:} the only entry point into the domain, so there is no
+      second write path};
+\node[svc, below=4mm of fac] (mut)
+     {\textbf{mutation service:} validates ranges, diffs against current state and records
+      author and timestamp, so the audit trail is architectural rather than conventional};
+
+%% ── services metier ─────────────────────────────────────────────────
+\node[dom, below=7mm of mut.south west, anchor=north west] (s1) {urgency model\\[1pt]
+                                                           \scriptsize six blocks, OR};
+\node[dom, right=of s1] (s2) {AHP elicitation\\[1pt]\scriptsize consistency gate};
+\node[dom, right=of s2] (s3) {propagation\\[1pt]\scriptsize and criticality};
+\node[dom, right=of s3] (s4) {forecast\\[1pt]\scriptsize Monte Carlo rollout};
+
+%% ── persistance : isolation par noeud, horloge par projet ───────────
+\node[db, below=7mm of s1.south west, anchor=north west] (d1) {registry database\\[1pt]
+                                                         \scriptsize projects, nodes, users};
+\node[db, right=of d1] (d2) {one database \emph{per node}\\[1pt]
+                             \scriptsize a supplier's history is unreadable through another's};
+\node[db, right=of d2, text width=3.55cm] (d3) {a clock \emph{per project}\\[1pt]
+                             \scriptsize six months replayed in compressed time};
+
+\foreach \u in {u1,u2,u3,u4} \draw[flecheFine] (\u.south) -- (\u.south |- fac.north);
+\draw[fleche] (fac) -- (mut);
+\foreach \s in {s1,s2,s3,s4} \draw[flecheFine] (\s.north |- mut.south) -- (\s.north);
+\foreach \s in {s1,s2,s3,s4} \draw[flecheFine] (\s.south) -- (\s.south |- d1.north);
+
+\end{tikzpicture}
+\caption[SupplyScore: software architecture]{SupplyScore's software architecture.}
+\label{fig:archi}
 \end{figure}
 
-Figure~\ref{fig:hebdo} shows the operator's main entry point. Its four sections, the
-questionnaire, the week's indicator values, milestone progress and any events, commit as a
-single signed transaction so that no partial review can enter a node's history.
+Figure~\ref{fig:uml} gives the domain model those services operate on.
 
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.74\linewidth]{Images/4.Operations/uml_architecture.png}
-    \caption{System architecture: single facade, audited writes, per-node persistence}
-    \label{fig:archi}
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    cls/.style   = {bloc, text width=3.5cm, align=left, font=\scriptsize,
+                    inner sep=0pt},
+    hdr/.style   = {font=\scriptsize\bfseries, text=altenNavy, align=center,
+                    text width=3.5cm, inner ysep=2.5pt},
+    hdrF/.style  = {hdr, text=white},
+    att/.style   = {font=\tiny, text=altenNavy, align=left, text width=3.3cm,
+                    inner xsep=4pt, inner ysep=3pt},
+    card/.style  = {font=\tiny, text=altenAzureDark, inner sep=1.5pt, fill=white},
+    node distance = 9mm and 11mm]
+
+%% une classe = un entete colore sur une liste d'attributs
+\node[cls] (proj) {\begin{tabular}{@{}l@{}}
+  \colorbox{altenAzure!22}{\makebox[3.38cm][c]{\scriptsize\bfseries Project}}\\[1pt]
+  \hspace{3pt}\parbox{3.2cm}{\tiny id, name\\owner\_node\_id\\t0\_ts : own clock}\vspace{2pt}
+\end{tabular}};
+
+\node[cls, below=of proj] (node) {\begin{tabular}{@{}l@{}}
+  \colorbox{altenAzure!38}{\makebox[3.38cm][c]{\scriptsize\bfseries SupplyNode}}\\[1pt]
+  \hspace{3pt}\parbox{3.2cm}{\tiny id, name, rank\\status, location\\project\_id}\vspace{2pt}
+\end{tabular}};
+
+\node[cls, below=of node] (arc) {\begin{tabular}{@{}l@{}}
+  \colorbox{altenAzure!22}{\makebox[3.38cm][c]{\scriptsize\bfseries SupplyArc}}\\[1pt]
+  \hspace{3pt}\parbox{3.2cm}{\tiny source\_id, target\_id\\$\gamma$ declared, $\beta$ computed\\$\delta$
+  criticality, kind}\vspace{2pt}
+\end{tabular}};
+
+\node[cls, right=of node] (kpi) {\begin{tabular}{@{}l@{}}
+  \colorbox{altenAzure!22}{\makebox[3.38cm][c]{\scriptsize\bfseries KPIBundle}}\\[1pt]
+  \hspace{3pt}\parbox{3.2cm}{\tiny network, inventory, time\\cost, co2, oee, risk}\vspace{2pt}
+\end{tabular}};
+
+\node[cls, above=of kpi] (ahp) {\begin{tabular}{@{}l@{}}
+  \colorbox{altenAzure!22}{\makebox[3.38cm][c]{\scriptsize\bfseries AHPAssessment}}\\[1pt]
+  \hspace{3pt}\parbox{3.2cm}{\tiny comparisons, weights\\consistency\_ratio\\is\_consistent, ud}\vspace{2pt}
+\end{tabular}};
+
+\node[cls, below=of kpi] (ms) {\begin{tabular}{@{}l@{}}
+  \colorbox{altenAzure!22}{\makebox[3.38cm][c]{\scriptsize\bfseries Milestone}}\\[1pt]
+  \hspace{3pt}\parbox{3.2cm}{\tiny start\_ts, deadline\_ts\\progress, status}\vspace{2pt}
+\end{tabular}};
+
+\node[cls, right=of kpi] (urg) {\begin{tabular}{@{}l@{}}
+  \colorbox{altenOchrePale!75!white}{\makebox[3.38cm][c]{\scriptsize\bfseries UrgencyState}}\\[1pt]
+  \hspace{3pt}\parbox{3.2cm}{\tiny ud\_local, ur\_local\\ud, ur : propagated\\adequation,
+  false\_urgency\\hidden\_risk}\vspace{2pt}
+\end{tabular}};
+
+\node[cls, above=of urg] (evt) {\begin{tabular}{@{}l@{}}
+  \colorbox{altenAzure!22}{\makebox[3.38cm][c]{\scriptsize\bfseries EventSpec}}\\[1pt]
+  \hspace{3pt}\parbox{3.2cm}{\tiny event\_type, fields\\KpiImpact : kpi\_path,\\old, new, rule}\vspace{2pt}
+\end{tabular}};
+
+\draw[fleche] (proj) -- node[card, right] {1 \dots{} *} (node);
+\draw[fleche] (node) -- node[card, right] {1 \dots{} *} (arc);
+\draw[fleche] (node) -- node[card, above] {1 \dots{} 1} (kpi);
+\draw[fleche] (kpi)  -- node[card, above] {feeds} (urg);
+\draw[fleche] (ahp)  -- node[card, right] {yields $U_d$} (kpi);
+\draw[fleche] (ms)   -- node[card, right] {time block} (kpi);
+\draw[fleche] (evt)  -- node[card, right] {writes} (urg);
+
+\end{tikzpicture}
+\caption[SupplyScore: domain model]{The domain model. A project owns nodes, each node carries
+one indicator bundle and one urgency state, and the questionnaire, the milestones and the
+event engine are the three things that write into them.}
+\label{fig:uml}
 \end{figure}
 
-Figure~\ref{fig:archi} shows how those pieces relate. The single entry point is what makes
-the audit guarantee enforceable rather than aspirational: there is no path into the data that
-bypasses it, including from the administration interface.
+The operator's entry point is the weekly review page. Its four sections, the questionnaire,
+the week's indicators, milestone progress and any events, commit as one signed transaction,
+so no partial review ever enters a node's history.
 
-Two capabilities proved more important than anticipated. The explainability page reconstructs
-any score term by term, decomposing the declared value into one contribution per criterion
-and the computed value into one per block, so that a coordinator asking why a node scored as
-it did receives an exact answer rather than a plausible one
-(Figure~\ref{fig:explain}). That is what made the diagnosis in
-Section~\ref{sec:realisation_resultats} possible from the application rather than by hand.
-The export produces frozen data for analysis outside the tool, which the whole experimental
-analysis relies on.
+Two capabilities earned their cost. The explainability page reconstructs any score term by term
+(Figure~\ref{fig:explain}), which is what made the diagnosis in
+Section~\ref{sec:realisation_resultats} possible from the application rather than by hand. The
+export produces frozen data, which the whole experimental analysis relies on.
 
 \begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.78\linewidth]{Images/4.Operations/explainability_waterfall.png}
-    \caption{Per-node explainability: exact decomposition of both signals}
-    \label{fig:explain}
+\centering
+\begin{tikzpicture}[
+    part/.style   = {bloc, text width=3.1cm, minimum height=0.6cm,
+                     font=\scriptsize, inner sep=3pt},
+    partD/.style  = {part, fill=altenBlueBg2},
+    partR/.style  = {part, fill=altenAzure!16, draw=altenAzure},
+    somme/.style  = {blocFort, text width=3.1cm, minimum height=0.78cm,
+                     font=\scriptsize},
+    node distance = 2.2mm and 26mm]
+
+%% cote declare : quatre criteres ponderes par AHP
+\node[partD]              (d1) {operational impact};
+\node[partD, below=of d1] (d2) {time window};
+\node[partD, below=of d2] (d3) {downstream dependencies};
+\node[partD, below=of d3] (d4) {recoverability};
+
+%% cote calcule : six blocs agreges en OU probabiliste
+\node[partR, right=of d1] (r1) {time};
+\node[partR, below=of r1] (r2) {capacity};
+\node[partR, below=of r2] (r3) {performance};
+\node[partR, below=of r3] (r4) {risk};
+\node[partR, below=of r4] (r5) {cost};
+\node[partR, below=of r5] (r6) {carbon};
+
+%% les deux totaux sur une meme ligne, sous la colonne la plus longue
+\node[somme, below=5mm of r6]  (ur) {\textbf{computed} $U_r$};
+\node[somme] (ud) at (d1 |- ur) {\textbf{declared} $U_d$};
+
+\draw[fleche] (d4.south) -- (ud.north);
+\draw[fleche] (r6.south) -- (ur.north);
+
+\node[etiquette, above=2mm of d1] {AHP weight per criterion};
+\node[etiquette, above=2mm of r1] {weighted probabilistic OR};
+
+\coordinate (bas) at ($(ud.south)!0.5!(ur.south)$);
+\node[blocAlerte, below=6mm of bas, text width=8.4cm, font=\scriptsize] (ecart)
+     {\textbf{adequacy score}\\[1pt]
+      every term above is recoverable: the operator sees which criterion, or which
+      block, moved the answer};
+
+\draw[fleche] (ud.south) -- (ud.south |- ecart.north);
+\draw[fleche] (ur.south) -- (ur.south |- ecart.north);
+
+\end{tikzpicture}
+\caption[Per-node explainability: exact decomposition of both signals]{Per-node
+explainability.}
+\label{fig:explain}
 \end{figure}
 
-\subsection{The Experiment}
+\subsection{The First Campaign}
 \label{sec:realisation_experience}
 
 Building a system that computes a number establishes nothing about whether the number means
-anything. The mission therefore included an experiment designed before the system was
-finished.
+anything, so the experiment was designed before the system was finished. The campaign replays
+the 2020 to 2022 semiconductor shortage over nineteen turns across an eight-node satellite
+supply chain. Real urgency is fed from public time series of the actual crisis; declared
+urgency comes from the participants through the weekly questionnaire, and is taken at face
+value as a sincere report of what its author perceives. That hypothesis is what makes the two
+signals independent in source, which is the precondition for the gap between them to mean
+anything.
 
-The campaign replays the 2020 to 2022 semiconductor shortage over nineteen turns across an
-eight-node satellite supply chain, from a raw wafer supplier through a foundry, a
-distributor, a freight operator and an electronics manufacturer to the satellite prime. Real
-urgency is fed from public time series of the actual crisis; declared urgency comes from the
-participants through the weekly questionnaire. The two signals therefore have independent
-sources, which is the precondition for the gap between them to mean anything.
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    noeud/.style   = {bloc, text width=2.4cm, minimum height=1.0cm},
+    goulot/.style  = {noeud, fill=altenOchrePale!55!white, draw=altenOchreDark,
+                      line width=1pt},
+    inerte/.style  = {noeud, fill=white, draw=altenGreyLine,
+                      text=altenGreyLine!60!black},
+    coef/.style    = {font=\scriptsize, text=altenAzureDark, inner sep=1.5pt,
+                      fill=white, align=center},
+    node distance  = 9mm and 16mm]
 
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.94\linewidth]{Images/4.Operations/helios_network_coefficients.png}
-    \caption{The campaign network and its per-arc coefficients}
-    \label{fig:reseau}
+%% rangee amont, de gauche a droite
+\node[noeud]                     (wafer)   {SilPure\\\scriptsize wafers, Japan\\
+                                            \scriptsize tier 5};
+\node[goulot, right=of wafer]    (fonderie){NovaFab\\\scriptsize foundry,
+                                            \textbf{bottleneck}\\\scriptsize tier 4};
+\node[noeud, right=of fonderie]  (distrib) {CompoDis\\\scriptsize distribution\\
+                                            \scriptsize tier 3};
+
+%% rangee aval, de droite a gauche : la chaine se replie
+\node[noeud, below=14mm of distrib] (cartes) {Electis EMS\\\scriptsize boards\\
+                                              \scriptsize tier 2};
+\node[noeud, left=of cartes]        (avio)   {AvioSys\\\scriptsize avionics\\
+                                              \scriptsize tier 1};
+\node[noeud, left=of avio]          (client) {Orbitalys\\\scriptsize satellites,
+                                              customer\\\scriptsize tier 0};
+
+%% deux noeuds hors du chemin principal
+\node[inerte, above=9mm of fonderie] (secours) {Meridian Semi\\\scriptsize backup
+                                                 foundry\\\scriptsize tier 4};
+\node[noeud, below=9mm of cartes]    (fret)    {TransGlobal\\\scriptsize freight\\
+                                                 \scriptsize tier 3};
+
+\draw[fleche] (wafer)    -- node[coef] {$\gamma\,0.7$\\$\beta\,0.6$} (fonderie);
+\draw[fleche] (fonderie) -- node[coef] {$\gamma\,0.9$\\$\beta\,0.9$} (distrib);
+\draw[fleche] (distrib)  -- node[coef] {$\gamma\,0.8$\\$\beta\,0.8$} (cartes);
+\draw[fleche] (cartes)   -- node[coef] {$\gamma\,0.8$\\$\beta\,0.7$} (avio);
+\draw[fleche] (avio)     -- node[coef] {$\gamma\,0.9$\\$\beta\,0.8$} (client);
+\draw[fleche] (fret)     -- node[coef] {$\gamma\,0.5$\\$\beta\,0.4$} (cartes);
+\draw[flecheCoupee, draw=altenGreyLine] (secours) -|
+      node[coef, text=altenGreyLine!50!black, pos=0.28]
+      {$\gamma\,0.3$\quad$\beta\,0.3$\quad inert} (distrib);
+
+\end{tikzpicture}
+\caption[The first campaign network and its per-arc coefficients]{The first campaign network.
+$\gamma$ attenuates declared urgency as it descends toward suppliers, $\beta$ amplifies
+computed risk as it ascends toward the customer.}
+\label{fig:reseau}
 \end{figure}
 
-Figure~\ref{fig:reseau} gives the network, with the coefficient attenuating demand as it
-descends and the one amplifying risk as it ascends, and each node's tier. The foundry at the
-deepest tier is the expected bottleneck. The dashed arc into the secondary foundry is
-deliberately inert: it represents the announced alternative supplier that in the real crisis
-had no spare capacity, and modelling it as present but carrying nothing is the point.
+The foundry at the deepest tier is the expected bottleneck, and the campaign is built so the
+tool has to find it without being told (Figure~\ref{fig:reseau}).
 
 Four artefacts were frozen before any data existed: the scenario with its twelve calibrated
-events, the data pack with a hash recorded per file, the role cards, and a register of six
-hypotheses each carrying a numeric threshold. Freezing the thresholds in advance is what
-prevents a disappointing result from being rescued by moving the bar afterwards.
+events, the data pack hashed per file, the role cards, and a register of six hypotheses each
+carrying a numeric threshold. Freezing the thresholds in advance prevents a disappointing
+result from being rescued by moving the bar afterwards.
 
 The design compares two arms on the identical frozen scenario. In the control arm, eight
 isolated declarants each see only their own role card and turn briefing and declare blind. In
@@ -235,25 +444,21 @@ analysis of their node before declaring, and record whether it influenced them. 
 scenario is frozen, the forecasts are identical between arms, so any behavioural difference
 belongs to the act of displaying them.
 
-\subsection{Results}
+\subsection{Results on the First Chain}
 \label{sec:realisation_resultats}
 
-The results divide cleanly into what the system was built to do, which it does, and the
-predictive layer built on top of it, which was diagnosed, repaired and measured as improving
-without yet being good. They are reported in that order.
+The results divide in two, reported in that order and both re-examined on a second chain in
+Section~\ref{sec:chaine2}. The system does what it was built to do, and the predictive layer on
+top of it was scored, its limiting component located, repaired and re-measured.
 
 \subsubsection{The adequacy signal identifies the right nodes, and does it early}
 \label{sec:ciblage}
 
-The first result is the one the system was built for, and it is positive.
-
-A coordinator does not ask whether node $X$ will suffer an adverse event between weeks
-$t+1$ and $t+4$. They ask which of their suppliers deserves attention this week. That is a
-question about nodes, not about node-weeks, and the adequacy signal answers it. At each turn
-the eight nodes were ranked by hidden risk, the part of the gap where computed urgency
-exceeds declared urgency, and the set flagged above $0.10$ was compared with the set of nodes
-that would go on to miss a milestone at its originally committed deadline. Four of the eight
-nodes did.
+A coordinator does not ask whether node $X$ will suffer an adverse event between weeks $t+1$
+and $t+4$. They ask which supplier deserves attention this week, which is a question about
+nodes rather than node-weeks, and the adequacy signal answers it. At each turn the eight nodes
+were ranked by hidden risk, and the set flagged above $0.10$ was compared with the nodes that
+would go on to miss a milestone at its originally committed deadline. Four of the eight did.
 
 \begin{table}[htbp]
 \centering
@@ -273,117 +478,119 @@ the gap closes \\
 \end{tabularx}
 \end{table}
 
-Table~\ref{tab:ciblage} gives it. For six consecutive turns, from the opening turn to the one
-before the foundry freeze, the signal flags exactly three nodes, all three of which go on to
-miss a commitment, with no false alarm at any turn. The fourth is never flagged early, so
-recall stops at three of four. And on every one of those six turns the worst-scoring node of
-the eight is the satellite prime, which misses its delivery deadline at turn 8 and delivers
-at turn 14: the flag precedes the miss by eight turns, and it is raised while that node's own
-manager is declaring an urgency of $0.001$.
+For six consecutive turns, from the opening turn to the one before the foundry freeze, the
+signal flags exactly three nodes, all three of which go on to miss a commitment, with no false
+alarm (Table~\ref{tab:ciblage}). The fourth is never flagged early, so recall stops at three of
+four. On every one of those six turns the worst-scoring node is the satellite prime, which
+misses its deadline at turn 8 and delivers at turn 14: the flag precedes the miss by eight
+turns, and it is raised while that node's own manager declares an urgency of $0.001$.
+Figure~\ref{fig:precoce} puts the whole campaign on one axis.
 
-That last detail is the whole point of the construction rather than a happy accident. Nothing
-in the flag comes from the declaration being pessimistic; it comes from the declaration being
-optimistic while the computed state is not. A system that only aggregated indicators would
-have ranked that node by its indicators. A system that only collected declarations would have
-believed it. The gap between the two is what carries the information, which is what the
-mission set out to test.
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[x=0.62cm, y=1cm,
+    lab/.style  = {font=\scriptsize, text=altenNavy},
+    note/.style = {font=\scriptsize\itshape, text=altenAzureDark, align=center},
+    tick/.style = {font=\tiny, text=altenNavy}]
 
-The signal then degrades from turn 6 onward, and the reason is structural rather than a
-defect. Once the crisis is public every declarant raises their urgency, declared catches up
-with computed, and a signal defined as the difference between the two necessarily shrinks.
-Precision falls to $0.50$ and recall to $0.25$. This is the correct behaviour of a
-perception-gap measure and it bounds where such a measure is useful: it is an early-warning
-instrument, not a crisis-management one. Stated the other way round, the signal is at its
-sharpest exactly when a warning is still worth something.
+%% ── la bande des dix-neuf tours, coupee au gel de la fonderie ────────
+\fill[altenAzure!22] (0,0) rectangle (6,0.62);
+\fill[altenBlueBg]   (6,0) rectangle (19,0.62);
+\foreach \t in {1,...,18} \draw[draw=altenGreyLine, line width=0.3pt] (\t,0) -- (\t,0.62);
+\draw[draw=altenNavy, line width=0.7pt] (0,0) rectangle (19,0.62);
+\draw[draw=altenOchreDark, line width=1pt, dashed] (6,-0.1) -- (6,0.72);
 
-The repair of Section~\ref{sec:reparation} sharpens the same flag without changing which
-nodes it selects. On the campaign as run, the satellite prime scores $26.6$ out of $100$ at
-turn 3 against $46.0$ for the next worst node; after repair the same turn gives $2.2$ against
-$44.6$. The ordering is identical and the separation is an order of magnitude wider, which is
-what makes the flag readable on a dashboard rather than merely present in the data.
+\node[lab] at (3,0.31)    {\bfseries the gap is sharp};
+\node[lab] at (11.6,0.31) {\bfseries the gap has closed};
 
-One limit bounds all of this and is the reason Section~\ref{sec:perspectives} asks for more
-data before anything is generalised: eight nodes, four of which are positive, on one
-scenario. A precision of $1.00$ over six turns on three flagged nodes is an encouraging
-observation and not an established rate.
+\foreach \t/\x in {0/0.5, 5/5.5, 18/18.5} \node[tick] at (\x,-0.26) {T\t};
+
+%% ── les huit tours de preavis ────────────────────────────────────────
+\draw[draw=altenGreyLine, line width=0.4pt] (0.5,0.62) -- (0.5,1.85);
+\draw[draw=altenGreyLine, line width=0.4pt] (8.5,0.62) -- (8.5,1.85);
+\draw[{Stealth[length=2.2mm]}-{Stealth[length=2.2mm]}, draw=altenAzure, line width=0.9pt]
+     (0.5,1.85) -- node[lab, above, inner sep=1.5pt] {\bfseries eight turns of warning}
+     (8.5,1.85);
+
+\node[note, anchor=south] at (6,0.78) {the foundry freezes:\\the crisis becomes public};
+
+%% ── les deux evenements du noeud le plus mal note ────────────────────
+\fill[altenOchreDark] (8.5,0.31)  circle (2.3pt);
+\fill[altenOchreDark] (14.5,0.31) circle (2.3pt);
+\draw[draw=altenOchreDark, line width=0.5pt] (8.5,0.31)  -- (8.5,-0.5);
+\draw[draw=altenOchreDark, line width=0.5pt] (14.5,0.31) -- (14.5,-0.5);
+\node[note, anchor=north] at (8.5,-0.5)  {\textbf{T8:} the satellite prime\\misses its
+                                          milestone};
+\node[note, anchor=north] at (14.5,-0.5) {\textbf{T14:} it delivers,\\six turns late};
+
+%% ── ce que vaut le signal de part et d'autre du gel ──────────────────
+\node[bloc, text width=3.9cm, font=\scriptsize, anchor=north] at (3.2,-1.55)
+  {\textbf{T0 to T5}\\[1pt] three nodes flagged, all three later miss\\
+   precision $1.00$, no false alarm\\[1pt]
+   the worst-scored declares $U_d = 0.001$};
+\node[blocPale, text width=5.6cm, font=\scriptsize, anchor=north] at (12.5,-1.55)
+  {\textbf{T6 to T18}\\[1pt] every declarant raises their urgency, so a measure defined as
+   their difference shrinks\\
+   precision $\leq 0.50$, one to three false alarms};
+
+\end{tikzpicture}
+\caption[The signal's useful window, on one axis]{The whole campaign on one axis.}
+\label{fig:precoce}
+\end{figure}
+
+The flag does not come from a pessimistic declaration. It comes from an optimistic declaration
+against a computed state that is not. A system aggregating only indicators would have ranked
+that node by its indicators; a system collecting only declarations would have believed it. The
+gap between the two carries the information.
+
+The repair of Section~\ref{sec:reparation} sharpens the same flag without changing which nodes
+it selects. The satellite prime scores $26.6$ out of $100$ at turn 3 against $46.0$ for the
+next worst node; after repair the same turn gives $2.2$ against $44.6$. Identical ordering, an
+order of magnitude more separation, which is what makes the flag readable on a dashboard.
+
+One limit bounds all of it: eight nodes, four positive, one scenario. A precision of $1.00$
+over six turns on three flagged nodes is an encouraging observation, not an established
+rate.
 
 \subsubsection{The forecast layer, and the definition it is scored against}
 
-The adequacy signal ranks nodes. Turning it into a probability that a named outcome occurs
-within a named window is a further step, and that step is where the campaign found its
-defect. Scored against the outcome definition the system itself applies, meaning a missed
-milestone, an abandoned node or a critical event within four weeks, the forecast layer failed
-on both axes that matter.
+Turning that ranking into a probability attached to a named week is a further step, and
+measuring it made the rest of this section possible. Scored against the outcome definition the
+system itself applies, a missed milestone, an abandoned node or a critical event within four
+weeks, the first version of the forecast layer scored below the reference on both axes that
+matter, precisely enough to act on.
 
 Discrimination is indistinguishable from chance: the area under the ROC curve ranges from
-$0.37$ to $0.56$ across horizons and every confidence interval contains $0.5$. That statement
-carries a caveat, since the positive class holds between two and six observations, which is
-too few to conclude in either direction.
+$0.37$ to $0.56$ across horizons and every confidence interval contains $0.5$. The positive
+class holds between two and six observations, too few to conclude either way.
 
-Calibration fails much more clearly, and does not depend on that small sample. The Brier
-skill against a forecaster that simply announces the base rate is between $-3.4$ and $-6.9$,
-meaning the model is several times worse than the trivial baseline.
-Table~\ref{tab:fiabilite} localises the failure.
+Calibration is clearer and does not depend on that sample. The Brier skill against a forecaster
+announcing the base rate is between $-3.4$ and $-6.9$, several times worse than the trivial
+baseline, and Figure~\ref{fig:fiabilite} localises it.
 
-\begin{table}[htbp]
-\centering
-\caption{Reliability of the four-week forecast}
-\label{tab:fiabilite}
-\small
-\begin{tabularx}{\linewidth}{l >{\centering\arraybackslash}X >{\centering\arraybackslash}X >{\centering\arraybackslash}X >{\raggedright\arraybackslash}p{3.6cm}}
-\toprule
-\textbf{Announced band} & \textbf{$n$} & \textbf{Mean announced} & \textbf{Observed} &
-\textbf{Reading} \\
-\midrule
-$[0.0,\ 0.1)$ & 74 & 0.070 & 0.081 & Well calibrated \\
-$[0.1,\ 0.2)$ & 24 & 0.128 & 0.000 & None materialised \\
-$[0.2,\ 0.5)$ & 1  & 0.354 & 0.000 & None materialised \\
-$[0.5,\ 0.9)$ & 7  & 0.859 & 0.000 & None materialised \\
-$[0.9,\ 1.0]$ & 14 & 0.992 & 0.000 & None materialised \\
-\bottomrule
-\end{tabularx}
-\end{table}
+Where the model announces a low probability it is right: 74 forecasts averaging $0.070$ were
+followed by an adverse outcome $8.1\%$ of the time. Where it announces a high probability it is
+wrong every time: twenty-one forecasts announcing a mean of $0.948$ were followed by the
+predicted outcome zero times (Figure~\ref{fig:fiabilite}).
 
-The pattern is unambiguous, and Figure~\ref{fig:fiabilite} shows it, with each marker's area
-proportional to the number of forecasts in its band and the diagonal marking perfect
-calibration. Where the model announces a low probability it is right: 74 forecasts averaging
-$0.070$ were followed by an adverse outcome $8.1\%$ of the time. Where it announces a high
-probability it is wrong every time: twenty-one forecasts announcing a mean of $0.948$ were
-followed by the predicted outcome zero times.
-
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
-    \includegraphics[width=0.84\linewidth]{Images/armA_reliability.png}
+    \includegraphics[width=0.84\linewidth]{Images/armA_reliability.pdf}
     \caption{Reliability of the four-week forecast}
     \label{fig:fiabilite}
 \end{figure}
 
-Separating these two failures matters for what happens next, and it is the distinction Murphy
-established for exactly this purpose~\autocite{murphy1973vector}. A forecast that orders
-outcomes correctly but announces the wrong numbers is repaired by a thin post-hoc layer that
-leaves the model untouched. A forecast that does not order outcomes at all needs the model
-changed. On this campaign the evidence for the second is weak, resting on very few positive
-observations, while the evidence for the first is strong and does not depend on that sample
-at all.
+The two need different repairs, which is Murphy's distinction~\autocite{murphy1973vector}. A
+forecast that orders outcomes correctly but announces the wrong numbers is fixed by a thin
+post-hoc layer. One that does not order outcomes needs the model changed. Here the evidence for
+the second is weak and rests on few positives; the evidence for the first is strong and does
+not depend on that sample.
 
 \subsubsection{Why: one block explains all of it}
 
 The explainability layer localised the cause. Across all twenty-one confident forecasts, the
-four-week probability and the milestone-miss probability never differ by more than $0.020$:
-the confident tail is the milestone channel and nothing else. Set against the registry, ten
-of the eighteen campaign milestones completed, eight remained active and only one was still
-open past a deadline that had fallen inside the campaign.
-
-That registry reading needs one qualification, because it is more forgiving than it looks.
-The registry holds each milestone's \emph{current} deadline, and a replanning rewrites it, so
-a milestone re-dated and then delivered counts as completed. Scored instead against the
-deadline each node originally committed to, six of the eleven milestones whose original
-deadline fell inside the campaign were missed, five of them by a delivery that arrived one to
-six turns late. Under that stricter reading five of the twenty-one confident forecasts were
-followed by a missed original commitment within four weeks, rather than none. The confident
-tail is still wrong far more often than it is right, and the diagnosis below is unaffected,
-but the difference between zero of twenty-one and five of twenty-one comes entirely from
-which deadline the truth is read against. Section~\ref{sec:cible} returns to that.
+four-week probability and the milestone-miss probability never differ by more than $0.020$,
+so the confident tail is the milestone channel and nothing else.
 
 Reading the time block directly at the turn the scenario's critical event lands confirms the
 diagnosis from the other side: the block reads numerically zero at six of the eight nodes in
@@ -394,15 +601,14 @@ evidence is a count: across the whole campaign, eight nodes and forty-one indica
 each, the accumulated-delay field the block would need was written a non-zero value exactly
 zero times. No path connects a shock to the quantity the block reads, so the block cannot
 respond to a disruption. It is blind by construction, and because it drives the entire
-confident tail, so is the forecast.
+confident tail, so is the forecast. Figure~\ref{fig:chemin} draws the missing path and the one
+that replaced it.
 
 This is a defect in the model rather than a property of the scenario. Any deployment would
 inherit it, and the repair is a change to the event mapping rather than to the mathematics.
 It is the single most actionable finding of the mission.
 
 \subsubsection{What happens when the forecast is shown to the operator}
-
-The treatment arm produced a second result, and one that was not sought.
 
 For the first four turns the forecast is hidden and all eight declarants record no influence.
 At the turn it first becomes visible, all eight record one, and the direction is entirely
@@ -411,24 +617,23 @@ assessment confirmed. Not one revised upward. The first upward revision anywhere
 following turn, and the scenario's single critical event lands two turns after the moment
 every declarant was either reassured or confirmed.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
-    \includegraphics[width=0.90\linewidth]{Images/armB_influence.png}
+    \includegraphics[width=0.90\linewidth]{Images/armB_influence.pdf}
     \caption{Influence of the displayed forecast, by turn}
     \label{fig:armB}
 \end{figure}
 
-Figure~\ref{fig:armB} shows the distribution turn by turn. Over the full campaign the balance
-is close to even, 15 upward against 16 downward, so the one-sided effect belongs to first
-contact rather than being a permanent bias.
+Over the full campaign the balance is close to even, 15 upward against 16 downward
+(Figure~\ref{fig:armB}), so the one-sided effect belongs to first contact rather than being a
+permanent bias.
 
-Two things make this worse than a curiosity. The forecast being displayed comes from the same
-layer whose confident predictions never materialise, and whose time block is blind to the
-very shock about to arrive. And it is displayed as a numeric probability with a confidence
-interval, a format the automation-bias literature identifies as increasing
-reliance~\autocite{goddard2012automation,bansal2021whole}. The system was presenting an
-unfounded reassurance in its most persuasive available form, immediately before the event it
-had failed to anticipate.
+Two things sharpen it. The forecast displayed comes from the same layer whose confident
+predictions never materialise and whose time block is blind to the shock about to arrive. And
+it appears as a numeric probability with a confidence interval, a format the automation-bias
+literature identifies as increasing
+reliance~\autocite{goddard2012automation,bansal2021whole}. The system presented an unfounded
+reassurance in its most persuasive available form, two turns before the event.
 
 One qualification cuts against the strongest reading: the recorded field captures the effect
 on the declared level, not on the action taken, and the free-text notes show declarants still
@@ -443,7 +648,7 @@ hundred and twenty forecasts were scored against three definitions of an adverse
 and the three disagree by more than any modelling choice made during the mission.
 Table~\ref{tab:cibles} gives them at four weeks.
 
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
 \caption{The same forecasts under three definitions of truth, four-week horizon}
 \label{tab:cibles}
@@ -460,100 +665,155 @@ Original commitment, censored points excluded & 90 & 0.289 & 0.654 & $-0.55$ \\
 \end{tabularx}
 \end{table}
 
-The first is the definition the running system applies, and it is the one the negative result
-above is stated against. The second counts any recorded event regardless of gravity and
-ignores milestones entirely; it is the easy target, and choosing it would report a system
-five times better calibrated without a line of code being touched. The third keeps the
-production definition of an adverse outcome but reads a missed milestone against the deadline
-the node originally committed to rather than against whatever deadline the milestone
-currently carries, and drops the forecasts whose observation window runs past the end of the
-campaign.
+What separates them is which deadline they read, and Figure~\ref{fig:verite} follows one
+milestone through all three. The first is the definition the running system applies, and it is
+the one the measurement above is stated against. The second counts any recorded event
+regardless of gravity and ignores milestones entirely; it is the easy target, and choosing it
+would report a system five times better calibrated without a line of code being touched. The
+third keeps the production definition of an adverse outcome but reads a missed milestone
+against the deadline the node originally committed to, and drops the forecasts whose
+observation window runs past the end of the campaign.
 
-The model did not change between the three rows. Only the definition of truth did, and it
-moves the Brier skill by a factor of six and the area under the ROC curve from indistinguishable
-from chance to $0.654$. The third row is the one the rest of this section uses, for a reason
-that is a matter of what a forecast is for rather than of statistics: a replanning is itself
-the admission of a slip, so a truth that lets a re-dating erase the miss scores the forecast
-against an outcome the forecast was supposed to warn about. A calibration figure quoted
-without its outcome definition therefore carries close to no information, which is a
-methodological result worth more to the programme than the score itself.
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[x=1cm, y=1cm,
+    lab/.style = {font=\scriptsize, text=altenNavy, align=center},
+    row/.style = {bloc, text width=11.6cm, font=\scriptsize, align=left,
+                  minimum height=0.72cm, inner xsep=6pt}]
+
+%% ── la vie d'un seul jalon ───────────────────────────────────────────
+\draw[draw=altenNavy, line width=0.8pt, -{Stealth[length=2.6mm]}] (0.2,0) -- (11.2,0);
+\fill[altenNavy]       (2.0,0) circle (2.2pt);
+\fill[altenAzure]      (6.0,0) circle (2.2pt);
+\fill[altenOchreDark]  (9.2,0) circle (2.2pt);
+
+\node[lab, anchor=south] at (2.0,0.16)
+     {$\mathbf{D_0}$\\the deadline the node\\originally committed to};
+\node[lab, anchor=south] at (6.0,0.16) {$\mathbf{D_2}$\\delivered, one to\\six turns late};
+\node[lab, anchor=south] at (9.2,0.16)
+     {$\mathbf{D_1}$\\the revised deadline\\the registry now carries};
+
+\node[lab, anchor=north, font=\scriptsize\itshape, text=altenAzureDark] at (5.7,-0.2)
+     {one milestone, three ways of scoring it};
+
+%% ── les trois definitions, et ce que chacune lit ────────────────────
+\node[row, anchor=north west] (r1) at (0.2,-0.95)
+  {\textbf{Production, current deadline} reads $D_1$: the delivery precedes it, no miss};
+\node[row, anchor=north west, fill=white, draw=altenGreyLine] (r2) at (0.2,-1.83)
+  {\textbf{Naive, any recorded event} reads no deadline: any event counts, whatever its
+   gravity};
+\node[row, anchor=north west, fill=altenAzure!16, draw=altenAzure, line width=1pt] (r3)
+  at (0.2,-2.71)
+  {\textbf{Original commitment} reads $D_0$: the delivery follows it, the milestone is
+   missed};
+
+\node[blocAlerte, text width=11.6cm, font=\scriptsize, anchor=north west] at (0.2,-3.68)
+  {The model did not change between the three rows. Only the definition of truth did, and that
+   alone moves the Brier skill by a factor of six.};
+
+\end{tikzpicture}
+\caption[One milestone under three definitions of truth]{The same milestone scored three
+ways.}
+\label{fig:verite}
+\end{figure}
+
+The third row is the one the rest of this section uses, for a reason that is a matter of what
+a forecast is for rather than of statistics: a replanning is itself the admission of a slip,
+so a truth that lets a re-dating erase the miss scores the forecast against an outcome the
+forecast was supposed to warn about. A calibration figure quoted without its outcome
+definition therefore carries close to no information, which is a methodological result worth
+more to the programme than the score itself.
 
 \subsection{The Repair, and What It Measures}
 \label{sec:reparation}
 
-The diagnosis above named one component and specified a repair. That repair was then carried
-out and re-measured on the identical frozen campaign, which is what this section reports. The
-declarations are unchanged, the scenario is unchanged, and the same one hundred and twenty
-forecasts are recomputed by the modified model, so any difference belongs to the model alone.
+The diagnosis named one component and specified a repair, carried out and re-measured on the
+identical frozen campaign. Declarations and scenario are unchanged and the same one hundred
+and twenty forecasts are recomputed, so any difference belongs to the model.
 
-\subsubsection{The recommended repair was the wrong one}
+\subsubsection{Measurement corrected the recommended repair}
 
-The obvious reading of the diagnosis is that the calibrated events should write a lead-time
-impact alongside their existing effects, and that is what the first version did. Measuring it
-showed it does not work, for a reason worth stating because it generalises. A completion date
-estimated as a full production cycle starting now scales the lead time by the fraction of
-work remaining, so anything routed into the lead time is scaled by that fraction too, and a
-shock therefore evaporates precisely on the milestones closest to their deadline, which are
-the ones that matter. On the node carrying the scenario's accident, the four-week probability
-fell from $0.846$ to $0.000$ on a milestone that was in fact missed. Lost production time is
-additive, not proportional: a four-week freeze costs four weeks whether the order is a tenth
-done or nine tenths done.
+The obvious reading is that the calibrated events should write a lead-time impact, and that is
+what the first version did. It does not work, for a reason that generalises. A completion date
+estimated as a full production cycle starting now scales the lead time by the fraction of work
+remaining, so anything routed into the lead time is scaled with it, and a shock evaporates
+precisely on the milestones closest to their deadline. On the node carrying the scenario's
+accident the four-week probability fell from $0.846$ to $0.000$ on a milestone that was in fact
+missed. Lost production time is additive: a four-week freeze costs four weeks whether the order
+is a tenth done or nine tenths done.
 
-The completion model was rewritten accordingly, identically in the three independent
-estimators the system carries for the same quantity, the analytic time block, the Monte Carlo
-forecast rollout and the PERT lead-time simulator:
+The completion model was rewritten accordingly, identically in the three independent estimators
+the system carries for the same quantity, the analytic time block, the Monte Carlo rollout and
+the PERT simulator:
 \begin{equation}
     \text{completion} \;=\; t \;+\; (1 - \text{progress}) \times \text{lead time}
-    \;+\; \text{lost time},
+    \;+\; \text{lost time}.
     \label{eq:achevement}
 \end{equation}
-a proportional cycle term and an additive lost-time term. Five families of capacity-halting
-event, machine failure, accident, strike weighted by the share of the workforce involved,
-material shortage weighted by criticality and cyber incident, now accumulate their duration
-into the node's lost-time indicator. Loss of storage capacity deliberately does not, since it
-removes space rather than production hours.
+Five families of capacity-halting event now accumulate their duration into the node's
+lost-time indicator: machine failure, accident, strike weighted by the share of the workforce
+involved, material shortage weighted by criticality, and cyber incident. Loss of storage
+capacity deliberately does not, since it removes space rather than production hours. On the
+node carrying the scenario's accident, the first shock alone now writes $154.7$ engine hours.
 
-The mechanical effect is the one the diagnosis asked for. Where the accumulated-delay field
-had been written a non-zero value zero times across the whole campaign, the node carrying the
-accident now accumulates $154.7$ engine hours at its first shock and $371.2$ over the
-campaign, carried in twenty-seven of its forty-one snapshots.
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    b/.style  = {bloc, text width=2.45cm, minimum height=1.1cm, font=\scriptsize},
+    bA/.style = {b, fill=altenOchrePale!55!white, draw=altenOchreDark, line width=1pt},
+    bF/.style = {blocFort, text width=2.45cm, minimum height=1.1cm, font=\scriptsize},
+    node distance = 8mm]
 
-\subsubsection{Two further defects the first measurement had hidden}
+%% ── avant : le choc n'atteint jamais l'axe du temps ──────────────────
+\node[b]                    (e1) {a calibrated event lands};
+\node[bA, right=16mm of e1] (d1) {accumulated delay};
+\node[b, right=of d1]       (t1) {time block reads $0$};
+\node[bA, right=of t1]      (f1) {forecast: confident, and wrong};
 
-Repairing the first defect exposed a second. With the time block finally responsive, the
-milestone probability turned out to be almost binary: on the frozen replay it returned
-exactly zero or exactly one in eighty-five percent of cases, leaving fourteen forecasts of
-one hundred and twenty anywhere in between. That is a switch, not a probability, and two of
-the declarants had said so in their free-text notes before it was measured. The cause is that
-the rollout drew the lead time at random but took the declared progress as exact. Declared
-progress is the least reliable input the system receives, and it is precisely the kind of
-quantity the whole mission exists to doubt: the tool measures the gap between declared and
-computed urgency because self-reported figures run optimistic, and then its own forecast was
-treating one of them as certain. Progress is now drawn per replicate, with a standard
-deviation widened node by node in proportion to that node's own measured hidden risk, so the
-system uses its own adequacy measurement to calibrate its own forecast.
+\draw[flecheCoupee] (e1) -- node[etiquette, above, fill=none] {never written} (d1);
+\draw[fleche] (d1) -- (t1);
+\draw[fleche] (t1) -- (f1);
 
-The third defect was in the data rather than the code, and it is the one that would have
-invalidated any calibration attempted before it was found. Indicator coverage on the campaign
-database was $25.6\%$: twenty-four of the forty-two indicators were empty on all eight nodes,
-the carbon and cost blocks were inert everywhere, and only three of the six urgency blocks
-contributed anything at all. The lead time itself, the central quantity of the milestone
-channel, was present on five nodes out of eight, and the other three received a risk floor of
-zero through the documented fallback for a missing lead time, which is an absence of data
-presenting itself as a reassuring prediction. Filling the indicators from public figures of
-the real shortage raised coverage to $49.1\%$ and made all six blocks active. One further bug
-became visible only after that: a per-node recovery capability, a twenty-six-week aerospace
-requalification time, was being read as production time already lost, which pinned that
-node's time block at $1.0$ from the first turn. An empty database hides the errors in the
-model that consumes it.
+\node[etiquette, fill=none, anchor=south west]
+     at ($(e1.north west)+(0,2.5mm)$) {\textbf{before}};
+\node[etiquette, below=1.5mm of e1, fill=none, align=center]
+     {it writes to capacity, cost\\and failure probability only};
+
+%% ── apres : le choc accumule des heures perdues ─────────────────────
+\node[bF, below=22mm of e1] (e2) {a capacity-halting event lands};
+\node[bF, right=of e2]      (l2) {lost-time indicator};
+\node[bF, right=of l2]      (c2) {completion date, Eq.~\ref{eq:achevement}};
+\node[bF, right=of c2]      (t2) {time block responds};
+
+\draw[fleche] (e2) -- (l2);
+\draw[fleche] (l2) -- (c2);
+\draw[fleche] (c2) -- (t2);
+
+\node[etiquette, fill=none, anchor=south west]
+     at ($(e2.north west)+(0,2.5mm)$) {\textbf{after the repair}};
+
+\end{tikzpicture}
+\caption[Before and after repair]{Before and after repair.}
+\label{fig:chemin}
+\end{figure}
+
+Repairing that exposed a second improvement. With the time block responsive, the milestone
+probability turned out almost binary: exactly zero or exactly one in 85\% of
+cases, and two declarants had said so in their notes before it was measured. The rollout drew
+the lead time at random but took declared progress as exact, when it is a declared quantity
+like any other and should carry its own uncertainty.
+Progress is now drawn per replicate, with a standard deviation widened node by node in
+proportion to that node's own measured hidden risk, so the system uses its adequacy measurement
+to calibrate its own forecast.
+
 
 \subsubsection{What the re-measurement gives}
 
 Table~\ref{tab:reparation} scores the recomputed forecasts against the original-commitment
-definition of Section~\ref{sec:cible}, at all four horizons, on the same censored samples of
-112, 104, 96 and 90 observations.
+definition of Section~\ref{sec:cible}, on the same censored samples of 112, 104, 96 and 90
+observations.
 
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
 \caption{The frozen campaign rescored after repair}
 \label{tab:reparation}
@@ -573,74 +833,393 @@ before & structure & + uncertainty \\
 \end{tabularx}
 \end{table}
 
-The structural repair improves both axes at every horizon, which is the clean result: the
-calibration deficit is roughly halved and the discrimination rises, and neither had to be
-traded for the other. The progress-uncertainty term is a trade rather than a gain. It
-improves calibration further at two weeks and beyond, worsens it slightly at one week, and
-lowers the area under the ROC curve; that last movement is not interpretable, since with
-twenty-six positive observations the ninety-five percent interval on the four-week figure
-runs from $0.21$ to $0.87$ and contains every value in its row. The term was therefore kept
-on the calibration evidence and on the argument that a declared quantity should not enter a
-probabilistic forecast as a certainty, not on the discrimination figure.
+The structural repair improves both axes at every horizon: the calibration deficit is roughly
+halved and discrimination rises, with neither traded for the other. The progress-uncertainty
+term is a trade, improving calibration from two weeks onward and lowering the AUC; that last
+movement is not interpretable, since with twenty-six positives the ninety-five percent interval
+on the four-week figure runs from $0.21$ to $0.87$. It was kept on the argument that a declared
+quantity should not enter a probabilistic forecast as a certainty.
 
-Three things should be said plainly against this. The Brier skill is still negative at every
-horizon, so the forecast is still worse calibrated than a forecaster that announces the base
-rate and stops. The milestone probability is still binary in seventy-two percent of cases,
-down from eighty-five, so the underlying over-confidence is reduced rather than removed. And
-a post-hoc calibration layer was trained, measured, and deliberately not connected: on the
-synthetic factory it improves the Brier skill by thirty-one percent, but on the campaign it
-improves calibration while dropping the four-week area under the ROC curve from $0.72$ to
-$0.58$, because it was trained on a target defined as an event striking the node at exactly
-one week while the product displays a missed milestone or an event cumulated over four. That
-is the trap of Section~\ref{sec:cible} met a second time from the other side: a layer
-calibrated against the wrong target degrades a system that works. Connecting it requires the
-training label to be rebuilt on the product's target, which requires the synthetic factory's
-snapshots to carry milestone truth, which they do not.
+Two things stand against it. The Brier skill is still negative at every horizon, and the
+milestone probability is still binary in 72\% of cases, down from 85\%.
 
-\subsubsection{A third arm, and the honest reading of it}
 
-The repaired system was then run through a full nineteen-turn campaign in closed loop, in
-which the same eight declarants no longer only declared but also chose actions from a fixed
-catalogue, applied to the chain by the system and journalled: promote a backup arc, replan a
-milestone, expedite a shipment, raise capacity, revise a declaration, or do nothing. One
-hundred and fifty-two declarations were recorded with no unresolved consistency failure.
+\paragraph{A third arm, in closed loop.}
+The repaired system was then run through a full nineteen-turn campaign in which the same eight
+declarants also chose actions from a fixed catalogue, applied to the chain and journalled: 152
+declarations, no unresolved consistency failure. The headline figure flatters the tool and
+should not be used. No milestone was left unfinished in the closed loop against six missed in
+the frozen scenario, which sounds like six saved; read against the original commitments, five
+of eleven were met on their original date in each run. The loop changed which milestone was
+met, not how many, and with eleven milestones neither benefit nor cost is established.
 
-The headline figure flatters the tool and should not be used. Six of eleven milestones were
-missed in the frozen scenario and none was left unfinished in the closed loop, which sounds
-like six saved. Read against the original commitments it is not: five of eleven milestones
-were met on their original date in the frozen run, and five of eleven in the closed loop. The
-loop changed which milestone was met, not how many. One was genuinely saved, an electronics
-series delivered on its original date that had slipped in the frozen truth. Four late
-deliveries became replannings announced in advance instead of slips discovered at the
-deadline, which is worth something to a customer without being a save. And one milestone was
-replanned that would have been met, which is the measurable cost of over-reaction. With
-eleven milestones neither the benefit nor the cost is established; they are facts of one
-campaign, not results.
+That run also repaired the criticality ranking, which knocks out each node in turn and measures
+the damage at the final customer, and which collapses when many nodes saturate at once: every
+delta clips to zero, in exactly the crisis where it would be worth reading, on nine of the
+nineteen turns. A second sort key in log-survival, $\ell(p) = -\ln(1-p)$, on a regularised twin
+of the same propagation, orders identically outside saturation and survives the clip inside it.
+Turns on which the deep suppliers can be ordered at all rise from 10 to 17 of 19.
 
-One further repair belongs here, because it touches the other half of the network layer.
-The criticality ranking, which sweeps the network by knocking out each node in turn and
-measuring the damage at the final customer, collapses when many nodes saturate at once: every
-delta clips to zero and the ranking says nothing, in exactly the crisis where it would be
-worth reading. Nine of the nineteen campaign turns were in that state. The ranking now
-carries a second sort key computed in log-survival, $\ell(p) = -\ln(1-p)$, on a regularised
-twin of the same propagation. Because $\ell$ is strictly increasing, the two keys order
-identically outside saturation, so nothing changes where the index already worked, and inside
-saturation the clip that flattens the first does not flatten the second. Measured on the same
-run, the number of turns on which the deep suppliers can be ordered at all rises from 10 to
-17 of 19, and the expected bottleneck leads on 16 of those 17.
+Two behavioural observations carry. The turn-four disarming reproduced exactly, eight
+declarants of eight. And where the first campaign's foundry manager wrote that the tool was
+holding a low position through a widely reported crisis and took no action, the repaired run
+moved that node's four-week probability from $0.088$ to $0.214$ and the declarant replanned the
+milestone. The chain from a scripted shock to a displayed number to an action taken now
+closes.
 
-Two behavioural observations from that run do carry. The turn-four disarming of the first
-campaign reproduced exactly, eight declarants of eight. And the repair is visible in a
-declarant's own words at the turn the crisis event lands: where the first campaign's foundry
-manager wrote that the tool was holding a low position through a widely reported crisis and
-took no action, the repaired run moved the same node's four-week probability from $0.088$ to
-$0.214$ and the declarant replanned the milestone. The chain from a scripted shock to a
-displayed number to an action taken now closes, which it demonstrably did not before.
+\subsection{A Second Chain, and the Domain It Establishes}
+\label{sec:chaine2}
+
+A result measured on one scenario stays a property of that scenario until it is tested
+somewhere else. The last phase of the mission therefore built a second supply chain, chosen so
+that every design decision differs from the first, and ran the whole tool through it again.
+What came back establishes where the measurement applies.
+
+\subsubsection{What was changed, and why each change is a real test}
+
+The second chain, AIRB, is an airframer's supply base: fifteen nodes over five tiers, from
+titanium and composite suppliers through structural, hydraulic and avionics subcontractors up
+to the final assembly line. Three properties separate it from the semiconductor campaign, and
+each removes a support the first result might have been resting on, so that whatever survives
+is a property of the tool.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    ligne/.style = {text width=5.3cm, minimum height=1.25cm},
+    node distance = 4mm and 8mm]
+
+\node[bloc, ligne]                       (a1) {8 nodes, 3 tiers\\[1pt]
+                                               \scriptsize one product line};
+\node[bloc, ligne, below=of a1]           (a2) {Degradation is \emph{scripted}\\[1pt]
+                                               \scriptsize 12 calibrated exogenous events};
+\node[bloc, ligne, below=of a2]           (a3) {Milestone truth is \emph{written}\\[1pt]
+                                               \scriptsize the scenario states who misses};
+
+\node[blocFort, ligne, right=of a1]       (b1) {15 nodes, 5 tiers\\[1pt]
+                                               \scriptsize five parallel work packages};
+\node[blocFort, ligne, right=of a2]       (b2) {Degradation is \emph{endogenous}\\[1pt]
+                                               \scriptsize no event at all; three suppliers
+                                               drift from within};
+\node[blocFort, ligne, right=of a3]       (b3) {Milestone truth is \emph{derived}\\[1pt]
+                                               \scriptsize progress computed from the
+                                               indicator trajectory};
+
+\node[titreCol, above=4mm of a1] {Chain 1: semiconductors};
+\node[titreCol, above=4mm of b1] {Chain 2: airframer};
+
+\foreach \g/\d in {a1/b1, a2/b2, a3/b3} \draw[flecheFine] (\g) -- (\d);
+
+\coordinate (mi) at ($(a3.south)!0.5!(b3.south)$);
+\node[blocAlerte, text width=11.4cm, below=7mm of mi, font=\small] (t)
+  {Each change removes a support the first result could have rested on:
+   scale, an exogenous trigger, and an author who knew the answer in advance};
+
+\draw[fleche] (a3.south) -- (a3.south |- t.north);
+\draw[fleche] (b3.south) -- (b3.south |- t.north);
+
+\end{tikzpicture}
+\caption[The two chains and what the second one removes]{The two campaigns. The second chain
+was specified to differ on every axis that mattered, so that it would test the first result
+rather than reproduce it.}
+\label{fig:deuxchaines}
+\end{figure}
+
+Figure~\ref{fig:deuxchaines} sets the two side by side. The scale change is the mildest of the
+three. The second is sharper: AIRB carries no exogenous event whatsoever, so a supplier
+degrades only because its own indicators drift, and anything that was implicitly reacting to a
+scripted shock has nothing left to react to. The third is sharper still. Milestone truth on
+AIRB is computed from the indicators rather than written by the scenario author, through a
+health term that converts each week's lead time, equipment effectiveness and loss into a
+fraction of progress, accumulated until it reaches one:
+\begin{equation}
+    \mathrm{progress}_t \;=\; \min\!\left(\mathrm{progress}_{t-1}
+      + \frac{\mathrm{health}_t}{d - s},\; 1\right),
+    \label{eq:verite_derivee}
+\end{equation}
+where $s$ and $d$ are the milestone's start and due turns. Whether a milestone is missed is
+therefore a consequence of the data rather than a decision, which removes the author from the
+answer. Twenty-two milestones are observable on the chain and five are missed, spread over
+three suppliers.
+
+\subsubsection{Where the signal applies, and where it does not}
+\label{sec:airb_ecart}
+
+SupplyScore ran nineteen turns with fifteen isolated declarants, producing 285
+declarations. The adequacy signal, which on the first chain flagged three future failures
+with no false alarm, does not select them here, and the reason is the most transferable
+result of the mission.
+
+\begin{table}[htbp]
+\centering
+\caption{Which ranking finds the three failing suppliers, second chain}
+\label{tab:airb_classement}
+\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{3.4cm} >{\centering\arraybackslash}X >{\centering\arraybackslash}X >{\raggedright\arraybackslash}p{5.4cm}}
+\toprule
+\textbf{Ranking} & \textbf{Precision@3} & \textbf{Turns} & \textbf{Reading} \\
+\midrule
+Adequacy score & 0.00 & 19 & Never selects a failing supplier \\
+Hidden risk $[U_r - U_d]^+$ & 0.00 & 19 & Never selects a failing supplier \\
+Forecast probability & 0.56 & 15 & Selects nearly three times the base rate \\
+\midrule
+Base rate & 0.20 & 19 & 3 failing suppliers of 15 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The reason is visible in the first turn's declarations and is worth more than the result it
+explains. Table~\ref{tab:airb_declarations} gives the four highest and the three lowest declared
+urgencies at turn~0.
+
+\begin{table}[htbp]
+\centering
+\caption{Declared urgency at the opening turn, second chain}
+\label{tab:airb_declarations}
+\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{3.2cm} >{\centering\arraybackslash}X >{\centering\arraybackslash}X >{\centering\arraybackslash}X >{\raggedright\arraybackslash}p{3.1cm}}
+\toprule
+\textbf{Node} & \textbf{Declared} & \textbf{Computed} & \textbf{Hidden risk} &
+\textbf{Outcome} \\
+\midrule
+Titanium supplier   & 0.982 & 0.655 & 0.000 & \textit{misses} \\
+Composite supplier  & 0.941 & 0.838 & 0.000 & \textit{misses} \\
+Machining           & 0.914 & 0.811 & 0.000 & holds \\
+Harness maker       & 0.876 & 0.542 & 0.000 & \textit{misses} \\
+\midrule
+Structures          & 0.535 & 0.990 & 0.456 & holds \\
+Systems integration & 0.496 & 0.952 & 0.457 & holds \\
+Final assembly      & 0.400 & 1.000 & 0.600 & holds \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The three suppliers that go on to miss declare the first, second and fourth highest urgencies
+in the chain, from the opening turn, before anything has visibly gone wrong. A quantity
+defined as the shortfall of declared against computed cannot open on a node whose declaration
+is already near its ceiling: their hidden risk is exactly zero for all nineteen turns, while
+the largest value the measure reaches anywhere on the campaign is $0.812$, on nodes that hold.
+
+What makes this diagnostic rather than merely negative is the free text submitted alongside
+those numbers. In the same forms, the three suppliers write that they intend to delay
+informing their customer until they have a recovery plan to present with the bad news. They
+minimise in action and maximise in measurement, and the two are not in conflict: a supplier
+who has understood its own situation perfectly well, and is managing the disclosure of it,
+declares high and acts late.
+
+\begin{definitionBox}
+\noindent\textbf{What the tool can see, and what it cannot.} The adequacy gap is a distance
+between two numbers: what a node's state computes to, and what its manager declares. That
+distance only opens on a declarant who \emph{gets their own state wrong}. It stays shut on a
+declarant who reads their state correctly, declares a number that matches it, and manages
+\emph{when} the customer hears the bad news. There is no distance left to measure.
+
+\medskip
+
+\noindent Two different problems have been separated here. \emph{Misperception} is a
+measurement problem, and a questionnaire reaches it. \emph{Non-disclosure} is a behavioural
+one, and no instrument that asks the supplier can reach it, because the supplier's answer is
+precisely the thing being managed.
+\end{definitionBox}
+
+Figure~\ref{fig:frontiere} sets one declarant of each kind side by side, with the figures each
+campaign recorded.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    cel/.style  = {bloc, text width=5.0cm, minimum height=0.7cm, font=\scriptsize},
+    tit/.style  = {cel, fill=white, draw=none},
+    celA/.style = {cel, fill=altenAzure!16, draw=altenAzure, line width=1pt},
+    celB/.style = {cel, fill=altenOchrePale!55!white, draw=altenOchreDark, line width=1pt},
+    node distance = 2mm and 9mm]
+
+\node[tit]              (tA) {\textbf{The declarant who misjudges}\\[1pt]
+                              \scriptsize satellite prime, first chain};
+\node[tit, right=of tA] (tB) {\textbf{The declarant who manages disclosure}\\[1pt]
+                              \scriptsize titanium supplier, second chain};
+
+\node[cel, below=of tA] (a1) {its state computes near the ceiling of the scale};
+\node[cel, below=of tB] (b1) {its state computes to $U_r = 0.655$};
+
+\node[cel, below=of a1] (a2) {its manager declares $U_d = 0.001$};
+\node[cel, below=of b1] (b2) {its manager declares $U_d = 0.982$};
+
+\node[celA, below=of a2] (a3) {\textbf{the gap opens wide}\\[1pt]
+                               flagged eight turns before it misses};
+\node[celB, below=of b2] (b3) {\textbf{the gap is exactly zero}\\[1pt]
+                               hidden risk is $[U_r - U_d]^+$, and the declaration is the
+                               higher of the two, so it clips to $0$ on all nineteen turns};
+
+\node[cel, below=of a3] (a4) {a \emph{perception} problem\\[1pt]
+                              \scriptsize the declarant does not know how bad it is};
+\node[cel, below=of b3] (b4) {a \emph{disclosure} problem\\[1pt]
+                              \scriptsize the declarant knows, and delays telling the
+                              customer};
+
+\coordinate (mid) at ($(a4.south)!0.5!(b4.south)$);
+\node[blocAlerte, below=6mm of mid, text width=10.9cm, font=\scriptsize]
+  {Both suppliers go on to miss their commitment. The tool finds the left one and misses the
+   right one, and the reason is structural rather than accidental: a declarant who states the
+   right number leaves no distance to measure, whatever they then do about it.};
+
+\end{tikzpicture}
+\caption[The boundary between two different declarants]{The boundary between two different
+declarants.}
+\label{fig:frontiere}
+\end{figure}
+
+That distinction was not in the specification and was not in the state of the art, and it
+would not have appeared on a chain where the failing nodes were also the under-declaring ones.
+It tells a future user of SupplyScore which of their two problems it is for, which is the
+question they will actually need answered before deploying it.
+
+\subsubsection{Displaying the forecast, at five times the scale}
+\label{sec:airb_affichage}
+
+The second chain was then replayed with the forecast displayed, on the same indicator pack and
+the same derived truth, so that display is the only difference between the two runs.
+
+The first result is negative and simplifies the method for everything that follows. The
+forecast scores identically in both runs: a Brier skill of $-1.601$ against $-1.592$ at one
+week, an area under the ROC curve of $0.826$ in both, and an unchanged node ranking. Displaying
+a forecast does not corrupt it, because the forecast is computed from indicators the
+declaration channel never touches, so a treatment arm can be scored as a control arm. What the
+display changes is the declaration, and at fifteen declarants the pattern is clearer than at
+eight.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.96\linewidth]{Images/display_effect.png}
+    \caption[What displaying the forecast changes]{Second chain, run twice on one indicator
+    pack. Left: what declarants report the forecast did to their judgement, by turn. Centre:
+    the forecast scores identically whether or not it is shown, so the two curves overlap.
+    Right: how far the four-week probability moves between consecutive turns on an unchanged
+    node, which is what declarants cite when they stop reading it.}
+    \label{fig:airb_influence}
+\end{figure}
+
+One reading is the one an engineer should act on. Reported influence falls from thirteen
+declarants of fifteen at first exposure to three at the final turn, and the declarants give a
+measurable reason: between consecutive turns, on the same node with the terrain unchanged, the
+four-week probability moves by more than $0.20$ on roughly one node in ten, with a largest
+single move of $0.93$. An advisory number that jumps like that teaches its reader to stop
+looking, and disengagement is the rational response rather than negligence.
+
+\subsubsection{Does the forecast layer earn its complexity?}
+\label{sec:temoin}
+
+One question remained, and it is the one a reviewer asks last and an engineer should ask
+first. The forecast layer holds $0.56$ precision where the adequacy gap holds $0.00$, and it
+does so by running five hundred Monte Carlo trajectories per node per turn. Is that
+machinery doing the work, or is something much cheaper doing it? Reading the simulation loop
+gives the first answer, and Figure~\ref{fig:disconnexion} draws it.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=5mm]
+
+\node[bloc, text width=2.5cm] (blocs) {six urgency\\blocks};
+\node[bloc, right=of blocs, text width=2.2cm] (ur) {$U_{r,\text{local}}$};
+\node[bloc, right=of ur, text width=2.2cm] (ar) {AR(1) state};
+\node[bloc, right=of ar, text width=2.7cm] (impact) {client-impact\\channel};
+
+\node[bloc, text width=2.5cm, below=13mm of blocs] (lead) {lead time\\distribution};
+\node[bloc, right=of lead, text width=2.2cm] (compl) {completion\\date};
+\node[bloc, right=of compl, text width=2.2cm] (jalon) {milestone\\term};
+\node[blocFort, right=of jalon, text width=2.7cm] (issue)
+  {\textbf{the quantity\\that is scored}};
+
+\draw[fleche] (blocs) -- (ur);
+\draw[fleche] (ur) -- (ar);
+\draw[fleche] (ar) -- (impact);
+\draw[fleche] (lead) -- (compl);
+\draw[fleche] (compl) -- (jalon);
+\draw[fleche] (jalon) -- (issue);
+
+\draw[flecheCoupee] (ar.south) -- node[etiquette, pos=0.55] {no path exists} (jalon.north);
+\node[etiquette, below=0.5mm of impact] {displayed, never scored};
+
+\end{tikzpicture}
+\caption[Where computed urgency goes inside the forecast]{Inside the forecast rollout, the
+autoregressive state fitted to computed urgency feeds only the client-impact channel. The
+scored quantity depends on a lead-time draw and, on a chain with no exogenous event, on
+nothing else.}
+\label{fig:disconnexion}
+\end{figure}
+
+The consequence is testable, so it was tested rather than argued. A baseline was written to
+be as weak as possible: for a node whose next unfinished milestone falls due at turn $D$ with
+fraction $r$ of its work outstanding and nominal lead time $L$ expressed in turns,
+\begin{equation}
+    p(k) \;=\; \mathrm{clip}\!\left(1 - \frac{D - t - k}{r\,L},\; 0,\; 1\right).
+    \label{eq:temoin}
+\end{equation}
+No simulation, no fitted parameter, no calibration, and none of the six urgency blocks. The
+running service declines to forecast on $71$ of the $225$ node-turns, where no milestone is
+in flight; the baseline is silenced on exactly those, so both are scored on an identical
+sample at every horizon.
+
+\begin{table}[htbp]
+\centering
+\caption{Five hundred Monte Carlo trajectories against a two-number ratio}
+\label{tab:temoin}
+\small
+\begin{tabularx}{\linewidth}{c >{\centering\arraybackslash}X >{\centering\arraybackslash}X >{\centering\arraybackslash}X >{\centering\arraybackslash}X >{\centering\arraybackslash}X >{\centering\arraybackslash}X}
+\toprule
+& \multicolumn{2}{c}{\textbf{AUC}} & \multicolumn{2}{c}{\textbf{PR-AUC}} &
+\multicolumn{2}{c}{\textbf{Brier skill}} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}
+\textbf{Horizon} & simulation & baseline & simulation & baseline & simulation & baseline \\
+\midrule
+1 week  & 0.826 & \textit{0.908} & 0.153 & \textit{0.396} & \textit{$-1.601$} & $-4.851$ \\
+2 weeks & 0.781 & \textit{0.848} & 0.212 & \textit{0.261} & \textit{$-0.639$} & $-4.289$ \\
+3 weeks & 0.757 & \textit{0.791} & 0.252 & \textit{0.258} & \textit{$-0.345$} & $-3.949$ \\
+4 weeks & 0.697 & \textit{0.731} & \textit{0.257} & 0.223 & \textit{$-0.295$} & $-3.990$ \\
+5 weeks & 0.651 & \textit{0.676} & \textit{0.275} & 0.221 & \textit{$-0.211$} & $-3.798$ \\
+6 weeks & 0.616 & \textit{0.624} & \textit{0.301} & 0.237 & \textit{$-0.147$} & $-3.486$ \\
+7 weeks & \textit{0.667} & 0.583 & \textit{0.438} & 0.239 & \textit{$+0.044$} & $-3.180$ \\
+8 weeks & \textit{0.633} & 0.544 & \textit{0.460} & 0.228 & \textit{$+0.068$} & $-2.961$ \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Table~\ref{tab:temoin} gives the comparison, with the better of each pair in italics. The
+baseline ranks the misses better than five hundred trajectories at six horizons of eight, and
+by $0.082$ of AUC at one week, which is the horizon a coordinator acts on. Since it reads the
+outstanding fraction from the same progress variable the truth is derived from, it was re-run
+in a form that reads nothing at all, taking outstanding work as the calendar fraction a
+perfectly healthy milestone would show. Its AUC and PR-AUC are identical to three decimal
+places at every horizon: the discrimination is entirely the ratio of weeks remaining to weeks
+required, and no part of it comes from the indicators.
+
+The same table says what the simulation layer does contribute, and it is not discrimination.
+Its Brier skill is $-1.601$ at one week against the baseline's $-4.851$: the baseline produces
+an ordering and has no means of turning it into a probability, which is precisely what five
+hundred trajectories are for. It also holds its ranking at seven and eight weeks, at nearly
+double the PR-AUC, where a calendar ratio collapses below $0.60$.
+
+\begin{attentionBox}
+\noindent\textbf{What this establishes, and what it does not.} On this chain and this
+outcome, the forecast layer is a calibration wrapper around a lead-time ratio. That is a
+defensible thing for it to be, and at long horizons it is the better instrument. It is not
+what the interface presents, and it is not what the declarants of
+Section~\ref{sec:airb_affichage} believed they were deferring to. 
+\end{attentionBox}
+
+Two limits bound the comparison. It holds for a chain carrying no exogenous event, where the
+event term of the scored quantity is empty by construction; on the semiconductor chain that
+term is populated and the argument does not transfer unchanged. And five positive observations
+at one week make an AUC difference of $0.082$ an order of magnitude rather than an established
+gap. The test was optional, and was run because a layer that cannot beat a two-number ratio
+should not be shown to an operator as a probability.
 
 \subsection{Problems Encountered and How They Were Resolved}
 \label{sec:problemes}
 
-Four difficulties shaped the mission, beyond the risks of Section~\ref{sec:risques}.
+Three difficulties changed a technical decision. The two others, documentary
+access and the CPU-only budget, appear with their mitigation in the risk register
+of Section~\ref{sec:risques}.
 
 \paragraph{The first model could not represent the problem.}
 The initial formulation expressed urgency as a single time-driven curve. It could not
@@ -649,26 +1228,38 @@ resolution was to abandon it in April in favour of multi-block aggregation. The 
 roughly three weeks; the alternative was building a validated implementation of an
 inadequate model.
 
-\paragraph{Measuring the gap requires two independent signals, which is harder than it looks.}
-The same difficulty recurred three times in different disguises. A first synthetic dry run
-derived the declared value from the computed one, so no gap could appear. The blind arm used
-declarants who read their briefings so carefully that their declaration reproduced the
-computed state. The treatment arm closed the loop deliberately by showing the model's output
-to the declarant. Each time the symptom looked like a modelling problem and each time the
-cause was circularity in the measurement. The resolution was to state the independence
-requirement as a first-class design constraint and to record, for every result, which of the
-two signals could have contaminated the other.
+\paragraph{Keeping the two signals independent had to be designed, not assumed.}
+A synthetic dry run written before the campaign derived the declared value from the computed
+one, which would have made any gap an artefact of the harness. It was discarded. The
+resolution was to state independence as a first-class design constraint: real urgency is fed
+from public time series of the crisis, declared urgency comes from participants who never see
+the computed value, and each result records which of the two could have reached the other.
+Running the declarants as language-model agents is what made that iteration affordable. A full
+nineteen-turn campaign replays in an afternoon, so a design flaw like this one was found and
+re-tested the same day rather than the following quarter.
 
-\paragraph{The literature was not accessible from inside the company.}
-As set out in Section~\ref{sec:risques}, ALTEN's Direction de l'Innovation holds no journal or
-database subscriptions. The state of the art was built entirely on ESTIA and Cranfield
-library access. The practical resolution was to front-load literature retrieval into the first
-weeks while planning which sources would be needed later, since retrieving a paper was never
-a same-hour operation.
+\paragraph{A test bench has to be able to contradict its author.}
+Each of the three tests of Sections~\ref{sec:realisation_resultats} to~\ref{sec:temoin} was
+designed while the outcome was still unknown, by someone with an obvious interest in one of the
+two answers. The resolution was procedural and carries to any R\&D project: freeze the pass
+mark before the measurement exists, define the outcome in the same document as the threshold,
+and score any new instrument against the cheapest thing that could have replaced it.
 
-\paragraph{Compute was limited to a CPU.}
-No GPU was available. This bounded what could be attempted and is the reason one comparison
-was run at reduced scale. The resolution was methodological rather than material: choosing
-approaches whose cost is dominated by the quantity of data rather than by model size, and
-accepting the reduced scale explicitly in the reporting instead of quietly omitting the
-comparison.
+\subsection{A Parallel Workstream: Capacity Observed Rather Than Declared}
+\label{sec:realisation_volume}
+
+The whole measurement rests on one hypothesis, and it is worth naming before the campaigns
+that use it: the weekly review is taken as a sincere report, so the indicators it carries and
+the urgency the same operator declares are two quantities rather than one. Putting at least
+one of those indicators beyond the declarant's reach altogether makes the hypothesis matter
+less.
+
+A second system was built alongside the main work to do exactly that: it estimates the
+physical capacity of a warehouse from public satellite imagery, an observation no operator
+supplies and none can bias. Appendix~\ref{app:imagerie} reports it in full. Two
+results carry. Counting loading docks from a nadir view is impossible, established by
+measurement rather than by opinion: an empty dock door under a canopy registers $0.18\sigma$
+of contrast against $5.3\sigma$ for an occupied bay, and 8~cm imagery leaves it equally
+invisible. Restated as delimiting the equipped facade zone, the segmentation model reaches a
+global bias of $-35\%$ on the derived dock count, which is directionally useful and not yet
+trustworthy. The two systems have not been connected, and no claim is made that they have.

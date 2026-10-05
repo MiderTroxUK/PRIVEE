@@ -1,0 +1,57 @@
+/* ALTEN — type. The templates use only Arial Black (display) and Arial /
+   Calibri (text). None of the three ships as a webfont, so each role is a
+   stack: the real Microsoft font first, a metric-compatible Google Fonts
+   fallback second. See readme.md → "Font substitutions". */
+@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Arimo:ital,wght@0,400..700;1,400..700&family=Carlito:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+
+:root{
+  /* ── Families ───────────────────────────────────────────────── */
+  --font-display:"Arial Black","Archivo Black","Arial Bold",Arimo,Helvetica,sans-serif;
+  --font-sans:Arial,Arimo,Helvetica,sans-serif;
+  --font-text:Calibri,Carlito,Arial,Arimo,sans-serif;
+
+  /* ── Weights ────────────────────────────────────────────────── */
+  --weight-display:700; /* @kind font */   /* Arial Black is always set bold in the masters */
+  --weight-bold:700; /* @kind font */
+  --weight-regular:400; /* @kind font */
+
+  /* ── Slide type ramp — px on the 960 × 540 slide canvas
+        (source pt × 1.3333; 1 pt = 1.3333 px at 96 dpi) ───────── */
+  --slide-chapter:48px;      /* 36 pt  Arial Black, white, chapter titles */
+  --slide-chapter-num:77px;  /* 57.5 pt Arial Black, sky, "1." */
+  --slide-cover-lead:29px;   /* 21.5 pt Arial Black, baseline line 1 */
+  --slide-cover-strong:48px; /* 36 pt  Arial, letterspaced, baseline line 2 */
+  --slide-title:32px;        /* 24 pt  Arial Black, uppercase, navy */
+  --slide-title-long:29px;   /* 22 pt  Arial Black, column headings */
+  --slide-subtitle:17px;     /* 13 pt  Arial, blue */
+  --slide-label:16px;        /* 12 pt  Calibri bold, uppercase, blue */
+  --slide-body:16px;         /* 12 pt  Calibri, body copy in columns */
+  --slide-body-sm:13px;      /* 10 pt  Calibri, master body default */
+  --slide-caption:12px;      /* 9 pt   Calibri, captions, dense one-pagers */
+  --slide-footnote:11px;     /* 8 pt   Arial bold, fact chips */
+  --slide-page-num:12px;     /* 9 pt   Calibri, page number, grey */
+
+  /* ── Screen / document ramp ─────────────────────────────────── */
+  --text-4xl:56px;
+  --text-3xl:40px;
+  --text-2xl:32px;
+  --text-xl:24px;
+  --text-lg:20px;
+  --text-md:16px;
+  --text-sm:14px;
+  --text-xs:12px;
+  --text-2xs:11px;
+
+  /* ── Line heights — the masters set 90 % on every heading ───── */
+  --leading-display:0.9; /* @kind other */
+  --leading-heading:1.05; /* @kind other */
+  --leading-snug:1.25; /* @kind other */
+  --leading-body:1.45; /* @kind other */
+
+  /* ── Tracking. Arial Black headings run at 0; the letterspaced
+        lockups use spc="150" (0.15 em) and spc="300" (0.30 em) ── */
+  --tracking-tight:0; /* @kind other */
+  --tracking-wide:0.15em; /* @kind other */
+  --tracking-wider:0.30em; /* @kind other */
+  --tracking-wordmark:0.34em; /* @kind other */   /* the A L T E N wordmark */
+}

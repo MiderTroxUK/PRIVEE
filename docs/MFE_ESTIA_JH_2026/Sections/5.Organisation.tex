@@ -1,5 +1,5 @@
-%% Consignes : parties prenantes / responsabilites ; ressources materielles,
-%% humaines et financieres ; planification / phases et jalons ; risques.
+%% Comment le projet a ete conduit : parties prenantes, ressources,
+%% methode de travail, phasage, risques portes.
 
 \subsection{Stakeholders and Responsibilities}
 \label{sec:parties_prenantes}
@@ -20,16 +20,13 @@ what.
 S\'ebastien Perthuisot & Research Programme Director, Quality \& Supply Chain Expert &
 Set the research direction, arbitrated scope, chaired the weekly regular point and the
 Friday demonstration. Decision-maker on what the programme keeps. \\
-\'Emilienne Lardy & Scientific supervision & Ran the Monday planning and the three weekly
-scrums; reviewed method and written output. First reader of anything claimed. \\
-Selma Ferhat & Scientific supervision & Reviewed the scientific framing and the written
-record. \\
-Fabien Jules & Charg\'e Innovation & Placement tutor of record; onboarding, administrative
-framing and access. \\
+\'Emilienne Lardy \newline and Selma Ferhat & Scientific supervision & Ran the Monday
+planning and the three weekly scrums; reviewed method, scientific framing and written
+output. First readers of anything claimed. \\
 Liam Jones & Fellow intern, same programme & Network representation, graph modelling and
 geographic layer of the twin. Neighbouring problem, shared demonstration slot. \\
 David Gomez & ESTIA academic supervisor & Academic framing of the mission. \\
-Author & Intern, Supply Chain Engineer & Model, implementation, experimental design,
+John Hoarau \newline (author) & Intern, Supply Chain Engineer & Model, implementation, experimental design,
 analysis and written deliverables. \\
 \bottomrule
 \end{tabularx}
@@ -46,138 +43,167 @@ rather than attempt to generate one, because that was being solved two seats awa
 \subsection{Resources}
 \label{sec:ressources}
 
-The resources provided were modest and are worth stating plainly, because two of them
-constrained technical choices.
-
-\begin{itemize}
-    \item \emph{Human.} No budget-holding team. Supervision as listed above, and one peer on
-    an adjacent subject. All implementation was carried out by the author.
-    \item \emph{Material.} One laptop provided by ALTEN, a Ryzen~7 PRO 8840HS with 16 cores
-    and no discrete GPU. Everything computed in this mission, including every model training
-    run, ran on that CPU.
-    \item \emph{Software.} Azure DevOps for source control and work tracking, and the
-    Microsoft suite for communication. No paid data service, no cloud compute budget, no
-    commercial solver or licence was requested or used, which is why the delivered system
-    depends only on open-source Python libraries and a file-based database.
-    \item \emph{Financial.} None directly managed. The absence of a budget is itself a
-    design constraint: it removed managed cloud services and paid datasets from the solution
-    space before any technical comparison took place.
-\end{itemize}
+The resources were modest, and one of them constrained technical choices. All implementation
+was carried out by the author, on one ALTEN laptop, a Ryzen~7 PRO 8840HS with
+16 cores and no discrete GPU, on which everything in this mission was computed, every model
+training run included. Azure DevOps carried source control and work tracking. No budget was
+managed, and none was requested: no paid data service, no cloud compute, no commercial solver.
+That absence removed managed services and paid datasets from the solution space before any
+technical comparison took place, which is why the delivered system depends only on open-source
+Python libraries and a file-based database.
 
 \subsection{Working Method: Agile and Test and Learn}
 \label{sec:methode}
 
-The placement agreement prescribes an evolutionary approach based on Agile and Test and
+The internship agreement prescribes an evolutionary approach based on Agile and Test and
 Learn. That was applied literally rather than nominally, and the weekly rhythm was the
 mechanism.
 
 \paragraph{The cadence.}
-The week had a fixed shape. A planning session on Monday set the objective for the week. A
-scrum on Tuesday, Wednesday and Thursday morning kept it visible and surfaced blockages
-within a day rather than a week. A regular point with the programme director on Wednesday
-took the scientific decisions. A demonstration on Friday closed the loop by requiring
-something to be shown, not described. Four contact points a week on a six-month mission is a
-heavy cadence for R\&D, and it was the single most useful organisational feature of the
-placement: it made it impossible to spend three weeks on an idea that would not survive
-contact with a reviewer.
+The week had a fixed shape, and Figure~\ref{fig:semaine} gives it together with the way it
+nests inside the mission plan. Four contact points a week on a six-month mission is a heavy
+cadence for R\&D, and it was the single most useful organisational feature of the internship:
+it made it impossible to spend three weeks on an idea that would not survive contact with a
+reviewer. It is also the mechanism that ties the week to the plan. A phase advances by one
+week's increment, and the Friday demonstration is where that increment is accepted or the
+phase is re-scoped, which is how the reallocation described in Section~\ref{sec:planning} was
+decided.
 
-\paragraph{Test and Learn, with what it actually rejected.}
-The method is only meaningful if things were genuinely abandoned. Four were.
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    jour/.style       = {bloc, text width=2.25cm, minimum height=1.85cm, font=\scriptsize},
+    jourFort/.style   = {jour, fill=altenAzure!18, draw=altenAzure, line width=1pt},
+    phase/.style      = {blocPale, text width=0.42cm, minimum height=0.55cm,
+                         font=\tiny, inner sep=2pt},
+    phaseClose/.style = {phase, fill=altenBlueBg2, draw=altenNavy},
+    node distance     = 4mm]
 
-\begin{enumerate}
-    \item \emph{The first urgency formulation was dropped.} The initial model expressed
-    urgency as a single time-driven function with a finite-time singularity, calibrated by
-    penalty terms. It was specified, partially implemented and abandoned in favour of a
-    multi-block aggregation, because a single deadline-proximity curve discards information
-    the twin already holds and cannot represent a node that is on time but out of capacity.
-    \item \emph{The May module architecture was replaced.} A first pipeline of separate
-    scores was built through May and superseded in June by the aggregation and propagation
-    design that shipped. The intermediate work was not wasted: it established what the
-    interfaces between components needed to be, which is why the replacement was built in
-    weeks rather than months.
-    \item \emph{A candidate dataset was rejected on inspection.} A third-party logistics
-    dataset considered for the freight node was checked before use and discarded: it carried
-    pre-computed target columns, coordinates scattered outside the region it claimed to
-    cover, and uniformly flat distributions, all signatures of synthetic data. The node was
-    driven by calibrated events instead. The rejected file is retained for audit and never
-    loaded by the analysis pipeline.
-    \item \emph{A whole experimental arm was reduced.} The campaign was designed for eight
-    human consultants over nine working days. When that could not be secured, the design was
-    changed rather than the claim: the campaign was run with isolated agents, and every
-    conclusion about human behaviour was correspondingly weakened in the reporting.
-\end{enumerate}
+%% ── la semaine, cinq jours et quatre points de contact ───────────────
+\node[jourFort]               (lun) {\textbf{Monday}\\[2pt]planning\\[1pt]
+                                     \scriptsize sets the objective of the week};
+\node[jour, right=of lun]     (mar) {\textbf{Tuesday}\\[2pt]scrum\\[1pt]
+                                     \scriptsize a blockage surfaces within a day};
+\node[jourFort, right=of mar] (mer) {\textbf{Wednesday}\\[2pt]scrum, then the
+                                     programme director\\[1pt]
+                                     \scriptsize scientific decisions};
+\node[jour, right=of mer]     (jeu) {\textbf{Thursday}\\[2pt]scrum\\[1pt]
+                                     \scriptsize course correction};
+\node[jourFort, right=of jeu] (ven) {\textbf{Friday}\\[2pt]demonstration\\[1pt]
+                                     \scriptsize something shown, not described};
 
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.72\linewidth]{Images/4.Operations/test_learn_loop.png}
-    \caption{The test-and-learn iteration loop}
-    \label{fig:testlearn}
+\foreach \a/\b in {lun/mar, mar/mer, mer/jeu, jeu/ven} \draw[fleche] (\a) -- (\b);
+
+\draw[fleche, rounded corners=5pt] (ven.north) -- ++(0,6mm)
+      -- node[etiquette, above] {carries into the objective of the following week}
+      ($(lun.north)+(0,6mm)$) -- (lun.north);
+
+%% ── ce que la demonstration du vendredi decide ───────────────────────
+\coordinate (mid) at ($(lun.south)!0.5!(ven.south)$);
+
+\node[blocAlerte, below=9mm of mid, text width=10.8cm, font=\scriptsize] (arb)
+  {The Friday demonstration is the decision point: the week's increment is either accepted
+   into the current phase, or the phase itself is re-scoped.};
+
+\draw[fleche] (ven.south) -- ++(0,-4mm) -| (arb.north);
+
+%% ── le plan global : dix phases, sept closes a la redaction ──────────
+\node[etiquette, below=10mm of arb.south west, anchor=north west, fill=none] (lab)
+     {the ten phases of the mission};
+\node[phaseClose, right=3mm of lab] (p1) {1};
+\node[phaseClose, right=1.6mm of p1] (p2) {2};
+\node[phaseClose, right=1.6mm of p2] (p3) {3};
+\node[phaseClose, right=1.6mm of p3] (p4) {4};
+\node[phaseClose, right=1.6mm of p4] (p5) {5};
+\node[phaseClose, right=1.6mm of p5] (p6) {6};
+\node[phaseClose, right=1.6mm of p6] (p7) {7};
+\node[phase, right=1.6mm of p7] (p8) {8};
+\node[phase, right=1.6mm of p8] (p9) {9};
+\node[phase, right=1.6mm of p9] (p10) {10};
+\node[etiquette, right=3mm of p10, fill=none, align=left]
+     {7 closed\\at the time of writing};
+
+\draw[fleche] (arb.south) -- ++(0,-5.5mm);
+
+\end{tikzpicture}
+\caption[The weekly cycle and how it nests inside the mission plan]{The weekly cycle, and how
+it nests inside the mission plan. Shaded days carry the meetings that can change the plan:
+Monday planning, the Wednesday point with the programme director, and the Friday
+demonstration. Each of the ten phases advances by whole weeks of this cycle and closes on a
+dated milestone artefact (Table~\ref{tab:jalons}); the three pale phases at the end are the
+ones still to run at the time of writing.}
+\label{fig:semaine}
 \end{figure}
 
-Figure~\ref{fig:testlearn} shows the loop as it was actually run. Each turn of it produced
-either a working increment or a documented rejection, and the four rejections above are the
-evidence that the second outcome was genuinely available rather than theoretical.
-
-\paragraph{Quality gates.}
-Agile without a definition of done produces velocity and nothing else. Three gates were
-applied: no feature merged without automated tests, giving 1\,779 test functions at the end
-of the mission; every business write passing through a single audited mutation service, so
-that no result could be produced by an untraceable edit; and every reported figure
-regenerated from raw artefacts by a script rather than transcribed by hand.
+\paragraph{Test and Learn, and what it rejected.}
+The method means something only if things were abandoned. Four were. The first urgency
+formulation went in April, for the reason given in Section~\ref{sec:problemes}. The May
+pipeline of separate scores was superseded in June by the design that shipped, having first
+established what the interfaces between components needed to be. A third-party logistics
+dataset considered for the freight node was rejected on inspection, its pre-computed target
+columns, misplaced coordinates and uniformly flat distributions all signatures of synthetic
+data; the node was driven by calibrated events instead. And the human arm of the campaign was
+reduced to isolated agents when eight consultants for nine days could not be secured, which
+weakened every behavioural claim rather than the design (Section~\ref{sec:risques}).
 
 \subsection{Phases and Milestones}
 \label{sec:planning}
 
-The mission ran in six phases. Figure~\ref{fig:gantt} gives the schedule and
+The mission runs in ten phases, seven of them closed at the time of writing.
+Figure~\ref{fig:gantt} gives the schedule and
 Table~\ref{tab:jalons} the milestones that closed each phase.
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=0.96\linewidth]{Images/gantt.png}
+    \includegraphics[width=0.96\linewidth]{Images/gantt.pdf}
     \caption{Phases and milestones of the mission}
     \label{fig:gantt}
 \end{figure}
 
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
 \caption{Milestones}
 \label{tab:jalons}
 \small
-\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{2.4cm} >{\raggedright\arraybackslash}p{3.4cm} X}
+\begin{tabularx}{\linewidth}{>{\centering\arraybackslash}p{0.5cm} >{\raggedright\arraybackslash}p{1.9cm} >{\raggedright\arraybackslash}p{3.2cm} X}
 \toprule
-\textbf{Date} & \textbf{Milestone} & \textbf{Closed by} \\
+& \textbf{Date} & \textbf{Milestone} & \textbf{Closed by} \\
 \midrule
-End April & Framing complete & Knowledge transfer report and state of the art presented;
-subject converged with the programme director \\
-End May & First pipeline & End-to-end computation running, and found insufficient, which
-triggered the redesign \\
-Mid June & Application delivered & Multi-tenant persistence, audited writes, weekly cycle,
-event engine, explainability, exports and backup \\
-Early July & Protocol frozen & Scenario, data pack hashed, role cards and hypothesis
-register registered before any data existed \\
-End July & Campaign executed & Two arms run, analysed against the pre-registered register \\
-Mid August & Research capitalised & Scientific report and reproducible derivation of every
-figure \\
+1 & 30 April & State of the art delivered & Knowledge transfer report on planning and urgency
+(20 April), state of the art and its presentation; subject converged with the programme
+director \\
+2 & 29 May & First pipeline running & Six modules and the unified score computing end to end,
+found insufficient, which triggered the redesign \\
+3 & 12 June & SupplyScore v2.0.0 & Seventeen delivery phases: multi-tenant persistence, audited
+writes, weekly cycle, event engine, explainability, exports, documentation \\
+4 & 26 June & Capacity from imagery & Dock counting shown unreachable from nadir imagery,
+problem reframed to facade segmentation, four training runs scored \\
+5 & 6 July & Protocol frozen & Scenario, hashed data pack, role cards and hypothesis register,
+all before any campaign data existed \\
+6 & 27 July & First campaign scored & Two arms analysed against the pre-registered register;
+the forecast layer's defect located \\
+7 & 21 August & Independent validation closed & Repair re-measured on frozen forecasts; second
+chain run in both arms; baseline comparison scored \\
+8 & 19 Sept & Calibration campaigns & \emph{Planned.} New chains to widen the evidence base \\
+9 & 16 Oct & Scientific report & \emph{Planned.} \emph{Bilan Scientifique et Technique} and
+defence \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
-The planning was revised once, in June. The original schedule allocated the second half of
-the mission to extending the model's scope; it was reallocated to validating what already
-existed, on the argument that an unvalidated extension of an unvalidated model compounds the
-problem rather than advancing it. That reallocation is the reason this report can state a
-measured result at all.
+Seven phases are closed, two of them beyond the campaign that was originally the mission's end
+point. The three that remain carry no new construction. Phase boundaries are read from the
+dated milestone artefacts rather than from commit timestamps, since work was pushed in
+batches: seventeen commits landing on 11 June close a fortnight of work.
+
 
 \subsection{Risks and Mitigations}
 \label{sec:risques}
 
-Four risks were identified and carried at the start of the mission.
-Table~
-\ref{tab:risques} states each one, whether it materialised, and what was done about
-it. Three of the four did materialise, which is a high rate and reflects how much of this
-mission depended on things outside the author's control.
+Four risks were carried from the start, and Table~\ref{tab:risques} states each one, whether
+it materialised and what was done about it. Three of the four did materialise.
 
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
 \caption{Risk register and outcomes}
 \label{tab:risques}
@@ -186,33 +212,26 @@ mission depended on things outside the author's control.
 \toprule
 \textbf{Risk} & \textbf{Outcome} & \textbf{Mitigation and effect} \\
 \midrule
-No access to academic literature from within ALTEN & Materialised & The Direction de
-l'Innovation holds no journal or database subscriptions, so a state of the art conducted
-from the company alone would have rested on whatever is publicly readable. The mission
-depended throughout on ESTIA and Cranfield library credentials. It worked, but the
-dependency is real and would block a consultant without a university affiliation. \\[3pt]
+Literature access routed through university libraries & Materialised & Retrieving a paper on
+ESTIA and Cranfield credentials was never a same-hour operation. Mitigated by front-loading
+retrieval into the first three weeks against a planned list, so no design decision waited on a
+download. \\[3pt]
 \midrule
-Broad mission scope & Materialised & Five workstreams in the signed assignment against one
-person and six months. Mitigated by converging the subject in the first weeks with the
-programme director and recording the boundaries explicitly
-(Section~\ref{sec:mission_perimetre}) rather than leaving them implicit. \\[3pt]
+Broad mission scope & Materialised & Five workstreams against one person and six months.
+Mitigated by converging the subject with the programme director and recording the boundaries
+explicitly (Section~\ref{sec:mission_perimetre}). \\[3pt]
 \midrule
-Human campaign might not be securable & Materialised & Eight colleagues for nine working
-days was never guaranteed. Mitigated by designing the protocol so that the declarant could
-be substituted without changing the record format, which is what allowed the campaign to run
-at all when the humans were unavailable. Cost: the external validity of every behavioural
+Human campaign might not be securable & Materialised & Eight colleagues for nine working days
+was never guaranteed. Mitigated by a protocol in which the declarant could be substituted
+without changing the record format: the substitute is a language-model agent answering the
+same questionnaire behind the same consistency gate, so an incoherent weight vector is refused
+exactly as it would be for a human. Cost: the external validity of every behavioural
 claim. \\[3pt]
 \midrule
-CPU-only compute & Contained & No GPU available. Bounded model size and training resolution,
-and is the reason one comparison was run at reduced scale. Mitigated by choosing methods
-whose cost is dominated by data rather than by parameters. \\
+CPU-only compute & Contained & No GPU available, which bounded model size and training
+resolution and is why one comparison ran at reduced scale. Mitigated by choosing methods whose
+cost is dominated by data rather than by parameters. \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
-The first risk deserves a comment, because it is the one least often written down. An R\&D
-department that cannot read the literature it is meant to advance is dependent on the
-academic affiliations of the people passing through it. For a placement holder on a double
-degree that is invisible, since the credentials come with the student. It stops being
-invisible the moment the work has to be continued by someone without them, which is a
-succession risk for the programme rather than a problem for this mission.

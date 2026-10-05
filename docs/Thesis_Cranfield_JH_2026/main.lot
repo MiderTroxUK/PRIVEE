@@ -1,36 +1,46 @@
-\contentsline {table}{\numberline {1}{\ignorespaces DISCO technology stack}}{2}{table.caption.11}%
-\contentsline {table}{\numberline {2}{\ignorespaces Urgency pathologies and their consequences}}{4}{table.caption.13}%
-\contentsline {table}{\numberline {3}{\ignorespaces Each hypothesis, its research question, and the cost of failure}}{6}{table.caption.14}%
-\contentsline {table}{\numberline {4}{\ignorespaces Aggregation and growth models found in the literature}}{10}{table.caption.20}%
-\contentsline {table}{\numberline {5}{\ignorespaces Temporal Motivational Theory parameters}}{11}{table.caption.22}%
-\contentsline {table}{\numberline {6}{\ignorespaces The six real urgency blocks}}{22}{table.caption.41}%
-\contentsline {table}{\numberline {7}{\ignorespaces Selection filter applied to each candidate block}}{24}{table.caption.46}%
-\contentsline {table}{\numberline {8}{\ignorespaces Terms of the propagation equations}}{26}{table.caption.48}%
-\contentsline {table}{\numberline {9}{\ignorespaces Terms and parameters of the adequacy equations}}{28}{table.caption.52}%
-\contentsline {table}{\numberline {10}{\ignorespaces The eight H\'ELIOS campaign nodes}}{35}{table.caption.63}%
-\contentsline {table}{\numberline {11}{\ignorespaces The twelve calibrated engine events}}{37}{table.caption.65}%
-\contentsline {table}{\numberline {12}{\ignorespaces Arm A verdicts on the six pre-registered hypotheses}}{46}{table.caption.69}%
-\contentsline {table}{\numberline {13}{\ignorespaces Final per-node snapshot of the arm A project}}{46}{table.caption.70}%
-\contentsline {table}{\numberline {14}{\ignorespaces Nodes flagged by hidden risk against nodes that later miss a commitment, arm A}}{47}{table.caption.71}%
-\contentsline {table}{\numberline {15}{\ignorespaces The arm A forecast layer, scored by horizon}}{49}{table.caption.72}%
-\contentsline {table}{\numberline {16}{\ignorespaces Reliability of the arm A four-week forecasts}}{49}{table.caption.73}%
-\contentsline {table}{\numberline {17}{\ignorespaces The time block at turn 6}}{51}{table.caption.75}%
-\contentsline {table}{\numberline {18}{\ignorespaces The same forecasts under three outcome definitions}}{52}{table.caption.76}%
-\contentsline {table}{\numberline {19}{\ignorespaces Arm B: influence of the displayed forecast, by turn}}{54}{table.caption.78}%
-\contentsline {table}{\numberline {20}{\ignorespaces The frozen campaign rescored after repair, original-commitment target}}{57}{table.caption.80}%
-\contentsline {table}{\numberline {21}{\ignorespaces Calibrated constants of the capacity model}}{60}{table.caption.87}%
-\contentsline {table}{\numberline {22}{\ignorespaces Approaches tested and rejected}}{64}{table.caption.91}%
-\contentsline {table}{\numberline {23}{\ignorespaces Segmentation training progression}}{64}{table.caption.92}%
-\contentsline {table}{\numberline {24}{\ignorespaces Status of the six hypotheses across the executed runs}}{72}{table.caption.106}%
-\contentsline {table}{\numberline {25}{\ignorespaces Documented limitations and their implications}}{73}{table.caption.107}%
-\contentsline {table}{\numberline {26}{\ignorespaces Source review grid}}{87}{table.26}%
-\contentsline {table}{\numberline {27}{\ignorespaces Complete arm A scoring, production outcome definition}}{94}{table.caption.132}%
-\contentsline {table}{\numberline {28}{\ignorespaces Complete arm A scoring, naive outcome definition}}{94}{table.caption.134}%
-\contentsline {table}{\numberline {29}{\ignorespaces Every arm A forecast at or above $0.5$ at four weeks}}{95}{table.caption.137}%
-\contentsline {table}{\numberline {30}{\ignorespaces Arm B at turn 4, node by node}}{95}{table.caption.139}%
-\contentsline {table}{\numberline {31}{\ignorespaces The eleven milestones observable within the campaign, judged against the deadline first committed to}}{96}{table.caption.141}%
-\contentsline {table}{\numberline {32}{\ignorespaces Arm A before repair, original-commitment target}}{97}{table.caption.143}%
-\contentsline {table}{\numberline {33}{\ignorespaces Arm A after the structural repair alone}}{97}{table.caption.144}%
-\contentsline {table}{\numberline {34}{\ignorespaces Arm A after the structural repair and the progress-uncertainty term}}{97}{table.caption.145}%
-\contentsline {table}{\numberline {35}{\ignorespaces Degeneracy of the milestone-miss probability, 120 forecasts}}{98}{table.caption.147}%
-\contentsline {table}{\numberline {36}{\ignorespaces Data sources of the capacity pipeline}}{98}{table.caption.149}%
+\contentsline {table}{\numberline {1}{\ignorespaces The six real urgency blocks}}{16}{table.caption.33}%
+\contentsline {table}{\numberline {2}{\ignorespaces Each hypothesis, its research question, and the cost of failure}}{30}{table.caption.54}%
+\contentsline {table}{\numberline {3}{\ignorespaces Arm A verdicts on the six pre-registered hypotheses}}{37}{table.caption.61}%
+\contentsline {table}{\numberline {4}{\ignorespaces Nodes flagged by hidden risk against nodes that later miss a commitment, arm A}}{39}{table.caption.62}%
+\contentsline {table}{\numberline {5}{\ignorespaces The arm A forecast layer, scored by horizon}}{40}{table.caption.63}%
+\contentsline {table}{\numberline {6}{\ignorespaces The same forecasts under three outcome definitions}}{43}{table.caption.66}%
+\contentsline {table}{\numberline {7}{\ignorespaces Discrimination against chance}}{45}{table.caption.68}%
+\contentsline {table}{\numberline {8}{\ignorespaces Interval estimates for the counted claims}}{46}{table.caption.70}%
+\contentsline {table}{\numberline {9}{\ignorespaces Status of the six hypotheses across the executed runs}}{55}{table.caption.86}%
+\contentsline {table}{\numberline {10}{\ignorespaces Documented limitations and their implications}}{56}{table.10}%
+\contentsline {table}{\numberline {11}{\ignorespaces Source review grid}}{68}{table.11}%
+\contentsline {table}{\numberline {12}{\ignorespaces Complete arm A scoring, production outcome definition}}{76}{table.caption.104}%
+\contentsline {table}{\numberline {13}{\ignorespaces Complete arm A scoring, naive outcome definition}}{77}{table.caption.106}%
+\contentsline {table}{\numberline {14}{\ignorespaces Every arm A forecast at or above $0.5$ at four weeks}}{77}{table.caption.109}%
+\contentsline {table}{\numberline {15}{\ignorespaces Arm B at turn 4, node by node}}{78}{table.caption.111}%
+\contentsline {table}{\numberline {16}{\ignorespaces The eleven milestones observable within the campaign, judged against the deadline first committed to}}{79}{table.caption.113}%
+\contentsline {table}{\numberline {17}{\ignorespaces Arm A rescored after repair, original-commitment target}}{79}{table.caption.115}%
+\contentsline {table}{\numberline {18}{\ignorespaces Degeneracy of the milestone-miss probability, 120 forecasts}}{80}{table.caption.117}%
+\contentsline {table}{\numberline {19}{\ignorespaces Data sources of the capacity pipeline}}{81}{table.caption.119}%
+\contentsline {table}{\numberline {20}{\ignorespaces Calibrated constants of the capacity model}}{81}{table.caption.121}%
+\contentsline {table}{\numberline {21}{\ignorespaces Approaches tested and rejected}}{83}{table.caption.126}%
+\contentsline {table}{\numberline {22}{\ignorespaces Worked example: the six blocks}}{87}{table.caption.136}%
+\contentsline {table}{\numberline {23}{\ignorespaces Worked example: criticality}}{88}{table.caption.138}%
+\contentsline {table}{\numberline {24}{\ignorespaces Worked example: adequacy}}{89}{table.caption.139}%
+\contentsline {table}{\numberline {25}{\ignorespaces Register of modelling assumptions}}{89}{table.25}%
+\contentsline {table}{\numberline {26}{\ignorespaces Notation}}{93}{table.caption.141}%
+\contentsline {table}{\numberline {27}{\ignorespaces The fuzzy linguistic scale}}{95}{table.caption.145}%
+\contentsline {table}{\numberline {28}{\ignorespaces Complexity of the principal operations}}{100}{table.caption.154}%
+\contentsline {table}{\numberline {29}{\ignorespaces Measured performance at one thousand nodes}}{101}{table.caption.155}%
+\contentsline {table}{\numberline {30}{\ignorespaces Segmentation training progression}}{103}{table.caption.158}%
+\contentsline {table}{\numberline {31}{\ignorespaces DISCO technology stack}}{105}{table.caption.161}%
+\contentsline {table}{\numberline {32}{\ignorespaces Aggregation and growth models found in the literature}}{105}{table.caption.162}%
+\contentsline {table}{\numberline {33}{\ignorespaces Temporal Motivational Theory parameters}}{106}{table.caption.163}%
+\contentsline {table}{\numberline {34}{\ignorespaces Precursors of delivery rupture}}{106}{table.caption.164}%
+\contentsline {table}{\numberline {35}{\ignorespaces Multi-criteria methods compared}}{107}{table.caption.165}%
+\contentsline {table}{\numberline {36}{\ignorespaces Selection filter applied to each candidate block}}{107}{table.caption.166}%
+\contentsline {table}{\numberline {37}{\ignorespaces Terms of the propagation equations}}{107}{table.caption.167}%
+\contentsline {table}{\numberline {38}{\ignorespaces Terms and parameters of the adequacy equations}}{108}{table.caption.168}%
+\contentsline {table}{\numberline {39}{\ignorespaces The eight H\'ELIOS campaign nodes}}{108}{table.caption.169}%
+\contentsline {table}{\numberline {40}{\ignorespaces The twelve calibrated engine events}}{109}{table.caption.170}%
+\contentsline {table}{\numberline {41}{\ignorespaces Final per-node snapshot of the arm A project}}{109}{table.caption.171}%
+\contentsline {table}{\numberline {42}{\ignorespaces The time block at turn 6}}{109}{table.caption.172}%
+\contentsline {table}{\numberline {43}{\ignorespaces What each research question returned}}{110}{table.caption.173}%
+\contentsline {table}{\numberline {44}{\ignorespaces The five contributions, measured and bounded}}{111}{table.caption.174}%
+\contentsline {table}{\numberline {45}{\ignorespaces The eight items of future work}}{112}{table.caption.175}%
+\contentsline {table}{\numberline {46}{\ignorespaces The frozen campaign rescored after repair, original-commitment target}}{113}{table.caption.177}%

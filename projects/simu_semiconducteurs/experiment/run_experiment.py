@@ -1043,7 +1043,14 @@ def cmd_prepare_tour(args: argparse.Namespace) -> int:
         for spec in scenario.NODES:
             node_id = spec["id"]
             texte = make_briefings.briefing(node_id, args.tour)
-            if args.arm in ARMS_AVEC_PREVISION and args.tour >= MIN_HISTORY_WEEKS:
+            if args.arm in ARMS_AVEC_PREVISION:
+                # Sans condition sur le tour : la validation de collect-tour exige
+                # « influence_prediction » des le tour 0 en bras predict, et c'est
+                # CETTE section qui le demande au declarant. La conditionner a
+                # MIN_HISTORY_WEEKS faisait refuser tous les tours du debut, pour
+                # un champ que la fiche n'avait jamais reclame.
+                # section_predictive(None) dit alors « pas assez d'historique » :
+                # « aucune » devient la reponse juste, pas un pis-aller.
                 texte += "\n\n" + section_predictive(par_noeud.get(node_id)) + "\n"
             print(f"  [fiche] {_ecrire_fiche(out, node_id, args.tour, texte)}")
     finally:

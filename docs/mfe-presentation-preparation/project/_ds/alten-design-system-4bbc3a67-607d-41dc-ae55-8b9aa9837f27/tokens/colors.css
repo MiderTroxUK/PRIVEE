@@ -1,0 +1,70 @@
+/* ALTEN — colour tokens. Values lifted verbatim from the PowerPoint theme
+   "Alten" (ppt/theme/theme1.xml) shipped in the 2024 / 2025 / 2026 templates. */
+:root{
+  /* ── Core brand ─────────────────────────────────────────────── */
+  --alten-navy:#063C67;          /* theme dk1 + accent3 — the brand colour */
+  --alten-navy-ink:#043962;      /* the exact navy used for slide TITLE text */
+  --alten-blue:#1D93C9;          /* theme accent4 — subtitles, links, icons */
+  --alten-blue-deep:#176F98;     /* theme accent6 */
+  --alten-blue-mid:#1470A1;      /* top stop of the 2026 cover gradient */
+  --alten-sky:#7ECBEE;           /* theme accent5 */
+  --alten-sky-pale:#B1DFF4;      /* emphasis words inside chapter titles */
+  --alten-yellow:#FFDA65;        /* theme accent1 (2025 / 2026 decks) */
+  --alten-gold:#FFC800;          /* theme accent1 in the 2026 A4 template */
+  --alten-white:#FFFFFF;         /* theme lt1 / lt2 */
+  --alten-grey:#858591;          /* theme dk2 */
+  --alten-grey-light:#C0C0C8;    /* theme accent2 — page numbers, rules */
+  --alten-black:#1D1D1B;         /* wordmark black in the slide masters */
+  --alten-link:#2980B6;          /* theme hlink / folHlink */
+
+  /* ── Logo-only colours (never used for UI) ──────────────────── */
+  --alten-logo-yellow:#FAEA27;
+  --alten-logo-red:#E52629;
+  --alten-logo-blue:#1B94D2;
+  --alten-logo-black:#020203;
+
+  /* ── Neutral surfaces observed in the templates ─────────────── */
+  --alten-grey-50:#F4F4F6;       /* "3 Columns Grey Background" panel */
+  --alten-grey-100:#E9E9ED;
+  --alten-grey-200:#D9D9DF;
+
+  /* ── Semantic aliases ───────────────────────────────────────── */
+  --text-title:var(--alten-navy-ink);
+  --text-body:var(--alten-navy);
+  --text-subtitle:var(--alten-blue);
+  --text-muted:var(--alten-grey);
+  --text-faint:var(--alten-grey-light);
+  --text-on-dark:var(--alten-white);
+  --text-on-dark-muted:var(--alten-sky);
+  --text-emphasis:var(--alten-sky-pale);
+
+  --surface-page:var(--alten-white);
+  --surface-panel:var(--alten-grey-50);
+  --surface-card:var(--alten-white);
+  --surface-navy:var(--alten-navy);
+  --surface-blue:var(--alten-blue);
+
+  --border-hairline:var(--alten-grey-light);
+  --border-strong:var(--alten-navy);
+
+  --accent-bar:var(--alten-navy);   /* the 6 pt rule down the left edge */
+  --accent-mark:var(--alten-yellow);
+  --link:var(--alten-link);
+  --link-hover:var(--alten-navy);
+
+  /* ── Signature gradients (exact stops from the templates) ───── */
+  /* Chapter / divider bar: navy → blue → yellow, 48 % midpoint */
+  --gradient-brand:linear-gradient(180deg,#063C67 0%,#1D93C9 48%,#FFDA65 100%); /* @kind color */
+  --gradient-brand-h:linear-gradient(90deg,#063C67 0%,#1D93C9 67%,#FFDA65 100%); /* @kind color */
+  /* "Chapter Gradient Background" full-slide wash */
+  --gradient-chapter:linear-gradient(90deg,#063C67 0%,#1D93C9 67%,#FFDA65 100%); /* @kind color */
+  /* "Blue background" layout: dark navy → navy → deep blue → navy */
+  --gradient-navy:linear-gradient(135deg,#031E34 0%,#063C67 34%,#176F98 62%,#063C67 100%); /* @kind color */
+  /* 2026 Reference-Project right-hand panel */
+  --gradient-panel:linear-gradient(90deg,#063C67 0%,#1D93C9 100%); /* @kind color */
+  /* 2026 cover wash */
+  --gradient-cover:linear-gradient(180deg,#1470A1 0%,#063C67 9%,#1D93C9 99%); /* @kind color */
+  /* Photo protection scrim used under cover titles */
+  --scrim-photo:linear-gradient(180deg,rgba(6,60,103,0) 0%,rgba(6,60,103,.72) 62%,rgba(6,60,103,.92) 100%); /* @kind color */
+  --scrim-navy-flat:rgba(6,60,103,.86); /* @kind color */
+}

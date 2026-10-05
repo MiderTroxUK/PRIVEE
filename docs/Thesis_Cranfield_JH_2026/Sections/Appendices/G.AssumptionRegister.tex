@@ -1,0 +1,192 @@
+%% ═══════════════════════════════════════════════════════════════════════════
+\section{Register of Modelling Assumptions}
+\label{app:assumptions}
+%% ═══════════════════════════════════════════════════════════════════════════
+
+A model is the set of commitments it makes, and those commitments are scattered through
+Section~\ref{sec:Methods} at the point where each first becomes necessary. This appendix
+collects them in one place so that a reader can weigh the whole set at once rather than
+reconstruct it, and so that the ones this work could not test are as visible as the ones it
+could.
+
+Three statuses are used, and the distinction between the last two is the one that matters.
+\emph{Tested} means the campaign produced evidence bearing on the assumption and
+Section~\ref{sec:Results} reports it. \emph{Testable, untested} means an experiment within
+reach of this design would bear on it and was not run, usually for want of events or time;
+these are recoverable and Section~\ref{sec:future_work} carries them. \emph{Outside this
+design} means no experiment this instrument can run would settle the question, so the
+assumption is load-bearing and permanent until the design changes; these are the ones that
+bound what the thesis may claim.
+
+\subsection{The register}
+
+Read down the status column first. It is the shorter question, and it decides how much
+weight the rest of the row can carry.
+
+\begin{longtable}{@{}p{0.5cm} p{4.1cm} p{2.0cm} p{7.6cm}@{}}
+\caption[Register of modelling assumptions]{Every modelling assumption, where it is stated,
+and what is known about it}
+\label{tab:assumptions} \\
+\toprule
+& \textbf{Assumption} & \textbf{Status} & \textbf{If it fails} \\
+\midrule
+\endfirsthead
+\multicolumn{4}{@{}l}{\small\itshape Table~\ref{tab:assumptions}, continued} \\
+\toprule
+& \textbf{Assumption} & \textbf{Status} & \textbf{If it fails} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+A1 & The six blocks are independent competing causes of rupture
+(Assumption~\ref{as:noisyor}, Section~\ref{sec:model_ur})
+& Tested
+& Correlated blocks double-count a shared cause and the aggregate overstates urgency. The
+direction is conservative: it errs towards alarm, never towards complacency.
+Section~\ref{sec:res_armA} reports the observed inter-block correlations. \\
+\addlinespace
+
+A2 & The blocks are exchangeable up to their weights $\omega_m$
+(Section~\ref{sec:model_ur})
+& Tested, and false in detail
+& $u_{\text{time}}$ is a frequentist probability and $u_{\text{cost}}$ an ordinal statement in
+cardinal dress; no transfer function makes them equally informative. The aggregate is
+therefore usable for ranking and for comparison against $U_d$, and is not a calibrated
+probability. This is the reason no Brier score is reported on $U_r$ itself. \\
+\addlinespace
+
+A3 & The declaration is sincere (Assumption~\ref{as:sincerity},
+Section~\ref{sec:model_adequacy})
+& Outside this design
+& Hidden risk stops measuring misperception and starts measuring what a declarant is willing
+to write down. The two demand opposite interventions and are indistinguishable in this data.
+Every behavioural reading in Section~\ref{sec:Results} rests on it. \\
+\addlinespace
+
+A4 & Language-model agents stand in for human declarants
+(Section~\ref{sec:methods_arms})
+& Outside this design
+& Every statement about declaration behaviour applies to that population and not to
+consultants. The mechanical findings are unaffected, since they concern code paths rather
+than declarants. \\
+\addlinespace
+
+A5 & Lead times are lognormal by default, parameterised by moments
+(Section~\ref{sec:model_mc})
+& Testable, untested
+& The tail of the completion-time distribution is misstated and $u_{\text{time}}$ with it.
+The law is configurable per node, and normal-clipped and triangular alternatives are
+implemented, so the sensitivity is measurable on frozen scenarios at low cost. \\
+\addlinespace
+
+A6 & Lead times are drawn independently across nodes
+(Section~\ref{sec:model_mc})
+& Outside this design
+& A common shock, an energy crisis or a regional closure, correlates delays that the
+simulation treats as independent, and the simulated completion distribution is too narrow.
+Nothing in the campaign scenario could separate this from ordinary variance. \\
+\addlinespace
+
+A7 & The arc coefficients $\beta_{ji}$ and $\gamma_{ik}$ are known constants
+(Section~\ref{sec:model_prop})
+& Testable, untested
+& Propagated urgency is misscaled. The coefficients are set by the scenario rather than
+estimated from data, and estimating them from observed co-movement of node states is the
+natural next study. \\
+\addlinespace
+
+A8 & Backup arcs carry neither propagation
+(Section~\ref{sec:model_prop})
+& Modelling choice, exercised
+& A network with a real alternative supplier reads as more exposed than it is. The choice is
+deliberate, since an unqualified backup is documentation rather than capacity, and the
+campaign scenario exploits it on purpose. \\
+\addlinespace
+
+A9 & The Prospect Theory parameters transfer to supply chain coordinators,
+$\lambda_{\text{under}} = 2.25$ and $\alpha = 0.88$
+(Section~\ref{sec:model_adequacy})
+& Testable, untested
+& The adequacy score is miscalibrated as a governance instrument, though its ordering is
+unaffected, since $A$ is monotone in the gap whatever the parameters
+(Proposition~\ref{prop:adequacy}(ii)). Both are configurable per project and neither is
+hard-coded. \\
+\addlinespace
+
+A10 & Local urgency follows a stationary AR(1)
+(Section~\ref{sec:methods_forecast})
+& Testable, untested
+& The projected urgency path is wrong in shape, and with it every $p_h$. Nineteen turns is
+short for a specification test, which is why the coefficient is clipped to $[0,0.98]$ rather
+than trusted. \\
+\addlinespace
+
+A11 & Weeks are independent Bernoulli trials for the adverse-event rate
+(Section~\ref{sec:methods_forecast})
+& Testable, untested
+& Clustered events, one incident producing three weeks of consequences, break independence
+and the Beta posterior understates uncertainty. The prior strength of $N_0 = 26$ dominates
+nineteen turns of data, which masks the effect here and would not on a longer campaign. \\
+\addlinespace
+
+A12 & The calibration service's outcome definition is the right target
+(Section~\ref{sec:methods_scoring})
+& Tested
+& Every score in this thesis moves. This is the one assumption whose failure was measured
+rather than argued: Section~\ref{sec:res_target_trap} scores identical forecasts against
+three definitions and finds a spread wider than any modelling decision taken in this work. \\
+
+\end{longtable}
+
+\subsection{What the register says when read as a whole}
+
+Twelve assumptions, of which three are tested, five are testable and untested, one is a
+declared modelling choice, and three sit outside what this design can reach. That last group is the honest statement of the thesis's
+boundary, and it has a shape: A3 and A4 both concern the declarant, and A6 concerns
+correlation between nodes. What the instrument cannot see is people and common causes,
+which is to say the two things a supply chain is made of besides its arithmetic.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[x=1cm, y=1cm, font=\scriptsize,
+    st/.style = {minimum width=0.85cm, minimum height=0.85cm, draw=altenNavy,
+                 line width=0.6pt, font=\scriptsize\bfseries}]
+
+\node[titreBande, text width=3.2cm] at (2.0, 2.3) {tested};
+\node[titreBande, text width=3.6cm] at (6.4, 2.3) {testable, untested};
+\node[titreBande, text width=2.4cm] at (10.3, 2.3) {choice};
+\node[titreBande, text width=3.4cm] at (13.0, 2.3) {outside this design};
+
+\foreach \n/\x in {A1/1.0, A2/2.0, A12/3.0}
+  \node[st, fill=altenAzure!30] at (\x, 1.5) {\n};
+\foreach \n/\x in {A5/5.0, A7/6.0, A9/7.0, A10/8.0, A11/9.0}
+  \node[st, fill=altenBlueBg] at (\x, 1.5) {\n};
+\node[st, fill=white] at (10.3, 1.5) {A8};
+\foreach \n/\x in {A3/12.2, A4/13.2, A6/14.2}
+  \node[st, fill=altenOchrePale] at (\x, 1.5) {\n};
+
+\node[etiquette, anchor=north, text width=3.0cm] at (2.0, 0.9) {3};
+\node[etiquette, anchor=north, text width=3.0cm] at (7.0, 0.9) {5};
+\node[etiquette, anchor=north, text width=3.0cm] at (10.3, 0.9) {1};
+\node[etiquette, anchor=north, text width=3.0cm] at (13.2, 0.9) {3};
+
+\draw[decorate, decoration={brace, amplitude=4pt, mirror}, draw=altenOchreDark]
+     (11.7, 0.55) -- (14.7, 0.55);
+\node[etiquette, anchor=north, text width=5.4cm, text=altenOchreDark] at (13.2, 0.25)
+     {A3 and A4 concern the declarant, A6 concerns correlation between nodes: people and
+      common causes};
+
+\end{tikzpicture}
+\caption[The shape of the register]{Twelve assumptions sorted by status. The three on the
+right are what bounds the thesis, and they have a shape: the instrument cannot see people, and
+it cannot see a cause acting on several nodes at once.}
+\label{fig:register_shape}
+\end{figure}
+
+
+That is not a reason to distrust the measurements reported here. It is the reason they are
+reported as measurements of a mechanism rather than as estimates of a rate, and the reason
+Section~\ref{sec:future_work} asks first for a human campaign rather than for a larger
+simulated one. A larger simulated campaign would tighten every interval in
+Section~\ref{sec:res_power} and would move none of the three above.

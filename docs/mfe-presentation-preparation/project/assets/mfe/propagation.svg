@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1206 308" preserveAspectRatio="xMidYMid meet" width="1206" height="308" role="img" aria-labelledby="prop-title prop-desc" font-family="Calibri,Carlito,Arial,sans-serif">
+<title id="prop-title">Propagation in both directions across four tiers</title>
+<desc id="prop-desc">The declaration descends from the customer through the tiers, attenuated by gamma. The computed risk ascends from raw material back up, attenuated by beta. Same law, opposite travel.</desc>
+
+<!-- Tiers -->
+<g id="tiers">
+<g id="tier-0" role="img"><title>Customer, final assembly: tier 0</title>
+<rect id="tier-0-card" x="220" y="3" width="766" height="56" fill="#E9F5FB"/>
+<rect id="tier-0-rule" x="220" y="3" width="6" height="56" fill="#1D93C9"/>
+<text id="tier-0-text" x="242" y="38" font-size="20" fill="#063C67"><tspan font-weight="700">Customer</tspan><tspan> · final assembly</tspan></text>
+<text id="tier-0-tag" x="964" y="38" text-anchor="end" font-family="Arial,Arimo,sans-serif" font-size="16" font-weight="700" letter-spacing="1.92" fill="#1D93C9">TIER 0</text>
+</g>
+<g id="tier-1" role="img"><title>Tier 1, systems</title>
+<rect id="tier-1-card" x="220" y="85" width="766" height="56" fill="#E9F5FB"/>
+<rect id="tier-1-rule" x="220" y="85" width="6" height="56" fill="#1D93C9"/>
+<text id="tier-1-text" x="242" y="120" font-size="20" fill="#063C67"><tspan font-weight="700">Tier 1</tspan><tspan> · systems</tspan></text>
+<text id="tier-1-tag" x="964" y="120" text-anchor="end" font-family="Arial,Arimo,sans-serif" font-size="16" font-weight="700" letter-spacing="1.92" fill="#1D93C9">TIER 1</text>
+</g>
+<g id="tier-2" role="img"><title>Tier 2, subassemblies</title>
+<rect id="tier-2-card" x="220" y="167" width="766" height="56" fill="#E9F5FB"/>
+<rect id="tier-2-rule" x="220" y="167" width="6" height="56" fill="#1D93C9"/>
+<text id="tier-2-text" x="242" y="202" font-size="20" fill="#063C67"><tspan font-weight="700">Tier 2</tspan><tspan> · subassemblies</tspan></text>
+<text id="tier-2-tag" x="964" y="202" text-anchor="end" font-family="Arial,Arimo,sans-serif" font-size="16" font-weight="700" letter-spacing="1.92" fill="#1D93C9">TIER 2</text>
+</g>
+<g id="tier-n" role="img"><title>Tier 3 to tier n, raw material</title>
+<rect id="tier-n-card" x="220" y="249" width="766" height="56" fill="#E9F5FB"/>
+<rect id="tier-n-rule" x="220" y="249" width="6" height="56" fill="#1D93C9"/>
+<text id="tier-n-text" x="242" y="284" font-size="20" fill="#063C67"><tspan font-weight="700">Tier 3 … Tier n</tspan><tspan> · raw material</tspan></text>
+<text id="tier-n-tag" x="964" y="284" text-anchor="end" font-family="Arial,Arimo,sans-serif" font-size="16" font-weight="700" letter-spacing="1.92" fill="#1D93C9">TIER N</text>
+</g>
+</g>
+
+<!-- Gamma: leaves the customer and lands on every tier below it. The rail is what makes
+     this a propagation and not three unrelated arrowheads. -->
+<g id="rail-gamma" role="img"><title>Gamma: the declaration descends from the customer to every tier below</title>
+<path id="gamma-spine" d="M220 31 H196 V277" fill="none" stroke="#1D93C9" stroke-width="2"/>
+<path id="gamma-stubs" d="M196 113 H210 M196 195 H210 M196 277 H210" fill="none" stroke="#1D93C9" stroke-width="2"/>
+<polygon id="gamma-head-1" points="210,107 220,113 210,119" fill="#1D93C9"/>
+<polygon id="gamma-head-2" points="210,189 220,195 210,201" fill="#1D93C9"/>
+<polygon id="gamma-head-n" points="210,271 220,277 210,283" fill="#1D93C9"/>
+</g>
+
+<!-- Beta: leaves raw material and lands on every tier above it. -->
+<g id="rail-beta" role="img"><title>Beta: the computed risk ascends from raw material to every tier above</title>
+<path id="beta-spine" d="M986 277 H1010 V31" fill="none" stroke="#FFC800" stroke-width="2"/>
+<path id="beta-stubs" d="M1010 195 H996 M1010 113 H996 M1010 31 H996" fill="none" stroke="#FFC800" stroke-width="2"/>
+<polygon id="beta-head-2" points="996,189 986,195 996,201" fill="#FFC800"/>
+<polygon id="beta-head-1" points="996,107 986,113 996,119" fill="#FFC800"/>
+<polygon id="beta-head-0" points="996,25 986,31 996,37" fill="#FFC800"/>
+</g>
+
+<!-- Gamma sits at the top left because it descends; beta at the bottom right because it
+     ascends. The labels are where each signal enters the chain. -->
+<g id="legend-gamma" role="img"><title>Gamma, declaration descends: demand pressure is what a customer transmits</title>
+<text id="gamma-glyph" x="85" y="40" text-anchor="middle" font-family="'Arial Black','Archivo Black',Arial,sans-serif" font-weight="700" font-size="40" fill="#1D93C9">γ</text>
+<text id="gamma-eyebrow" x="85" y="66" text-anchor="middle" font-family="Arial,Arimo,sans-serif" font-size="16" font-weight="700" letter-spacing="1.92" fill="#1D93C9">DECLARATION<tspan x="85" y="86">DESCENDS</tspan></text>
+<text id="gamma-caption" x="85" y="114" text-anchor="middle" font-size="16" fill="#4A4A55">Demand pressure is<tspan x="85" y="134">what a customer</tspan><tspan x="85" y="154">transmits</tspan></text>
+</g>
+<g id="legend-beta" role="img"><title>Beta, computed risk ascends: physical risk is what a supplier transmits</title>
+<text id="beta-glyph" x="1121" y="186" text-anchor="middle" font-family="'Arial Black','Archivo Black',Arial,sans-serif" font-weight="700" font-size="40" fill="#B08800">β</text>
+<text id="beta-eyebrow" x="1121" y="212" text-anchor="middle" font-family="Arial,Arimo,sans-serif" font-size="16" font-weight="700" letter-spacing="1.92" fill="#B08800">COMPUTED RISK<tspan x="1121" y="232">ASCENDS</tspan></text>
+<text id="beta-caption" x="1121" y="260" text-anchor="middle" font-size="16" fill="#4A4A55">Physical risk is<tspan x="1121" y="280">what a supplier</tspan><tspan x="1121" y="300">transmits</tspan></text>
+</g>
+</svg>

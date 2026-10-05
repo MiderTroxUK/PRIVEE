@@ -89,70 +89,6 @@
       \field{title}{An extended hybrid fuzzy multi-criteria decision model for sustainable and resilient supplier selection}
       \field{year}{2022}
     \endentry
-    \entry{amiri2020new}{article}{}{}
-      \name{author}{6}{}{%
-        {{un=0,uniquepart=base,hash=99866c8b1e6b31c347c045a8677109ce}{%
-           family={Amiri},
-           familyi={A\bibinitperiod},
-           given={Maghsoud},
-           giveni={M\bibinitperiod},
-           givenun=0}}%
-        {{un=0,uniquepart=base,hash=c805a2c3e7f527aef1832020e486d271}{%
-           family={Hashemi-Tabatabaei},
-           familyi={H\bibinithyphendelim T\bibinitperiod},
-           given={Mohammad},
-           giveni={M\bibinitperiod},
-           givenun=0}}%
-        {{un=0,uniquepart=base,hash=d5e7ce2f5152a8bb3c07f864a53e9d62}{%
-           family={Ghahremanloo},
-           familyi={G\bibinitperiod},
-           given={Mehdi},
-           giveni={M\bibinitperiod},
-           givenun=0}}%
-        {{un=0,uniquepart=base,hash=7cfaf5c3a9e1518c7cc079d335112bd8}{%
-           family={Keshavarz-Ghorabaee},
-           familyi={K\bibinithyphendelim G\bibinitperiod},
-           given={Mehdi},
-           giveni={M\bibinitperiod},
-           givenun=0}}%
-        {{un=0,uniquepart=base,hash=9e136d86ea5b21239d062a89e0402800}{%
-           family={Zavadskas},
-           familyi={Z\bibinitperiod},
-           given={Edmundas\bibnamedelima Kazimieras},
-           giveni={E\bibinitperiod\bibinitdelim K\bibinitperiod},
-           givenun=0}}%
-        {{un=0,uniquepart=base,hash=657f563a724d49a72630945344d9ccc0}{%
-           family={Banaitis},
-           familyi={B\bibinitperiod},
-           given={Audrius},
-           giveni={A\bibinitperiod},
-           givenun=0}}%
-      }
-      \strng{namehash}{93b0a3f9054af944ae3db82dfaa3e655}
-      \strng{fullhash}{30f97c12aad4164ca786ea4b50fd570c}
-      \strng{fullhashraw}{30f97c12aad4164ca786ea4b50fd570c}
-      \strng{bibnamehash}{93b0a3f9054af944ae3db82dfaa3e655}
-      \strng{authorbibnamehash}{93b0a3f9054af944ae3db82dfaa3e655}
-      \strng{authornamehash}{93b0a3f9054af944ae3db82dfaa3e655}
-      \strng{authorfullhash}{30f97c12aad4164ca786ea4b50fd570c}
-      \strng{authorfullhashraw}{30f97c12aad4164ca786ea4b50fd570c}
-      \field{sortinit}{A}
-      \field{sortinithash}{2f401846e2029bad6b3ecc16d50031e2}
-      \field{extradatescope}{labelyear}
-      \field{labeldatesource}{}
-      \field{labelnamesource}{author}
-      \field{labeltitlesource}{title}
-      \field{journaltitle}{International Journal of Sustainable Development \& World Ecology}
-      \field{number}{6}
-      \field{title}{A New Fuzzy Best-Worst Method and Its Application in a Sustainable Supplier Selection Problem}
-      \field{volume}{27}
-      \field{year}{2020}
-      \field{pages}{481\bibrangedash 496}
-      \range{pages}{16}
-      \verb{doi}
-      \verb 10.1080/13504509.2020.1731786
-      \endverb
-    \endentry
     \entry{baker1982dynamic}{article}{}{}
       \name{author}{2}{}{%
         {{un=0,uniquepart=base,hash=96bc7e2b2530c66a64b72b783d82930f}{%
@@ -388,58 +324,6 @@
       \range{pages}{11}
       \verb{doi}
       \verb 10.1016/j.ecolind.2017.03.056
-      \endverb
-    \endentry
-    \entry{behzadian2010promethee}{article}{}{}
-      \name{author}{4}{}{%
-        {{un=0,uniquepart=base,hash=3d8c2cbaf7ec809e56b78dd192673b14}{%
-           family={Behzadian},
-           familyi={B\bibinitperiod},
-           given={Majid},
-           giveni={M\bibinitperiod},
-           givenun=0}}%
-        {{un=0,uniquepart=base,hash=046e2b510564e734900c64ee538af92c}{%
-           family={Kazemzadeh},
-           familyi={K\bibinitperiod},
-           given={R.\bibnamedelimi B.},
-           giveni={R\bibinitperiod\bibinitdelim B\bibinitperiod},
-           givenun=0}}%
-        {{un=0,uniquepart=base,hash=903059bf87a5207803aa055db7d83de7}{%
-           family={Albadvi},
-           familyi={A\bibinitperiod},
-           given={Amir},
-           giveni={A\bibinitperiod},
-           givenun=0}}%
-        {{un=0,uniquepart=base,hash=f21845d95bbf702b70f63a3cab865d62}{%
-           family={Aghdasi},
-           familyi={A\bibinitperiod},
-           given={Mohammad},
-           giveni={M\bibinitperiod},
-           givenun=0}}%
-      }
-      \strng{namehash}{6624f58f1c3396a9e96a3a00539bc290}
-      \strng{fullhash}{8eee6d35a93838a46328c21e457a2546}
-      \strng{fullhashraw}{8eee6d35a93838a46328c21e457a2546}
-      \strng{bibnamehash}{6624f58f1c3396a9e96a3a00539bc290}
-      \strng{authorbibnamehash}{6624f58f1c3396a9e96a3a00539bc290}
-      \strng{authornamehash}{6624f58f1c3396a9e96a3a00539bc290}
-      \strng{authorfullhash}{8eee6d35a93838a46328c21e457a2546}
-      \strng{authorfullhashraw}{8eee6d35a93838a46328c21e457a2546}
-      \field{sortinit}{B}
-      \field{sortinithash}{d7095fff47cda75ca2589920aae98399}
-      \field{extradatescope}{labelyear}
-      \field{labeldatesource}{}
-      \field{labelnamesource}{author}
-      \field{labeltitlesource}{title}
-      \field{journaltitle}{European Journal of Operational Research}
-      \field{number}{1}
-      \field{title}{{PROMETHEE}: A Comprehensive Literature Review on Methodologies and Applications}
-      \field{volume}{200}
-      \field{year}{2010}
-      \field{pages}{198\bibrangedash 215}
-      \range{pages}{18}
-      \verb{doi}
-      \verb 10.1016/j.ejor.2009.01.021
       \endverb
     \endentry
     \entry{bellotti2013framework}{article}{}{}
@@ -4809,6 +4693,40 @@
       \verb 10.1016/j.procir.2020.04.073
       \endverb
     \endentry
+    \entry{wilson1927probable}{article}{}{}
+      \name{author}{1}{}{%
+        {{un=0,uniquepart=base,hash=97c17720b08538db4ed8190a1c7bee58}{%
+           family={Wilson},
+           familyi={W\bibinitperiod},
+           given={Edwin\bibnamedelima B.},
+           giveni={E\bibinitperiod\bibinitdelim B\bibinitperiod},
+           givenun=0}}%
+      }
+      \strng{namehash}{97c17720b08538db4ed8190a1c7bee58}
+      \strng{fullhash}{97c17720b08538db4ed8190a1c7bee58}
+      \strng{fullhashraw}{97c17720b08538db4ed8190a1c7bee58}
+      \strng{bibnamehash}{97c17720b08538db4ed8190a1c7bee58}
+      \strng{authorbibnamehash}{97c17720b08538db4ed8190a1c7bee58}
+      \strng{authornamehash}{97c17720b08538db4ed8190a1c7bee58}
+      \strng{authorfullhash}{97c17720b08538db4ed8190a1c7bee58}
+      \strng{authorfullhashraw}{97c17720b08538db4ed8190a1c7bee58}
+      \field{sortinit}{W}
+      \field{sortinithash}{4315d78024d0cea9b57a0c6f0e35ed0d}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Journal of the American Statistical Association}
+      \field{number}{158}
+      \field{title}{Probable Inference, the Law of Succession, and Statistical Inference}
+      \field{volume}{22}
+      \field{year}{1927}
+      \field{pages}{209\bibrangedash 212}
+      \range{pages}{4}
+      \verb{doi}
+      \verb 10.1080/01621459.1927.10502953
+      \endverb
+    \endentry
     \entry{xia2018dota}{inproceedings}{}{}
       \name{author}{9}{}{%
         {{un=0,uniquepart=base,hash=44ba9e336d73385ab4b9ce6084bf825c}{%
@@ -4885,75 +4803,6 @@
       \field{year}{2018}
       \verb{doi}
       \verb 10.1109/CVPR.2018.00418
-      \endverb
-    \endentry
-    \entry{Yuc18}{article}{}{}
-      \name{author}{5}{}{%
-        {{un=0,uniquepart=base,hash=119642eccf05ff0f90d227454ee79dcf}{%
-           family={Yucesan},
-           familyi={Y\bibinitperiod},
-           given={Melih},
-           giveni={M\bibinitperiod},
-           givenun=0}}%
-        {{un=0,uniquepart=base,hash=b2193dbfc739a5eded3f47396092920a}{%
-           family={Mete},
-           familyi={M\bibinitperiod},
-           given={Suleyman},
-           giveni={S\bibinitperiod},
-           givenun=0}}%
-        {{un=0,uniquepart=base,hash=ded9436b2db8c8c3a37bff96867b0923}{%
-           family={Serin},
-           familyi={S\bibinitperiod},
-           given={Faruk},
-           giveni={F\bibinitperiod},
-           givenun=0}}%
-        {{un=0,uniquepart=base,hash=3686ae99cfef507154125bbf99d13959}{%
-           family={Celik},
-           familyi={C\bibinitperiod},
-           given={Erkan},
-           giveni={E\bibinitperiod},
-           givenun=0}}%
-        {{un=0,uniquepart=base,hash=962249b1514a396fd3cf3524b6a9cb59}{%
-           family={Gul},
-           familyi={G\bibinitperiod},
-           given={Muhammet},
-           giveni={M\bibinitperiod},
-           givenun=0}}%
-      }
-      \list{publisher}{1}{%
-        {MDPI AG}%
-      }
-      \strng{namehash}{211c7eed3284e989ff50b5d3cfbd6a0c}
-      \strng{fullhash}{8c4b3e5c352f6fa18b2f9b568a6aee9e}
-      \strng{fullhashraw}{8c4b3e5c352f6fa18b2f9b568a6aee9e}
-      \strng{bibnamehash}{211c7eed3284e989ff50b5d3cfbd6a0c}
-      \strng{authorbibnamehash}{211c7eed3284e989ff50b5d3cfbd6a0c}
-      \strng{authornamehash}{211c7eed3284e989ff50b5d3cfbd6a0c}
-      \strng{authorfullhash}{8c4b3e5c352f6fa18b2f9b568a6aee9e}
-      \strng{authorfullhashraw}{8c4b3e5c352f6fa18b2f9b568a6aee9e}
-      \field{sortinit}{Y}
-      \field{sortinithash}{fd67ad5a9ef0f7456bdd9aab10fe1495}
-      \field{extradatescope}{labelyear}
-      \field{labeldatesource}{}
-      \field{labelnamesource}{author}
-      \field{labeltitlesource}{title}
-      \field{issn}{2227-7390}
-      \field{journaltitle}{Mathematics}
-      \field{month}{2}
-      \field{number}{2}
-      \field{title}{An Integrated Best-Worst and Interval Type-2 Fuzzy TOPSIS Methodology for Green Supplier Selection}
-      \field{volume}{7}
-      \field{year}{2019}
-      \field{pages}{182}
-      \range{pages}{1}
-      \verb{doi}
-      \verb 10.3390/math7020182
-      \endverb
-      \verb{urlraw}
-      \verb http://dx.doi.org/10.3390/math7020182
-      \endverb
-      \verb{url}
-      \verb http://dx.doi.org/10.3390/math7020182
       \endverb
     \endentry
     \entry{Zhe20}{article}{}{}

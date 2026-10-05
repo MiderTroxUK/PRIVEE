@@ -1,0 +1,74 @@
+%% Volet parallele : estimer la capacite d'un entrepot par imagerie
+%% satellite, appele depuis la section 7.3.
+
+\section{Capacity Observed Rather Than Declared}
+\label{app:imagerie}
+
+The whole measurement rests on the hypothesis stated in
+Section~\ref{sec:realisation_experience}: that the weekly review is a sincere report, so the
+indicators it carries and the urgency the same operator declares are two quantities rather
+than one. The first campaign made it worth putting at least one of those indicators beyond
+the declarant's reach altogether.
+
+A second system was built alongside the main work to do exactly that: it
+estimates the physical capacity of a warehouse from public satellite imagery, an observation
+no operator supplies and none can bias. The two have not been connected, and no claim is made
+that they have.
+
+\subsection*{A physical limit, established by measurement}
+
+The original objective was to count loading docks, and it cannot be done from a nadir view.
+An empty dock door under a canopy produces no signal from directly overhead: measured contrast
+at verified empty bays is $0.18\sigma$, $0.22\sigma$ and $0.01\sigma$ across a full sweep of
+assumed depths, while occupied bays on the same facades register between $5.3\sigma$ and
+$6.4\sigma$. The instrument is sensitive enough; the signal is absent. On 8~cm imagery the
+doors stay equally invisible, which locates the cause in occlusion by the canopy roof rather
+than in resolution: a gain of $2.5\times$ in ground sample distance recovers no additional
+door.
+
+Any method claiming to count empty doors one by one from overhead is therefore recovering an
+artefact. Reaching that conclusion cost three weeks and saved the workstream from optimising a
+quantity that is not in the image.
+
+\subsection*{The reframing, and what actually moved the model}
+
+The problem was restated as one the imagery can answer: delimit the equipped facade zone, and
+derive the dock count from its length against a measured pitch. A segmentation model was
+trained on hand-annotated imagery across four runs (Figure~\ref{fig:volume_training}).
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.86\linewidth]{Images/volume_training.pdf}
+    \caption[Segmentation training: data helped, resolution did not]{Validation mask
+    mAP50-95 across the four training runs. Quadrupling the annotated set roughly doubled the
+    score; doubling the input resolution at a fixed data budget made every metric worse.}
+    \label{fig:volume_training}
+\end{figure}
+
+Annotated volume drove the gain: quadrupling the training set from 86 to 351 images took mask
+mAP50-95 from $0.155$ to $0.305$. Resolution did not. Run~4 is identical to run~3 except for a
+doubled input size and is worse on every metric, because at a fixed data budget on a CPU-only
+allowance the extra pixels cost more than they bought. The remaining work is therefore data
+collection, not architecture search.
+
+What is scored also had to change. Detection metrics measure shape overlap, but capacity
+depends only on the length of the equipped zone, and a polygon drawn too deep still yields the
+correct count. The project scores itself on the error in the derived count rather than on mAP.
+On the reference run that gives a global bias of $-35\%$, a median error of $62\%$ on images
+containing docks, and $89\%$ of true negatives correctly left empty: directionally useful, not
+yet trustworthy, which is why it appears in Section~\ref{sec:perspectives} rather than in the
+delivered scope.
+
+\subsection*{An annotation supplier that reported its own work as verified}
+
+An automated third-party annotation process returned 442 annotations and reported its own
+output as verified and complete. It was unusable: it had placed a dock zone along every edge
+of every building without examining the imagery, then subdivided each zone at the nominal
+pitch, giving an implausible $88\%$ positive rate. All of it was discarded and the dataset
+re-annotated by hand; an audit of the manual work found 11 problems across 687 zones, a defect
+rate of $1.6\%$.
+
+Checking cost one afternoon. Not checking would have cost a model trained to reproduce a
+fiction, and every downstream number with it. The same discipline rejected a synthetic
+logistics dataset in Section~\ref{sec:methode} and produced the baseline comparison of
+Section~\ref{sec:temoin}.

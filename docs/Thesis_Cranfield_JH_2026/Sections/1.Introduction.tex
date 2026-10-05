@@ -3,45 +3,27 @@
 \label{sec:intro_context}
 %% ─────────────────────────────────────────────────────────────────────────
 
-Supply chain planning has become a multi-dimensional assessment problem. An operator
-deciding which of two late shipments to expedite is simultaneously weighing cost, deadline
-pressure, supplier reliability and, increasingly, carbon footprint, while most monitoring
-and planning tools still process one criterion at a
-time~\autocite{pinedo2012scheduling,chakrabortty2020efficient}. That mismatch between the
-dimensionality of the decision and the dimensionality of the tooling is precisely why
-practitioners fall back on judgment-based prioritisation, and why the quality of that
-judgment has become an engineering concern rather than a purely human one.
+Supply chain planning is a multi-dimensional assessment problem. An operator deciding which
+of two late shipments to expedite weighs cost, deadline pressure, supplier reliability and,
+increasingly, carbon footprint, while most monitoring tools still process one criterion at a
+time~\autocite{pinedo2012scheduling,chakrabortty2020efficient}. Practitioners close the gap
+with judgement, which is why the quality of that judgement is an engineering concern.
 
-This thesis was produced during an R\&D placement in the \gls{din} of the ALTEN Group, which
-conducts applied research where digital twin technology, logistics optimisation and
-sustainable transport meet. Its Smart Green Supply Chain
-programme~\autocite{benzakour2024history} pursues three aims at once. The lean aim attacks
-waste, meaning cost, delay and over-stock, through pull-flow logic and real-time scheduling.
-The green aim attacks the carbon footprint of each transport leg, working to the \gls{glec}
-Framework v3.2~\autocite{smartfreight2023glec} and ISO~14083:2023~\autocite{iso14083}. The
-predictive aim is the one this thesis sits inside: anticipating disruption through
-probabilistic modelling, in the manner of a digital supply chain
-twin~\autocite{ivanov2020digital}.
+This thesis was produced during an R\&D placement in the \gls{din} of the ALTEN Group, whose
+Smart Green Supply Chain programme~\autocite{benzakour2024history} pursues three aims: lean,
+attacking cost, delay and over-stock; green, attacking the carbon footprint of each transport
+leg to the \gls{glec} Framework v3.2~\autocite{smartfreight2023glec} and
+ISO~14083:2023~\autocite{iso14083}; and predictive, anticipating disruption through
+probabilistic modelling in the manner of a digital supply chain
+twin~\autocite{ivanov2020digital}. This work sits inside the third, against the
+Industry~4.0 premise that cyber-physical systems and digital twins can turn a reactive supply
+chain into a self-organising one~\autocite{kagermann2013industry}.
 
-Behind all three is Industry~4.0~\autocite{kagermann2013industry}, and its promise that
-cyber-physical systems, the \gls{iot} and digital twins can turn a reactive supply chain into
-a self-organising one. The Physical Internet~\autocite{montreuil2011toward} supplies the
-setting for the simulation environment used here, since it imagines logistics networks that
-route shipments through shared infrastructure the way a network routes packets.
-
-%% ─────────────────────────────────────────────────────────────────────────
-\subsection{The DISCO Digital Twin and Prior Research at ALTEN-DIN}
 \label{sec:intro_disco}
-%% ─────────────────────────────────────────────────────────────────────────
-
-DISCO, the Supply Chain Illustrator, is a serious game and digital twin developed by the
-DIN to simulate a complete supply chain for a fictitious satellite product. It involves 22
-component suppliers across structural assemblies, optical systems and embedded
-electronics~\autocite{baxas2025architecture}. Players take the role of supply chain buyers
-and decide on supplier selection, transport routes and factory allocation.
-Figure~\ref{fig:disco_map} shows the supplier network they work with and the three
-dimensions their decisions are scored on, and Table~\ref{tab:disco_stack} summarises the
-technology stack underneath it.
+The programme's existing platform, DISCO, is a serious game and digital twin simulating a
+complete supply chain for a fictitious satellite product across 22 component
+suppliers~\autocite{baxas2025architecture}. Players act as supply chain buyers and decide
+supplier selection, transport routes and factory allocation.
 
 \begin{figure}[htbp]
     \centering
@@ -62,82 +44,44 @@ session, illustrated here on the carbon dimension:
 with analogous formulae for cost and risk, on a scale from 1 for the best achievable
 performance to 10 for the worst.
 
-\begin{table}[htbp]
-\centering
-\caption{DISCO technology stack}
-\label{tab:disco_stack}
-\begin{tabularx}{\linewidth}{lX}
-\toprule
-\textbf{Component} & \textbf{Technology / Value} \\
-\midrule
-Backend API    & Spring Boot + Java~21 \\
-Database       & PostgreSQL (Azure) \\
-Frontend       & Angular \\
-Authentication & Player key / Azure AD SSO OAuth2 \\
-Scores computed & CO\textsubscript{2}, Cost, Risk per supplier and itinerary, on $[1,10]$ \\
-\bottomrule
-\end{tabularx}
-\end{table}
+This work sits within a body of prior DIN research. \textcite{baxas2025architecture} defines
+the DISCO software architecture including the \gls{tts} and \gls{ttr} formalisation;
+\textcite{baulain2024internet} developed the Physical Internet routing module, with transit
+times through the HERE Maps API, Vincenty distances, mandatory \gls{hgv} pause compliance and
+the \gls{ipg}; \textcite{kabouche2025scoring} the supplier risk
+scorer combining delay history, geographic vulnerability and financial fragility;
+\textcite{cordova2024green} the per-route CO\textsubscript{2} quantification module on the GLEC
+and VECTO methodology; and \textcite{mondelice2025tms} the Transport Management System
+interface providing real-time transit-time extraction. The system delivered here, SupplyScore,
+is a standalone Python application that runs alongside these modules rather than inside them.
+Their coupling is a stated perspective of the programme, not a delivered capability, and this
+thesis makes no claim to the contrary.
 
-This work sits within a body of prior DIN research. \textcite{baxas2025architecture}
-defines the DISCO software architecture including the \gls{tts} and \gls{ttr}
-formalisation. \textcite{baulain2024internet} developed the Physical
-Internet routing module, providing transit times through the HERE Maps API with Vincenty
-distances and mandatory \gls{hgv} pause compliance, together with the Itinerary
-Performance Index (\gls{ipg}) normalised on $[0,1]$.
-\textcite{kabouche2025scoring} developed the supplier risk scorer combining delay
-history, geographic vulnerability and financial fragility.
-\textcite{cordova2024green} developed the per-route CO\textsubscript{2}
-quantification module using the GLEC and VECTO methodology.
-\textcite{mondelice2025tms} developed the Transport Management System interface
-providing real-time transit-time extraction.
-
-These works form the organisational and thematic context of the present research. The
-system delivered here, named SupplyScore and described in Section~\ref{sec:methods_impl},
-is a standalone Python application that runs alongside these modules rather than inside
-them. Their coupling is a stated perspective of the programme, not a delivered capability,
-and this thesis makes no claim to the contrary.
-
+%% ─────────────────────────────────────────────────────────────────────────
 %% ─────────────────────────────────────────────────────────────────────────
 \subsection{Problem Statement}
 \label{sec:intro_problem}
 %% ─────────────────────────────────────────────────────────────────────────
 
-This thesis addresses the layer that comes \emph{before} any planning or scheduling
-decision, and which the classical literature has not fully investigated: the urgency
-signal itself is systematically biased at the source, and must be measured and corrected
-before it can safely inform any downstream
-decision~\autocite{zhu2018mere,rusou2020psychology}.
-
-The consequences are worse where capacity is shared. In an interconnected network, a biased
-urgency signal does not stay local: it propagates, and misallocation grows as it travels.
-Over-triage, declaring more urgency than the situation warrants, takes capacity from
-whoever needed it more. Under-triage does the opposite and is more dangerous, because a risk
-nobody has declared is a risk nobody is
+This thesis addresses the layer that comes \emph{before} any planning decision: the urgency
+signal is systematically biased at the source, and must be measured before it can safely
+inform anything downstream~\autocite{zhu2018mere,rusou2020psychology}. Where capacity is
+shared the bias does not stay local. Over-triage takes capacity from whoever needed it more;
+under-triage is worse, because a risk nobody has declared is a risk nobody is
 watching~\autocite{li2020exploring,ivanov2020digital}.
 
-Digital twin architectures and real-time decision support systems have demonstrated strong
-capabilities in operational monitoring, disruption detection, resource reallocation and
-order synchronisation~\autocite{ding2023realtime,leung2022digital,hrusovsky2021realtime,karam2022realtime,zhu2025industry5}.
-They do so primarily by computing the physical operational state of the system. To the
-best of the review presented in Section~\ref{sec:Literature}, existing systems do not
-explicitly model the gap between a declared urgency and a computed operational urgency.
-
-Figure~\ref{fig:urgency_gap} shows what that gap looks like over the life of a task. Two
-curves are plotted against time. The step line is declared urgency, which moves only when
-the operator submits a review, and the smooth curve is real urgency, which moves as the
-operational state does. Reading left to right, the figure passes through four phases: the
-two signals agree, then a first adequacy defect opens, then a second defect of the opposite
-sign, then agreement returns. Shading tells the two defects apart. Where the step line sits
-above the curve the operator is claiming more urgency than the state justifies, and the
-enclosed area is false urgency. Where the curve sits above the step line the state is worse
-than anyone has declared, and the enclosed area is hidden risk. Leader lines pointing at a
-curve label that signal; leader lines pointing into a shaded area label the gap between
-them.
+Digital twins and real-time decision support are strong at operational monitoring, disruption
+detection and resource
+reallocation~\autocite{ding2023realtime,leung2022digital,hrusovsky2021realtime,karam2022realtime,zhu2025industry5},
+and they do it by computing the physical state. To the best of the review in
+Section~\ref{sec:Literature}, none models the gap between a declared urgency and a computed
+one. Figure~\ref{fig:urgency_gap} shows that gap over the life of a task: where the declared
+step sits above the computed curve the operator claims more urgency than the state justifies,
+and where the curve sits above the step the state is worse than anyone has declared.
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=0.82\linewidth]{Images/2.Problem/urgency_gap.png}
+    \includegraphics[width=\linewidth]{Images/2.Problem/urgency_gap_en.png}
     \caption{Declared and real urgency, and the two mismatch pathologies}
     \label{fig:urgency_gap}
 \end{figure}
@@ -154,26 +98,7 @@ signals is
 A tolerance band $\varepsilon \in [0,1]$ is introduced so that small deviations are not
 treated as operationally meaningful. Over-declaration then corresponds to
 $\Delta U(t) > \varepsilon$, under-declaration to $\Delta U(t) < -\varepsilon$, and
-approximate agreement to $|\Delta U(t)| \le \varepsilon$. Table~\ref{tab:pathologies}
-gives the operational reading of each condition.
-
-\begin{table}[htbp]
-\centering
-\caption{Urgency pathologies and their consequences}
-\label{tab:pathologies}
-\small
-\begin{tabularx}{\linewidth}{l >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
-\toprule
-\textbf{Condition} & \textbf{Interpretation} & \textbf{Potential consequence} \\
-\midrule
-$\Delta U(t) > \varepsilon$ & Over-declaration of urgency, or false urgency & Excess
-expediting, avoidable cost, possible delay for other flows \\[4pt]
-$\Delta U(t) < -\varepsilon$ & Under-declaration of urgency, or hidden risk & Hidden
-lateness or stockout risk, delayed intervention, downstream disruption \\[4pt]
-$|\Delta U(t)| \le \varepsilon$ & Acceptable alignment & No material urgency mismatch \\
-\bottomrule
-\end{tabularx}
-\end{table}
+approximate agreement to $|\Delta U(t)| \le \varepsilon$.
 
 The two conditions need not cost the same. Weighting them asymmetrically, with
 $\lambda_{\text{under}} \ge \lambda_{\text{over}}$, prices under-prioritisation above
@@ -185,186 +110,54 @@ cost~\autocite{baker1982dynamic,chakrabortty2022}. How much asymmetry is right i
 calibration question, answerable only in a specific setting.
 
 %% ─────────────────────────────────────────────────────────────────────────
-\subsection{Aim, Objectives and Research Questions}
+%% ─────────────────────────────────────────────────────────────────────────
+\subsection{Aim, Objectives and Scope}
 \label{sec:intro_aim}
 %% ─────────────────────────────────────────────────────────────────────────
 
-The aim of this research is to establish whether the divergence between declared and
-computed urgency is measurable to a standard that would justify acting on it.
+The aim is to establish whether the divergence between declared and computed urgency is
+measurable to a standard that would justify acting on it. That wording commits to a
+falsifiable target rather than to building a system: a score that cannot beat a trivial
+baseline against recorded outcomes has not met the standard, however well engineered the
+system producing it. It also makes measurability the question rather than assuming it,
+because an architecture that lets the same person supply both signals is measuring its own
+input.
 
-That wording is deliberate on two counts. It commits to a falsifiable target rather than to
-building a system: a score that cannot beat a trivial baseline against recorded outcomes has
-not met the standard, however well engineered the system producing it. And it makes
-measurability the question rather than assuming it, because the two signals being compared
-are not independent by construction, and an architecture that lets the same person supply
-both sides is measuring its own input.
+Three objectives follow. \textbf{O1}, define a multi-block, DAG-propagated real urgency
+$U_r(t)$ and a cognitive adequacy score $A(t)$ measuring its gap with the planner's declared
+urgency $U_d$. \textbf{O2}, implement network propagation and criticality-driven
+prioritisation to identify structurally critical nodes. \textbf{O3}, validate the resulting
+signal against recorded outcomes, and measure what happens to declaration behaviour when the
+system's own forecast is placed in front of the declarant.
 
-Three objectives follow from that aim:
+They are pursued through four questions: how a physically grounded $U_r$ can be computed from
+heterogeneous KPI blocks and propagated across a multi-tier graph; how $A$ should be
+formulated to penalise under-triage asymmetrically and whether it has predictive validity;
+how pairwise elicitation and outranking identify structurally critical nodes; and how the
+framework behaves when operationalised as a weekly-cadence serious game, including what
+happens to declared urgency once the forecast is shown. Six hypotheses with numeric
+thresholds were frozen before any data existed; Section~\ref{sec:hypotheses} states them with
+the campaign they belong to, and Section~\ref{sec:hypothesis_status} is the only place their
+verdicts appear.
 
-\begin{enumerate}[label=\textbf{O\arabic*.}]
-    \item Define a multi-block, DAG-propagated real urgency $U_r(t)$ and a cognitive
-          adequacy score $A(t) \in [0, 100]$ measuring the gap between the planner's
-          declared urgency $U_d$ and the digital twin's operational state.
-    \item Develop and implement a network propagation and criticality-driven
-          prioritisation layer, combining PROMETHEE~II outranking with systematic shock
-          simulation, to identify structurally critical nodes.
-    \item Validate the resulting signal empirically, against recorded outcomes, and
-          measure what happens to human declaration behaviour when the system's own
-          forecast is placed in front of the declarant.
-\end{enumerate}
-
-Four research questions structure the scientific approach:
-
-\begin{enumerate}[label=\textbf{RQ\arabic*}., leftmargin=*]
-  \item \emph{Multi-block real urgency.} How can a physically and operationally grounded
-  real urgency $U_r(t)$ be computed dynamically in a multi-tenant digital twin from
-  heterogeneous KPI blocks, covering time, capacity, performance, risk, cost and
-  environmental dimensions, and propagated coherently across a multi-tier supply chain
-  graph?
-
-  \item \emph{Cognitive adequacy formulation.} How should an adequacy score $A(t)$ be
-  formulated to measure the alignment between declared urgency $U_d$ and computed real
-  urgency $U_r(t)$ while asymmetrically penalising under-triage against over-triage, and
-  does that score demonstrate predictive validity against recorded operational outcomes?
-
-  \item \emph{Network prioritisation and criticality.} How can pairwise elicitation
-  methods, namely AHP and the Fuzzy Best-Worst Method, be combined with outranking
-  aggregation through PROMETHEE~II and systematic shock simulation to identify which nodes
-  of a supply network are structurally critical?
-
-  \item \emph{Operational validation and the effect of showing the forecast.} How can
-  this framework be operationalised and empirically validated within a persistent digital
-  twin exercised as a weekly-cadence serious game, and what happens to declared urgency
-  once the declarant is shown the system's own prediction?
-\end{enumerate}
-
-The second half of RQ4 is not an afterthought. The campaign produced a result about the
-declarant rather than only about the model, and reporting the model's scores without it
-would be misleading (Section~\ref{sec:res_armB}).
-
-%% ─────────────────────────────────────────────────────────────────────────
-\subsection{Research Hypotheses}
-\label{sec:hypotheses}
-%% ─────────────────────────────────────────────────────────────────────────
-
-These six hypotheses were pre-registered. They were written, with their numeric thresholds,
-and frozen before the campaign of Section~\ref{sec:methods_campaign} produced any data, which
-is why they appear here rather than next to the results they decide. They are reproduced
-unchanged. Where the campaign later showed a threshold to be badly chosen, or a hypothesis to
-be untestable on the scenario as scripted, that is reported as a finding in
-Section~\ref{sec:hypothesis_status} and not repaired by rewriting the hypothesis.
-
-Each states an observable outcome with a threshold the delivered system either meets or does
-not, and each serves one of the research questions above.
-
-\begin{description}
-    \item[H1 (Cognitive latency):] Declared urgency follows computed real urgency with a
-    delay of at least one weekly cycle on the majority of nodes. Test: the lagged
-    correlation between $U_d$ and $U_r$ peaks at a lag of one week or more for at least
-    five of the eight campaign nodes.
-    \item[H2 (Early detection of hidden risk):] The hidden-risk signal
-    $H = \max(U_r - U_d, 0)$ exceeds $0.3$ at the crisis-origin node several weeks before
-    the rupture becomes publicly visible.
-    \item[H3 (Structural criticality):] The systematic shock simulation ranks the true
-    crisis origin first, by impact on the final customer, on at least 80\% of the
-    informative, non-saturated weekly rounds.
-    \item[H4 (Predictive validity):] At threshold $H \ge 0.5$ with a four-week horizon,
-    the hidden-risk signal predicts recorded negative outcomes, meaning a missed
-    milestone, a critical event or a node abandonment, with precision and recall both
-    above $0.5$.
-    \item[H5 (Urgency contagion):] On weeks when crisis news becomes public, operators of
-    nodes that are not physically affected still raise their declared urgency,
-    reproducing the mere-urgency effect~\autocite{zhu2018mere} at network scale.
-    \item[H6 (Perception hysteresis):] Once the physical situation improves, declared
-    urgency decays at less than half the rate of real urgency.
-\end{description}
-
-Table~\ref{tab:rq_hypothesis_map} maps each hypothesis to the question it serves and states
-what its failure would mean, so that a negative result carries a consequence rather than
-just a verdict.
-
-\begin{table}[htbp]
-\centering
-\caption{Each hypothesis, its research question, and the cost of failure}
-\label{tab:rq_hypothesis_map}
-\small
-\begin{tabularx}{\linewidth}{l >{\centering\arraybackslash}p{1.4cm} X}
-\toprule
-\textbf{Hypothesis} & \textbf{Serves} & \textbf{If it fails} \\
-\midrule
-H1 cognitive latency & RQ2 & Declared urgency tracks the physical signal without delay, so
-there is no lag to correct and the adequacy layer has nothing to add. \\
-H2 early detection & RQ2 & The hidden-risk signal arrives no earlier than the rupture it is
-meant to anticipate, which makes it a description rather than a warning. \\
-H3 structural criticality & RQ3 & The network ranking cannot be trusted to identify the
-bottleneck, so criticality-driven prioritisation is unsafe to act on. \\
-H4 predictive validity & RQ2 & The signal does not predict recorded outcomes, and the score
-is a diagnostic curiosity rather than a decision aid. This is the hypothesis the aim of
-Section~\ref{sec:intro_aim} stands or falls on. \\
-H5 urgency contagion & RQ1, RQ4 & Operators do not import urgency from context, so
-declaration bias is individual rather than systemic and does not propagate. \\
-H6 perception hysteresis & RQ2 & Over-declaration corrects itself once the situation eases,
-so the asymmetric penalty is mis-specified and $\lambda_{\text{under}}$ needs
-recalibrating. \\
-\bottomrule
-\end{tabularx}
-\end{table}
-
-One omission from this register is worth flagging in advance, because
-Section~\ref{sec:res_target_trap} measures its cost. The thresholds were pre-registered but
-the definition of an adverse outcome was not, and that definition turns out to move the
-measured result by more than the thresholds do.
-
-Distinct from these testable hypotheses, the framework rests on stated modelling
-assumptions, each verifiable in the delivered code: the network is a directed acyclic
-graph, so there are no feedback loops and a linear topological sort is valid; reviews
-follow a strict ISO weekly cycle; declared urgency is damped as it descends toward
-suppliers while real risk is amplified as it ascends toward the customer, each scaled by a
-per-arc coefficient; the six KPI blocks are treated as independent so that a probabilistic
-aggregation is admissible; task statuses drive explicit override rules; and the cognitive
-loss is deliberately asymmetric, with under-declaration priced at roughly twice the cost
-of panic. These are design commitments, not empirical claims, and the limitations they
-induce are catalogued in Section~\ref{sec:limitations}.
-
-%% ─────────────────────────────────────────────────────────────────────────
-\subsection{Scope and Delimitations}
-\label{sec:intro_scope}
-%% ─────────────────────────────────────────────────────────────────────────
-
-Four boundaries are set explicitly, because each of them shapes what the results in
-Section~\ref{sec:Results} can and cannot support.
-
-\paragraph{The declarants are language-model agents, not human consultants.} The campaign
-reported here was run with eight isolated language-model agents, one per role, each
-confined to its own role card and turn briefings. This is an experimental design choice
-with real consequences for external validity, discussed in
-Sections~\ref{sec:methods_arms} and~\ref{sec:res_discussion}. The human campaign for which
-the protocol was originally frozen has not been run.
-
-\paragraph{The validation is a single scenario.} All results come from one pre-registered
-scenario, a semiconductor shortage propagating through an eight-node satellite supply
-chain over nineteen weekly turns. Statements about how the framework behaves are
-statements about its behaviour on that scenario.
-
-\paragraph{SupplyScore is standalone.} It does not integrate with DISCO, with an ERP, or with
-the routing and carbon modules of Section~\ref{sec:intro_disco}. Every KPI reaching the
-model arrives either through a manual weekly review or through a scripted campaign event.
-
-\paragraph{The satellite observation work is an opening, not a second contribution.}
-Section~\ref{sec:res_volume} reports a separate system that estimates warehouse capacity
-from public satellite imagery. It is included because it addresses the freshness
-limitation that the rest of this thesis documents about itself, and it is reported at the
-depth that claim requires, without any assertion that the two systems have been connected.
+Four boundaries bound what the results support. The declarants are language-model agents, not
+human consultants, and the human campaign for which the protocol was frozen has not been run.
+The evidence is two scenarios, an eight-node satellite chain and a fifteen-node airframer
+chain, with seven positive outcomes between them. SupplyScore is standalone: it does not
+integrate with DISCO, an ERP, or the routing and carbon modules above, and every KPI reaches
+it through a weekly review or a scripted event. And the satellite observation work of
+Appendix~\ref{app:opening} is reported as an opening, not a second contribution, with no
+claim that the two systems have been connected.
 
 %% ─────────────────────────────────────────────────────────────────────────
 \subsection{Thesis Structure}
 \label{sec:intro_structure}
 %% ─────────────────────────────────────────────────────────────────────────
 
-Four sections follow. Section~\ref{sec:Literature} reviews the streams that bear on the
-problem and states the gap each one leaves. Section~\ref{sec:Methods} keeps three things
-apart that are easily confused: the mathematical model, the choices made in building it into
-software, and the experiment designed to test it. It closes with the method's own limits,
-its reproducibility provisions and its ethics. Section~\ref{sec:Results} reports what was
-measured, then diagnoses it. Section~\ref{sec:Conclusion} states what the work contributes,
-what each hypothesis did, where the work stops, and what it opens.
+Section~\ref{sec:Literature} reviews the streams that bear on the problem and states the gap
+each leaves. Section~\ref{sec:Methods} keeps three things apart that are easily confused: the
+mathematical model, the choices made in building it into software, and the experiment designed
+to test it. Section~\ref{sec:Results} reports what was measured, then diagnoses it.
+Section~\ref{sec:Conclusion} states what the work contributes, what bounds it, and what should
+follow. The appendices carry the apparatus, the full scoring tables and the two workstreams
+reported as openings.

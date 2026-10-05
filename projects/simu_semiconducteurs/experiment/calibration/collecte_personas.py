@@ -90,6 +90,9 @@ def main() -> None:
     ap.add_argument("--noeuds", default=None,
                     help="Liste attendue, separee par des virgules. Sans elle, "
                          "tous les fichiers presents sont pris.")
+    ap.add_argument("--exige", default=None, metavar="CHAMP",
+                    help="Champ supplementaire sans lequel la declaration est "
+                         "signalee (ex. influence_prediction en bras predict).")
     args = ap.parse_args()
 
     if args.noeuds:
@@ -105,14 +108,26 @@ def main() -> None:
         if declaration is None:
             anomalies.append(f"{node} : {anomalie}")
             continue
+        if args.exige and declaration.get(args.exige) is None:
+            anomalies.append(f"{node} : champ « {args.exige} » absent")
+            continue
         note, repare = _reparer_mojibake(str(declaration.get("note", "")))
         if repare:
             declaration["note"] = note
             repares.append(node)
-        lignes.append(json.dumps(
-            {"node_id": declaration["node_id"], "bipolar": declaration["bipolar"],
-             "scores_ui": declaration["scores_ui"], "note": declaration.get("note", "")},
-            ensure_ascii=False))
+        sortie_ligne = {
+            "node_id": declaration["node_id"], "bipolar": declaration["bipolar"],
+            "scores_ui": declaration["scores_ui"], "note": declaration.get("note", ""),
+        }
+        # Champs propres aux bras autres que temoin. Transmis SEULEMENT s'ils sont
+        # presents : le harnais refuse « influence_prediction » en bras control
+        # autant qu'il l'exige en bras predict. Les avoir omis ici faisait refuser
+        # tout un tour, le pont jetant en silence un champ que le declarant avait
+        # bel et bien rempli.
+        for champ in ("influence_prediction", "action_id", "objectif_action"):
+            if declaration.get(champ) is not None:
+                sortie_ligne[champ] = declaration[champ]
+        lignes.append(json.dumps(sortie_ligne, ensure_ascii=False))
 
     args.sortie.parent.mkdir(parents=True, exist_ok=True)
     args.sortie.write_text("\n".join(lignes) + "\n", encoding="utf-8")

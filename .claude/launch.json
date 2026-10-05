@@ -13,6 +13,31 @@
         "8060"
       ],
       "port": 8060
+    },
+    {
+      "name": "airb-llm-control",
+      "runtimeExecutable": "C:\\PRIVEE\\AZURE\\.venv\\Scripts\\python.exe",
+      "runtimeArgs": [
+        "-m",
+        "supplyscore.cli",
+        "--db-dir",
+        "C:\\Users\\jhoarau\\AppData\\Local\\Temp\\claude\\C--PRIVEE-AZURE\\884f13d6-6f60-46bd-8d32-f3c8ddfbcc0c\\scratchpad\\airb_llm\\db",
+        "--port",
+        "8061"
+      ],
+      "port": 8061
+    },
+    {
+      "name": "mfe-deck",
+      "runtimeExecutable": "C:\\PRIVEE\\AZURE\\.venv\\Scripts\\python.exe",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8070",
+        "--directory",
+        "C:\\PRIVEE\\AZURE\\docs\\mfe-presentation-preparation\\project"
+      ],
+      "port": 8070
     }
   ]
 }

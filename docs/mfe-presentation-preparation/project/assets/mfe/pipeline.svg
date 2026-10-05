@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1206 300" preserveAspectRatio="xMidYMid meet" width="1206" height="300" role="img" aria-labelledby="pipeline-title pipeline-desc" font-family="Arial,Arimo,sans-serif">
+<title id="pipeline-title">The seven-step project chain</title>
+<desc id="pipeline-desc">Four steps build the instrument: situation, declaration tool, calculator, adequacy. Three steps validate it: build, test, forecast. Build is the pivot, marked in ochre. Test and forecast are a matched pair of questions.</desc>
+
+<!-- Group spans. Azure across the instrument, navy across the validation: the split is
+     legible before any label is read. Aligned with the slide's own group headings above. -->
+<g id="group-spans">
+<rect id="span-instrument" x="0" y="0" width="683.143" height="5" fill="#1D93C9"/>
+<rect id="span-validation" x="697.143" y="0" width="508.857" height="5" fill="#063C67"/>
+</g>
+
+<!-- Step 1 -->
+<g id="step-1" role="img"><title>Situation: a twin that scores state</title>
+<rect id="step-1-card" x="0" y="22" width="160.286" height="218" fill="#E9F5FB"/>
+<rect id="step-1-accent" x="0" y="22" width="160.286" height="5" fill="#1D93C9"/>
+<text id="step-1-number" x="10" y="62" font-family="'Arial Black','Archivo Black',Arial,sans-serif" font-weight="700" font-size="24" fill="#1D93C9">1</text>
+<text id="step-1-label" x="10" y="100" font-family="'Arial Black','Archivo Black',Arial,sans-serif" font-weight="700" font-size="17" fill="#043962">SITUATION</text>
+<line id="step-1-rule" x1="10" y1="160" x2="150.286" y2="160" stroke="#C0C0C8" stroke-width="1"/>
+<text id="step-1-caption" x="10" y="190" font-size="16" fill="#4A4A55">A twin that<tspan x="10" y="210">scores state</tspan></text>
+</g>
+<polygon id="arrow-1-2" points="161.786,124 172.786,131 161.786,138" fill="#1D93C9"/>
+
+<!-- Step 2 -->
+<g id="step-2" role="img"><title>Declaration tool: elicit the human signal</title>
+<rect id="step-2-card" x="174.286" y="22" width="160.286" height="218" fill="#E9F5FB"/>
+<rect id="step-2-accent" x="174.286" y="22" width="160.286" height="5" fill="#1D93C9"/>
+<text id="step-2-number" x="184.286" y="62" font-family="'Arial Black','Archivo Black',Arial,sans-serif" font-weight="700" font-size="24" fill="#1D93C9">2</text>
+<text id="step-2-label" x="184.286" y="100" font-family="'Arial Black','Archivo Black',Arial,sans-serif" font-weight="700" font-size="17" fill="#043962">DECLARATION<tspan x="184.286" y="120">TOOL</tspan></text>
+<line id="step-2-rule" x1="184.286" y1="160" x2="324.571" y2="160" stroke="#C0C0C8" stroke-width="1"/>
+<text id="step-2-caption" x="184.286" y="190" font-size="16" fill="#4A4A55">Elicit the<tspan x="184.286" y="210">human signal</tspan></text>
+</g>
+<polygon id="arrow-2-3" points="336.071,124 347.071,131 336.071,138" fill="#1D93C9"/>
+
+<!-- Step 3 -->
+<g id="step-3" role="img"><title>Calculator: six blocks, non-compensatory</title>
+<rect id="step-3-card" x="348.571" y="22" width="160.286" height="218" fill="#E9F5FB"/>
+<rect id="step-3-accent" x="348.571" y="22" width="160.286" height="5" fill="#1D93C9"/>
+<text id="step-3-number" x="358.571" y="62" font-family="'Arial Black','Archivo Black',Arial,sans-serif" font-weight="700" font-size="24" fill="#1D93C9">3</text>
+<text id="step-3-label" x="358.571" y="100" font-family="'Arial Black','Archivo Black',Arial,sans-serif" font-weight="700" font-size="17" fill="#043962">CALCULATOR</text>
+<line id="step-3-rule" x1="358.571" y1="160" x2="498.857" y2="160" stroke="#C0C0C8" stroke-width="1"/>
+<text id="step-3-caption" x="358.571" y="190" font-size="16" fill="#4A4A55">Six blocks,<tspan x="358.571" y="210">non-compensatory</tspan></text>
+</g>
+<polygon id="arrow-3-4" points="510.357,124 521.357,131 510.357,138" fill="#1D93C9"/>
+
+<!-- Step 4 -->
+<g id="step-4" role="img"><title>Adequacy: the distance between them</title>
+<rect id="step-4-card" x="522.857" y="22" width="160.286" height="218" fill="#E9F5FB"/>
+<rect id="step-4-accent" x="522.857" y="22" width="160.286" height="5" fill="#1D93C9"/>
+<text id="step-4-number" x="532.857" y="62" font-family="'Arial Black','Archivo Black',Arial,sans-serif" font-weight="700" font-size="24" fill="#1D93C9">4</text>
+<text id="step-4-label" x="532.857" y="100" font-family="'Arial Black','Archivo Black',Arial,sans-serif" font-weight="700" font-size="17" fill="#043962">ADEQUACY</text>
+<line id="step-4-rule" x1="532.857" y1="160" x2="673.143" y2="160" stroke="#C0C0C8" stroke-width="1"/>
+<text id="step-4-caption" x="532.857" y="190" font-size="16" fill="#4A4A55">The distance<tspan x="532.857" y="210">between them</tspan></text>
+</g>
+<!-- Navy from here on: the chain has crossed into the validation half. -->
+<polygon id="arrow-4-5" points="684.643,124 695.643,131 684.643,138" fill="#063C67"/>
+
+<!-- Step 5, the pivot. The single ochre element on this slide. -->
+<g id="step-5" role="img"><title>Build, the pivot: the interface and the agents</title>
+<rect id="step-5-card" x="697.143" y="22" width="160.286" height="218" fill="#FFDA65"/>
+<rect id="step-5-accent" x="697.143" y="22" width="160.286" height="5" fill="#063C67"/>
+<text id="step-5-number" x="707.143" y="62" font-family="'Arial Black','Archivo Black',Arial,sans-serif" font-weight="700" font-size="24" fill="#063C67">5</text>
+<text id="step-5-label" x="707.143" y="100" font-family="'Arial Black','Archivo Black',Arial,sans-serif" font-weight="700" font-size="17" fill="#043962">BUILD</text>
+<line id="step-5-rule" x1="707.143" y1="160" x2="847.429" y2="160" stroke="#063C67" stroke-width="1" opacity="0.35"/>
+<text id="step-5-caption" x="707.143" y="190" font-size="16" font-weight="700" fill="#043962">The interface<tspan x="707.143" y="210">and the agents</tspan></text>
+</g>
+<polygon id="arrow-5-6" points="858.929,124 869.929,131 858.929,138" fill="#063C67"/>
+
+<!-- Step 6 -->
+<g id="step-6" role="img"><title>Test: does it find a known crisis?</title>
+<rect id="step-6-card" x="871.429" y="22" width="160.286" height="218" fill="#F4F4F6"/>
+<rect id="step-6-accent" x="871.429" y="22" width="160.286" height="5" fill="#063C67"/>
+<text id="step-6-number" x="881.429" y="62" font-family="'Arial Black','Archivo Black',Arial,sans-serif" font-weight="700" font-size="24" fill="#063C67">6</text>
+<text id="step-6-label" x="881.429" y="100" font-family="'Arial Black','Archivo Black',Arial,sans-serif" font-weight="700" font-size="17" fill="#043962">TEST</text>
+<line id="step-6-rule" x1="881.429" y1="160" x2="1021.714" y2="160" stroke="#C0C0C8" stroke-width="1"/>
+<text id="step-6-caption" x="881.429" y="190" font-size="16" fill="#4A4A55">Does it find<tspan x="881.429" y="210">a known crisis?</tspan></text>
+</g>
+<polygon id="arrow-6-7" points="1033.214,124 1044.214,131 1033.214,138" fill="#063C67"/>
+
+<!-- Step 7 -->
+<g id="step-7" role="img"><title>Forecast: can it forecast one?</title>
+<rect id="step-7-card" x="1045.714" y="22" width="160.286" height="218" fill="#F4F4F6"/>
+<rect id="step-7-accent" x="1045.714" y="22" width="160.286" height="5" fill="#063C67"/>
+<text id="step-7-number" x="1055.714" y="62" font-family="'Arial Black','Archivo Black',Arial,sans-serif" font-weight="700" font-size="24" fill="#063C67">7</text>
+<text id="step-7-label" x="1055.714" y="100" font-family="'Arial Black','Archivo Black',Arial,sans-serif" font-weight="700" font-size="17" fill="#043962">FORECAST</text>
+<line id="step-7-rule" x1="1055.714" y1="160" x2="1196" y2="160" stroke="#C0C0C8" stroke-width="1"/>
+<text id="step-7-caption" x="1055.714" y="190" font-size="16" fill="#4A4A55">Can it forecast<tspan x="1055.714" y="210">one?</tspan></text>
+</g>
+
+<!-- Steps 6 and 7 are a matched pair. The bracket groups them; the navy band below
+     names them in words, and the answers are deliberately not encoded here. -->
+<g id="group-questions" role="img"><title>Steps 6 and 7 are the two validation questions</title>
+<path id="questions-bracket" d="M 951.572 248 L 951.572 256 L 1125.857 256 L 1125.857 248" fill="none" stroke="#1D93C9" stroke-width="1.5"/>
+</g>
+</svg>

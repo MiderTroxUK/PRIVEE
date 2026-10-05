@@ -52,7 +52,26 @@ def _dossier_projet() -> Path:
 
 
 PROJECT_DIR = _dossier_projet()
-PREPARED = PROJECT_DIR / "data" / "prepared"
+
+
+def _dossier_pack() -> Path:
+    """Pack de donnees a jouer, sous ``<projet>/data/``.
+
+    ``SUPPLYSCORE_PACK_DIR`` designe le sous-dossier ; sans lui, ``prepared``.
+
+    Un projet a besoin de porter PLUSIEURS packs a la fois : celui qui a produit
+    les mesures deja publiees doit rester gele et rejouable tel quel, pendant
+    qu'un pack corrige tourne a cote. Ecraser ``prepared`` pour enrichir les KPI
+    rendrait irreproductible tout ce qui a ete mesure avant.
+    """
+    nom = os.environ.get("SUPPLYSCORE_PACK_DIR", "prepared")
+    dossier = PROJECT_DIR / "data" / nom
+    if not dossier.is_dir():
+        raise SystemExit(f"SUPPLYSCORE_PACK_DIR : pack introuvable — {dossier}")
+    return dossier
+
+
+PREPARED = _dossier_pack()
 SNAPSHOTS = PROJECT_DIR / "analysis" / "snapshots"
 
 for p in (str(REPO_ROOT), str(PROJECT_DIR / "scenario")):

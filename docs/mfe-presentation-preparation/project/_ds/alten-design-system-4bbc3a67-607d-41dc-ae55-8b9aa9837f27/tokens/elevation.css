@@ -1,0 +1,14 @@
+/* ALTEN — elevation. The only shadows in the templates are soft, low-opacity
+   drop shadows on the "3 Columns Shadows" cards and on floating photos.
+   blurRad / dist converted EMU → px (÷ 9525). */
+:root{
+  /* 127000 blur, 38100 dist, black 20 % — photo tiles */
+  --shadow-sm:0 4px 13px rgba(0,0,0,.20);
+  /* 293232 blur, 38100 dist, black 17 % — the card shadow */
+  --shadow-card:0 4px 31px rgba(0,0,0,.17);
+  /* 293232 blur, no dist, black 40 % — hero photo lift */
+  --shadow-lg:0 0 31px rgba(0,0,0,.40);
+  /* 508000 blur, 38100 dist, #00031F — full-bleed cover imagery */
+  --shadow-cover:0 4px 53px rgba(0,3,31,.45);
+  --shadow-none:none;
+}

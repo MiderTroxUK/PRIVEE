@@ -1,0 +1,69 @@
+
+===== ppt/slides/slide1.xml =====
+INTERNSHIP AT ALTEN SO | R&amp;D : Urgency in the Digital Twin Smart Green Supply Chain | Measuring declared against real urgency in a supply chain digital twin to acted upon | HOARAU John | Cohort 2026 DED | COMPANY | ALTEN Sud-Ouest | Direction de l’Innovation · Lab de Toulouse | PERIOD | 13 April → 16 October 2026 | Confidential: YES | TUTORS | S. Perthuisot and F. Jules, ALTEN | Dr. D. Gomez, ESTIA · Dr. P. Sherar, Cranfield
+
+===== ppt/slides/slide2.xml =====
+PLAN | 1 | 2 | 3 | 4 | 5 | CONTEXT, PROBLEM, MISSION | HOW THE PROJECT WAS RUN | LITERATURE, DESIGN AND REALISATION | RESULTS AND VALIDATION | ASSESSMENT AND PERSPECTIVES
+
+===== ppt/slides/slide3.xml =====
+THE COMPANY AND THE PROGRAMME | ALTEN · Direction de l’Innovation · Toulouse Lab | 1988 | FOUNDED | +30 | COUNTRIES | 11 | ALTEN LABS | 31 % | R&amp;D ON ENVIRONMENT | SMART GREEN SUPPLY CHAIN: THREE AIMS AT ONCE | LEAN | Cost, delay, excess stock | GREEN | Carbon per transport leg, to GLEC v3.2 and ISO 14083 | PREDICTIVE | Anticipation of disruption. | DISCO, A serious game and a digital twin 
+
+===== ppt/slides/slide4.xml =====
+THE PROBLEM | THE TWIN HAS | Computed physical state | THE TWIN NEVER SEES | The human who decides | RESEARCH QUESTION | Can the gap between declared and computed urgency be measured reliably enough, inside a working digital twin, to be acted upon? | It must say  | which node is mismanaged | It must be reliable and explainable | It must beat the raw indicators a coordinator already has
+
+===== ppt/slides/slide5.xml =====
+PLAN | 1 | 2 | 3 | 4 | 5 | CONTEXT, PROBLEM, MISSION | HOW THE PROJECT WAS RUN | LITERATURE, DESIGN AND REALISATION | RESULTS AND VALIDATION | ASSESSMENT AND PERSPECTIVES
+
+===== ppt/slides/slide6.xml =====
+THE WEEK | V-cycle for the model · Agile and Test and Learn for the week | MON | Planning | The week’s objective | TUE | Scrum | Blockages surface in a day | WED | Programme director | Scientific decisions | THU | Scrum | Course correction | FRI | Demonstration | Shown | TEST AND LEARN MEANS SOMETHING ONLY IF THINGS WERE LEARNED WHILE FAILING | The first urgency model, and why it could not fit | A single time-driven curve: urgency rose only as a deadline approached | It could not represent a node  | on time but out of capacity | It discarded indicators the twin already held
+
+===== ppt/slides/slide7.xml =====
+PHASES AND MILESTONES | 10 phases · 9 milestones
+
+===== ppt/slides/slide8.xml =====
+PLAN | 1 | 2 | 3 | 4 | 5 | CONTEXT, PROBLEM, MISSION | HOW THE PROJECT WAS RUN | LITERATURE, DESIGN AND REALISATION | RESULTS AND VALIDATION | ASSESSMENT AND PERSPECTIVES
+
+===== ppt/slides/slide9.xml =====
+LITTERATURE REVIEW GAP | What is new ? | PUBLISHED RESEARCH | Deadline-driven value.  | Time-varying, but one task only. | Ripple effect.  | Propagates, but takes the node score as given. | Rupture indicators.  | Monitored one at a time, never combined. | Cognitive bias.  | Quantified in the lab, no operational correction. | AHP, BWM, PROMETHEE.  | Static, and never compared to a computed value. | Digital twins.  | Scored on state; their inputs are assumed to arrive. | THE PATENT RECORD: THREE LINES | IBM.  | Revenue at risk from measured inputs. No operator opinion anywhere in the claims. | Wipro.  | Inputs replaced by language. The human narrates; nothing evaluates the narration. | Digital twin control tower.  | Oriented to automation. The operator receives decisions. | Fifteen years running away from the human declarant. | THE GAP | No system, published or patented, combines a declared urgency, a computed one, and their propagated mismatch. To achive a forcast.
+
+===== ppt/slides/slide10.xml =====
+OBJECTIVES AND INDICATORS | OBJECTIVE | INDICATOR | O1 | Define real/declared urgency and the adequacy score | Every term decomposable; aggregation justified | O2 | Deliver a working, auditable application | Every write logged, tests passing | O3 | Propagate across tiers, rank by criticality | Real-programme scale, interactive time budget | O4 | Establish whether the signal predicts outcomes | Serious game testing | O5 | Global warehouse capacity imagery modeling | KPIs 
+
+===== ppt/slides/slide11.xml =====
+THE MISSION | A working application, two independently elicited signals, and the score that compares them | DECLARED U | D | AHP, FUZZY BWM AND PROMETHEE II | COMPUTED U | R | WEIGHTED PROBABILISTIC OR AGREGATION METHOD | Operational impact | ↔ | Performance and capacity | Time window | ↔ | Time, against the next deadline | Downstream dependencies | ↔ | Severity propagated across tiers | Recoverability | ↔ | Risk, through its recovery term | No declared counterpart | ↔ | Cost and carbon, arbitration only | ADEQUACY SCORE | The distance between the two signals, on a  | 0–100  | scale. | False urgency · declared &gt; state ·  | penalty ×1 | Hidden risk · state &gt; declared ·  | penalty ×2 | Every term stays recoverable, so the operator sees what moved the answer.
+
+===== ppt/slides/slide12.xml =====
+REAL URGENCY | Non-compensatory aggregation score | A node is in trouble if  | any one  | block fires. A healthy block cannot offset a failed one. | U | r  | = 1 − ∏ | m  | (1 − u | m | ) | ω | m | NODE A | one block has failed | time | 0.05 | capacity | 0.90 | performance | 0.05 | risk | 0.05 | cost | 0.05 | carbon | 0.05 | average | 0.19  | → 2nd | probabilistic OR | 0.92  | →  | 1st | NODE B | nothing has failed | time | 0.20 | capacity | 0.20 | performance | 0.20 | risk | 0.20 | cost | 0.20 | carbon | 0.20 | average | 0.20  | →  | 1st | probabilistic OR | 0.74  | → 2nd | The average sends the coordinator to  | Node B  | , where nothing broke. The OR sends them to  | Node A  | , where capacity did.  | Same six numbers, opposite ranking. | FOUR CAUSES · TWO CONSTRAINTS | Time | Capacity | Performance | Risk | Cost | Carbon
+
+===== ppt/slides/slide13.xml =====
+DECLARED URGENCY | Elicited from the operator, gated on consistency, then propagated downstream | The application is operated by a French research programme, so its interface is French. The report carries an English key for every term on screen. | FOUR CRITERIA, EACH WITH A COMPUTED COUNTERPART | Operational impact | Time window | Downstream dependencies | Recoverability | THE CONSISTENCY GATE | A weight vector whose consistency ratio exceeds the threshold is  | refused  | . The operator is sent back to the most contradictory of their own comparisons. | Without it, an incoherent judgment would propagate as though it were a considered one. | Pairwise comparisons, not a free-text estimate | AHP · fuzzy BWM · PROMETHEE II
+
+===== ppt/slides/slide14.xml =====
+THE ADEQUACY | Elicited separately, propagated in opposite directions | PROPAGATION ACROSS THE NETWORK | γ | Customer  | · final assembly | Tier 1 · systems | Tier 2 · subassemblies | Tier 3  | · raw material | β | γ  | attenuates the declaration as it descends: demand pressure is what a customer transmits | β  | amplifies computed risk as it ascends: physical risk is what a supplier transmits
+
+===== ppt/slides/slide15.xml =====
+SUPPLYSCORE: ARCHITECTURE | The class model, and the pages it drives | THE CLASS MODEL | Facade  | the only entry point | Mutation service  | the audit trail is architectural | One DB per node  | isolation by storage layout | Every arrow into the data crosses the facade, then the mutation service. Two graph repositories sit behind one interface, so the network can be held in memory or in Neo4j without the domain knowing which. | THE APPLICATION, AS THE OPERATOR MEETS IT | Weekly review  | · one signed transaction | Explainability  | · term by term | Network  | · generated per project | Criticality  | · each node knocked out | A NODE, AND WHAT IT CARRIES
+
+===== ppt/slides/slide16.xml =====
+PLAN | 1 | 2 | 3 | 4 | 5 | CONTEXT, PROBLEM, MISSION | HOW THE PROJECT WAS RUN | LITERATURE, DESIGN AND REALISATION | RESULTS AND VALIDATION | ASSESSMENT AND PERSPECTIVES
+
+===== ppt/slides/slide17.xml =====
+RESULT 1 | Nodes ranked by hidden risk above 0.10, against the nodes that later missed | 1.00 | PRECISION, TURNS 0–5 | 3 / 4 | FUTURE FAILURES FLAGGED | 0 | FALSE ALARMS IN SIX TURNS | 8 | TURNS OF ADVANCE WARNING | T0 – T5 · signal sharp | T6 – T18 · crisis public, the gap closes | The worst-scoring node is the satellite prime. Flagged from turn 0, it misses at turn 8:  | eight turns of warning, while its own manager declares an urgency of 0.001. | The flag comes from an  | optimistic declaration against a computed state that is not  | . From turn 6 precision falls to 0.50 or below: the crisis becomes public, everyone raises their declaration, and a difference closes mechanically. | Early warning, not crisis management.  | THE DASHBOARD THE COORDINATOR READS
+
+===== ppt/slides/slide18.xml =====
+RESULT 2 | Scored → Calibration →  | forcast |  → re-measured | BRIER SKILL, BEFORE → AFTER | HORIZON | before | structure | + uncert. | 1 week | −1.278 | −0.646 | −0.687 | 2 weeks | −0.690 | −0.401 | −0.367 | 3 weeks | −0.654 | −0.360 | −0.286 | 4 weeks | −0.553 | −0.272 | −0.216 | The calibration deficit roughly halved at every horizon.  | AUC movement is not interpretable at this sample size  | : with twenty-six positives the four-week interval runs from 0.21 to 0.87.
+
+===== ppt/slides/slide19.xml =====
+RESULT 3 | A second chain | WHICH RANKING FINDS THE THREE FAILING SUPPLIERS? | Adequacy score | 0.00 | Hidden risk | 0.00 | Forecast probability | 0.56 | Base rate · 3 of 15 | 0.20 | THE MISPERCEPTION BOUNDARY | The tool measures  | misperception | , not  | non-disclosure  | . Precision 1.00 on chain 1 and 0.00 on chain 2 do not contradict: they name the domain. | 500 MONTE CARLO TRAJECTORIES VS. A TWO-NUMBER RATIO | 6 / 8 | horizons where the  | baseline ranks better  | , by 0.082 of AUC at one week | −1.60 | simulation Brier skill vs.  | −4.85  | for the baseline. The trajectories buy calibration | six urgency blocks | AR(1) state | client-impact channel  | displayed, never scored | lead-time draw | milestone term | the quantity that is scored | On this chain the forecast layer is a  | calibration wrapper around a lead-time ratio  | . Defensible, but not what the interface presents. The fix is one line: the AR state must reach the milestone term.
+
+===== ppt/slides/slide20.xml =====
+PLAN | 1 | 2 | 3 | 4 | 5 | CONTEXT, PROBLEM, MISSION | HOW THE PROJECT WAS RUN | LITERATURE, DESIGN AND REALISATION | RESULTS AND VALIDATION | ASSESSMENT AND PERSPECTIVES
+
+===== ppt/slides/slide21.xml =====
+OBJECTIVES VS. OUTCOMES | 2 campaigns · 2 chains · 23 nodes · 33 milestones · 510 declarations | O1 | Met | Six blocks, bidirectional propagation, asymmetric score — every term decomposable | O2 | Met | SupplyScore delivered: multi-tenant, every write audited, tested, documented | O3 | Met | Propagation and criticality operational; the saturation collapse found and repaired | O4 | Met, domain established | Right at node level on chain 1; scored, located, repaired, re-measured; then bounded by chain 2 and the baseline | O6 | Met, ongoing | Segmentation model is ongoing but show interesting  | reults | WHAT THE PROGRAMME CAN NOW SAY ABOUT THE INSTRUMENT | Detects  | misperception | , not discretion | An  | early-warning  | instrument that closes once a crisis is public | Its forecast buys  | calibration  | , not short-horizon discrimination
+
+===== ppt/slides/slide22.xml =====
+LIMITS · NEXT · WHAT I TAKE | Three limits of sample, one of method, and a list produced by measurement | LIMITS | Agents, not human consultants | Small positive class: 4 of 8, 3 of 15 | Carbon block least exercised, for want of node-level data | Methodological, and it does not dissolve with data:  | no number holds without its outcome definition | FOR ALTEN, IN ORDER | 1 | Connect computed urgency to the forecast quantity.  | One afternoon of work. | 2 | Fill the indicators before calibrating anything | 3 | Make the forecast state its own ignorance; smooth the alarm | 4 | Run the campaign with humans, the only run that decides | THE LESSON I KEEP | Each time it looked like a modelling defect; each time it was  | circularity | . | I would now design the independence of two signals  | before  | designing either. | And: before trusting a component, write the cheapest thing that could replace it. | ESTIA COMPETENCY FRAMEWORK | CI1 | CI3 | CI5 | CE3 | CE4 | CE5 | CST1 | CST2 | CST7
+
+===== ppt/slides/slide23.xml =====
+THANK YOU | QUESTIONS | HOARAU John · Promotion 2026 ALTEN Sud-Ouest · Direction de l’Innovation · Lab de Toulouse 13 April → 16 October 2026

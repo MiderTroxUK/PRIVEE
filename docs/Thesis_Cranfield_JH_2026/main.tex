@@ -56,6 +56,9 @@
 \usepackage[a4paper, top=2.6cm, bottom=2.6cm, left=2.7cm, right=2.7cm,
             footskip=1.1cm]{geometry}
 
+%% Derniere reserve avant qu'une ligne ne parte dans la marge.
+\setlength{\emergencystretch}{2em}
+
 %% ─────────────────────────────────────────
 %%  FLOAT PLACEMENT
 %%  Allow a float to take more of a page and require less text on a mixed
@@ -120,9 +123,99 @@
 \input{../BST_DISCO_JH_2026/Sections/Appendices/Glossary.tex}
 
 %% ─────────────────────────────────────────
+%%  SCHEMAS VECTORIELS
+%%  Une figure conceptuelle est dessinee plutot que capturee : elle reste
+%%  nette a l'impression et suit la charte du document.
+%% ─────────────────────────────────────────
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, calc, fit, backgrounds, shapes.geometric,
+                decorations.pathreplacing}
+
+%% Une boite de schema ne se coupe jamais en fin de ligne : un mot coupe dans
+%% un encadre de trois centimetres se lit deux fois moins vite.
+\newcommand{\SansCesure}{\hyphenpenalty=10000\exhyphenpenalty=10000\relax}
+
+\tikzset{
+  %% ── Boxes ────────────────────────────────────────────────────────────
+  %% Three weights, and they have to be distinguishable at print size: a
+  %% strong box is the subject, a plain box is the mechanism, a pale box is
+  %% context the reader may skip.
+  bloc/.style       = {draw=altenNavy, line width=0.85pt, rounded corners=3pt,
+                       fill=altenBlueBg, text=altenNavy, align=center,
+                       inner sep=4pt, font=\scriptsize,
+                       execute at begin node=\SansCesure},
+  blocFort/.style   = {bloc, fill=altenAzure!26, draw=altenAzure,
+                       line width=1.15pt},
+  blocPale/.style   = {bloc, fill=altenGreyBg!55!white, draw=altenGreyLine,
+                       text=altenNavyShade, line width=0.75pt},
+  blocObs/.style    = {bloc, fill=altenOchrePale!70!white, draw=altenOchreDark,
+                       line width=1.15pt},
+  blocAlerte/.style = {bloc, fill=altenOchrePale!70!white, draw=altenOchreDark,
+                       line width=1.15pt},
+  %%
+  %% ── Arrows ───────────────────────────────────────────────────────────
+  %% Direction is the content of most of these diagrams, so the heads are
+  %% sized to survive printing rather than to look delicate on screen.
+  fleche/.style     = {-{Stealth[length=2.8mm, width=2.0mm]}, draw=altenNavy,
+                       line width=0.85pt},
+  flecheCoupee/.style = {-{Stealth[length=2.8mm, width=2.0mm]},
+                       draw=altenOchreDark, line width=1.0pt,
+                       dash pattern=on 2.2pt off 1.8pt},
+  flecheObs/.style  = {-{Stealth[length=2.8mm, width=2.0mm]},
+                       draw=altenOchreDark, line width=1.1pt},
+  flechePale/.style = {-{Stealth[length=2.6mm, width=1.8mm]},
+                       draw=altenGreyLine, line width=0.75pt},
+  %%
+  %% ── Text ─────────────────────────────────────────────────────────────
+  %% A label sits on top of arrows and rules, so it carries an opaque fill;
+  %% a column title sits above the diagram and does not.
+  etiquette/.style  = {font=\scriptsize\itshape, text=altenAzureDark,
+                       inner sep=2.5pt, fill=white, align=center,
+                       execute at begin node=\SansCesure},
+  titreBande/.style = {font=\small\bfseries, text=altenNavy, align=left},
+}
+
+%% ─────────────────────────────────────────
 %%  MATHEMATICS
 %% ─────────────────────────────────────────
 \usepackage{amsmath, amssymb, mathtools}
+\usepackage{amsthm}
+
+%% Enonces formels : une proposition se demontre, une hypothese de modele se
+%% discute. Les deux styles sont distincts pour que le lecteur sache lequel
+%% il lit avant d'en lire le contenu.
+\newtheoremstyle{alten}{9pt}{9pt}{}{0pt}{\bfseries\color{altenNavy}}{.}{.5em}{}
+\theoremstyle{alten}
+\newtheorem{proposition}{Proposition}[section]
+\newtheorem{assumption}{Assumption}[section]
+\newtheorem{definition}{Definition}[section]
+\renewcommand{\qedsymbol}{\color{altenAzure}$\blacksquare$}
+
+%% ─────────────────────────────────────────
+%%  ALGORITHMS
+%%  Le coeur du systeme est une recurrence sur un DAG. La prose la decrit ;
+%%  seul le pseudo-code la rend verifiable et chiffrable en complexite.
+%% ─────────────────────────────────────────
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\floatname{algorithm}{Algorithm}
+\renewcommand{\algorithmicrequire}{\textbf{\color{altenNavy}Input:}}
+\renewcommand{\algorithmicensure}{\textbf{\color{altenNavy}Output:}}
+\algrenewcommand\algorithmicfor{\textbf{\color{altenAzureDark}for}}
+\algrenewcommand\algorithmicwhile{\textbf{\color{altenAzureDark}while}}
+\algrenewcommand\algorithmicif{\textbf{\color{altenAzureDark}if}}
+\algrenewcommand\algorithmicelse{\textbf{\color{altenAzureDark}else}}
+\algrenewcommand\algorithmicend{\textbf{\color{altenAzureDark}end}}
+\algrenewcommand\algorithmicreturn{\textbf{\color{altenAzureDark}return}}
+\algrenewcommand\algorithmicdo{\textbf{\color{altenAzureDark}do}}
+\algrenewcommand\algorithmicthen{\textbf{\color{altenAzureDark}then}}
+\algnewcommand{\LineComment}[1]{\State \(\triangleright\) \textit{\color{altenGreyText}#1}}
+%% Une ligne d'algorithme trop longue doit rester lisible : corps en small.
+\makeatletter
+\renewcommand{\ALG@beginalgorithmic}{\small}
+\makeatother
+
+
 
 %% ─────────────────────────────────────────
 %%  MEDIA / GRAPHICS
@@ -132,6 +225,9 @@
 \usepackage{graphicx}
 \graphicspath{{./}{../BST_DISCO_JH_2026/}}
 \usepackage{caption}
+%% Un DOI n'offre aucun point de coupure naturel : sans xurl la
+%% bibliographie deborde dans la marge sur une page sur deux.
+\usepackage{xurl}
 \usepackage[hidelinks]{hyperref}
 
 %% ─────────────────────────────────────────
@@ -141,7 +237,9 @@
 %% ─────────────────────────────────────────
 \usepackage{tabularx, array, booktabs, multirow, longtable, float}
 \usepackage{colortbl}  % provides \arrayrulecolor
-\renewcommand{\tabularxcolumn}[1]{m{#1}}
+%% Colonne X alignee en haut comme les colonnes p : centrer verticalement
+%% la seule colonne elastique desalignait chaque ligne du tableau.
+\renewcommand{\tabularxcolumn}[1]{p{#1}}
 \arrayrulecolor{altenNavy}
 
 %% Captions: navy label, navy text, matching the running colour
@@ -227,25 +325,6 @@
 }{\vspace{2pt}\end{adjustwidth}\endMakeFramed}
 
 %% ─────────────────────────────────────────
-%%  FIGURE PLACEHOLDERS — boxes describing figures
-%%  to be hand-drawn, then swapped for \includegraphics
-%% ─────────────────────────────────────────
-\newcommand{\figuretodraw}[3]{%
-  \begin{figure}[H]
-    \centering
-    \fcolorbox{red}{red!4}{%
-      \parbox{0.9\linewidth}{%
-        \centering\color{red}%
-        \textbf{[FIGURE TO DRAW]}\\[5pt]
-        \small #1\par
-      }%
-    }
-    \caption{#2}
-    \label{#3}
-  \end{figure}
-}
-
-%% ─────────────────────────────────────────
 %%  COMMENTS
 %% ─────────────────────────────────────────
 \usepackage{comment}
@@ -283,6 +362,12 @@
 \addcontentsline{toc}{section}{Acknowledgements}
 \input{Utilities/Acknowledgements}
 
+%% The glossary belongs before the contents: a reader meets the acronyms in
+%% Section 1, not after the references. Only acronyms actually used are listed
+%% (no \glsaddall).
+\clearpage
+\printnoidxglossaries{}
+
 \clearpage
 \tableofcontents
 
@@ -292,6 +377,7 @@
 
 \clearpage
 \listoftables
+
 
 \clearpage
 \pagenumbering{arabic}
@@ -322,10 +408,6 @@
 \clearpage
 \printbibliography[heading=bibintoc, title={References}]
 
-%% Only acronyms actually used in this thesis are listed (no \glsaddall)
-\clearpage
-\printnoidxglossaries{}
-
 \clearpage
 \appendix
 \input{Sections/Appendices/A.Ethics}
@@ -333,5 +415,9 @@
 \input{Sections/Appendices/C.Protocol}
 \input{Sections/Appendices/D.CalibrationTables}
 \input{Sections/Appendices/E.VolumeProtocol}
+\input{Sections/Appendices/F.WorkedExample}
+\input{Sections/Appendices/G.AssumptionRegister}
+\input{Sections/Appendices/H.Technical}
+\input{Sections/Appendices/J.Repair}
 
 \end{document}

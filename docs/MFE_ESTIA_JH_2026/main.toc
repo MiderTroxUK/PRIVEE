@@ -1,263 +1,296 @@
-\babel@toc {french}{}\relax 
+\babel@toc {english}{}\relax 
 \babel@toc {english}{}\relax 
 \contentsline {section}{Acknowledgements}{i}{section*.1}%
-\contentsline {section}{R\'esum\'e / Abstract / Resumen}{ii}{section*.2}%
+\contentsline {section}{Glossary}{ii}{section*.2}%
+\contentsline {section}{R\'esum\'e / Abstract / Resumen}{iv}{section*.3}%
 \babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
+\babel@toc {spanish}{}\relax 
 \babel@toc {english}{}\relax 
-\contentsline {section}{Preamble}{v}{section*.5}%
-\contentsline {paragraph}{Confidentiality.}{v}{section*.6}%
-\contentsline {paragraph}{Language.}{v}{section*.7}%
-\contentsline {section}{List of Figures}{viii}{section*.9}%
-\contentsline {section}{List of Tables}{ix}{section*.10}%
+\contentsline {section}{Preamble}{vi}{section*.6}%
+\contentsline {paragraph}{Status of the results.}{vi}{section*.7}%
+\contentsline {paragraph}{Confidentiality.}{vi}{section*.8}%
+\contentsline {section}{List of Figures}{ix}{section*.10}%
+\contentsline {section}{List of Tables}{x}{section*.11}%
 \contentsline {section}{\numberline {1}Introduction}{1}{section.1}%
-\contentsline {section}{\numberline {2}The Company}{3}{section.2}%
-\contentsline {subsection}{\numberline {2.1}The ALTEN Group}{3}{subsection.2.1}%
+\contentsline {section}{\numberline {2}The Company}{2}{section.2}%
+\contentsline {subsection}{\numberline {2.1}The ALTEN Group}{2}{subsection.2.1}%
 \contentsline {subsection}{\numberline {2.2}The Direction de l'Innovation}{3}{subsection.2.2}%
-\contentsline {subsection}{\numberline {2.3}Politique RSE d'ALTEN}{4}{subsection.2.3}%
+\contentsline {subsection}{\numberline {2.3}Politique RSE d'ALTEN \textnormal {\textmd {(CSR policy, in French)}}}{3}{subsection.2.3}%
 \babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
 \babel@toc {english}{}\relax 
 \babel@toc {english}{}\relax 
-\contentsline {paragraph}{English translation of the above.}{5}{section*.12}%
-\contentsline {section}{\numberline {3}Problem Statement}{7}{section.3}%
-\contentsline {subsection}{\numberline {3.1}Why ALTEN Opened This Subject}{7}{subsection.3.1}%
-\contentsline {subsection}{\numberline {3.2}The Cost of the Two Errors}{7}{subsection.3.2}%
-\contentsline {subsection}{\numberline {3.3}The Problem, Stated}{7}{subsection.3.3}%
-\contentsline {section}{\numberline {4}The Mission}{9}{section.4}%
-\contentsline {subsection}{\numberline {4.1}The Assignment as Written}{9}{subsection.4.1}%
-\contentsline {subsection}{\numberline {4.2}The Converged Objective}{9}{subsection.4.2}%
-\contentsline {subsection}{\numberline {4.3}Objectives, Indicators and Deliverables}{9}{subsection.4.3}%
-\contentsline {paragraph}{Intermediate deliverables.}{9}{section*.14}%
-\contentsline {paragraph}{Final deliverables.}{10}{section*.15}%
-\contentsline {paragraph}{One objective was reformulated during the mission.}{10}{section*.16}%
-\contentsline {section}{\numberline {5}Project Organisation}{11}{section.5}%
-\contentsline {subsection}{\numberline {5.1}Stakeholders and Responsibilities}{11}{subsection.5.1}%
-\contentsline {subsection}{\numberline {5.2}Resources}{11}{subsection.5.2}%
-\contentsline {subsection}{\numberline {5.3}Working Method: Agile and Test and Learn}{12}{subsection.5.3}%
-\contentsline {paragraph}{The cadence.}{12}{section*.18}%
-\contentsline {paragraph}{Test and Learn, with what it actually rejected.}{12}{section*.19}%
-\contentsline {paragraph}{Quality gates.}{13}{section*.21}%
-\contentsline {subsection}{\numberline {5.4}Phases and Milestones}{13}{subsection.5.4}%
-\contentsline {subsection}{\numberline {5.5}Risks and Mitigations}{13}{subsection.5.5}%
-\contentsline {section}{\numberline {6}State of the Art}{16}{section.6}%
-\contentsline {subsection}{\numberline {6.1}Deadline-Driven Value and Risk Propagation}{16}{subsection.6.1}%
-\contentsline {subsection}{\numberline {6.2}Indicators of Delivery Rupture}{16}{subsection.6.2}%
-\contentsline {subsection}{\numberline {6.3}Cognitive Bias in Declared Urgency}{17}{subsection.6.3}%
-\contentsline {subsection}{\numberline {6.4}Multi-Criteria Elicitation and Aggregation}{17}{subsection.6.4}%
-\contentsline {subsection}{\numberline {6.5}Digital Twins and Decision Support}{17}{subsection.6.5}%
-\contentsline {subsection}{\numberline {6.6}Verifying a Probabilistic Signal}{18}{subsection.6.6}%
-\contentsline {subsection}{\numberline {6.7}What the Review Establishes}{18}{subsection.6.7}%
-\contentsline {section}{\numberline {7}Carrying Out the Mission}{19}{section.7}%
-\contentsline {subsection}{\numberline {7.1}The Model}{19}{subsection.7.1}%
-\contentsline {subsubsection}{\numberline {7.1.1}Real urgency}{19}{subsubsection.7.1.1}%
-\contentsline {paragraph}{The assumption that the blocks are exchangeable.}{20}{section*.27}%
-\contentsline {subsubsection}{\numberline {7.1.2}Declared urgency and the adequacy score}{20}{subsubsection.7.1.2}%
-\contentsline {subsection}{\numberline {7.2}The System}{21}{subsection.7.2}%
-\contentsline {subsection}{\numberline {7.3}The Experiment}{24}{subsection.7.3}%
-\contentsline {subsection}{\numberline {7.4}Results}{25}{subsection.7.4}%
-\contentsline {subsubsection}{\numberline {7.4.1}The adequacy signal identifies the right nodes, and does it early}{25}{subsubsection.7.4.1}%
-\contentsline {subsubsection}{\numberline {7.4.2}The forecast layer, and the definition it is scored against}{26}{subsubsection.7.4.2}%
-\contentsline {subsubsection}{\numberline {7.4.3}Why: one block explains all of it}{28}{subsubsection.7.4.3}%
-\contentsline {subsubsection}{\numberline {7.4.4}What happens when the forecast is shown to the operator}{28}{subsubsection.7.4.4}%
-\contentsline {subsubsection}{\numberline {7.4.5}The outcome definition moves the answer}{29}{subsubsection.7.4.5}%
-\contentsline {subsection}{\numberline {7.5}The Repair, and What It Measures}{30}{subsection.7.5}%
-\contentsline {subsubsection}{\numberline {7.5.1}The recommended repair was the wrong one}{30}{subsubsection.7.5.1}%
-\contentsline {subsubsection}{\numberline {7.5.2}Two further defects the first measurement had hidden}{31}{subsubsection.7.5.2}%
-\contentsline {subsubsection}{\numberline {7.5.3}What the re-measurement gives}{31}{subsubsection.7.5.3}%
-\contentsline {subsubsection}{\numberline {7.5.4}A third arm, and the honest reading of it}{32}{subsubsection.7.5.4}%
-\contentsline {subsection}{\numberline {7.6}Problems Encountered and How They Were Resolved}{33}{subsection.7.6}%
-\contentsline {paragraph}{The first model could not represent the problem.}{33}{section*.41}%
-\contentsline {paragraph}{Measuring the gap requires two independent signals, which is harder than it looks.}{33}{section*.42}%
-\contentsline {paragraph}{The literature was not accessible from inside the company.}{33}{section*.43}%
-\contentsline {paragraph}{Compute was limited to a CPU.}{33}{section*.44}%
-\contentsline {section}{\numberline {8}Conclusion and Personal Assessment}{34}{section.8}%
-\contentsline {subsection}{\numberline {8.1}Results Against the Objectives}{34}{subsection.8.1}%
-\contentsline {paragraph}{Quantitatively.}{34}{section*.46}%
-\contentsline {paragraph}{Qualitatively.}{35}{section*.47}%
-\contentsline {subsection}{\numberline {8.2}Limitations}{35}{subsection.8.2}%
-\contentsline {subsection}{\numberline {8.3}Perspectives}{35}{subsection.8.3}%
-\contentsline {paragraph}{For ALTEN.}{35}{section*.48}%
-\contentsline {paragraph}{For the author.}{36}{section*.49}%
-\contentsline {subsection}{\numberline {8.4}Personal Assessment}{36}{subsection.8.4}%
-\contentsline {subsubsection}{\numberline {8.4.1}What I learned}{36}{subsubsection.8.4.1}%
-\contentsline {subsubsection}{\numberline {8.4.2}Link with the ESTIA engineering competency framework}{37}{subsubsection.8.4.2}%
-\contentsline {subsubsection}{\numberline {8.4.3}What this mission clarified professionally}{38}{subsubsection.8.4.3}%
-\contentsline {section}{Bibliography}{39}{section*.51}%
-\babel@toc {french}{}\relax 
+\contentsline {section}{\numberline {3}Problem Statement}{4}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Why ALTEN Opened This Subject}{4}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}The Cost of the Two Errors}{4}{subsection.3.2}%
+\contentsline {subsection}{\numberline {3.3}The Problem, Stated}{5}{subsection.3.3}%
+\contentsline {section}{\numberline {4}The Mission}{5}{section.4}%
+\contentsline {subsection}{\numberline {4.1}The Assignment as Written}{5}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}The Converged Objective}{6}{subsection.4.2}%
+\contentsline {subsection}{\numberline {4.3}Objectives, Indicators and Deliverables}{7}{subsection.4.3}%
+\contentsline {paragraph}{Intermediate deliverables.}{8}{section*.19}%
+\contentsline {paragraph}{Final deliverables.}{8}{section*.20}%
+\contentsline {paragraph}{The fourth objective became the centre of the mission.}{8}{section*.21}%
+\contentsline {section}{\numberline {5}Project Organisation}{8}{section.5}%
+\contentsline {subsection}{\numberline {5.1}Stakeholders and Responsibilities}{8}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2}Resources}{8}{subsection.5.2}%
+\contentsline {subsection}{\numberline {5.3}Working Method: Agile and Test and Learn}{9}{subsection.5.3}%
+\contentsline {paragraph}{The cadence.}{9}{section*.23}%
+\contentsline {paragraph}{Test and Learn, and what it rejected.}{9}{section*.25}%
+\contentsline {subsection}{\numberline {5.4}Phases and Milestones}{9}{subsection.5.4}%
+\contentsline {subsection}{\numberline {5.5}Risks and Mitigations}{10}{subsection.5.5}%
+\contentsline {section}{\numberline {6}State of the Art}{11}{section.6}%
+\contentsline {subsection}{\numberline {6.1}Deadline-Driven Value and Risk Propagation}{11}{subsection.6.1}%
+\contentsline {subsection}{\numberline {6.2}Indicators of Delivery Rupture}{11}{subsection.6.2}%
+\contentsline {subsection}{\numberline {6.3}Cognitive Bias in Declared Urgency}{12}{subsection.6.3}%
+\contentsline {subsection}{\numberline {6.4}Multi-Criteria Elicitation and Aggregation}{12}{subsection.6.4}%
+\contentsline {subsection}{\numberline {6.5}Digital Twins and Decision Support}{12}{subsection.6.5}%
+\contentsline {subsection}{\numberline {6.6}Industrial Solutions and Patents}{13}{subsection.6.6}%
+\contentsline {subsection}{\numberline {6.7}Verifying a Probabilistic Signal}{13}{subsection.6.7}%
+\contentsline {subsection}{\numberline {6.8}What the Review Establishes}{14}{subsection.6.8}%
+\contentsline {section}{\numberline {7}Carrying Out the Mission}{14}{section.7}%
+\contentsline {subsection}{\numberline {7.1}The Model}{14}{subsection.7.1}%
+\contentsline {subsubsection}{\numberline {7.1.1}Real urgency}{14}{subsubsection.7.1.1}%
+\contentsline {paragraph}{What the OR means, and why it is one.}{14}{section*.31}%
+\contentsline {paragraph}{The blocks are treated as exchangeable, and they are not.}{15}{section*.34}%
+\contentsline {subsubsection}{\numberline {7.1.2}Declared urgency and the adequacy score}{16}{subsubsection.7.1.2}%
+\contentsline {subsection}{\numberline {7.2}The System}{17}{subsection.7.2}%
+\contentsline {subsection}{\numberline {7.3}The First Campaign}{18}{subsection.7.3}%
+\contentsline {subsection}{\numberline {7.4}Results on the First Chain}{19}{subsection.7.4}%
+\contentsline {subsubsection}{\numberline {7.4.1}The adequacy signal identifies the right nodes, and does it early}{19}{subsubsection.7.4.1}%
+\contentsline {subsubsection}{\numberline {7.4.2}The forecast layer, and the definition it is scored against}{20}{subsubsection.7.4.2}%
+\contentsline {subsubsection}{\numberline {7.4.3}Why: one block explains all of it}{21}{subsubsection.7.4.3}%
+\contentsline {subsubsection}{\numberline {7.4.4}What happens when the forecast is shown to the operator}{22}{subsubsection.7.4.4}%
+\contentsline {subsubsection}{\numberline {7.4.5}The outcome definition moves the answer}{22}{subsubsection.7.4.5}%
+\contentsline {subsection}{\numberline {7.5}The Repair, and What It Measures}{23}{subsection.7.5}%
+\contentsline {subsubsection}{\numberline {7.5.1}Measurement corrected the recommended repair}{23}{subsubsection.7.5.1}%
+\contentsline {subsubsection}{\numberline {7.5.2}What the re-measurement gives}{24}{subsubsection.7.5.2}%
+\contentsline {paragraph}{A third arm, in closed loop.}{25}{section*.49}%
+\contentsline {subsection}{\numberline {7.6}A Second Chain, and the Domain It Establishes}{25}{subsection.7.6}%
+\contentsline {subsubsection}{\numberline {7.6.1}What was changed, and why each change is a real test}{25}{subsubsection.7.6.1}%
+\contentsline {subsubsection}{\numberline {7.6.2}Where the signal applies, and where it does not}{26}{subsubsection.7.6.2}%
+\contentsline {subsubsection}{\numberline {7.6.3}Displaying the forecast, at five times the scale}{27}{subsubsection.7.6.3}%
+\contentsline {subsubsection}{\numberline {7.6.4}Does the forecast layer earn its complexity?}{28}{subsubsection.7.6.4}%
+\contentsline {subsection}{\numberline {7.7}Problems Encountered and How They Were Resolved}{29}{subsection.7.7}%
+\contentsline {paragraph}{The first model could not represent the problem.}{29}{section*.57}%
+\contentsline {paragraph}{Keeping the two signals independent had to be designed, not assumed.}{30}{section*.58}%
+\contentsline {paragraph}{A test bench has to be able to contradict its author.}{30}{section*.59}%
+\contentsline {subsection}{\numberline {7.8}A Parallel Workstream: Capacity Observed Rather Than Declared}{30}{subsection.7.8}%
+\contentsline {section}{\numberline {8}Conclusion and Personal Assessment}{30}{section.8}%
+\contentsline {subsection}{\numberline {8.1}Results Against the Objectives}{30}{subsection.8.1}%
+\contentsline {paragraph}{Quantitatively.}{30}{section*.61}%
+\contentsline {paragraph}{Qualitatively.}{30}{section*.62}%
+\contentsline {subsection}{\numberline {8.2}Limitations}{32}{subsection.8.2}%
+\contentsline {subsection}{\numberline {8.3}Perspectives}{32}{subsection.8.3}%
+\contentsline {paragraph}{For ALTEN.}{32}{section*.64}%
+\contentsline {paragraph}{What the remaining two months do.}{32}{section*.66}%
+\contentsline {paragraph}{For the author.}{33}{section*.67}%
+\contentsline {subsection}{\numberline {8.4}Personal Assessment}{33}{subsection.8.4}%
+\contentsline {subsubsection}{\numberline {8.4.1}What I learned}{33}{subsubsection.8.4.1}%
+\contentsline {subsubsection}{\numberline {8.4.2}Link with the ESTIA engineering competency framework}{33}{subsubsection.8.4.2}%
+\contentsline {subsubsection}{\numberline {8.4.3}What this mission clarified professionally}{33}{subsubsection.8.4.3}%
+\contentsline {section}{Bibliography}{35}{section*.69}%
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\contentsline {section}{\numberline {A}Autorisation d'usage de l'IA par l'\'el\`eve}{44}{appendix.A}%
-\babel@toc {french}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
 \babel@toc {english}{}\relax 
-\contentsline {section}{\numberline {B}Detailed Planning}{45}{appendix.B}%
-\contentsline {paragraph}{June: validation over extension.}{46}{section*.61}%
-\contentsline {paragraph}{July: substitution of the campaign population.}{46}{section*.62}%
-\contentsline {section}{\numberline {C}Detailed Competency Evidence}{46}{appendix.C}%
-\contentsline {paragraph}{CI1 -- Analysis, synthesis, curiosity, creativity and innovation, approaching a problem systemically and across disciplines.}{46}{section*.65}%
-\contentsline {paragraph}{CI3 -- Working in an international and intercultural context.}{47}{section*.66}%
-\contentsline {paragraph}{CI5 -- Identifying and solving complex or research problems, mobilising scientific and technical knowledge and external resources.}{47}{section*.67}%
-\contentsline {paragraph}{CE3 -- Leading, steering and controlling a project to reach its objectives, in cost, deadline, performance and risk.}{47}{section*.68}%
-\contentsline {paragraph}{CE4 -- Taking the socio-ecological transition into account.}{47}{section*.69}%
-\contentsline {paragraph}{CE5 -- Researching, selecting, qualifying and diffusing information, adapting it to its context.}{47}{section*.70}%
-\contentsline {paragraph}{CST1 -- Defining an engineering strategy by choosing methods and tools suited to a known or poorly known context.}{47}{section*.71}%
-\contentsline {paragraph}{CST2 -- Modelling and simulating a system, and capitalising the information and knowledge produced.}{47}{section*.72}%
-\contentsline {paragraph}{CST7 -- Designing and building models, methods and tools to aid engineering and improve business processes, including in a research and development perspective.}{47}{section*.73}%
+\contentsline {section}{\numberline {A}Autorisation d'usage de l'IA par l'\'el\`eve}{39}{appendix.A}%
+\contentsline {section}{\numberline {B}Detailed Planning}{40}{appendix.B}%
+\contentsline {paragraph}{June: validation over extension.}{40}{section*.75}%
+\contentsline {paragraph}{July: substitution of the campaign population.}{40}{section*.76}%
+\contentsline {section}{\numberline {C}Detailed Competency Evidence}{42}{appendix.C}%
+\contentsline {paragraph}{CI1 -- Analysis, synthesis, curiosity, creativity and innovation, approaching a problem systemically and across disciplines.}{42}{section*.80}%
+\contentsline {paragraph}{CI3 -- Working in an international and intercultural context.}{42}{section*.81}%
+\contentsline {paragraph}{CI5 -- Identifying and solving complex or research problems, mobilising scientific and technical knowledge and external resources.}{42}{section*.82}%
+\contentsline {paragraph}{CE3 -- Leading, steering and controlling a project to reach its objectives, in cost, deadline, performance and risk.}{42}{section*.83}%
+\contentsline {paragraph}{CE4 -- Taking the socio-ecological transition into account.}{42}{section*.84}%
+\contentsline {paragraph}{CE5 -- Researching, selecting, qualifying and diffusing information, adapting it to its context.}{42}{section*.85}%
+\contentsline {paragraph}{CST1 -- Defining an engineering strategy by choosing methods and tools suited to a known or poorly known context.}{42}{section*.86}%
+\contentsline {paragraph}{CST2 -- Modelling and simulating a system, and capitalising the information and knowledge produced.}{43}{section*.87}%
+\contentsline {paragraph}{CST7 -- Designing and building models, methods and tools to aid engineering and improve business processes, including in a research and development perspective.}{43}{section*.88}%
+\contentsline {section}{\numberline {D}Capacity Observed Rather Than Declared}{43}{appendix.D}%

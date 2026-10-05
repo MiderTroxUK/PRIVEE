@@ -1,270 +1,240 @@
 \addvspace {5\p@ }
-\contentsline {section}{Confidentiality and Use of Software Tools}{i}{section*.1}%
-\contentsline {paragraph}{Confidentiality.}{i}{section*.2}%
-\contentsline {paragraph}{Use of software tools.}{i}{section*.3}%
-\addvspace {5\p@ }
-\contentsline {section}{Abstract}{ii}{section*.4}%
-\addvspace {5\p@ }
-\contentsline {section}{R\'esum\'e}{iv}{section*.5}%
-\addvspace {5\p@ }
-\contentsline {section}{Acknowledgements}{vi}{section*.6}%
+\contentsline {section}{Declarations}{i}{section*.1}%
 \addvspace {5\p@ }
 \addvspace {5\p@ }
-\contentsline {section}{List of Figures}{xi}{section*.8}%
 \addvspace {5\p@ }
-\contentsline {section}{List of Tables}{xii}{section*.9}%
+\addvspace {5\p@ }
+\contentsline {section}{Abstract}{ii}{section*.5}%
+\addvspace {5\p@ }
+\contentsline {section}{R\'esum\'e}{iii}{section*.6}%
+\addvspace {5\p@ }
+\contentsline {section}{Acknowledgements}{iv}{section*.7}%
+\addvspace {5\p@ }
+\addvspace {5\p@ }
+\addvspace {5\p@ }
+\contentsline {section}{List of Figures}{x}{section*.11}%
+\addvspace {5\p@ }
+\contentsline {section}{List of Tables}{xi}{section*.12}%
 \addvspace {5\p@ }
 \contentsline {section}{\numberline {1}Introduction}{1}{section.1}%
 \addvspace {5\p@ }
 \contentsline {subsection}{\numberline {1.1}Industrial and Technical Context}{1}{subsection.1.1}%
 \addvspace {5\p@ }
-\contentsline {subsection}{\numberline {1.2}The DISCO Digital Twin and Prior Research at ALTEN-DIN}{1}{subsection.1.2}%
+\contentsline {subsection}{\numberline {1.2}Problem Statement}{2}{subsection.1.2}%
 \addvspace {5\p@ }
-\contentsline {subsection}{\numberline {1.3}Problem Statement}{3}{subsection.1.3}%
+\contentsline {subsection}{\numberline {1.3}Aim, Objectives and Scope}{3}{subsection.1.3}%
 \addvspace {5\p@ }
-\contentsline {subsection}{\numberline {1.4}Aim, Objectives and Research Questions}{4}{subsection.1.4}%
+\contentsline {subsection}{\numberline {1.4}Thesis Structure}{4}{subsection.1.4}%
 \addvspace {5\p@ }
-\contentsline {subsection}{\numberline {1.5}Research Hypotheses}{5}{subsection.1.5}%
+\contentsline {section}{\numberline {2}Literature Review}{5}{section.2}%
 \addvspace {5\p@ }
-\contentsline {subsection}{\numberline {1.6}Scope and Delimitations}{7}{subsection.1.6}%
-\contentsline {paragraph}{The declarants are language-model agents, not human consultants.}{7}{section*.15}%
-\contentsline {paragraph}{The validation is a single scenario.}{7}{section*.16}%
-\contentsline {paragraph}{SupplyScore is standalone.}{7}{section*.17}%
-\contentsline {paragraph}{The satellite observation work is an opening, not a second contribution.}{7}{section*.18}%
+\contentsline {subsection}{\numberline {2.1}Introduction and Key Definitions}{5}{subsection.2.1}%
 \addvspace {5\p@ }
-\contentsline {subsection}{\numberline {1.7}Thesis Structure}{7}{subsection.1.7}%
+\contentsline {subsection}{\numberline {2.2}Risk Propagation and Deadline-Sensitive Value}{5}{subsection.2.2}%
+\contentsline {paragraph}{Gaps in risk propagation and deadline-sensitive value.}{6}{section*.16}%
 \addvspace {5\p@ }
-\contentsline {section}{\numberline {2}Literature Review}{8}{section.2}%
+\contentsline {subsection}{\numberline {2.3}Cognitive Bias in Urgency Declaration}{6}{subsection.2.3}%
+\contentsline {paragraph}{Gaps in cognitive bias research.}{7}{section*.17}%
 \addvspace {5\p@ }
-\contentsline {subsection}{\numberline {2.1}Introduction and Key Definitions}{8}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.4}Indicators of Delivery Rupture Risk}{7}{subsection.2.4}%
+\contentsline {paragraph}{Gap in the indicator literature.}{7}{section*.18}%
 \addvspace {5\p@ }
-\contentsline {subsection}{\numberline {2.2}Risk Propagation and Deadline-Sensitive Value}{8}{subsection.2.2}%
-\contentsline {paragraph}{Gaps in risk propagation and deadline-sensitive value.}{10}{section*.21}%
+\contentsline {subsection}{\numberline {2.5}Closest Antecedents: Network Risk Twins and MCDM Supplier Scoring}{7}{subsection.2.5}%
+\contentsline {paragraph}{Gaps in the closest antecedents.}{8}{section*.19}%
 \addvspace {5\p@ }
-\contentsline {subsection}{\numberline {2.3}Cognitive Bias in Urgency Declaration}{10}{subsection.2.3}%
-\contentsline {paragraph}{Gaps in cognitive bias research.}{11}{section*.23}%
+\contentsline {subsection}{\numberline {2.6}Enabling Method: Bayesian and Probabilistic Risk Updating}{8}{subsection.2.6}%
+\contentsline {paragraph}{Gaps in Bayesian risk updating.}{8}{section*.20}%
 \addvspace {5\p@ }
-\contentsline {subsection}{\numberline {2.4}Indicators of Delivery Rupture Risk}{11}{subsection.2.4}%
-\contentsline {paragraph}{Gaps in rupture-risk indicators.}{12}{section*.24}%
+\contentsline {subsection}{\numberline {2.7}Enabling Method: Digital Twins and Real-Time Decision Support}{8}{subsection.2.7}%
+\contentsline {paragraph}{Gaps in digital twin decision support.}{9}{section*.21}%
 \addvspace {5\p@ }
-\contentsline {subsection}{\numberline {2.5}Closest Antecedents: Network Risk Twins and MCDM Supplier Scoring}{12}{subsection.2.5}%
-\contentsline {paragraph}{Gaps in the closest antecedents.}{12}{section*.25}%
+\contentsline {subsection}{\numberline {2.8}Enabling Methods: Multi-Criteria Decision Methods}{9}{subsection.2.8}%
+\contentsline {paragraph}{Gaps in multi-criteria decision methods.}{9}{section*.22}%
 \addvspace {5\p@ }
-\contentsline {subsection}{\numberline {2.6}Enabling Method: Bayesian and Probabilistic Risk Updating}{13}{subsection.2.6}%
-\contentsline {paragraph}{Gaps in Bayesian risk updating.}{13}{section*.26}%
+\contentsline {subsection}{\numberline {2.9}Forecast-Assisted Decision and Automation Bias}{9}{subsection.2.9}%
+\contentsline {paragraph}{Gaps in forecast-assisted decision research.}{10}{section*.23}%
 \addvspace {5\p@ }
-\contentsline {subsection}{\numberline {2.7}Enabling Method: Digital Twins and Real-Time Decision Support}{13}{subsection.2.7}%
-\contentsline {paragraph}{Gaps in digital twin decision support.}{13}{section*.27}%
+\contentsline {subsection}{\numberline {2.10}Validation Methodology: Serious Games}{10}{subsection.2.10}%
+\contentsline {paragraph}{Gaps in serious game validation.}{11}{section*.24}%
 \addvspace {5\p@ }
-\contentsline {subsection}{\numberline {2.8}Enabling Methods: Multi-Criteria Decision Methods}{14}{subsection.2.8}%
-\contentsline {paragraph}{Pairwise elicitation.}{14}{section*.28}%
-\contentsline {paragraph}{Outranking aggregation and the composite indicator critique.}{14}{section*.29}%
-\contentsline {paragraph}{Gaps in multi-criteria decision methods.}{14}{section*.30}%
+\contentsline {subsection}{\numberline {2.11}Probabilistic Forecast Verification}{11}{subsection.2.11}%
+\contentsline {paragraph}{Gaps in forecast verification practice.}{11}{section*.25}%
 \addvspace {5\p@ }
-\contentsline {subsection}{\numberline {2.9}Forecast-Assisted Decision and Automation Bias}{14}{subsection.2.9}%
-\contentsline {paragraph}{Gaps in forecast-assisted decision research.}{15}{section*.31}%
+\contentsline {subsection}{\numberline {2.12}Analogical and Contextual Literature}{11}{subsection.2.12}%
+\contentsline {paragraph}{Medical triage as a conceptual analogy.}{11}{section*.26}%
+\contentsline {paragraph}{Physical Internet and synchromodality.}{12}{section*.27}%
+\contentsline {paragraph}{Regulatory carbon accounting.}{12}{section*.28}%
+\contentsline {paragraph}{Earth observation of built and logistics assets.}{12}{section*.29}%
+\contentsline {paragraph}{Gap in Earth observation for supply chain state.}{12}{section*.30}%
 \addvspace {5\p@ }
-\contentsline {subsection}{\numberline {2.10}Validation Methodology: Serious Games}{15}{subsection.2.10}%
-\contentsline {paragraph}{Gaps in serious game validation.}{16}{section*.32}%
+\contentsline {subsection}{\numberline {2.13}Source Review Grid}{12}{subsection.2.13}%
 \addvspace {5\p@ }
-\contentsline {subsection}{\numberline {2.11}Probabilistic Forecast Verification}{16}{subsection.2.11}%
-\contentsline {paragraph}{Gaps in forecast verification practice.}{16}{section*.33}%
+\contentsline {subsection}{\numberline {2.14}Identified Gaps}{13}{subsection.2.14}%
 \addvspace {5\p@ }
-\contentsline {subsection}{\numberline {2.12}Analogical and Contextual Literature}{16}{subsection.2.12}%
-\contentsline {paragraph}{Medical triage as a conceptual analogy.}{16}{section*.34}%
-\contentsline {paragraph}{Physical Internet and synchromodality.}{17}{section*.35}%
-\contentsline {paragraph}{Regulatory carbon accounting.}{17}{section*.36}%
-\contentsline {paragraph}{Earth observation of built and logistics assets.}{17}{section*.37}%
-\contentsline {paragraph}{Gap in Earth observation for supply chain state.}{17}{section*.38}%
+\contentsline {section}{\numberline {3}Methods}{14}{section.3}%
 \addvspace {5\p@ }
-\contentsline {subsection}{\numberline {2.13}Source Review Grid}{17}{subsection.2.13}%
+\contentsline {subsection}{\numberline {3.1}Methodological Framework}{14}{subsection.3.1}%
 \addvspace {5\p@ }
-\contentsline {subsection}{\numberline {2.14}Identified Gaps}{18}{subsection.2.14}%
+\contentsline {subsubsection}{\numberline {3.1.1}The Proposed Structure}{14}{subsubsection.3.1.1}%
 \addvspace {5\p@ }
-\contentsline {section}{\numberline {3}Methods}{19}{section.3}%
+\contentsline {subsection}{\numberline {3.2}Mathematical Model}{14}{subsection.3.2}%
 \addvspace {5\p@ }
-\contentsline {subsection}{\numberline {3.1}Methodological Framework}{19}{subsection.3.1}%
+\contentsline {subsubsection}{\numberline {3.2.1}Local Real Urgency}{15}{subsubsection.3.2.1}%
+\contentsline {paragraph}{Where the form comes from.}{15}{section*.34}%
+\contentsline {paragraph}{Why not a weighted average.}{16}{section*.35}%
+\contentsline {paragraph}{What the endpoints mean.}{17}{section*.37}%
+\contentsline {paragraph}{How a missing block is handled.}{18}{section*.38}%
+\contentsline {paragraph}{Whether the blocks are exchangeable.}{18}{section*.39}%
+\contentsline {paragraph}{A stochastic variant of the time block.}{18}{section*.40}%
 \addvspace {5\p@ }
-\contentsline {subsubsection}{\numberline {3.1.1}The Proposed Structure}{19}{subsubsection.3.1.1}%
+\contentsline {subsubsection}{\numberline {3.2.2}Why These Six Blocks}{19}{subsubsection.3.2.2}%
 \addvspace {5\p@ }
-\contentsline {subsection}{\numberline {3.2}Mathematical Model}{20}{subsection.3.2}%
+\contentsline {subsubsection}{\numberline {3.2.3}Local Declared Urgency}{20}{subsubsection.3.2.3}%
 \addvspace {5\p@ }
-\contentsline {subsubsection}{\numberline {3.2.1}Local Real Urgency}{20}{subsubsection.3.2.1}%
-\contentsline {paragraph}{What the endpoints mean.}{21}{section*.42}%
-\contentsline {paragraph}{How a missing block is handled.}{22}{section*.43}%
-\contentsline {paragraph}{Whether the blocks are exchangeable.}{22}{section*.44}%
-\contentsline {paragraph}{A stochastic variant of the time block.}{23}{section*.45}%
+\contentsline {subsubsection}{\numberline {3.2.4}Network Propagation}{20}{subsubsection.3.2.4}%
+\contentsline {paragraph}{What the recurrence guarantees.}{20}{section*.41}%
+\contentsline {paragraph}{Recomputing only what changed.}{21}{section*.42}%
+\contentsline {paragraph}{When each quantity is computed.}{21}{section*.43}%
 \addvspace {5\p@ }
-\contentsline {subsubsection}{\numberline {3.2.2}Why These Six Blocks}{23}{subsubsection.3.2.2}%
+\contentsline {subsubsection}{\numberline {3.2.5}Network Criticality Index}{22}{subsubsection.3.2.5}%
+\contentsline {paragraph}{Saturation collapses the ranking, and the model forces it.}{22}{section*.46}%
+\contentsline {paragraph}{The twin is the same recurrence in another coordinate.}{23}{section*.47}%
+\contentsline {paragraph}{Off saturation the two keys agree; on it only one still separates.}{23}{section*.48}%
 \addvspace {5\p@ }
-\contentsline {subsubsection}{\numberline {3.2.3}Local Declared Urgency}{24}{subsubsection.3.2.3}%
+\contentsline {subsubsection}{\numberline {3.2.6}Asymmetric Cognitive Adequacy}{23}{subsubsection.3.2.6}%
+\contentsline {paragraph}{What the score guarantees.}{24}{section*.49}%
 \addvspace {5\p@ }
-\contentsline {subsubsection}{\numberline {3.2.4}Network Propagation}{24}{subsubsection.3.2.4}%
-\contentsline {paragraph}{When each quantity is computed.}{25}{section*.49}%
+\contentsline {subsection}{\numberline {3.3}System Implementation}{26}{subsection.3.3}%
 \addvspace {5\p@ }
-\contentsline {subsubsection}{\numberline {3.2.5}Network Criticality Index}{27}{subsubsection.3.2.5}%
+\contentsline {subsubsection}{\numberline {3.3.1}Architecture}{26}{subsubsection.3.3.1}%
 \addvspace {5\p@ }
-\contentsline {subsubsection}{\numberline {3.2.6}Asymmetric Cognitive Adequacy}{27}{subsubsection.3.2.6}%
+\contentsline {subsubsection}{\numberline {3.3.2}Weekly Review Cycle and Calibrated Event Engine}{26}{subsubsection.3.3.2}%
 \addvspace {5\p@ }
-\contentsline {subsection}{\numberline {3.3}System Implementation}{29}{subsection.3.3}%
+\contentsline {subsubsection}{\numberline {3.3.3}Explainability, Export and Operational Hardening}{27}{subsubsection.3.3.3}%
 \addvspace {5\p@ }
-\contentsline {subsubsection}{\numberline {3.3.1}Architecture}{29}{subsubsection.3.3.1}%
-\contentsline {paragraph}{Single facade.}{29}{section*.53}%
-\contentsline {paragraph}{Multi-tenant persistence.}{29}{section*.54}%
-\contentsline {paragraph}{Gatekeeper writes.}{29}{section*.55}%
-\contentsline {paragraph}{Graph and propagation.}{29}{section*.56}%
-\contentsline {paragraph}{Decoupled clocks.}{29}{section*.57}%
+\contentsline {subsection}{\numberline {3.4}Experimental Design: The H\'ELIOS Campaign}{28}{subsection.3.4}%
 \addvspace {5\p@ }
-\contentsline {subsubsection}{\numberline {3.3.2}AHP Elicitation}{29}{subsubsection.3.3.2}%
+\contentsline {subsubsection}{\numberline {3.4.1}Scenario and Network}{28}{subsubsection.3.4.1}%
 \addvspace {5\p@ }
-\contentsline {subsubsection}{\numberline {3.3.3}Fuzzy BWM and PROMETHEE II Network Outranking}{30}{subsubsection.3.3.3}%
+\contentsline {subsubsection}{\numberline {3.4.2}Data Provenance}{28}{subsubsection.3.4.2}%
 \addvspace {5\p@ }
-\contentsline {subsubsection}{\numberline {3.3.4}Weekly Review Cycle and Calibrated Event Engine}{32}{subsubsection.3.3.4}%
+\contentsline {subsubsection}{\numberline {3.4.3}Pre-registered Hypotheses}{29}{subsubsection.3.4.3}%
 \addvspace {5\p@ }
-\contentsline {subsubsection}{\numberline {3.3.5}The Forecast Layer}{33}{subsubsection.3.3.5}%
+\contentsline {subsubsection}{\numberline {3.4.4}The Three Arms}{30}{subsubsection.3.4.4}%
 \addvspace {5\p@ }
-\contentsline {subsubsection}{\numberline {3.3.6}Explainability, Export and Operational Hardening}{34}{subsubsection.3.3.6}%
+\contentsline {subsubsection}{\numberline {3.4.5}Scoring Protocol}{31}{subsubsection.3.4.5}%
+\contentsline {paragraph}{How those quantities are to be read.}{32}{section*.56}%
 \addvspace {5\p@ }
-\contentsline {subsection}{\numberline {3.4}Experimental Design: The H\'ELIOS Campaign}{34}{subsection.3.4}%
+\contentsline {subsection}{\numberline {3.5}Limitations and Simplifications of the Method}{32}{subsection.3.5}%
 \addvspace {5\p@ }
-\contentsline {subsubsection}{\numberline {3.4.1}Scenario and Network}{34}{subsubsection.3.4.1}%
+\contentsline {subsection}{\numberline {3.6}Reproducibility}{33}{subsection.3.6}%
+\contentsline {paragraph}{Execution environment.}{33}{section*.57}%
 \addvspace {5\p@ }
-\contentsline {subsubsection}{\numberline {3.4.2}Data Provenance}{36}{subsubsection.3.4.2}%
+\contentsline {subsection}{\numberline {3.7}Ethical Considerations}{34}{subsection.3.7}%
 \addvspace {5\p@ }
-\contentsline {subsubsection}{\numberline {3.4.3}The Three Arms}{37}{subsubsection.3.4.3}%
+\contentsline {subsection}{\numberline {3.8}Conclusion}{34}{subsection.3.8}%
 \addvspace {5\p@ }
-\contentsline {subsubsection}{\numberline {3.4.4}Scoring Protocol}{38}{subsubsection.3.4.4}%
+\contentsline {section}{\numberline {4}Results and Discussion}{35}{section.4}%
 \addvspace {5\p@ }
-\contentsline {subsubsection}{\numberline {3.4.5}Protocol Integrity and Controls}{39}{subsubsection.3.4.5}%
+\contentsline {subsection}{\numberline {4.1}Introduction}{35}{subsection.4.1}%
 \addvspace {5\p@ }
-\contentsline {subsection}{\numberline {3.5}Limitations and Simplifications of the Method}{39}{subsection.3.5}%
+\contentsline {subsection}{\numberline {4.2}The Delivered System}{35}{subsection.4.2}%
 \addvspace {5\p@ }
-\contentsline {subsection}{\numberline {3.6}Reproducibility}{40}{subsection.3.6}%
+\contentsline {subsection}{\numberline {4.3}Mechanical Validation: The Synthetic Dry Run}{35}{subsection.4.3}%
 \addvspace {5\p@ }
-\contentsline {subsection}{\numberline {3.7}Ethical Considerations}{40}{subsection.3.7}%
+\contentsline {subsection}{\numberline {4.4}Arm A: Blind Declaration by Eight Isolated Agents}{36}{subsection.4.4}%
 \addvspace {5\p@ }
-\contentsline {subsection}{\numberline {3.8}Conclusion}{41}{subsection.3.8}%
+\contentsline {subsection}{\numberline {4.5}What the Adequacy Signal Gets Right: Node-Level Targeting}{38}{subsection.4.5}%
 \addvspace {5\p@ }
-\contentsline {section}{\numberline {4}Results and Discussion}{42}{section.4}%
+\contentsline {subsubsection}{\numberline {4.5.1}Why the Signal Degrades, and What the Sample Supports}{39}{subsubsection.4.5.1}%
 \addvspace {5\p@ }
-\contentsline {subsection}{\numberline {4.1}Introduction}{42}{subsection.4.1}%
+\contentsline {subsubsection}{\numberline {4.5.2}The Second Chain, and the Boundary It Draws}{39}{subsubsection.4.5.2}%
 \addvspace {5\p@ }
-\contentsline {subsection}{\numberline {4.2}The Delivered System}{42}{subsection.4.2}%
+\contentsline {subsection}{\numberline {4.6}Arm A Rescored: Discrimination Without Calibration}{40}{subsection.4.6}%
 \addvspace {5\p@ }
-\contentsline {subsection}{\numberline {4.3}Mechanical Validation: The Synthetic Dry Run}{43}{subsection.4.3}%
+\contentsline {subsubsection}{\numberline {4.6.1}The Mechanism}{42}{subsubsection.4.6.1}%
 \addvspace {5\p@ }
-\contentsline {subsection}{\numberline {4.4}Arm A: Blind Declaration by Eight Isolated Agents}{43}{subsection.4.4}%
+\contentsline {subsection}{\numberline {4.7}The Target-Definition Trap}{43}{subsection.4.7}%
 \addvspace {5\p@ }
-\contentsline {subsection}{\numberline {4.5}What the Adequacy Signal Gets Right: Node-Level Targeting}{47}{subsection.4.5}%
+\contentsline {subsection}{\numberline {4.8}How Much of This Is Signal}{44}{subsection.4.8}%
+\contentsline {paragraph}{What survives this, and why.}{46}{section*.72}%
+\contentsline {paragraph}{The same standard applied to the one confirmed hypothesis.}{47}{section*.73}%
 \addvspace {5\p@ }
-\contentsline {subsubsection}{\numberline {4.5.1}Protocol}{47}{subsubsection.4.5.1}%
+\contentsline {subsection}{\numberline {4.9}Arm B: What Happens When the Forecast Is Shown}{47}{subsection.4.9}%
 \addvspace {5\p@ }
-\contentsline {subsubsection}{\numberline {4.5.2}Result}{47}{subsubsection.4.5.2}%
+\contentsline {subsubsection}{\numberline {4.9.1}The Same Test on the Second Chain}{48}{subsubsection.4.9.1}%
 \addvspace {5\p@ }
-\contentsline {subsubsection}{\numberline {4.5.3}Why the Signal Degrades, and Why That Is Not a Defect}{48}{subsubsection.4.5.3}%
+\contentsline {subsubsection}{\numberline {4.9.2}What the Model Being Followed Actually Knows}{50}{subsubsection.4.9.2}%
 \addvspace {5\p@ }
-\contentsline {subsubsection}{\numberline {4.5.4}What the Repair Changes Here}{48}{subsubsection.4.5.4}%
+\contentsline {subsection}{\numberline {4.10}The Repair, in Brief}{51}{subsection.4.10}%
 \addvspace {5\p@ }
-\contentsline {subsubsection}{\numberline {4.5.5}Statistical Standing}{48}{subsubsection.4.5.5}%
+\contentsline {subsection}{\numberline {4.11}Discussion}{51}{subsection.4.11}%
+\contentsline {paragraph}{The circularity problem is the central methodological finding.}{51}{section*.77}%
+\contentsline {paragraph}{Ordering and level are separate problems needing separate fixes.}{52}{section*.78}%
+\contentsline {paragraph}{The specific defect is repairable and general, but not in the obvious way.}{52}{section*.79}%
+\contentsline {paragraph}{Communicating ignorance is a design requirement, not a nicety.}{52}{section*.80}%
+\contentsline {paragraph}{Threats to validity.}{52}{section*.81}%
+\contentsline {paragraph}{Against the pre-registered thresholds.}{52}{section*.82}%
 \addvspace {5\p@ }
-\contentsline {subsection}{\numberline {4.6}Arm A Rescored: Discrimination Without Calibration}{48}{subsection.4.6}%
+\contentsline {section}{\numberline {5}Conclusion}{54}{section.5}%
 \addvspace {5\p@ }
-\contentsline {subsubsection}{\numberline {4.6.1}Discrimination}{48}{subsubsection.4.6.1}%
+\contentsline {subsection}{\numberline {5.1}Answers to the Research Questions}{54}{subsection.5.1}%
 \addvspace {5\p@ }
-\contentsline {subsubsection}{\numberline {4.6.2}Calibration}{49}{subsubsection.4.6.2}%
+\contentsline {subsection}{\numberline {5.2}Contributions}{54}{subsection.5.2}%
+\contentsline {paragraph}{The repair changed the recommendation, not only the model.}{54}{section*.83}%
+\contentsline {paragraph}{The same trap was met from the other side.}{54}{section*.84}%
 \addvspace {5\p@ }
-\contentsline {subsubsection}{\numberline {4.6.3}Ruling Out Right-Censoring}{50}{subsubsection.4.6.3}%
+\contentsline {subsection}{\numberline {5.3}Status of the Research Hypotheses}{55}{subsection.5.3}%
 \addvspace {5\p@ }
-\contentsline {subsubsection}{\numberline {4.6.4}The Mechanism}{51}{subsubsection.4.6.4}%
+\contentsline {subsection}{\numberline {5.4}Limitations}{56}{subsection.5.4}%
 \addvspace {5\p@ }
-\contentsline {subsection}{\numberline {4.7}The Target-Definition Trap}{52}{subsection.4.7}%
+\contentsline {subsection}{\numberline {5.5}Future Work}{57}{subsection.5.5}%
+\contentsline {paragraph}{Why F1 is the sharpest question and not merely the first.}{57}{section*.87}%
+\contentsline {paragraph}{Why more data does not settle F2 on its own.}{57}{section*.88}%
 \addvspace {5\p@ }
-\contentsline {subsection}{\numberline {4.8}Arm B: What Happens When the Forecast Is Shown}{53}{subsection.4.8}%
+\contentsline {subsection}{\numberline {5.6}Personal Conclusion}{58}{subsection.5.6}%
 \addvspace {5\p@ }
-\contentsline {subsection}{\numberline {4.9}The Repair and Its Re-measurement}{55}{subsection.4.9}%
+\contentsline {subsubsection}{\numberline {5.6.1}Technical Skills Developed}{58}{subsubsection.5.6.1}%
 \addvspace {5\p@ }
-\contentsline {subsubsection}{\numberline {4.9.1}The Repair That Was Recommended Does Not Work}{55}{subsubsection.4.9.1}%
+\contentsline {subsubsection}{\numberline {5.6.2}What I Learned}{58}{subsubsection.5.6.2}%
 \addvspace {5\p@ }
-\contentsline {subsubsection}{\numberline {4.9.2}Two Further Defects Exposed by the First}{56}{subsubsection.4.9.2}%
+\contentsline {section}{References}{60}{section*.89}%
 \addvspace {5\p@ }
-\contentsline {subsubsection}{\numberline {4.9.3}The Re-measurement}{56}{subsubsection.4.9.3}%
+\contentsline {section}{\numberline {A}Ethics Documentation}{67}{appendix.A}%
+\contentsline {paragraph}{Incomplete disclosure through the cover story.}{67}{section*.90}%
+\contentsline {paragraph}{Deliberate misinformation through the placebo sheets.}{67}{section*.91}%
+\contentsline {paragraph}{Data ethics for the satellite observation work.}{67}{section*.92}%
 \addvspace {5\p@ }
-\contentsline {subsubsection}{\numberline {4.9.4}A Third Arm, and What It Does Not Show}{57}{subsubsection.4.9.4}%
+\contentsline {section}{\numberline {B}Source Review Grid}{67}{appendix.B}%
 \addvspace {5\p@ }
-\contentsline {subsubsection}{\numberline {4.9.5}A Hypothesis That Became Measurable Again}{58}{subsubsection.4.9.5}%
+\contentsline {section}{\numberline {C}H\'ELIOS Campaign Protocol Extract}{72}{appendix.C}%
 \addvspace {5\p@ }
-\contentsline {subsection}{\numberline {4.10}Discussion}{58}{subsection.4.10}%
-\contentsline {paragraph}{The circularity problem is the central methodological finding.}{58}{section*.81}%
-\contentsline {paragraph}{Ordering and level are separate problems needing separate fixes.}{59}{section*.82}%
-\contentsline {paragraph}{The specific defect is repairable and general, but not in the obvious way.}{59}{section*.83}%
-\contentsline {paragraph}{Communicating ignorance is a design requirement, not a nicety.}{59}{section*.84}%
-\contentsline {paragraph}{Threats to validity.}{59}{section*.85}%
-\contentsline {paragraph}{Against the pre-registered thresholds.}{60}{section*.86}%
 \addvspace {5\p@ }
-\contentsline {subsection}{\numberline {4.11}Opening: Grounding Real Urgency in Observed Capacity}{60}{subsection.4.11}%
 \addvspace {5\p@ }
-\contentsline {subsubsection}{\numberline {4.11.1}Motivation}{60}{subsubsection.4.11.1}%
 \addvspace {5\p@ }
-\contentsline {subsubsection}{\numberline {4.11.2}Method and Calibrated Constants}{60}{subsubsection.4.11.2}%
 \addvspace {5\p@ }
-\contentsline {subsubsection}{\numberline {4.11.3}The Physical Limit and the Reframing}{62}{subsubsection.4.11.3}%
 \addvspace {5\p@ }
-\contentsline {subsubsection}{\numberline {4.11.4}Approaches Tested and Rejected}{63}{subsubsection.4.11.4}%
 \addvspace {5\p@ }
-\contentsline {subsubsection}{\numberline {4.11.5}Learned Dock-Zone Segmentation}{64}{subsubsection.4.11.5}%
+\contentsline {subsection}{\numberline {C.1}Scenario and Network}{74}{subsection.C.1}%
 \addvspace {5\p@ }
-\contentsline {subsubsection}{\numberline {4.11.6}Annotation Integrity}{65}{subsubsection.4.11.6}%
+\contentsline {subsection}{\numberline {C.2}Protocol Integrity and Controls}{75}{subsection.C.2}%
 \addvspace {5\p@ }
-\contentsline {subsubsection}{\numberline {4.11.7}What This Can and Cannot Feed}{66}{subsubsection.4.11.7}%
+\contentsline {section}{\numberline {D}Full Scoring Tables}{76}{appendix.D}%
 \addvspace {5\p@ }
-\contentsline {subsection}{\numberline {4.12}Synthesis Against the Research Questions}{68}{subsection.4.12}%
-\contentsline {paragraph}{RQ1, multi-block real urgency.}{68}{section*.97}%
-\contentsline {paragraph}{RQ2, cognitive adequacy formulation.}{68}{section*.98}%
-\contentsline {paragraph}{RQ3, network prioritisation and criticality.}{69}{section*.99}%
-\contentsline {paragraph}{RQ4, operational validation and the effect of showing the forecast.}{69}{section*.100}%
 \addvspace {5\p@ }
-\contentsline {section}{\numberline {5}Conclusion}{70}{section.5}%
 \addvspace {5\p@ }
-\contentsline {subsection}{\numberline {5.1}Contributions}{70}{subsection.5.1}%
-\contentsline {paragraph}{A signal that identifies the right nodes, early, from the gap alone.}{70}{section*.101}%
-\contentsline {paragraph}{An implemented adequacy architecture.}{70}{section*.102}%
-\contentsline {paragraph}{A diagnosed failure with an identified cause, repaired and re-measured.}{70}{section*.103}%
-\contentsline {paragraph}{A measured first-exposure effect of showing a forecast to the declarant.}{71}{section*.104}%
-\contentsline {paragraph}{A demonstration that the outcome definition dominates the reported calibration.}{71}{section*.105}%
 \addvspace {5\p@ }
-\contentsline {subsection}{\numberline {5.2}Status of the Research Hypotheses}{72}{subsection.5.2}%
 \addvspace {5\p@ }
-\contentsline {subsection}{\numberline {5.3}Limitations}{72}{subsection.5.3}%
 \addvspace {5\p@ }
-\contentsline {subsection}{\numberline {5.4}Future Work}{74}{subsection.5.4}%
-\contentsline {paragraph}{Widen the evidence base; it is the binding constraint.}{74}{section*.108}%
-\contentsline {paragraph}{The time block is repaired, and doing it corrected the instruction.}{74}{section*.109}%
-\contentsline {paragraph}{Fill the indicators before calibrating anything else.}{74}{section*.110}%
-\contentsline {paragraph}{Rebuild the calibration layer's training label on the product's target.}{74}{section*.111}%
-\contentsline {paragraph}{Make the forecast state its own ignorance.}{75}{section*.112}%
-\contentsline {paragraph}{Re-run the comparison with the display controlled.}{75}{section*.113}%
-\contentsline {paragraph}{Run the human campaign.}{75}{section*.114}%
-\contentsline {paragraph}{Put the outcome definition in the pre-registration.}{75}{section*.115}%
-\contentsline {paragraph}{Connect the observed capacity channel.}{75}{section*.116}%
-\contentsline {paragraph}{Broaden the elicitation and couple the platforms.}{75}{section*.117}%
 \addvspace {5\p@ }
-\contentsline {subsection}{\numberline {5.5}Personal Conclusion}{76}{subsection.5.5}%
 \addvspace {5\p@ }
-\contentsline {subsubsection}{\numberline {5.5.1}Technical Skills Developed}{76}{subsubsection.5.5.1}%
 \addvspace {5\p@ }
-\contentsline {subsubsection}{\numberline {5.5.2}What I Learned}{76}{subsubsection.5.5.2}%
 \addvspace {5\p@ }
-\contentsline {section}{References}{78}{section*.118}%
+\contentsline {section}{\numberline {E}Satellite Capacity Estimation: Protocol and Data}{80}{appendix.E}%
 \addvspace {5\p@ }
 \addvspace {5\p@ }
-\contentsline {section}{\numberline {A}Ethics Documentation}{86}{appendix.A}%
-\contentsline {paragraph}{Incomplete disclosure through the cover story.}{86}{section*.121}%
-\contentsline {paragraph}{Deliberate misinformation through the placebo sheets.}{86}{section*.122}%
-\contentsline {paragraph}{Data ethics for the satellite observation work.}{86}{section*.123}%
 \addvspace {5\p@ }
-\contentsline {section}{\numberline {B}Source Review Grid}{86}{appendix.B}%
 \addvspace {5\p@ }
-\contentsline {section}{\numberline {C}H\'ELIOS Campaign Protocol Extract}{91}{appendix.C}%
 \addvspace {5\p@ }
 \addvspace {5\p@ }
 \addvspace {5\p@ }
@@ -272,21 +242,61 @@
 \addvspace {5\p@ }
 \addvspace {5\p@ }
 \addvspace {5\p@ }
-\contentsline {section}{\numberline {D}Full Scoring Tables}{93}{appendix.D}%
 \addvspace {5\p@ }
+\contentsline {section}{\numberline {F}A Worked Example, End to End}{86}{appendix.F}%
 \addvspace {5\p@ }
+\contentsline {subsection}{\numberline {F.1}Stage 1: six blocks into a local urgency}{87}{subsection.F.1}%
 \addvspace {5\p@ }
+\contentsline {subsection}{\numberline {F.2}Stage 2: propagation along a three-node chain}{87}{subsection.F.2}%
 \addvspace {5\p@ }
+\contentsline {subsection}{\numberline {F.3}Stage 3: which node is the most critical}{88}{subsection.F.3}%
 \addvspace {5\p@ }
+\contentsline {subsection}{\numberline {F.4}Stage 4: the declaration, and the adequacy it produces}{88}{subsection.F.4}%
 \addvspace {5\p@ }
+\contentsline {section}{\numberline {G}Register of Modelling Assumptions}{89}{appendix.G}%
 \addvspace {5\p@ }
+\contentsline {subsection}{\numberline {G.1}The register}{89}{subsection.G.1}%
 \addvspace {5\p@ }
+\contentsline {subsection}{\numberline {G.2}What the register says when read as a whole}{91}{subsection.G.2}%
 \addvspace {5\p@ }
+\contentsline {section}{\numberline {H}Technical Supplement}{92}{appendix.H}%
 \addvspace {5\p@ }
-\contentsline {section}{\numberline {E}Satellite Capacity Estimation: Protocol and Data}{98}{appendix.E}%
+\contentsline {subsection}{\numberline {H.1}Notation}{92}{subsection.H.1}%
 \addvspace {5\p@ }
+\contentsline {subsection}{\numberline {H.2}Elicitation and outranking, in full}{92}{subsection.H.2}%
 \addvspace {5\p@ }
+\contentsline {paragraph}{Fuzzy BWM.}{95}{section*.144}%
+\contentsline {paragraph}{PROMETHEE~II.}{96}{section*.146}%
 \addvspace {5\p@ }
+\contentsline {subsection}{\numberline {H.3}The forecast layer, specified}{97}{subsection.H.3}%
+\contentsline {paragraph}{The urgency path.}{97}{section*.148}%
+\contentsline {paragraph}{The event rate.}{98}{section*.149}%
+\contentsline {paragraph}{The lead-time law.}{98}{section*.150}%
+\contentsline {paragraph}{The nested draw, and what the interval covers.}{98}{section*.151}%
+\contentsline {paragraph}{What this component is not.}{99}{section*.152}%
 \addvspace {5\p@ }
+\contentsline {subsection}{\numberline {H.4}Computational complexity and measured scalability}{100}{subsection.H.4}%
 \addvspace {5\p@ }
+\contentsline {section}{\numberline {I}Observed Capacity: An Opening}{101}{appendix.I}%
 \addvspace {5\p@ }
+\contentsline {subsection}{\numberline {I.1}The Physical Limit and the Reframing}{102}{subsection.I.1}%
+\addvspace {5\p@ }
+\contentsline {subsection}{\numberline {I.2}Learned Dock-Zone Segmentation}{102}{subsection.I.2}%
+\addvspace {5\p@ }
+\contentsline {subsection}{\numberline {I.3}What This Can and Cannot Feed}{104}{subsection.I.3}%
+\addvspace {5\p@ }
+\contentsline {subsection}{\numberline {I.4}Reference tables}{104}{subsection.I.4}%
+\addvspace {5\p@ }
+\contentsline {subsection}{\numberline {I.5}Summary tables of the conclusion}{106}{subsection.I.5}%
+\addvspace {5\p@ }
+\contentsline {section}{\numberline {J}The Repair and Its Re-measurement}{106}{appendix.J}%
+\addvspace {5\p@ }
+\contentsline {subsection}{\numberline {J.1}The Repair That Was Recommended Does Not Work}{108}{subsection.J.1}%
+\addvspace {5\p@ }
+\contentsline {subsection}{\numberline {J.2}Two Further Defects Exposed by the First}{111}{subsection.J.2}%
+\addvspace {5\p@ }
+\contentsline {subsection}{\numberline {J.3}The Re-measurement}{113}{subsection.J.3}%
+\addvspace {5\p@ }
+\contentsline {subsection}{\numberline {J.4}A Third Arm, and What It Does Not Show}{114}{subsection.J.4}%
+\addvspace {5\p@ }
+\contentsline {subsection}{\numberline {J.5}A Hypothesis That Became Measurable Again}{115}{subsection.J.5}%

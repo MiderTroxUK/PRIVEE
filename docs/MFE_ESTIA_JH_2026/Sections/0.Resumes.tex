@@ -1,143 +1,104 @@
-%% Les consignes (§6.2.3.1) exigent un resume en francais, en anglais et en
-%% espagnol, d'environ une demi-page chacun.
-
 \section*{R\'esum\'e}
 \label{sec:resume_fr}
 \addcontentsline{toc}{section}{R\'esum\'e / Abstract / Resumen}
 
 \begin{otherlanguage}{french}
-Dans une cha\^ine d'approvisionnement, l'urgence qu'un op\'erateur d\'eclare diverge
-souvent de celle que l'on peut calculer \`a partir de l'\'etat op\'erationnel r\'eel.
-Sur-d\'eclarer gaspille une capacit\'e partag\'ee~; sous-d\'eclarer laisse un risque de
-rupture invisible. Aucun jumeau num\'erique existant ne mesure cet \'ecart.
+Dans une cha\^ine d'approvisionnement, l'urgence qu'un op\'erateur d\'eclare diverge souvent
+de celle que l'on calcule depuis l'\'etat op\'erationnel r\'eel. Sur-d\'eclarer gaspille une
+capacit\'e partag\'ee~; sous-d\'eclarer laisse un risque de rupture invisible. Aucun jumeau
+num\'erique, publi\'e ou brevet\'e, ne mesure encore cet \'ecart.
 
-Cette mission de fin d'\'etudes, men\'ee \`a la Direction de l'Innovation d'ALTEN dans le
-cadre du programme Smart Green Supply Chain, a con\c{c}u, d\'evelopp\'e et \'evalu\'e une
-couche logicielle qui le mesure. L'urgence r\'eelle est agr\'eg\'ee \`a chaque n\oe{}ud
-depuis six blocs d'indicateurs par un OU probabiliste pond\'er\'e, puis propag\'ee sur le
-r\'eseau de fournisseurs~; l'urgence d\'eclar\'ee est \'elicit\'ee par un questionnaire de
-comparaisons par paires contr\^ol\'e en coh\'erence~; leur \'ecart est not\'e sur $[0,100]$
-par une p\'enalit\'e asym\'etrique. Le syst\`eme livr\'e, SupplyScore, compte 73 modules
-Python. Il a \'et\'e \'eprouv\'e par une campagne
-pr\'e-enregistr\'ee rejouant la p\'enurie de semi-conducteurs de 2020 \`a 2022 sur
-dix-neuf tours et huit n\oe{}uds.
+Cette mission, men\'ee \`a la Direction de l'Innovation d'ALTEN, a con\c{c}u et \'eprouv\'e
+une couche logicielle qui le mesure, livr\'ee sous le nom de \textbf{SupplyScore}.
+L'urgence r\'eelle est agr\'eg\'ee depuis six blocs
+d'indicateurs par une r\`egle \emph{non compensatoire}~: le bloc le plus d\'egrad\'e tire le
+score vers son maximum, sans qu'un bloc sain puisse l'en emp\^echer. Elle est ensuite
+propag\'ee sur le r\'eseau. L'urgence d\'eclar\'ee, elle, est \'elicit\'ee par un
+questionnaire de comparaisons par paires contr\^ol\'e en coh\'erence, et l'\'ecart entre les
+deux est not\'e sur $[0,100]$.
 
-Le r\'esultat principal est positif et porte sur la question que pose r\'eellement un
-coordinateur~: quel fournisseur regarder cette semaine. Sur les six tours qui pr\'ec\`edent
-la mise au jour de la crise, l'\'ecart d\'esigne trois n\oe{}uds, tous trois futurs
-d\'efaillants sur un engagement de livraison, \textbf{sans une seule fausse alerte}~; le plus
-mal not\'e est signal\'e huit tours avant de rater son jalon, alors que son propre
-responsable d\'eclare une urgence de $0{,}001$. Le signal s'\'emousse ensuite, pour une
-raison structurelle et non par d\'efaut~: quand la crise devient publique, l'urgence
-d\'eclar\'ee rattrape l'urgence calcul\'ee et un \'ecart entre les deux se referme par
-construction. C'est donc un instrument d'alerte pr\'ecoce, au plus net quand une alerte vaut
-encore quelque chose.
+Dans les tests de \emph{serious game} r\'ealis\'es, sur les six tours pr\'ec\'edant la mise au
+jour d'une crise, l'\'ecart d\'esigne trois n\oe{}uds, tous trois futurs d\'efaillants, sans
+une seule fausse alerte~; le plus mal not\'e est signal\'e huit tours avant de rater son
+jalon, alors que son responsable d\'eclare une urgence de $0{,}001$.
 
-La couche de pr\'evision b\^atie au-dessus, elle, a d'abord \'echou\'e de fa\c{c}on
-pr\'ecise~: mal calibr\'ee, avec vingt-et-une pr\'evisions \`a $0{,}948$ de moyenne jamais
-suivies de l'issue pr\'edite au sens de la d\'efinition de production. Un seul bloc
-l'expliquait, le bloc temporel lisant une grandeur qu'aucun choc n'atteignait. Ce diagnostic
-a \'et\'e trait\'e et re-mesur\'e~: le correctif \'evident s'est r\'ev\'el\'e faux \`a la
-mesure, le temps perdu devant s'\emph{ajouter} \`a la date d'ach\`evement et non s'y
-multiplier, et apr\`es correction le d\'eficit de calibration est divis\'e par deux \`a
-chaque horizon, de $-0{,}553$ \`a $-0{,}216$ \`a quatre semaines. Il reste n\'egatif~: la
-probabilit\'e calibr\'ee n'est pas encore publiable comme telle.
+Trois \'epreuves ind\'ependantes en ont d\'elimit\'e la port\'ee~: elles ont localis\'e un
+d\'efaut pr\'ecis de la couche de pr\'evision, \'etabli que l'outil rep\`ere celui qui se
+m\'eprend sur son \'etat et non celui qui le tait, et mesur\'e o\`u la simulation apporte
+r\'eellement sa valeur.
 
-Un troisi\`eme r\'esultat concerne l'op\'erateur~: au tour o\`u la pr\'evision devient
-visible, les huit d\'eclarants ont tous revu leur urgence \`a la baisse ou l'ont maintenue,
-deux tours avant l'\'ev\'enement critique. Ce qui borne l'ensemble n'est pas la conception
-mais l'\'echantillon~: huit n\oe{}uds, onze jalons, un sc\'enario. \'Elargir la base de
-donn\'ees est le travail en cours et la condition de toute g\'en\'eralisation.
+\medskip
+
+\noindent\textbf{Mots-cl\'es~:} jumeau num\'erique de cha\^ine d'approvisionnement,
+ad\'equation d'urgence, biais cognitif, aide multicrit\`ere \`a la d\'ecision, calibration de
+pr\'evisions, biais d'automatisation, \emph{serious game}.
 \end{otherlanguage}
 
-\vspace{0.4cm}
+\vspace{0.3cm}
 
 \section*{Abstract}
 \label{sec:resume_en}
 
-In a supply chain, the urgency an operator declares often diverges from the urgency
-computable from the real operational state. Over-declaring wastes shared capacity;
-under-declaring leaves rupture risk invisible. No existing digital twin measures that gap.
+In a supply chain, the urgency an operator declares often diverges from the urgency computable
+from the real operational state. Over-declaring wastes shared capacity; under-declaring leaves
+rupture risk invisible. No digital twin, published or patented, measures that gap yet.
 
-This final-year mission, carried out at the Direction de l'Innovation of ALTEN within the
-Smart Green Supply Chain programme, designed, built and evaluated a software layer that
-measures it. Real urgency is aggregated at each node from six indicator blocks through a
-weighted probabilistic OR and propagated across the supplier network; declared urgency is
-elicited through a consistency-gated pairwise questionnaire; their gap is scored on
-$[0,100]$ with an asymmetric penalty. The delivered system, SupplyScore, comprises 73
-Python modules covered by 1\,831 automated test functions. It was tested through a
-pre-registered campaign replaying the 2020 to 2022 semiconductor shortage over nineteen turns
-and eight nodes.
+This mission, carried out at the Direction de l'Innovation of ALTEN, designed and tested a
+software layer that measures it, delivered as \textbf{SupplyScore}. Real urgency is
+aggregated from six indicator blocks by a
+\emph{non-compensatory} rule: the most degraded block drives the score toward its maximum, and
+no healthy block can offset it. It is then propagated across the network. Declared urgency is
+elicited separately, through a consistency-gated pairwise questionnaire, and the gap between
+the two is scored on $[0,100]$.
 
-The headline result is positive and concerns the question a coordinator actually asks: which
-supplier to look at this week. Over the six turns before the crisis becomes public, the gap
-flags three nodes, all three of which later miss a delivery commitment, \textbf{with no false
-alarm on any turn}; the worst-scoring of them is flagged eight turns before it misses, while
-its own manager declares an urgency of $0.001$. The signal then weakens, for a structural
-reason rather than a defect: once the crisis is public, declared urgency catches up with
-computed urgency and a measure defined as the difference between them necessarily shrinks. It
-is an early-warning instrument, sharpest while a warning is still worth something.
+In the serious-game tests carried out, over the six turns before a crisis becomes public, the
+gap flags three nodes, all three of which later miss a delivery commitment, with no false alarm
+on any turn; the worst-scoring of them is flagged eight turns before it misses, while its
+manager declares an urgency of $0.001$.
 
-The forecast layer built on top of it failed first, and failed precisely: severely
-miscalibrated, with twenty-one forecasts averaging $0.948$ never followed by the predicted
-outcome under the production definition. One block explained it, the time block reading a
-quantity no shock ever reached. That diagnosis was acted on and re-measured. The obvious
-repair proved wrong under measurement, lost time having to be \emph{added} to the completion
-date rather than multiplied into it, and after repair the calibration deficit halves at every
-horizon, from $-0.553$ to $-0.216$ at four weeks. It remains negative: the calibrated
-probability is not yet publishable as one.
+Three independent tests then established its domain: they located a precise defect in the
+forecast layer, established that the tool detects a declarant who misjudges their own
+state rather than one who knows it and stays silent, and measured where the simulation
+genuinely adds value.
 
-A third result concerns the operator: on the turn the forecast became visible, all eight
-declarants revised their urgency downward or held it, two turns before the critical event.
-What bounds all of this is not the design but the sample, eight nodes, eleven milestones and
-one scenario. Widening that base is the work in progress and the precondition for any
-generalisation.
+\medskip
 
-\vspace{0.4cm}
+\noindent\textbf{Keywords:} supply chain digital twin, urgency adequacy, cognitive bias,
+multi-criteria decision analysis, forecast calibration, automation bias, serious game.
+
+\vspace{0.3cm}
 
 \section*{Resumen}
 \label{sec:resume_es}
 
-\begin{otherlanguage}{french}
+\begin{otherlanguage}{spanish}
 En una cadena de suministro, la urgencia que declara un operador difiere a menudo de la
 urgencia calculable a partir del estado operativo real. Declarar de m\'as desperdicia
-capacidad compartida; declarar de menos deja invisible el riesgo de ruptura. Ning\'un
-gemelo digital existente mide esa diferencia.
+capacidad compartida; declarar de menos deja invisible el riesgo de ruptura. Ning\'un gemelo
+digital, publicado o patentado, mide todav\'ia esa diferencia.
 
-Esta misi\'on de fin de estudios, realizada en la Direcci\'on de Innovaci\'on de ALTEN
-dentro del programa Smart Green Supply Chain, dise\~n\'o, desarroll\'o y evalu\'o una capa
-de software que la mide. La urgencia real se agrega en cada nodo a partir de seis bloques
-de indicadores mediante un O probabil\'istico ponderado y se propaga por la red de
-proveedores; la urgencia declarada se obtiene mediante un cuestionario de comparaciones
-por pares con control de coherencia; su diferencia se punt\'ua en $[0,100]$ con una
-penalizaci\'on asim\'etrica. El sistema entregado, SupplyScore, consta de 73 m\'odulos
-Python cubiertos por 1\,831 funciones de prueba automatizadas. Se someti\'o a una campa\~na
-preregistrada que reproduce la escasez de semiconductores de 2020 a 2022 durante
-diecinueve turnos y ocho nodos.
+Esta misi\'on, realizada en la Direcci\'on de Innovaci\'on de ALTEN, dise\~n\'o y prob\'o una
+capa de software que la mide, entregada con el nombre de \textbf{SupplyScore}. La urgencia
+real se agrega a partir de seis bloques de
+indicadores mediante una regla \emph{no compensatoria}: el bloque m\'as degradado lleva la
+puntuaci\'on hacia su m\'aximo y ning\'un bloque sano puede compensarlo. Despu\'es se propaga
+por la red. La urgencia declarada se obtiene por separado, mediante un cuestionario de
+comparaciones por pares con control de coherencia, y la diferencia entre ambas se punt\'ua en
+$[0,100]$.
 
-El resultado principal es positivo y se refiere a la pregunta que realmente se hace un
-coordinador: qu\'e proveedor mirar esta semana. En los seis turnos previos a que la crisis se
-haga p\'ublica, la diferencia se\~nala tres nodos, los tres futuros incumplidores de un
-compromiso de entrega, \textbf{sin una sola falsa alarma}; el peor puntuado se se\~nala ocho
-turnos antes de incumplir su hito, mientras su propio responsable declara una urgencia de
-$0{,}001$. La se\~nal se debilita despu\'es, por una raz\'on estructural y no por defecto:
-cuando la crisis se hace p\'ublica, la urgencia declarada alcanza a la calculada y una medida
-definida como su diferencia se cierra por construcci\'on. Es un instrumento de alerta
-temprana, m\'as n\'itido mientras una alerta a\'un vale algo.
+En las pruebas de \emph{serious game} realizadas, en los seis turnos previos a que una crisis
+se haga p\'ublica, la diferencia se\~nala tres nodos, los tres futuros incumplidores, sin una
+sola falsa alarma; el peor puntuado se se\~nala ocho turnos antes de incumplir su hito,
+mientras su responsable declara una urgencia de $0{,}001$.
 
-La capa de predicci\'on construida encima fall\'o primero, y de forma precisa: mal calibrada,
-con veintiuna predicciones de media $0{,}948$ nunca seguidas del resultado predicho seg\'un
-la definici\'on de producci\'on. Un solo bloque lo explicaba, el bloque temporal leyendo una
-magnitud que ning\'un choque alcanzaba. Ese diagn\'ostico se corrigi\'o y se volvi\'o a
-medir: la correcci\'on evidente result\'o err\'onea al medirla, pues el tiempo perdido debe
-\emph{sumarse} a la fecha de finalizaci\'on y no multiplicarse en ella, y tras la
-correcci\'on el d\'eficit de calibraci\'on se reduce a la mitad en todos los horizontes, de
-$-0{,}553$ a $-0{,}216$ a cuatro semanas. Sigue siendo negativo: la probabilidad calibrada
-todav\'ia no es publicable como tal.
+Tres pruebas independientes delimitaron su alcance: localizaron un defecto preciso en la capa
+de predicci\'on, establecieron que la herramienta detecta a quien se equivoca sobre su propio
+estado y no a quien lo conoce y calla, y midieron d\'onde aporta valor realmente la
+simulaci\'on.
 
-Un tercer resultado concierne al operador: en el turno en que la predicci\'on se hizo
-visible, los ocho declarantes revisaron su urgencia a la baja o la mantuvieron, dos turnos
-antes del evento cr\'itico. Lo que acota todo esto no es el dise\~no sino la muestra: ocho
-nodos, once hitos y un escenario. Ampliar esa base es el trabajo en curso y la condici\'on de
-cualquier generalizaci\'on.
+\medskip
+
+\noindent\textbf{Palabras clave:} gemelo digital de cadena de suministro, adecuaci\'on de
+urgencia, sesgo cognitivo, an\'alisis multicriterio de decisi\'on, calibraci\'on de
+predicciones, sesgo de automatizaci\'on, \emph{serious game}.
 \end{otherlanguage}

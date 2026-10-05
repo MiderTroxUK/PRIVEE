@@ -2,12 +2,55 @@ A supply chain coordinator opens the week with a list of nodes and a finite amou
 attention. Somewhere on that list is the supplier that will cause next month's line
 stoppage. Nothing on the screen says which one it is.
 
-That is the practical shape of the problem this mission addressed. Modern supply chains are
-monitored through indicators that each measure one dimension at a time, while the decision
-the coordinator actually faces is multi-dimensional: cost against deadline against supplier
-reliability, carbon, and more. When the tooling cannot combine those dimensions,
-the coordinator combines them by judgment. Judgment is then the real decision layer of the
-system, and it is the layer nobody measures.
+The job has changed shape and the tooling has not followed. A digital twin manages
+\emph{tasks}: it records what each node has to do, how far along it is, and what state its
+resources are in. What a coordinator actually has to manage is the \emph{urgency} of those
+tasks, meaning the order in which a finite amount of attention is spent on them.
+Figure~\ref{fig:couche} places the two layers side by side, and this report is about the
+second one.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    etage/.style  = {bloc, text width=3.4cm, minimum height=1.7cm},
+    manque/.style = {blocAlerte, text width=3.4cm, minimum height=1.7cm},
+    node distance = 13mm]
+
+\node[etage]                (kpi) {\textbf{The task}\\[2pt]
+                                   \scriptsize stock, lead time, capacity,\\
+                                   cost, CO\textsubscript{2}, at each node};
+\node[manque, right=of kpi] (urg) {\textbf{Its urgency}\\[2pt]
+                                   \scriptsize which node deserves\\
+                                   attention this week};
+\node[etage, right=of urg]  (dec) {\textbf{The decision}\\[2pt]
+                                   \scriptsize expedite, replan,\\
+                                   escalate, or leave alone};
+
+\draw[fleche] (kpi) -- (urg);
+\draw[fleche] (urg) -- (dec);
+
+\node[etiquette, below=3mm of kpi] {the twin computes this};
+\node[etiquette, below=3mm of dec] {finite attention is spent here};
+
+\node[blocFort, below=17mm of urg, text width=11.4cm, font=\small] (mis)
+  {\textbf{What this mission adds.} It computes urgency from the same indicators, elicits
+   the urgency the operator declares, and scores the distance between the two, so the
+   middle box stops being an assertion and becomes a measurement.};
+
+\draw[fleche] (mis.north) -- (urg.south);
+
+\end{tikzpicture}
+\caption[From managing tasks to managing their urgency]{Where the mission sits. A digital
+twin measures the state of each task. The decision that consumes a coordinator's week is made
+on the \emph{urgency} of those tasks, which today no module computes and no module audits.}
+\label{fig:couche}
+\end{figure}
+
+The reason that middle box stays empty is that the decision inside it is multi-criteria: cost
+against deadline against supplier reliability against carbon. Supply chains are monitored
+through indicators that each measure one criterion at a time, so when the tooling cannot
+combine them, the coordinator combines them by judgment. Judgment is then the real decision
+layer of the system, and it is the layer nobody measures yet.
 
 The consequences are not evenly distributed. Declaring more urgency than a situation
 warrants consumes shared transport and production capacity that another flow needed.
@@ -16,38 +59,47 @@ window to act on it has closed. The second error is the more expensive, and it i
 one to detect, precisely because an under-declared risk generates no direct signal.
 
 This mission was carried out at the Direction de l'Innovation of ALTEN, within the Smart
-Green Supply Chain Digital Twin research programme, between 13 April and 16 October 2026. Its subject was
-the layer that sits before any planning decision: the urgency signal itself. The question
-driving the work was whether the gap between what an operator declares and what the
-operational state actually supports can be measured well enough, inside a working digital
-twin, to be acted upon, and to make a forecast built on it useful.
+Green Supply Chain Digital Twin research programme, between 13 April and 16 October 2026.
+Its subject is the layer that sits before any planning decision: the urgency signal itself.
+One question drove the work.
 
-The answer this report reaches has two parts, and they point in different directions. The
-gap itself can be measured and it carries real information: on the campaign, the nodes the
-system flags in the six turns before the crisis becomes public are, without a single false
-alarm, nodes that go on to miss a delivery commitment, and the worst-scoring of them is
-flagged eight turns before it misses. That is the measurement the mission set out to build,
-and it works. Turning that signal into a calibrated probability of a named outcome in a named
-window is a further step, and that step did not work on the first attempt. The system was
-tested against recorded outcomes rather than asserted, and the test failed in a way that
-identifies exactly which component is responsible and what would repair it. That repair was then carried out and re-measured on the same frozen campaign,
-which halved the calibration deficit at every horizon without making the forecast good, and
-which corrected the recommendation as much as the model: the obvious fix turned out to be the
-wrong one. A second measurement, unplanned at the outset, showed that displaying the system's
-own forecast to the person making the declaration changed that declaration, and changed it in
-the wrong direction at the worst possible moment. All three findings are more useful to ALTEN
-than a favourable score would have been.
+\begin{definitionBox}
+\noindent\emph{Can the gap between what an operator declares and what the operational state
+actually supports be measured well enough, inside a working digital twin, to be acted upon?}
+\end{definitionBox}
 
-The report is organised as the mission itself was. Section~\ref{sec:entreprise} presents
-ALTEN, the Direction de l'Innovation and the research programme this work sits inside,
-including the company's corporate social responsibility policy and how the mission relates
-to it. Section~\ref{sec:problematique} states the problem that justified opening the
-subject. Section~\ref{sec:mission} gives the assignment, its objectives, its indicators and
-its deliverables. Section~\ref{sec:organisation} describes how the project was run: who was
-involved, what resources were available, which working method was applied, how the six
-months were phased, and which risks were carried. Section~\ref{sec:etatdelart} reviews the
-existing methods and identifies what none of them provides.
-Section~\ref{sec:realisation} reports the work carried out and what it produced, including
-the problems met along the way and how they were resolved. Section~\ref{sec:conclusion}
-assesses the results against the objectives, sets out what remains to be done, and closes
-with a personal assessment against the ESTIA engineering competency framework.
+Answering it took two steps, and the report is built on that division.
+
+The first step was to build the tool. SupplyScore computes urgency from six indicator blocks,
+elicits what the operator declares, propagates both across a supplier network, and runs the
+whole cycle week by week while auditing every write. That step is engineering, and
+Sections~\ref{sec:realisation_modele} and~\ref{sec:realisation_systeme} report it.
+
+The second step was to find out whether the number the tool produces is worth anything, and
+that is where the mission's contribution lies. A number a system computes is not yet a number
+anyone should trust, so four tests were designed to try to break the tool rather than to show
+it working. A pre-registered serious-game campaign replayed a documented industrial crisis
+with independent declarants, and scored the signal against outcomes that were recorded rather
+than asserted. A second supply chain was then built on deliberately different assumptions, to
+find out whether the first result was a property of the tool or of the scenario it was born
+in. A one-line baseline was written to ask whether the most expensive component of the system
+earns its cost. And a parallel workstream went looking for an indicator no operator supplies
+at all, estimated from satellite imagery.
+
+All four returned an answer, and in each case that answer proved more useful than the
+confirmation it might have given instead. What they established, and the boundary each one
+drew around the tool, is what this report is for.
+
+One result was not planned at all, and it is the one with the widest consequences for anyone
+deploying such a system. Showing an operator the tool's own forecast, immediately before
+asking them to declare, changes what they declare.
+Section~\ref{sec:realisation_resultats} reports what it changes and in which direction, at two
+different scales, and Section~\ref{sec:perspectives} says what an advisory layer owes the
+person reading it.
+
+The report is organised as the mission was run. Sections~\ref{sec:entreprise}
+to~\ref{sec:organisation} set the company, the problem, the assignment and how the project was
+run. Section~\ref{sec:etatdelart} reviews the existing methods, published and patented, and
+identifies what none of them provides. Section~\ref{sec:realisation} reports the work and what
+the four tests returned. Section~\ref{sec:conclusion} assesses the results against the
+objectives and closes with a personal assessment against the ESTIA competency framework.

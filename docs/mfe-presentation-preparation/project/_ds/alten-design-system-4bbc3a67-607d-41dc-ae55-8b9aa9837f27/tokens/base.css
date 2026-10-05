@@ -1,0 +1,12 @@
+/* ALTEN — minimal base layer. Only what the brand actually asserts:
+   body text in Calibri navy, headings in Arial Black uppercase navy,
+   square corners, and link colours (the theme sets hlink #2980B6). */
+body{margin:0;font-family:var(--font-text);font-size:var(--text-md);line-height:var(--leading-body);color:var(--text-body);background:var(--surface-page);-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4,h5,h6{font-family:var(--font-display);font-weight:var(--weight-display);line-height:var(--leading-display);letter-spacing:var(--tracking-tight);text-transform:uppercase;color:var(--text-title);margin:0}
+p{margin:0 0 var(--space-3);text-wrap:pretty}
+a{color:var(--link);text-decoration:underline;text-underline-offset:2px;transition:color var(--duration-fast) var(--ease-standard)}
+a:hover{color:var(--link-hover)}
+a:focus-visible{outline:none;box-shadow:var(--focus-ring)}
+strong,b{font-weight:var(--weight-bold)}
+hr{border:0;border-top:var(--border-hairline-w) solid var(--border-hairline);margin:var(--space-6) 0}
+::selection{background:var(--alten-sky-pale);color:var(--alten-navy)}

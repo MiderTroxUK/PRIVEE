@@ -1,24 +1,25 @@
-\documentclass[a4paper, 12pt, oneside]{article}
+%% 11 pt : taille standard d'un rapport A4, retenue apres que les coupes de
+%% contenu aient atteint leur limite utile.
+\documentclass[a4paper, 11pt, oneside]{article}
 
 %% ═════════════════════════════════════════════════════════════════════════
 %%  RAPPORT DE MISSION DE FIN D'ÉTUDES — ESTIA, promotion 2026
 %%  John HOARAU · ALTEN Sud-Ouest, Direction de l'Innovation, Lab de Toulouse
 %%
-%%  Structure imposée par « Consignes évaluations Alternance 5 et MFE
-%%  2025-2026 », §6.2.3. Rédigé en anglais, à l'exception du paragraphe RSE
-%%  (§6.2.3.2 : « Ce paragraphe est à rédiger en français ») et du résumé,
-%%  fourni en français, anglais et espagnol comme exigé.
+%%  Rédigé en anglais, à l'exception du paragraphe RSE et du résumé, fourni
+%%  en français, anglais et espagnol.
 %%
 %%  DÉPENDANCES PARTAGÉES, jamais dupliquées :
 %%    images       ../BST_DISCO_JH_2026/Images  et  ../Thesis_Cranfield_JH_2026/Images
 %%    bibliographie ../BST_DISCO_JH_2026/Utilities/Bibliography.bib
 %%                  ../Thesis_Cranfield_JH_2026/Utilities/Bibliography_thesis.bib
-%%    glossaire    ../BST_DISCO_JH_2026/Sections/Appendices/Glossary.tex
+%%  Le glossaire imprimé est propre à ce rapport (Sections/0ter.Glossaire) ;
+%%  celui du BST reste chargé pour les quelques \gls du corps.
 %% ═════════════════════════════════════════════════════════════════════════
 
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
-\usepackage[english,french]{babel}
+\usepackage[spanish,french,english]{babel}
 \usepackage{microtype}
 \usepackage[sfdefault,lining]{carlito}
 
@@ -43,14 +44,19 @@
 %% ── Mise en page ────────────────────────────────────────────────────────
 \usepackage[a4paper, top=2.6cm, bottom=2.6cm, left=2.7cm, right=2.7cm,
             footskip=1.1cm]{geometry}
-\usepackage[skip=8pt plus 2pt, indent=0pt]{parskip}
+%% 5 pt : l'interligne de paragraphe le plus serre qui laisse encore voir ou
+%% un paragraphe s'arrete, sans indentation pour le signaler.
+\usepackage[skip=5pt plus 2pt, indent=0pt]{parskip}
+
+%% Derniere reserve avant qu'une ligne ne parte dans la marge.
+\setlength{\emergencystretch}{2em}
 
 \renewcommand{\topfraction}{0.9}
 \renewcommand{\bottomfraction}{0.7}
 \renewcommand{\textfraction}{0.12}
 \renewcommand{\floatpagefraction}{0.75}
 
-%% Rapport confidentiel : marquage sur chaque page, exigé par ALTEN
+%% Rapport confidentiel : marquage sur chaque page
 \pagestyle{plain}
 \usepackage{fancyhdr}
 \fancypagestyle{plain}{
@@ -62,7 +68,7 @@
     \renewcommand{\footrulewidth}{1pt}
 }
 
-%% Sommaire : trois niveaux de titre au maximum (consignes §6.2.3.1)
+%% Sommaire : trois niveaux de titre, au-delà il cesse d'être un plan
 \setcounter{tocdepth}{3}
 \setcounter{secnumdepth}{3}
 
@@ -75,11 +81,6 @@
 \addbibresource{Utilities/Bibliography_mfe.bib}
 \usepackage[nottoc,numbib]{tocbibind}
 
-%% ── Glossaire partagé ───────────────────────────────────────────────────
-\usepackage[acronym, section=subsection]{glossaries}
-\makenoidxglossaries{}
-\input{../BST_DISCO_JH_2026/Sections/Appendices/Glossary.tex}
-
 \usepackage{amsmath, amssymb, mathtools}
 
 %% ── Figures : les deux arbres d'images sont partagés, jamais copiés ─────
@@ -88,16 +89,48 @@
 \usepackage{caption}
 \captionsetup{labelfont={bf,color=altenNavy}, textfont={color=altenNavy},
               font=small}
+%% Les DOI et les URL n'offrent aucun point de coupure naturel : sans xurl
+%% ils depassent dans la marge de la bibliographie.
+\usepackage{xurl}
 \usepackage[hidelinks]{hyperref}
 \hypersetup{colorlinks=true, linkcolor=altenAzure, citecolor=altenAzure,
             urlcolor=altenAzure,
             pdftitle={Mesurer l'ecart entre urgence declaree et urgence reelle},
             pdfauthor={John Hoarau}}
 
+%% ── Schemas vectoriels ──────────────────────────────────────────────────
+%% Les figures conceptuelles sont dessinees plutot que capturees : elles
+%% restent nettes a l'impression et suivent la charte du document.
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, calc, fit, backgrounds, shapes.geometric}
+
+%% Une boite de schema ne se coupe jamais en fin de ligne : un mot coupe dans
+%% un encadre de trois centimetres se lit deux fois moins vite.
+\newcommand{\SansCesure}{\hyphenpenalty=10000\exhyphenpenalty=10000\relax}
+
+\tikzset{
+  bloc/.style     = {draw=altenNavy, line width=0.7pt, rounded corners=2pt,
+                     fill=altenBlueBg, text=altenNavy, align=center,
+                     inner sep=5pt, font=\footnotesize,
+                     execute at begin node=\SansCesure},
+  blocFort/.style = {bloc, fill=altenAzure!18, draw=altenAzure, line width=1pt},
+  blocPale/.style = {bloc, fill=white, draw=altenGreyLine},
+  blocAlerte/.style = {bloc, fill=altenOchrePale!55!white, draw=altenOchreDark,
+                       line width=1pt},
+  fleche/.style   = {-{Stealth[length=2.4mm]}, draw=altenNavy, line width=0.7pt},
+  flecheFine/.style = {fleche, draw=altenGreyLine, line width=0.6pt},
+  flecheCoupee/.style = {fleche, draw=altenOchreDark, line width=0.9pt, dashed},
+  etiquette/.style = {font=\scriptsize\itshape, text=altenAzureDark,
+                      inner sep=2pt, fill=white},
+  titreCol/.style = {font=\small\bfseries, text=altenNavy, align=center},
+}
+
 \usepackage{tabularx, array, booktabs, multirow, longtable, float}
 \usepackage{colortbl}
 \arrayrulecolor{altenNavy}
-\renewcommand{\tabularxcolumn}[1]{m{#1}}
+%% Colonne X alignee en haut comme les colonnes p : centrer verticalement
+%% la seule colonne elastique desalignait chaque ligne du tableau.
+\renewcommand{\tabularxcolumn}[1]{p{#1}}
 
 \usepackage{enumitem}
 \setitemize{parsep=0pt, partopsep=0pt}
@@ -123,8 +156,7 @@
   \noindent\hspace{-4.55pt}\begin{adjustwidth}{}{7pt}\vspace{4pt}%
 }{\vspace{2pt}\end{adjustwidth}\endMakeFramed}
 
-%% Le paragraphe RSE est exige en francais ; sa traduction anglaise le suit
-%% immediatement pour que le document reste lisible de bout en bout.
+%% Encadre du paragraphe RSE, redige en francais dans un document anglais.
 \colorlet{frShade}{altenBlueBg}
 \newenvironment{frenchBox}{%
   \def\FrameCommand{\hspace{1pt}{\color{altenAzure}\vrule width 2pt}%
@@ -143,6 +175,9 @@
 \clearpage
 \pagenumbering{roman}
 \input{Utilities/Remerciements}
+
+\clearpage
+\input{Sections/0ter.Glossaire}
 
 \clearpage
 \input{Sections/0.Resumes}
@@ -165,37 +200,30 @@
 \label{sec:intro}
 \input{Sections/1.Introduction}
 
-\clearpage
 \section{The Company}
 \label{sec:entreprise}
 \input{Sections/2.Entreprise}
 
-\clearpage
 \section{Problem Statement}
 \label{sec:problematique}
 \input{Sections/3.Problematique}
 
-\clearpage
 \section{The Mission}
 \label{sec:mission}
 \input{Sections/4.Mission}
 
-\clearpage
 \section{Project Organisation}
 \label{sec:organisation}
 \input{Sections/5.Organisation}
 
-\clearpage
 \section{State of the Art}
 \label{sec:etatdelart}
 \input{Sections/6.EtatDeLArt}
 
-\clearpage
 \section{Carrying Out the Mission}
 \label{sec:realisation}
 \input{Sections/7.Realisation}
 
-\clearpage
 \section{Conclusion and Personal Assessment}
 \label{sec:conclusion}
 \input{Sections/8.Conclusion}
@@ -204,12 +232,10 @@
 \printbibliography[heading=bibintoc, title={Bibliography}]
 
 \clearpage
-\printnoidxglossaries{}
-
-\clearpage
 \appendix
 \input{Sections/Appendices/A.AutorisationIA}
 \input{Sections/Appendices/B.Planning}
 \input{Sections/Appendices/C.Competences}
+\input{Sections/Appendices/D.Imagerie}
 
 \end{document}

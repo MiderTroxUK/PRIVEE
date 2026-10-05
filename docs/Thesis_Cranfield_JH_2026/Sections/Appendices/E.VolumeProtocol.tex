@@ -34,6 +34,42 @@ All geometry is handled in the national metric projection, in which the ground s
 distance is exactly the bounding-box width in metres divided by the image width in pixels
 rather than an approximation.
 
+\subsection*{Calibrated Constants}
+
+Four constants turn geometry into a capacity figure. Each is calibrated rather than assumed,
+and Table~\ref{tab:volume_constants} gives the sample behind each.
+
+\begin{table}[htbp]
+\centering
+\caption{Calibrated constants of the capacity model}
+\label{tab:volume_constants}
+\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{3.4cm} >{\centering\arraybackslash}p{2.0cm} X}
+\toprule
+\textbf{Constant} & \textbf{Value} & \textbf{Basis} \\
+\midrule
+Fill factor & $0.80$ & Median of declared volume over footprint $\times$ height across 122
+regulated warehouses, IQR $[0.52,\ 1.22]$ \\
+Dock pitch & $3.8$~m & Median $3.83$~m, coefficient of variation $9.6\%$ over 19
+independently measured facades \\
+Default height & $11.6$~m & Median of the corpus, IQR $9.8$ to $13.7$~m, used only when the
+topographic database gives no height \\
+Ground sample distance & $0.25$~m & Measured optimum for the pre-trained detector; at
+$0.50$~m the model collapses \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The coefficient of variation of $9.6\%$ on the dock pitch is the result that makes transfer
+capacity generalisable: because the pitch is stable across sites, capacity depends only on
+how much facade is equipped, and no per-site measurement of the pitch is needed.
+
+One constraint is enforced throughout and is worth stating because it is unusual. The
+regulatory database of classified installations is used only to calibrate the fill factor,
+never to infer a result for a specific site. Many warehouses fall below the classification
+thresholds and do not appear in it at all, so a system that inferred from it would silently
+fail on exactly the smaller sites a supply chain twin most needs to see.
+
 \subsection*{Calibration of the Fill Factor}
 
 The fill factor relates declared storage volume to the geometric envelope. For each site in
@@ -43,11 +79,12 @@ is recorded. Ratios outside $[0.05, 20]$ are discarded as either an aberrant dec
 mismatched building. The production constant of $0.80$ is attributed in the source to a
 median over 122 matched sites with an interquartile range of $[0.52, 1.22]$.
 
-That run cannot be reproduced from the retained artifacts, and the discrepancy is recorded
+That run cannot be reproduced from the retained artefacts, and the discrepancy is recorded
 here in full. The calibration script writes its detailed output to a file that is not present
 in the repository, so the only auditable sample is the 68-site corpus retained for other
 purposes. Recomputing the identical ratio over those 68 sites gives a median of $0.966$, an
-interquartile range of $[0.80, 2.00]$, and $47\%$ of sites inside the $[0.7, 1.4]$ band,
+interquartile range of $[0.80, 2.00]$, and $47\%$ of sites inside the $[0.7, 1.4]$ band
+(Figure~\ref{fig:volume_calibration}),
 against the $70\%$ the calibration script itself prints as its acceptance target. The
 available evidence does not distinguish between a biased remnant sample and an understated
 production constant. Recollecting the register cleanly, with the departmental loop and
@@ -57,6 +94,72 @@ One matching rule is worth recording because it changes the answer materially. O
 largest building within the search radius is matched, and neighbouring buildings are not
 summed: summing them moves the median ratio from $0.80$ to $0.58$, because a declared volume
 belongs to one warehouse while the footprints of a whole industrial estate do not.
+
+\subsection*{The Resolution Control}
+
+Figure~\ref{fig:volume_resolution} shows the same equipped facade at 20~cm and at 8~cm. The
+trailers, the apron and the dark canopy band along the building edge are legible at 20~cm and
+sharper still at 8~cm, yet no individual door resolves inside the canopy band at either
+scale. This is the control that separates occlusion from insufficient resolution.
+
+\begin{figure}[htbp]
+    \centering
+    \begin{minipage}[b]{0.48\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{Images/5.Volume/resolution_hr20.png}\\[3pt]
+        {\small (a) 20~cm orthophotography}
+    \end{minipage}\hfill
+    \begin{minipage}[b]{0.48\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{Images/5.Volume/resolution_thr8.png}\\[3pt]
+        {\small (b) 8~cm very-high-resolution imagery}
+    \end{minipage}
+    \caption{The same equipped facade at 20~cm and at 8~cm}
+    \label{fig:volume_resolution}
+\end{figure}
+
+\subsection*{Approaches Tested and Rejected}
+
+Five approaches were tried before the reframing and abandoned, each for a measured reason,
+and Table~\ref{tab:volume_failed} records them because the reasons constrain what a successful
+method can look like.
+
+\begin{table}[htbp]
+\centering
+\caption{Approaches tested and rejected}
+\label{tab:volume_failed}
+\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{4.2cm} X}
+\toprule
+\textbf{Approach} & \textbf{Measured outcome} \\
+\midrule
+Photometric thresholding of the apron & Recall of 5 of 6 on true aprons, but roads, an
+aeronautical tarmac and small-business forecourts all pass the same test \\
+\midrule
+Vehicle density to reject car parks & Fails on a car park that was empty at the time of
+capture \\
+\midrule
+Open-vocabulary detection from a text prompt & Confidence of $0.11$ to $0.12$, at the level
+of noise; the model is trained on ground-level imagery \\
+\midrule
+Region growing from detected trailers & Returns 222 docks where 57 exist: the paved surface
+of an industrial estate is a single connected component, and the region spills onto
+neighbouring roofs of similar tone \\
+\midrule
+Frequency analysis to count bays & Three real rhythms coexist on one facade, at 3.3 to
+4.6~m for bays, 5.5~m for canopy posts and 8.9 to 10.7~m for portal frames. A frequency
+analysis returns a frequency, never its meaning \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+A related finding constrains the zero-shot approach that preceded the learned model. Parked
+trailers are not a proxy for docks: median trailer distance to the building reaches 126~m on
+large platforms, and at one site only 8 of 89 detected trailers lay within 26~m of the
+building, the rest being in holding yards. With a proximity and perpendicularity filter
+applied, the zero-shot pipeline produced a capacity figure for only $36\%$ of sites, 25 of
+70 measured. Elsewhere it returned nothing, which is a gap in coverage rather than a wrong
+answer.
 
 \subsection*{Annotation Protocol}
 
@@ -90,15 +193,74 @@ Sampling is stratified by footprint area across three bands, roughly 1\,500 to
 aerospace, refrigerated, very large and retail distribution. An unstratified random draw
 over-represents large warehouses, and the model inherits that bias.
 
+\subsection*{Annotation Integrity}
+
+One episode bears directly on research method. An automated third-party annotation process
+produced 442 annotations and reported its own output as verified and complete. The
+annotations were unusable: the process had placed a dock zone along every edge of every
+building without examining the imagery at all, then subdivided each zone at the nominal
+pitch, producing an implausible $88\%$ positive rate.
+
+All of it was discarded and the dataset re-annotated by hand. An audit of the manual work
+found 11 genuine problems across 687 annotated zones, a defect rate of $1.6\%$. A
+verification tool was then written and placed ahead of training, checking format, geometry
+and consistency against the project's own measured thresholds, so that no external
+annotation enters the pipeline unaudited. That tool caught a defect in its own first
+implementation, where distance was measured to the largest building in a scene rather than to
+all buildings, generating 26 false alarms on correct annotations of neighbouring buildings.
+
+The transferable point is that a confident self-assessment from an automated process is not
+evidence, and that the cost of the verification step was small relative to the cost of
+training on corrupted labels.
+
 \subsection*{Training Configuration}
 
 The model is a segmentation network trained from pre-trained weights at a $640$~pixel input
 size, with rotation augmentation over the full circle, horizontal and vertical flips, and
 scale jitter. Rotation invariance is obtained by augmentation rather than by geometric
 rectification of the facade, which is what allows the model to accept any building shape and
-orientation without requiring a footprint as input. Training ran on CPU throughout, with no
+orientation without requiring a footprint as input; Figure~\ref{fig:volume_predictions} shows
+predictions on held-out imagery. Training ran on CPU throughout, with no
 GPU available, which is the practical reason the input size was not raised further and the
 context for the negative resolution result of Table~\ref{tab:volume_training}.
+
+\subsection*{A Systems Error Found in Deployment}
+
+Figure~\ref{fig:volume_deployment} shows the end-to-end output on one deployment site. The
+national topographic database fragments a single large warehouse into several polygons, so a
+434~m dock apron was initially attributed in full to a
+5\,149~m\textsuperscript{2} fragment, yielding an implausible 221 docks per hectare against a
+corpus median of 7.9. The fix was geometric rather than statistical: each predicted zone is
+now clipped so that a building receives only the portion facing its own facade, and the
+quality control was changed from a density threshold, which must be calibrated per site type,
+to the ratio of dock length to building perimeter, which is dimensionless and cannot
+legitimately exceed one.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[height=0.46\textheight, keepaspectratio]{Images/5.Volume/deployment_zone.png}
+    \caption[End-to-end output on one deployment site]{End-to-end output on one
+    deployment site. The tool's own banner reads 12\,426\,m\textsuperscript{2} of
+    footprint, three detected dock zones, 326\,m of equipped facade and about 86 docks;
+    the orange outline is the topographic footprint and the green fill the predicted
+    zones.}
+    \label{fig:volume_deployment}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.62\linewidth]{Images/5.Volume/segmentation_predictions.jpg}
+    \caption{Predicted dock zones on held-out imagery}
+    \label{fig:volume_predictions}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.84\linewidth]{Images/volume_calibration.png}
+    \caption{The fill factor against the auditable corpus}
+    \label{fig:volume_calibration}
+\end{figure}
+
 
 \subsection*{Measured Facts Recorded for Reuse}
 
@@ -111,9 +273,6 @@ context for the negative resolution result of Table~\ref{tab:volume_training}.
     \item Roof overhang beyond the footprint edge: $0$ to $14.4$~m. This is why the footprint
     edge is not the start of the apron, and it was the cause of an earlier defect in which
     rooflights were counted as bays.
-    \item Trailer distance to building: median up to $126$~m on large platforms; at one site
-    only 8 of 89 detected trailers lay within $26$~m. Trailers are not a proxy for docks.
-    \item Zero-shot coverage before the learned model: 25 of 70 sites, or $36\%$.
     \item Prompt sensitivity of the promptable segmentation model used for site sampling: a
     prompt naming an industrial warehouse returns 88\,752~m\textsuperscript{2}, some 45\% of
     the view, where a prompt naming a warehouse roof returns the
@@ -129,3 +288,4 @@ the capability is distributed or exposed over a network. The options are a comme
 from the vendor or replacement of the backbone with a permissively licensed equivalent. This
 is recorded as a governance decision to be taken deliberately rather than discovered at
 deployment.
+

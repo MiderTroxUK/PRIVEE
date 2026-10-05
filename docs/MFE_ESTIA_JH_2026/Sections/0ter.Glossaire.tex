@@ -1,0 +1,87 @@
+\section*{Glossary}
+\label{sec:glossaire}
+\addcontentsline{toc}{section}{Glossary}
+
+\newcommand{\glosEntry}[2]{\item[#1] #2}
+
+\begin{description}[leftmargin=3.9cm, style=nextline, labelwidth=3.6cm,
+                    font=\bfseries\color{altenNavy}, itemsep=2pt]
+
+\glosEntry{Adequacy score}{Agreement between declared and computed urgency at a node, scored
+on $[0,100]$ with an asymmetric penalty that prices hidden risk at roughly twice false
+urgency.}
+
+\glosEntry{AHP}{Analytic Hierarchy Process. Elicits criteria weights from pairwise
+comparisons and validates them through a consistency ratio.}
+
+\glosEntry{AR(1)}{First-order autoregressive process. Used here to extrapolate a node's
+computed urgency series forward.}
+
+\glosEntry{AUC}{Area under the ROC curve. The probability that a randomly chosen positive
+case is ranked above a randomly chosen negative one. $0.5$ is chance.}
+
+\glosEntry{Brier skill}{A probabilistic forecast's mean squared error, expressed relative to
+a reference forecaster. Positive beats the reference; negative is worse than it.}
+
+\glosEntry{Consistency ratio}{AHP's internal check on a set of pairwise comparisons. A
+questionnaire whose ratio exceeds the accepted threshold is refused.}
+
+\glosEntry{Declared urgency}{The urgency an operator states for a node, elicited through the
+questionnaire. Written $U_d$.}
+
+\glosEntry{DIN}{Direction de l'Innovation. The entity responsible for ALTEN's own research
+and development, as distinct from client work.}
+
+\glosEntry{DISCO}{The research programme's serious game and digital twin, simulating a
+satellite supply chain across 22 component suppliers.}
+
+\glosEntry{False urgency}{The part of the gap where declared urgency exceeds computed
+urgency. Consumes shared capacity another flow needed.}
+
+\glosEntry{GLEC Framework}{Global Logistics Emissions Council methodology for calculating
+logistics emissions, aligned with ISO~14083.}
+
+\glosEntry{Hidden risk}{The part of the gap where computed urgency exceeds declared urgency,
+written $[U_r - U_d]^+$. The dangerous direction, because it raises no alert.}
+
+\glosEntry{Milestone truth}{Whether a milestone was met at the deadline originally committed
+to. Scripted on the first chain; derived from the indicator trajectory on the second.}
+
+\glosEntry{Noisy-OR}{Probabilistic aggregation. Reading each block as an independent cause
+that could on its own put the node in trouble, the aggregate is the probability that
+\emph{at least one} of them fires. That is the logical OR of the six, hence the name. Any block
+approaching its maximum drives the aggregate toward the maximum, unlike a weighted average.
+See \emph{non-compensatory}.}
+
+\glosEntry{Non-compensatory}{Property of an aggregation rule in which a healthy criterion
+cannot offset a failed one. A weighted average is compensatory; the noisy-OR of
+Equation~\ref{eq:ur} is not, which is why it was chosen.}
+
+\glosEntry{OEE}{Overall Equipment Effectiveness. Composite of availability, performance and
+quality, used as the productive health proxy of a resource.}
+
+\glosEntry{Physical Internet}{Logistics paradigm in which shipments move through shared,
+interoperable networks rather than dedicated ones.}
+
+\glosEntry{PR-AUC}{Area under the precision-recall curve. More informative than AUC when
+positives are rare.}
+
+\glosEntry{Precision@$k$}{Among the $k$ nodes a ranking selects, the share that actually
+fail. The form the question takes when a coordinator can only look at three suppliers.}
+
+\glosEntry{Real urgency}{The urgency computed at a node from six indicator blocks, before any
+human states anything. Written $U_r$.}
+
+\glosEntry{Rank / tier}{A supplier's depth in the network, counted from the final customer.}
+
+\glosEntry{Ripple effect}{The amplification of a local supply disruption as it propagates
+through downstream tiers.}
+
+\glosEntry{SupplyScore}{The tool delivered by this mission. A standalone Python application
+that computes real urgency, elicits declared urgency, propagates both across a supplier
+network and scores the gap, running a project week by week with every write audited.}
+
+\glosEntry{Turn}{One week of simulated time. A campaign turn closes when every node has
+submitted its weekly review.}
+
+\end{description}

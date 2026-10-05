@@ -7,7 +7,37 @@ Section~\ref{sec:methods_campaign}.
 
 \subsection*{Cadence and Sequence}
 
-Nineteen turns are indexed T0 to T18. T0 is a training turn used to verify that every
+Nineteen turns are indexed T0 to T18.
+Figure~\ref{fig:protocol_clock} places what happens inside one of them.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[x=1cm, y=1cm, font=\scriptsize,
+    phase/.style = {bloc, text width=2.35cm, minimum height=0.95cm},
+    sys/.style  = {blocFort, text width=2.35cm, minimum height=0.95cm}]
+
+\node[phase] (s1) at (1.55, 0) {\textbf{1} briefing\\pushed to each\\role card};
+\node[phase] (s2) at (4.45, 0) {\textbf{2} declarant\\reads only its\\own sheet};
+\node[phase] (s3) at (7.35, 0) {\textbf{3} questionnaire\\submitted,\\free text with it};
+\node[sys]  (s4) at (10.25, 0) {\textbf{4} consistency\\gate:
+                                $\mathrm{CR} \le 0.10$};
+\node[sys]  (s5) at (13.15, 0) {\textbf{5} propagate,\\score, freeze};
+
+\foreach \i/\j in {1/2, 2/3, 3/4, 4/5} \draw[fleche] (s\i) -- (s\j);
+\draw[flecheCoupee] (s4.north) -- (10.25, 0.85) -- (7.35, 0.85) -- (s3.north);
+\node[etiquette, anchor=south] at (8.8, 0.85) {returned if incoherent};
+
+\node[etiquette, anchor=north, text width=12.5cm] at (7.35, -0.75)
+     {steps 1 to 3 are the declarant's and steps 4 and 5 the system's: no declarant sees a
+      computed value at any point in arm~A, which is what makes the two signals independent
+      in source (Assumption~\ref{as:sincerity})};
+
+\end{tikzpicture}
+\caption[One turn of the protocol]{What happens inside a single turn. The dashed arc is the
+consistency gate returning an incoherent questionnaire; it is the only feedback a declarant
+receives, and it carries no information about the computed state.}
+\label{fig:protocol_clock}
+\end{figure} T0 is a training turn used to verify that every
 declarant can complete the questionnaire inside ten minutes with the consistency gate
 active; its declarations are retained in the record but excluded from every analysis. The
 eighteen campaign turns run at two per day, morning and late afternoon, over nine working
@@ -16,9 +46,9 @@ real durations converted into engine hours at a fixed rate so that documented fi
 twelve to twenty-five week supplier lead times or a six-day canal blockage retain their true
 magnitude inside an eighteen-turn game.
 
-\subsection*{Frozen Artifacts}
+\subsection*{Frozen Artefacts}
 
-Four artifacts were frozen before T0 and are the reference against which any later analysis
+Four artefacts were frozen before T0 and are the reference against which any later analysis
 is checked: the scenario definition with its twelve calibrated events and their turn
 assignments; the data pack of public time series, with a SHA-256 hash recorded per file; the
 role cards, one per node, each stating only what that declarant may know; and the hypothesis
@@ -71,3 +101,161 @@ duplicate discarded, which is why the arm B analysis reports 96 declarations fro
 records. Arm B ran to T11 rather than T18, so its forecast log covers turns 4 to 12 against
 turns 4 to 18 in arm A; all arm B comparisons in this thesis are therefore made over the
 turns actually recorded, and the arm A scoring uses its own full range.
+
+
+\subsection{Scenario and Network}
+\label{app:scenario_detail}
+
+The campaign, presented to participants under the cover story \emph{Programme H\'ELIOS},
+replays the 2020 to 2022 semiconductor shortage over eighteen weekly game turns plus a
+training turn. The supply network has eight nodes, one per participant, anchored on the real
+actor types of the crisis (Table~\ref{tab:helios_network}).
+
+Figure~\ref{fig:helios_network_coefficients} gives the network with its per-arc coefficients,
+$\gamma$ attenuating demand as it descends and $\beta$ amplifying risk as it ascends. NovaFab
+at rank 4 is the expected bottleneck, and the dashed arc into Meridian is the inert backup arc
+of Section~\ref{sec:model_prop}: it appears in the diagram and carries nothing, which is the
+point of including it.
+
+One game turn represents one real month, with real durations converted into engine hours at a
+fixed rate so that documented figures keep their true magnitude inside an eighteen-turn game.
+Figure~\ref{fig:helios_timeline} lays the campaign out: five acts drawn from the documented
+chronology, and the turn on which each calibrated event lands.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[x=1cm, y=1cm, font=\scriptsize]
+
+%% Echelle : 0,615 cm par tour, decalee de 2,75 pour laisser la place aux
+%% intitules de voie. Les coordonnees sont calculees en ligne.
+
+%% Les cinq actes, plus le tour d'entrainement.
+\foreach \a/\b/\nom in {-0.5/0.5/{}, 0.5/4.5/baseline, 4.5/8.5/{tipping point},
+                        8.5/12.5/squeeze, 12.5/16.5/rupture, 16.5/18.5/recovery} {
+  \fill[altenBlueBg] ({2.75+0.615*\a}, 0.44) rectangle ({2.75+0.615*\b}, 1.04);
+  \draw[altenGreyLine, line width=0.5pt]
+       ({2.75+0.615*\a}, 0.44) rectangle ({2.75+0.615*\b}, 1.04);
+  \node[text=altenNavy] at ({2.75+0.615*0.5*(\a+\b)}, 0.74) {\nom};
+}
+\node[font=\scriptsize\itshape, text=altenGreyText, anchor=south]
+     at ({2.75+0.615*0}, 1.10) {T0 training};
+
+%% Les cinq voies de noeud.
+\foreach \i/\nom in {0/NovaFab, 1/CompoDis, 2/TransGlobal, 3/{\'Electis}, 4/SilPure} {
+  \node[text=altenNavy, anchor=east] at (2.52, {-0.14-0.60*\i}) {\nom};
+  \draw[altenGreyLine, line width=0.5pt]
+       ({2.75-0.615*0.5}, {-0.14-0.60*\i}) -- ({2.75+0.615*18.5}, {-0.14-0.60*\i});
+}
+
+%% Les douze evenements calibres, a leur tour et sur leur voie.
+\foreach \t/\i in {3/0, 7/0, 10/0, 5/1, 13/1, 14/1, 7/2, 12/2, 14/2, 12/3, 16/4}
+  \fill[altenAzure] ({2.75+0.615*\t}, {-0.14-0.60*\i}) circle (0.105);
+
+%% L'accident critique, seul de sa gravite.
+\fill[altenOchreDark] ({2.75+0.615*6}, -0.14) circle (0.15);
+\draw[altenNavy, line width=0.6pt] ({2.75+0.615*6}, -0.14) circle (0.15);
+\node[etiquette, anchor=south, text=altenOchreDark] at ({2.75+0.615*6}, 0.06) {critical};
+
+%% Le tour ou la prevision devient visible en bras B.
+\draw[altenNavy, line width=0.8pt, dashed]
+     ({2.75+0.615*3.5}, -3.78) -- ({2.75+0.615*3.5}, 0.44);
+\node[etiquette, anchor=west] at ({2.75+0.615*3.6}, -4.28) {forecast shown, arm B};
+
+%% La voie des controles du protocole : ils ont un tour comme les evenements.
+\node[text=altenNavy, anchor=east] at (2.52, -3.30) {controls};
+\draw[altenGreyLine, line width=0.5pt]
+     ({2.75-0.615*0.5}, -3.30) -- ({2.75+0.615*18.5}, -3.30);
+\foreach \t/\nom in {4/{weak signal}, 9/{placebo}, 15/{placebo}} {
+  \fill[altenOchreDark] ({2.75+0.615*\t}, -3.30) circle (0.105);
+  \node[etiquette, anchor=south, text=altenOchreDark] at ({2.75+0.615*\t}, -3.16) {\nom};
+}
+
+%% L'axe des tours.
+\foreach \t in {0,2,4,6,8,10,12,14,16,18}
+  \node[text=altenNavy] at ({2.75+0.615*\t}, -3.92) {\t};
+\node[text=altenNavy, anchor=east] at (2.52, -3.92) {turn};
+
+\end{tikzpicture}
+\caption[The H\'ELIOS campaign, turn by turn]{The campaign over its nineteen turns: five acts
+drawn from the documented chronology, and the twelve calibrated engine events on the node each
+strikes, with the protocol's own controls on the lane beneath. Spot prices reach ten to forty
+times catalogue during the squeeze; the rupture is a manufacturer cutting production by roughly
+$40\%$ while the announced backup foundry turns out to have no spare capacity; the recovery
+measures whether declared urgency lags the physical de-escalation. One event is of gravity
+critical, the fab freeze at turn~6, and Table~\ref{tab:helios_events} names each event with its
+real-world anchor.}
+\label{fig:helios_timeline}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[x=1cm, y=1cm, font=\scriptsize]
+
+%% La chaine principale, du fournisseur de rang 5 au client de rang 0.
+\node[bloc, minimum width=2.15cm, minimum height=1.05cm] (sil) at (1.15, 0)
+     {SilPure\\wafers\\[-1pt]\textit{rank 5}};
+\node[blocAlerte, minimum width=2.15cm, minimum height=1.05cm] (nov) at (3.70, 0)
+     {NovaFab\\foundry\\[-1pt]\textit{rank 4}};
+\node[bloc, minimum width=2.15cm, minimum height=1.05cm] (com) at (6.25, 0)
+     {CompoDis\\distributor\\[-1pt]\textit{rank 3}};
+\node[bloc, minimum width=2.15cm, minimum height=1.05cm] (ele) at (8.80, 0)
+     {\'Electis\\EMS boards\\[-1pt]\textit{rank 2}};
+\node[bloc, minimum width=2.15cm, minimum height=1.05cm] (avi) at (11.35, 0)
+     {AvioSys\\avionics\\[-1pt]\textit{rank 1}};
+\node[blocFort, minimum width=2.15cm, minimum height=1.05cm] (orb) at (13.90, 0)
+     {Orbitalys\\prime\\[-1pt]\textit{rank 0}};
+
+\foreach \a/\b in {sil/nov, nov/com, com/ele, ele/avi, avi/orb}
+  \draw[fleche] (\a) -- (\b);
+
+\foreach \x/\g/\bt in {2.425/0.7/0.6, 4.975/0.9/0.9, 7.525/0.8/0.8,
+                       10.075/0.8/0.7, 12.625/0.9/0.8}
+  \node[etiquette] at (\x, 0.95) {$\gamma\,\g$\\$\beta\,\bt$};
+
+%% Les deux noeuds hors chaine principale.
+\node[bloc, minimum width=2.15cm, minimum height=1.05cm] (tra) at (8.80, -2.05)
+     {TransGlobal\\freight\\[-1pt]\textit{rank 3}};
+\draw[fleche] (tra) -- (ele);
+\node[etiquette] at (8.80, -1.02) {$\gamma\,0.5$ \; $\beta\,0.4$};
+
+\node[blocPale, minimum width=2.15cm, minimum height=1.05cm] (mer) at (3.70, -2.05)
+     {Meridian\\2nd foundry\\[-1pt]\textit{rank 4}};
+\draw[flechePale, dashed] (mer.east) -- (6.25, -2.05) -- (6.25, -0.525);
+\node[etiquette, text=altenGreyText] at (5.55, -1.60)
+     {$\gamma\,0.3$ \; $\beta\,0.3$, inert};
+
+\end{tikzpicture}
+\caption[The H\'ELIOS network and its per-arc coefficients]{The eight campaign nodes,
+$\gamma$ attenuating demand as it descends towards suppliers and $\beta$ amplifying risk as it
+ascends towards Orbitalys, the final customer. NovaFab, in ochre, is the expected bottleneck.
+The dashed arc into Meridian is the announced plan~B: it appears in the graph and carries
+nothing.}
+\label{fig:helios_network_coefficients}
+\end{figure}
+
+The twelve calibrated engine events driving the crisis are listed in
+Table~\ref{tab:helios_events}, with the turn numbers as recorded in the campaign databases.
+One encoding choice shapes what the scenario can test: the Texas freeze is modelled as a
+production accident,
+which triggers the engine's Bayesian revision of the failure probability, a recovery clock
+and a severity ratchet, rather than as a capacity loss, which would only reduce storage
+volume. A hot shutdown of a fabrication line is mechanically closer to the former.
+
+
+
+\subsection{Protocol Integrity and Controls}
+\label{sec:methods_controls}
+
+The protocol was frozen before the first turn. Participants see only their own role sheet and
+questionnaire; dashboards and scores stay hidden until the debrief, and no discussion between
+roles is allowed. Three controls sit on the campaign lane of
+Figure~\ref{fig:helios_timeline}. The two placebo sheets each hand one node a false
+de-escalation, so a declared urgency that follows the sheet is reflecting the sheet rather than
+a reading of the situation. The weak-signal turn has the press mention a tension with no engine
+event behind it, which measures who reacts to media noise alone. Beyond those, roles are
+assigned so that the two most information-heavy nodes do not go to the most experienced
+participants, keeping a role effect from being confounded with an expertise effect, every
+deviation is logged the same day in a campaign journal, and any analysis outside the
+pre-registered register of Section~\ref{sec:hypotheses} is labelled exploratory.
+
+%% ═══════════════════════════════════════════════════════════════════════════

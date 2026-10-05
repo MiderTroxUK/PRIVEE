@@ -1,47 +1,82 @@
-%% Consignes : « C'est la raison d'etre de la mission [...] Cette partie est
-%% tres importante dans le rapport de MFE. La problematique peut etre
-%% exprimee sous la forme d'une question. »
+%% Pourquoi la mission existe : le probleme que l'entreprise a voulu
+%% traiter, ferme par une question a laquelle le rapport repond.
 
 \subsection{Why ALTEN Opened This Subject}
 \label{sec:pourquoi}
 
-The Smart Green Supply Chain programme had, by the start of this placement, built a
-credible set of components: a routing module, a supplier risk scorer, a carbon
-quantification module, a transport interface, and the DISCO twin that ties them together.
-Each answers a question of the form \emph{what is the state of this part of the chain?}
+Every component the programme had built by the start of this internship answers a question of
+the form \emph{what is the state of this part of the chain?} None answers the question that
+comes next. Once the state is known, a coordinator still has to decide where to spend a finite
+amount of attention this week, and that decision runs on a signal none of those modules
+produces: how urgent each node is. In practice it comes from people. A buyer says a supplier is
+critical; a plant says a line is at risk. The twin records the consequence of those judgments
+without ever evaluating the judgments themselves.
 
-None answers the question that comes next. Once the state is known, a coordinator still has
-to decide where to spend a finite amount of attention this week, and that decision is made
-on a signal none of those modules produces: how urgent each node is. In practice that signal
-comes from people. A buyer says a supplier is critical; a plant says a line is at risk. The
-digital twin records the consequence of those judgments without ever evaluating the
-judgments themselves.
-
-That is a gap with a cost attached. Behavioural research on urgency shows the signal is not
-neutral. Zhu, Yang and Hsee demonstrate across five controlled experiments that people
-systematically favour imminent low-value tasks over distant high-value ones, and that the
-bias persists even when they are told about it~\autocite{zhu2018mere}. Field studies find the
-same pattern under workload: operators complete small easy tasks first, at a measurable cost
-to overall performance~\autocite{rusou2020psychology,diwa2020task}. If a digital twin
-consumes a human urgency declaration as ground truth, it inherits that bias and then
-propagates it across the network.
+That is a gap with a cost attached, because the signal is not neutral. Zhu, Yang and Hsee
+demonstrate across five controlled experiments that people systematically favour imminent
+low-value tasks over distant high-value ones, and that the bias persists even when they are
+told about it~\autocite{zhu2018mere}; field studies find the same pattern under
+workload~\autocite{rusou2020psychology,diwa2020task}. A twin that consumes a human urgency
+declaration as ground truth inherits that bias and propagates it across the network.
 
 \subsection{The Cost of the Two Errors}
 
 The two directions of error are not symmetric, which is what makes the problem worth
-instrumenting rather than tolerating.
+instrumenting rather than tolerating. Figure~\ref{fig:asymetrie} sets them side by side.
 
-Over-declaration is expensive but visible. A node declared more urgent than it is attracts
-expedited transport, premium capacity and coordinator attention, all of which are finite and
-all of which were taken from somewhere else. In a shared or mutualised logistics setting the
-cost lands on another actor entirely~\autocite{montreuil2011toward,li2020exploring}.
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    err/.style = {bloc, text width=5.4cm, minimum height=0.82cm, font=\scriptsize},
+    errH/.style = {err, fill=altenOchrePale!55!white, draw=altenOchreDark, line width=1pt},
+    node distance = 3mm]
 
-Under-declaration is cheaper in the moment and far more dangerous. A node whose real
-situation is worse than anyone has said generates no alert, appears in no priority list and
-consumes no attention. The failure surfaces only when it becomes a missed delivery, by which
-point the window in which it could have been prevented has closed. Clinical triage, where
-this asymmetry has been studied for decades, reaches the same conclusion: under-triage costs
-a life where over-triage costs a queue~\autocite{kim2020admission,mackway2013emergency}.
+\node[blocFort, text width=5.2cm, font=\small] (dec)
+     {\textbf{the urgency an operator declares}};
+
+\node[err, below left=11mm and 3mm of dec.south, anchor=north east, fill=altenBlueBg2]
+     (f1) {\textbf{too high: false urgency}\\[1pt] $U_d > U_r$};
+\node[errH, below right=11mm and 3mm of dec.south, anchor=north west]
+     (h1) {\textbf{too low: hidden risk}\\[1pt] $U_d < U_r$};
+
+\node[err, below=of f1] (f2) {consumes expedited transport, premium capacity and the
+                              coordinator's attention};
+\node[err, below=of h1] (h2) {raises no alert, enters no priority list, consumes no
+                              attention};
+
+\node[err, below=of f2] (f3) {the bill lands on another flow, often on another actor
+                              entirely};
+\node[err, below=of h2] (h3) {surfaces only as a missed delivery, once the window to act on
+                              it has closed};
+
+\node[blocPale, text width=5.4cm, minimum height=0.82cm, font=\scriptsize, below=of f3]
+     (f4) {\textbf{visible:} somebody notices the capacity is gone};
+\node[errH, below=of h3] (h4) {\textbf{silent:} nothing in the system records that it
+                               happened};
+
+\draw[fleche] (dec.south) -- ++(0,-4.5mm) -| (f1.north);
+\draw[fleche] (dec.south) -- ++(0,-4.5mm) -| (h1.north);
+
+\coordinate (mid) at ($(f4.south)!0.5!(h4.south)$);
+\node[blocAlerte, below=7mm of mid, text width=11.1cm, font=\scriptsize] (pen)
+     {Only the second error is silent, so the adequacy score prices it at roughly twice the
+      first. It is the rule clinical triage has applied for decades.};
+\draw[fleche] (f4.south) -- (f4.south |- pen.north);
+\draw[fleche] (h4.south) -- (h4.south |- pen.north);
+
+\end{tikzpicture}
+\caption[The two declaration errors and why only one of them is silent]{The two directions in
+which a declaration can be wrong.}
+\label{fig:asymetrie}
+\end{figure}
+
+Both costs are documented. In a shared or mutualised logistics setting the price of
+over-declaring lands on another actor
+entirely~\autocite{montreuil2011toward,li2020exploring}, and clinical triage, where the
+asymmetry has been studied for decades, reaches the same verdict on the other direction:
+under-triage costs a life where over-triage costs a
+queue~\autocite{kim2020admission,mackway2013emergency}. That asymmetry is the argument behind
+the penalty of Section~\ref{sec:realisation_modele}.
 
 \subsection{The Problem, Stated}
 \label{sec:question}
@@ -63,10 +98,7 @@ rather than merely which node is struggling.
 enough, inside a working digital twin, to be acted upon rather than merely observed?}
 \end{definitionBox}
 
-The word \emph{reliably} carries the weight. Producing a number that expresses the
-difference between two other numbers is trivial. Establishing that the number means
-something, that it predicts outcomes better than the raw indicators a coordinator already
-has, and that it is not simply measuring its own inputs, is the actual engineering problem.
-Section~\ref{sec:realisation} shows that this distinction is not academic: the system
-produced the number without difficulty and then failed the reliability test, for a reason
-that took a dedicated experiment to identify.
+The word \emph{reliably} carries the weight. Producing a number that expresses the difference
+between two other numbers is trivial. Establishing that the number means something, and that it
+predicts outcomes better than the raw indicators a coordinator already has, is the actual
+engineering research problem.

@@ -4,57 +4,35 @@
 %% ═══════════════════════════════════════════════════════════════════════════
 
 This review answers a single question: which existing methods can be assembled to measure,
-correct and propagate a biased urgency signal, and which part of that assembly is missing
-from the literature? The relevant work is broad but fragmented across operations research,
-behavioural science and digital twin engineering. Read individually, each stream solves one
-piece of the problem. Read together, they leave a specific slot empty. No retrieved work
-combines, within a single supply chain decision architecture, the five elements this thesis
-requires: a multi-block operational urgency function, a structured client-side urgency
-input, an adequacy layer comparing stated and operational urgency, network propagation of
-that urgency across a multi-tier DAG, and empirical validation of the adequacy signal
-against recorded
+correct and propagate a biased urgency signal, and which part of that assembly is missing from
+the literature? The relevant work is broad but fragmented across operations research,
+behavioural science and digital twin engineering, and read individually each stream solves one
+piece. Read together they leave a specific slot empty: no retrieved work combines, within a
+single supply chain decision architecture, a multi-block operational urgency function, a
+structured client-side urgency input, an adequacy layer comparing stated and operational
+urgency, network propagation across a multi-tier DAG, and empirical validation of the adequacy
+signal against recorded
 outcomes~\autocite{sawik2013integrated,sawik2014joint,sawik2016integrated,cohen2021assigning,hosseini2020bayesian}.
-
 The review is organised by the role each stream plays in that argument rather than by
-chronology or method family. Figure~\ref{fig:literature_streams} maps the streams onto that
-organisation and shows where the empty slot falls. Each section closes with a statement of
-the gap it leaves, and Section~\ref{sec:lit_gaps} collects those gaps.
+chronology, 
 
-Six terms are used throughout with the following meanings.
-
-\textbf{Urgency} is how far a task needs prompt action to avoid a material loss of
-operational performance. Two neighbouring words mean something else. \emph{Importance} is
-about strategic value; \emph{priority} is about current execution order. A task can be
-important and not urgent, and it can be first in the queue for reasons that have nothing to
-do with either~\autocite{cheng2025survey,zhu2018mere}.
-
-\textbf{Real-time scheduling} refers to the class of algorithms that assign execution order
-to tasks given temporal constraints, resource constraints and optimality
-criteria~\autocite{pinedo2012scheduling}. This literature is drawn on only as historical
-grounding for deadline-sensitive value functions; no scheduling algorithm is delivered here.
-
-\textbf{Digital twin} is a synchronised digital representation of a physical system
-supporting monitoring, simulation and decision-making from real-time and historical
-data~\autocite{ivanov2020digital}.
-
-\textbf{Multi-criteria decision-making (\gls{mcdm})} covers methods that combine multiple,
-potentially conflicting performance dimensions into a
-decision~\autocite{saaty1980analytic,brans1986promethee}.
-
-\textbf{Physical Internet (\gls{pi})} is the model of open, mutualised logistics networks
-routing shipments through shared infrastructure using standardised modular
-containers~\autocite{montreuil2011toward}.
-
-\textbf{Serious game} is a simulation environment designed to train decision-makers through
+Six terms carry specific meanings throughout. \textbf{Urgency} is how far a task needs prompt
+action to avoid a material loss of operational performance; \emph{importance} is about
+strategic value and \emph{priority} about current execution order, and a task can be important
+and not urgent, or first in the queue for reasons connected to
+neither~\autocite{cheng2025survey,zhu2018mere}. \textbf{Real-time scheduling} covers algorithms
+assigning execution order under temporal and resource
+constraints~\autocite{pinedo2012scheduling}, drawn on here only as historical grounding for
+deadline-sensitive value functions, since no scheduling algorithm is delivered. A
+\textbf{digital twin} is a synchronised digital representation of a physical system supporting
+monitoring, simulation and decision-making from real-time and historical
+data~\autocite{ivanov2020digital}. \textbf{\Gls{mcdm}} covers
+methods combining potentially conflicting performance dimensions into a single
+decision~\autocite{saaty1980analytic,brans1986promethee}. The \textbf{\Gls{pi}} is the model of open, mutualised logistics networks routing shipments through
+shared infrastructure in standardised modular containers~\autocite{montreuil2011toward}. And a
+\textbf{serious game} is a simulation environment designed to train decision-makers through
 realistic scenarios with immediate feedback and
 scoring~\autocite{sterman1989modeling,prensky2001digital}.
-
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.82\linewidth]{Images/3.SoTA/literature_streams.png}
-    \caption{Map of the literature streams}
-    \label{fig:literature_streams}
-\end{figure}
 
 %% ═══════════════════════════════════════════════════════════════════════════
 \subsection{Risk Propagation and Deadline-Sensitive Value}
@@ -80,40 +58,25 @@ heterogeneous risk indicators into a single node-level score is itself an open m
 question, distinct from how that score should then be propagated.
 
 Table~\ref{tab:urgency_models} compares four candidate aggregation and growth models found
-across these two lines.
+across these two lines, and Figure~\ref{fig:aggregation_families} plots what each one does.
 
-\begin{table}[htbp]
-\centering
-\caption{Aggregation and growth models found in the literature}
-\label{tab:urgency_models}
-\small
-\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{2.6cm} >{\raggedright\arraybackslash}p{2.6cm} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}p{2.6cm}}
-\toprule
-\textbf{Model} & \textbf{Formula} & \textbf{Key property} & \textbf{Where it appears} \\
-\midrule
-Linear in time & $U_0 + \lambda t$ & Constant pressure & Deadline-sensitive scheduling
-\autocite{cheng1996due} \\[3pt]
-Hyperbolic in time & $K / (t_c - t)$, bounded & Finite-time singularity, discounting &
-Temporal discounting \autocite{steel2006integrating}; crash precursors
-\autocite{johansen2001finite} \\[3pt]
-Weighted average of blocks & $\sum_m \omega_m u_m$ & Fully compensatory: one weak block is
-hidden by strong ones & Composite indicators \autocite{greco2018} \\[3pt]
-Noisy-OR over blocks & $1-\prod_m(1-u_m)^{\omega_m}$ & Non-compensatory: one extreme block
-dominates & Combining independent causal evidence \autocite{pearl1988probabilistic} \\
-\bottomrule
-\end{tabularx}
-\end{table}
-
-The two block-level families differ in what they hide. A weighted average is fully
-compensatory, so a catastrophic reading on one indicator can be offset by acceptable
-readings elsewhere. A noisy-OR is not, because any factor approaching its maximum drives
-the aggregate toward its own maximum regardless of the others. Which behaviour is desirable
-depends on whether the aggregate is meant to describe average condition or exposure to the
-worst active cause, and the composite-indicator literature treats that as a modelling
-decision rather than a solved question~\autocite{greco2018,becker2017}.
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\linewidth]{Images/aggregation_families.png}
+    \caption[The four candidate models, plotted]{The four models of
+    Table~\ref{tab:urgency_models}. Panel~b is the choice this thesis has to make: a weighted
+    average is fully compensatory, so a catastrophic reading on one block is offset by
+    acceptable readings elsewhere and the aggregate stops at $0.33$; a noisy-OR is not, and
+    any factor approaching its maximum drives the aggregate towards its own maximum whatever
+    the others read. Which behaviour is desirable depends on whether the aggregate describes
+    average condition or exposure to the worst active cause, and the composite-indicator
+    literature treats that as a modelling decision rather than a solved
+    question~\autocite{greco2018,becker2017}.}
+    \label{fig:aggregation_families}
+\end{figure}
 
 The hyperbolic family carries a further caveat. A structurally similar acceleration appears
-in Log-Periodic Power Law (\gls{lppl}) models of financial crash
+in \gls{lppl} models of financial crash
 precursors~\autocite{johansen2001finite,johansen2000crashes}, but empirical analyses find
 LPPL-family models highly parameter-sensitive and unsuited to use as production risk
 models~\autocite{feigenbaum2001statistical,bree2010prediction}.
@@ -131,15 +94,15 @@ multi-block aggregate has to answer before it can be interpreted.
 \label{sec:lit_bias}
 %% ═══════════════════════════════════════════════════════════════════════════
 
-Behavioural operations research suggests that human decision-makers systematically
-misrepresent urgency, a finding with direct implications for any system relying on
-operator-declared urgency as an input.
+Human decision-makers systematically misrepresent urgency. Two lines of behavioural
+operations research establish it from different angles, and both bear directly on any
+system that takes operator-declared urgency as an input.
 
-Two convergent lines show this from different angles. \textcite{zhu2018mere} report the Mere-Urgency Effect in five controlled experiments:
+\textcite{zhu2018mere} report the Mere-Urgency Effect in five controlled experiments:
 participants consistently over-prioritised imminent low-value tasks over distant
 high-value tasks, and the bias persisted even when participants were informed of its
 existence. \textcite{steel2006integrating} provides a complementary formal model
-through Temporal Motivational Theory (\gls{tmt}):
+through the \gls{tmt}:
 
 \begin{equation}
     V(t) = \frac{U \times E}{1 + \Gamma \times D(t)^k},
@@ -148,29 +111,11 @@ through Temporal Motivational Theory (\gls{tmt}):
 
 where $U$ is objective utility, $E$ is the expectancy of success, $D(t)$ is the delay to
 deadline, and $\Gamma$ and $k$ are individual discounting parameters. As the delay to
-deadline shrinks toward zero, the motivational value $V(t)$ converges to the full product
+deadline shrinks towards zero, the motivational value $V(t)$ converges to the full product
 of utility and expectancy, so immediacy becomes more salient as the deadline approaches.
 Near-term tasks can therefore attract disproportionate attention even when their broader
 objective value is lower~\autocite{steel2006integrating}.
 Table~\ref{tab:tmt_vars} gives the operational role of each parameter.
-
-\begin{table}[htbp]
-\centering
-\caption{Temporal Motivational Theory parameters}
-\label{tab:tmt_vars}
-\begin{tabularx}{\linewidth}{llX}
-\toprule
-\textbf{Symbol} & \textbf{Concept} & \textbf{Operational role} \\
-\midrule
-$V(t)$ & Temporal motivational value & Dynamic task salience \\
-$U$ & Objective utility & Task strategic importance \\
-$E$ & Expectancy of success & Probability of task completion \\
-$D(t)$ & Delay to deadline & Remaining safe execution window \\
-$\Gamma$ & Impulsiveness parameter & Operator sensitivity to delay \\
-$k$ & Sensitivity scaling parameter & Non-linear scaling of delay discounting \\
-\bottomrule
-\end{tabularx}
-\end{table}
 
 These laboratory findings are supported by evidence from operational settings. \textcite{rusou2020psychology} show that operators under workload preferentially
 complete small, easy tasks, the operational analogue of under-triage for large-scope supply
@@ -203,35 +148,16 @@ that event~\autocite{heckmann2015critical}. Indicator-based supplier monitoring 
 identifying observable precursors rather than modelling the event
 directly~\autocite{mokhtar2019supplier}.
 
-Five families of precursor recur across that work. Slack, meaning the margin between a
-realistic lead time and the committed deadline, is the one indicator whose exhaustion is
-irreversible, since a task with no remaining slack cannot be
-recovered~\autocite{cohen2021assigning,bojarski2021,sun2020combating,sawik2013integrated}.
-Capacity saturation adds waiting time that a nominal lead time does not show, so a loaded
-system carries a rupture risk its announced schedule
-conceals~\autocite{tomlin2006value,hosseini2019resilient,taghavi2024sustainable}. Resource
-performance drift is monitored through composite proxies, most often Overall Equipment
-Effectiveness, because direct performance data is rarely available on the supplier
-side~\autocite{mokhtar2019supplier,hlioui2017joint}. Adverse-event exposure is treated
-probabilistically, as the product of a failure probability, a recovery duration and an
-impact severity~\autocite{hosseini2020ripple,liu2021robust,hosseini2020bayesian}. Cost
-signals such as expediting premiums are read as symptoms of strain rather than causes of
-rupture: paying for air freight to protect a deadline is evidence the system is already
-under stress, and it also bounds which corrective actions stay
-affordable~\autocite{shen2019managing,tomlin2006value}. Emissions constraints enter the same
-way, as a restriction on the admissible set of responses rather than as a rupture
-mechanism, and become decisive mainly in the trade-off between slow sea freight and fast air
-freight~\autocite{hoen2014effect,smartfreight2023glec,iso14083}.
+Table~\ref{tab:precursors} gives the five families of precursor that recur across that work,
+with the sources establishing each and the reason it is a precursor rather than a symptom.
+Section~\ref{sec:model_blocks} selects from this table, and Section~\ref{sec:model_blocks} states what it kept.
 
-\paragraph{Gaps in rupture-risk indicators.}
-This literature names precursors and monitors them individually. It does not establish a
-selection criterion for deciding which precursors belong in a single composite, nor does it
-address what happens when several are combined: whether the indicators are independent
-enough to be multiplied, and whether a given numerical level on one carries the same risk
-meaning as the same level on another. Those two questions are left open, and any multi-block
-urgency model inherits them.
+\paragraph{Gap in the indicator literature.}
+The families are named individually and no retrieved work supplies a criterion for deciding
+which of them belong in one composite, nor a rule for combining them once chosen. That is the
+question Section~\ref{sec:model_ur} answers with an explicit independence assumption rather
+than with a weighting convention.
 
-%% ═══════════════════════════════════════════════════════════════════════════
 \subsection{Closest Antecedents: Network Risk Twins and MCDM Supplier Scoring}
 \label{sec:lit_antecedents}
 %% ═══════════════════════════════════════════════════════════════════════════
@@ -297,7 +223,7 @@ enabling technologies. In supply chain management, \textcite{ivanov2021digital} 
 optimisation and machine learning. \textcite{ivanov2020digital} address
 digital supply chain twins for disruption risk and resilience management. \textcite{wang2020digital} demonstrate twin-driven planning in a manufacturing context
 analogous to DISCO's satellite component network. In the Industry~5.0 setting, these
-systems have evolved toward human-in-the-loop Cognitive Digital Twins, where semantic
+systems have evolved towards human-in-the-loop Cognitive Digital Twins, where semantic
 models and reasoning methods capture human feedback and synchronise mental models with
 simulated physical operations~\autocite{niloofar2023}.
 
@@ -313,7 +239,7 @@ In the retrieved literature, no system combines a declared urgency input, a comp
 operational urgency, and their propagated mismatch within one architecture. A second gap
 matters for this thesis specifically: these systems are evaluated on the accuracy of their
 physical state estimation, and their inputs are assumed to arrive. Where an input depends
-on the same operator whose judgment the system exists to support, that circularity is not
+on the same operator whose judgement the system exists to support, that circularity is not
 usually treated as a measurement problem.
 
 %% ═══════════════════════════════════════════════════════════════════════════
@@ -325,47 +251,31 @@ This research builds on two distinct domains within multi-criteria decision-maki
 pairwise comparison methods for eliciting weights, and outranking aggregation for turning
 those weights into a defensible ranking of nodes.
 
-\paragraph{Pairwise elicitation.}
-To construct a structured representation of declared urgency $U_d$, criteria weights must
-be systematically elicited. The Analytic Hierarchy Process
-(\gls{ahp})~\autocite{saaty1980analytic} derives weights as the principal eigenvector of a
-pairwise comparison matrix, validating logical consistency through the Consistency Ratio
-($\gls{cr} \le 0.10$). While widely applied in logistics, AHP suffers from rank reversal,
-where introducing a new alternative alters the relative ranking of existing ones, and is
-sensitive to cognitive noise during elicitation~\autocite{dyer1990,triantaphyllou2024}. To
-reduce operator load and improve consistency, the Best-Worst Method
-(\gls{bwm})~\autocite{rezaei2015best} reduces the number of comparisons from $n(n-1)/2$ to
-$2(n-1)$ by anchoring around chosen best and worst criteria. The Fuzzy Best-Worst Method
-(\gls{fbwm})~\autocite{guo2017fuzzy,Yuc18,amiri2020new} extends this with Triangular Fuzzy
-Numbers (\glspl{tfn}) to absorb judgment uncertainty, and consistency conditions for the
-fuzzy variant have been established~\autocite{liang2020}.
+Table~\ref{tab:mcdm} compares the four methods on the three axes that decide which is usable
+here: what an elicitation costs the operator, what the method returns, and whether a good
+score on one criterion can hide a bad score on another.
 
-\paragraph{Outranking aggregation and the composite indicator critique.}
-For prioritising which nodes need attention, direct weighted averages risk fully
-compensatory aggregation, where an excellent score on one criterion completely masks a
-critical failure on another. Outranking methods such as
-PROMETHEE~II~\autocite{brans1986promethee,brans2005promethee} establish pairwise preference
-flows $\phi^+$ and $\phi^-$, allowing a non-compensatory ordering. A cross-industry
-survey~\autocite{behzadian2010promethee} confirms its suitability for supplier and node
-evaluation. Composite-index literature nonetheless warns that nominal weights often diverge
-from effective importance because of correlation, normalisation and aggregation
-dynamics~\autocite{greco2018,becker2017,borgonovo2021global}, and the choice of
-normalisation is itself non-neutral, since it can produce rank
-reversal~\autocite{triantaphyllou2000multi}.
+The last column of that table is why both an elicitation method and an outranking method are
+used rather than one. Weighted averages are fully compensatory: an excellent score on one
+criterion masks a critical failure on another. Outranking builds pairwise preference flows
+instead, which prevents that masking, and a cross-industry survey confirms its suitability for
+supplier and node evaluation. Composite-index work nonetheless warns that nominal weights
+often diverge from effective importance through correlation, normalisation and aggregation
+dynamics, and that the choice of normalisation is itself non-neutral because it can produce
+rank reversal~\autocite{greco2018,becker2017,triantaphyllou2000multi}.
 
 \paragraph{Gaps in multi-criteria decision methods.}
-These methods weight criteria and rank alternatives, but they are static elicitation and
-aggregation tools. None is routinely compared against a computed operational counterpart.
-And the composite-indicator critique is generally raised as a caveat at the end of a paper
-rather than turned into something a running system can check on its own data.
+These methods weight criteria and rank alternatives, and they are static elicitation and
+aggregation tools. None is routinely compared against a computed operational counterpart. And
+the composite-indicator critique is generally raised as a caveat at the end of a paper rather
+than turned into something a running system can check on its own data.
 
-%% ═══════════════════════════════════════════════════════════════════════════
 \subsection{Forecast-Assisted Decision and Automation Bias}
 \label{sec:lit_automation}
 %% ═══════════════════════════════════════════════════════════════════════════
 
 The streams above concern how to compute a signal. This one concerns what happens when the
-signal is shown to the person whose judgment it was built to support, and it is included
+signal is shown to the person whose judgement it was built to support, and it is included
 because the campaign reported in Section~\ref{sec:res_armB} produced a result in exactly
 that register.
 
@@ -460,6 +370,7 @@ Section~\ref{sec:res_target_trap} shows that this choice, and nothing else, move
 measured skill of the same forecasts by a factor of five.
 
 %% ═══════════════════════════════════════════════════════════════════════════
+
 \subsection{Analogical and Contextual Literature}
 \label{sec:lit_analogy}
 %% ═══════════════════════════════════════════════════════════════════════════
@@ -469,8 +380,7 @@ non-foundational wherever they are used.
 
 \paragraph{Medical triage as a conceptual analogy.}
 Medical triage provides an analogy for prioritising under severe capacity constraints and
-cognitive pressure. Protocols such as the Manchester Triage System
-(\gls{mts})~\autocite{mackway2013emergency} categorise patients into five urgency levels
+cognitive pressure. Protocols such as the \gls{mts}~\autocite{mackway2013emergency} categorise patients into five urgency levels
 using flowcharts, whereas the Emergency Severity Index integrates predicted resource
 consumption. Comparative clinical studies show substantial classification discrepancies between the two
 systems, at a weighted $\kappa = 0.51$, so even trained professionals disagree on urgency
@@ -528,45 +438,74 @@ vehicles without converting them into an operational capacity figure.
 \label{sec:lit_grid}
 %% ═══════════════════════════════════════════════════════════════════════════
 
-Following the structured review method required by the programme's writing guidelines,
-each source analysed above has been synthesised in an evaluation grid recording its main
-argument, methodological approach, conclusions, thematic relevance to this thesis, and a
-critical appraisal of its limitations. The grid is given in
-Appendix~\ref{app:source_grid}. It provides a comparative frame for assessing the
-contribution of each source and makes explicit which claims in this thesis rest on
-foundational work and which rest on analogy.
+Each source analysed above is synthesised in an evaluation grid recording its main argument,
+methodological approach, conclusions, thematic relevance and a critical appraisal of its
+limitations. The grid is given in Appendix~\ref{app:source_grid}, and it makes explicit which
+claims in this thesis rest on foundational work and which rest on analogy.
 
 %% ═══════════════════════════════════════════════════════════════════════════
 \subsection{Identified Gaps}
 \label{sec:lit_gaps}
 %% ═══════════════════════════════════════════════════════════════════════════
 
-Each stream reviewed above closes on the limit of what it settles. Collected, those limits
-describe one absence rather than several.
+Each stream above closes on the limit of what it settles, and collected those limits describe
+one absence rather than several. Figure~\ref{fig:lit_map} places each stream against
+the two things this thesis needs from it, and the empty column is the gap.
 
-Operational monitoring evaluates one criterion at a time and does not capture the
-multi-block character of supply chain state. The rupture-risk literature names precursors
-but supplies no criterion for choosing which belong in one composite, and leaves open
-whether equal values on structurally different indicators mean equal risk. Pairwise
-comparison methods elicit weights reliably but are static, and are not compared against a
-computed counterpart. Outranking prevents compensatory aggregation but is not combined with a
-network-propagated signal. Digital twins and Bayesian revision monitor disruption well, and
-have no mechanism for comparing an operator's input against the physical state they
-maintain. The automation bias literature shows that displaying a forecast changes the
-judgment it supports, without examining a repeated loop in which that judgment feeds back
-into the model. Forecast verification separates ordering from calibration, and assumes the
-outcome is unambiguously defined.
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[x=1cm, y=1cm, font=\scriptsize,
+    st/.style  = {bloc, text width=4.3cm, minimum height=0.72cm, align=left,
+                  inner xsep=5pt},
+    yes/.style = {blocFort, minimum width=1.55cm, minimum height=0.72cm},
+    no/.style  = {blocPale, minimum width=1.55cm, minimum height=0.72cm}]
 
-The reviewed work therefore covers multi-block risk aggregation, network propagation, twin
-operations, multi-criteria elicitation, and the human response to advisory signals. No
-retrieved work combines them with a structured declared-urgency input and an empirically
-tested adequacy layer. That missing combination is the gap, and closing it is the
-contribution this thesis claims: a measurement of the divergence between declared and
-computed urgency, propagated across a supplier network, and scored against recorded
-outcomes rather than asserted.
+\node[titreBande, align=center, text width=1.9cm] at (7.55, 4.35)
+     {compares a\\declaration};
+\node[titreBande, align=center, text width=1.9cm] at (9.55, 4.35)
+     {scored on\\outcomes};
+\node[titreBande] at (12.1, 4.35) {what it leaves};
 
-Three of the gaps above become testable questions rather than design choices, and they are
-the ones this thesis carries into Section~\ref{sec:Methods}: whether the divergence can be
-measured at all once both signals come from independent sources, whether the resulting
-signal predicts anything, and what happens to the declared side when the computed side is
-shown to the person declaring.
+\foreach \y/\lab/\gap in {
+   3.4/{Deadline-driven value, risk propagation}/{one criterion at a time},
+   2.5/{Indicators of delivery rupture}/{no rule for composing them},
+   1.6/{AHP, Fuzzy BWM elicitation}/{static, no computed counterpart},
+   0.7/{PROMETHEE~II outranking}/{not joined to a network signal},
+   -0.2/{Digital twins, Bayesian revision}/{no operator-versus-state test},
+   -1.1/{Automation bias}/{no repeated feedback loop},
+   -2.0/{Forecast verification}/{assumes the target is settled}}
+{
+  \node[st] (s\y) at (3.3, \y) {\lab};
+  \node[no]  at (7.55, \y) {};
+  \node[no]  at (9.55, \y) {};
+  \node[etiquette, anchor=west, fill=none, text width=3.6cm, align=left]
+       at (10.55, \y) {\gap};
+}
+
+\node[blocFort, minimum width=3.75cm, minimum height=0.72cm, draw=altenOchreDark,
+      fill=altenOchrePale!55!white, line width=1.1pt] (gapcell) at (8.55, -3.1)
+     {\textbf{this thesis}};
+\draw[flecheCoupee] (8.55, -2.45) -- (gapcell.north);
+
+\node[etiquette, anchor=north, text width=11.5cm] at (7.0, -3.75)
+     {no retrieved work fills both columns at once: the empty pair is the gap, and
+      Section~\ref{sec:Methods} turns three of the seven limits into testable questions
+      rather than design choices};
+
+\end{tikzpicture}
+\caption[The literature map and the gap]{Each stream against the two properties this work
+requires: that it compare a human declaration with a computed state, and that it be scored
+against recorded outcomes. Every retrieved stream leaves at least one of the two empty, and
+none fills both.}
+\label{fig:lit_map}
+\end{figure}
+
+No retrieved work combines those streams with a structured declared-urgency input and an
+empirically tested adequacy layer. That missing combination is the gap, and closing it is the
+contribution this thesis claims: a measurement of the divergence between declared and computed
+urgency, propagated across a supplier network, and scored against recorded outcomes rather than
+asserted. Three of the gaps become testable questions rather than design choices, and they are
+the ones carried into Section~\ref{sec:Methods}: whether the divergence can be measured at all
+once both signals come from independent sources, whether the resulting signal predicts
+anything, and what happens to the declared side when the computed side is shown to the person
+declaring.

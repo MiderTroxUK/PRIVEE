@@ -168,7 +168,7 @@
     </bcf:option>
     <bcf:option type="singlevalued">
       <bcf:key>sortlocale</bcf:key>
-      <bcf:value>french</bcf:value>
+      <bcf:value>english</bcf:value>
     </bcf:option>
     <bcf:option type="singlevalued">
       <bcf:key>sortingtemplatename</bcf:key>
@@ -2410,54 +2410,59 @@
     <bcf:citekey order="10" intorder="2">li2020exploring</bcf:citekey>
     <bcf:citekey order="11" intorder="1">kim2020admission</bcf:citekey>
     <bcf:citekey order="11" intorder="2">mackway2013emergency</bcf:citekey>
-    <bcf:citekey order="12" intorder="1">cheng1996due</bcf:citekey>
-    <bcf:citekey order="13" intorder="1">cheng2025survey</bcf:citekey>
-    <bcf:citekey order="14" intorder="1">ivanov2020digital</bcf:citekey>
-    <bcf:citekey order="14" intorder="2">ivanov2019viable</bcf:citekey>
-    <bcf:citekey order="14" intorder="3">li2020exploring</bcf:citekey>
-    <bcf:citekey order="15" intorder="1">heckmann2015critical</bcf:citekey>
-    <bcf:citekey order="16" intorder="1">mokhtar2019supplier</bcf:citekey>
-    <bcf:citekey order="17" intorder="1">cohen2021assigning</bcf:citekey>
-    <bcf:citekey order="17" intorder="2">sun2020combating</bcf:citekey>
-    <bcf:citekey order="18" intorder="1">tomlin2006value</bcf:citekey>
-    <bcf:citekey order="18" intorder="2">hosseini2019resilient</bcf:citekey>
+    <bcf:citekey order="14" intorder="1">baulain2024internet</bcf:citekey>
+    <bcf:citekey order="15" intorder="1">cheng1996due</bcf:citekey>
+    <bcf:citekey order="16" intorder="1">cheng2025survey</bcf:citekey>
+    <bcf:citekey order="17" intorder="1">ivanov2020digital</bcf:citekey>
+    <bcf:citekey order="17" intorder="2">ivanov2019viable</bcf:citekey>
+    <bcf:citekey order="17" intorder="3">li2020exploring</bcf:citekey>
+    <bcf:citekey order="18" intorder="1">heckmann2015critical</bcf:citekey>
     <bcf:citekey order="19" intorder="1">mokhtar2019supplier</bcf:citekey>
-    <bcf:citekey order="19" intorder="2">hlioui2017joint</bcf:citekey>
-    <bcf:citekey order="20" intorder="1">hosseini2020ripple</bcf:citekey>
-    <bcf:citekey order="20" intorder="2">liu2021robust</bcf:citekey>
-    <bcf:citekey order="21" intorder="1">shen2019managing</bcf:citekey>
-    <bcf:citekey order="22" intorder="1">hoen2014effect</bcf:citekey>
-    <bcf:citekey order="22" intorder="2">smartfreight2023glec</bcf:citekey>
-    <bcf:citekey order="23" intorder="1">zhu2018mere</bcf:citekey>
-    <bcf:citekey order="24" intorder="1">steel2006integrating</bcf:citekey>
-    <bcf:citekey order="25" intorder="1">rusou2020psychology</bcf:citekey>
-    <bcf:citekey order="25" intorder="2">diwa2020task</bcf:citekey>
-    <bcf:citekey order="26" intorder="1">saaty1980analytic</bcf:citekey>
-    <bcf:citekey order="27" intorder="1">dyer1990</bcf:citekey>
-    <bcf:citekey order="27" intorder="2">triantaphyllou2024</bcf:citekey>
-    <bcf:citekey order="28" intorder="1">rezaei2015best</bcf:citekey>
-    <bcf:citekey order="29" intorder="1">guo2017fuzzy</bcf:citekey>
-    <bcf:citekey order="29" intorder="2">liang2020</bcf:citekey>
-    <bcf:citekey order="30" intorder="1">brans1986promethee</bcf:citekey>
-    <bcf:citekey order="30" intorder="2">behzadian2010promethee</bcf:citekey>
-    <bcf:citekey order="31" intorder="1">greco2018</bcf:citekey>
-    <bcf:citekey order="31" intorder="2">becker2017</bcf:citekey>
-    <bcf:citekey order="31" intorder="3">borgonovo2021global</bcf:citekey>
-    <bcf:citekey order="32" intorder="1">grieves2014digital</bcf:citekey>
-    <bcf:citekey order="33" intorder="1">tao2018digital</bcf:citekey>
-    <bcf:citekey order="33" intorder="2">fuller2020digital</bcf:citekey>
-    <bcf:citekey order="34" intorder="1">ivanov2021digital</bcf:citekey>
-    <bcf:citekey order="35" intorder="1">ding2023realtime</bcf:citekey>
-    <bcf:citekey order="35" intorder="2">leung2022digital</bcf:citekey>
-    <bcf:citekey order="35" intorder="3">hrusovsky2021realtime</bcf:citekey>
-    <bcf:citekey order="36" intorder="1">niloofar2023</bcf:citekey>
-    <bcf:citekey order="37" intorder="1">brier1950verification</bcf:citekey>
-    <bcf:citekey order="38" intorder="1">murphy1973vector</bcf:citekey>
-    <bcf:citekey order="39" intorder="1">niculescu2005predicting</bcf:citekey>
-    <bcf:citekey order="39" intorder="2">guo2017calibration</bcf:citekey>
-    <bcf:citekey order="40" intorder="1">murphy1973vector</bcf:citekey>
-    <bcf:citekey order="41" intorder="1">goddard2012automation</bcf:citekey>
-    <bcf:citekey order="41" intorder="2">bansal2021whole</bcf:citekey>
+    <bcf:citekey order="20" intorder="1">cohen2021assigning</bcf:citekey>
+    <bcf:citekey order="20" intorder="2">sun2020combating</bcf:citekey>
+    <bcf:citekey order="21" intorder="1">tomlin2006value</bcf:citekey>
+    <bcf:citekey order="21" intorder="2">hosseini2019resilient</bcf:citekey>
+    <bcf:citekey order="22" intorder="1">mokhtar2019supplier</bcf:citekey>
+    <bcf:citekey order="22" intorder="2">hlioui2017joint</bcf:citekey>
+    <bcf:citekey order="23" intorder="1">hosseini2020ripple</bcf:citekey>
+    <bcf:citekey order="23" intorder="2">liu2021robust</bcf:citekey>
+    <bcf:citekey order="24" intorder="1">shen2019managing</bcf:citekey>
+    <bcf:citekey order="25" intorder="1">hoen2014effect</bcf:citekey>
+    <bcf:citekey order="25" intorder="2">smartfreight2023glec</bcf:citekey>
+    <bcf:citekey order="26" intorder="1">zhu2018mere</bcf:citekey>
+    <bcf:citekey order="27" intorder="1">steel2006integrating</bcf:citekey>
+    <bcf:citekey order="28" intorder="1">rusou2020psychology</bcf:citekey>
+    <bcf:citekey order="28" intorder="2">diwa2020task</bcf:citekey>
+    <bcf:citekey order="29" intorder="1">saaty1980analytic</bcf:citekey>
+    <bcf:citekey order="30" intorder="1">dyer1990</bcf:citekey>
+    <bcf:citekey order="30" intorder="2">triantaphyllou2024</bcf:citekey>
+    <bcf:citekey order="31" intorder="1">rezaei2015best</bcf:citekey>
+    <bcf:citekey order="32" intorder="1">guo2017fuzzy</bcf:citekey>
+    <bcf:citekey order="32" intorder="2">liang2020</bcf:citekey>
+    <bcf:citekey order="33" intorder="1">brans1986promethee</bcf:citekey>
+    <bcf:citekey order="33" intorder="2">behzadian2010promethee</bcf:citekey>
+    <bcf:citekey order="34" intorder="1">greco2018</bcf:citekey>
+    <bcf:citekey order="34" intorder="2">becker2017</bcf:citekey>
+    <bcf:citekey order="34" intorder="3">borgonovo2021global</bcf:citekey>
+    <bcf:citekey order="35" intorder="1">grieves2014digital</bcf:citekey>
+    <bcf:citekey order="36" intorder="1">tao2018digital</bcf:citekey>
+    <bcf:citekey order="36" intorder="2">fuller2020digital</bcf:citekey>
+    <bcf:citekey order="37" intorder="1">ivanov2021digital</bcf:citekey>
+    <bcf:citekey order="38" intorder="1">ding2023realtime</bcf:citekey>
+    <bcf:citekey order="38" intorder="2">leung2022digital</bcf:citekey>
+    <bcf:citekey order="38" intorder="3">hrusovsky2021realtime</bcf:citekey>
+    <bcf:citekey order="39" intorder="1">niloofar2023</bcf:citekey>
+    <bcf:citekey order="40" intorder="1">feldman2007measuring</bcf:citekey>
+    <bcf:citekey order="41" intorder="1">karuppasamy2019predicting</bcf:citekey>
+    <bcf:citekey order="42" intorder="1">cella2022digitaltwin</bcf:citekey>
+    <bcf:citekey order="43" intorder="1">brier1950verification</bcf:citekey>
+    <bcf:citekey order="44" intorder="1">murphy1973vector</bcf:citekey>
+    <bcf:citekey order="45" intorder="1">niculescu2005predicting</bcf:citekey>
+    <bcf:citekey order="45" intorder="2">guo2017calibration</bcf:citekey>
+    <bcf:citekey order="46" intorder="1">murphy1973vector</bcf:citekey>
+    <bcf:citekey order="47" intorder="1">murphy1973vector</bcf:citekey>
+    <bcf:citekey order="48" intorder="1">goddard2012automation</bcf:citekey>
+    <bcf:citekey order="48" intorder="2">bansal2021whole</bcf:citekey>
   </bcf:section>
   <!-- SORTING TEMPLATES -->
   <bcf:sortingtemplate name="nyt">

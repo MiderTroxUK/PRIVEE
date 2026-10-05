@@ -1,57 +1,40 @@
 In mutualised logistics networks the urgency an operator declares often diverges from the
 urgency computable from the operational state. Over-declaration wastes shared capacity;
-under-declaration hides rupture risk. No existing digital twin measures that divergence or
-propagates it across a supplier network.
+under-declaration hides rupture risk. No existing supply chain digital twin measures that
+divergence or propagates it across a supplier network.
 
-This thesis builds and tests one. Real urgency is aggregated at each node from six KPI blocks
-through a weighted probabilistic OR and propagated upstream across a directed acyclic supply
-graph; declared urgency is elicited through a consistency-gated pairwise questionnaire and
-propagated downstream; their mismatch is scored on $[0,100]$ with an asymmetric
-Prospect-Theory penalty. The system was evaluated through a pre-registered campaign replaying
-the 2020 to 2022 semiconductor shortage over nineteen turns and eight nodes, with a blind
-control arm and a forecast-assisted treatment arm on a frozen scenario.
+This thesis builds and tests one. Real urgency is aggregated at each node from six KPI
+blocks through a weighted probabilistic OR and propagated upstream across a directed acyclic
+supply graph; declared urgency is elicited through a consistency-gated pairwise questionnaire
+and propagated downstream; their mismatch is scored on $[0,100]$ with an asymmetric
+Prospect-Theory penalty. It was evaluated through two pre-registered campaigns with
+language-model declarants: a nineteen-turn replay of the 2020 to 2022 semiconductor shortage
+over eight nodes, with a blind control arm and a forecast-assisted arm on one frozen scenario;
+and an airframer supply base of fifteen nodes carrying no exogenous shock, whose milestone
+truth is derived from the indicator trajectory rather than scripted.
 
-The results separate two claims that are easily conflated. The gap carries information about
-which supplier will fail: over the six turns preceding the public onset of the crisis, the
-nodes it flags are, without a single false alarm, nodes that go on to miss a delivery
-commitment, three of the four that eventually do, and the worst-scoring among them is flagged
-eight turns before its miss while its own manager declares an urgency of $0.001$. The signal
-then weakens for a structural reason rather than a defect, since declared urgency converges
-on computed urgency once the crisis is visible and a measure defined as their difference
-closes by construction. This bounds the instrument to early warning, which is where a warning
-is worth most.
+Three results follow. As a device for deciding which supplier to attend to, the gap works and
+works early: over the six turns preceding the public onset of the crisis it flags only nodes
+that later miss a delivery commitment, three of the four that eventually do, and the worst is
+flagged eight turns before its miss while that node's own manager declares an urgency of
+$0.001$. The second chain bounds that claim: where declarants judge their state correctly and
+simply withhold escalation, the gap selects nothing, so the instrument detects misperception
+and not discretion. As a device for attaching a calibrated
+probability to a named week it fails, at a Brier skill between $-3.4$ and $-6.9$ against a
+base-rate forecaster, with twenty-one confident predictions of which none materialised. One
+block explains it: the time block reads a lead-time distribution that no shock ever reached.
+The repair is not the obvious one, since lost time must be added to the completion date
+rather than multiplied into it, and it halves the Brier deficit without making it positive.
 
-Converting that signal into a calibrated probability attached to a named week is a further
-step, and it failed on the first attempt, diagnostically and precisely. The forecast layer
-showed no discrimination above chance under the production outcome definition and was
-severely miscalibrated, at a Brier skill between $-3.4$ and $-6.9$ against a base-rate
-forecaster. Forecasts below $0.1$ were well calibrated, while twenty-one announcing a mean
-probability of $0.948$ were followed by the predicted outcome exactly zero times. One block
-explains it: the time block read a lead-time distribution that no shock ever reached. In the treatment arm, on the turn the forecast first became visible,
-all eight declarants revised their urgency downward or held it and none revised upward, two
-turns before the scenario's critical event. Both arms carry identical forecasts, so the effect
-belongs to the display. The outcome definition itself moves the answer by more than any
-modelling decision taken here: a naive definition improves the apparent skill fivefold while
-leaving discrimination unchanged, and judging a milestone against the deadline first
-committed to rather than the deadline it currently carries raises the four-week AUC from
-$0.485$ to $0.654$.
+Two methodological findings generalise beyond this system. The definition of an adverse
+outcome moves the reported calibration by a factor of five while leaving discrimination
+unchanged. And displaying a forecast to the declarant transfers authority from the shop floor
+to the model, in whichever direction the model points, on a layer that a two-number calendar
+ratio outranks at six horizons of eight. Every rate above is bounded by the sample rather than
+the construction: two scenarios, twenty-three nodes, seven positives. The instrument and its
+diagnostic method transfer; the rates do not yet.
 
-The diagnosis was then acted on and re-measured on the identical frozen forecasts. The
-obvious repair, having the events write a lead-time impact, proved wrong under measurement:
-lost time must be added to the completion date rather than multiplied into it, or a shock
-attenuates to nothing on the milestones nearest their deadline. After repair the Brier
-deficit roughly halves at every horizon, from $-0.553$ to $-0.216$ at four weeks, and remains
-negative. A closed-loop campaign on the repaired system, in which the same agents act on the
-chain, meets five milestones of eleven on their original date, exactly as many as the frozen
-run: it changes which milestone is met, not how many.
-
-What bounds every figure above is the sample rather than the construction: eight nodes of
-which four are positive, eleven observable milestones, one scripted scenario, and
-language-model declarants. The instrument and its diagnostic method transfer to any supply
-chain; the rates measured here do not yet transfer to anything, and widening that base is the
-work this thesis hands on.
-
-\vspace{0.5cm}
+\vspace{0.4cm}
 
 \noindent\textbf{Keywords:} supply chain digital twin, urgency adequacy, cognitive bias,
 multi-criteria decision analysis, forecast calibration, automation bias, serious game.

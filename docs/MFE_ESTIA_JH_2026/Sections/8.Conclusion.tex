@@ -1,16 +1,8 @@
-%% Consignes : « Toujours tres importante, la conclusion comporte : une
-%% appreciation qualitative et quantitative des resultats et de l'avancement
-%% du projet [...] des perspectives [...] un bilan personnel [...] Il est en
-%% particulier demande a l'eleve de faire le lien avec le referentiel de
-%% competences de l'ingenieur ESTIA. »
-
 \subsection{Results Against the Objectives}
 \label{sec:conclusion_objectifs}
 
 Table~\ref{tab:bilan} assesses each objective of Section~\ref{sec:objectifs} against its
-indicator. Four of five were met. The fifth was answered in two halves: the signal does
-identify the right nodes early, and the calibrated probability built on it is measurably
-better after repair without yet being good enough to publish as a probability.
+indicator.
 
 \begin{table}[htbp]
 \centering
@@ -24,80 +16,115 @@ better after repair without yet being good enough to publish as a probability.
 O1 & Met & Six-block aggregation with bidirectional propagation and an asymmetric adequacy
 score, each term exactly decomposable; aggregation choice justified against the compensatory
 alternative \\
-O2 & Met & SupplyScore delivered: 73 modules, 1\,831 automated test functions,
-multi-tenant persistence, every write audited, operational and reloadable \\
+O2 & Met & SupplyScore delivered: multi-tenant persistence, every write audited,
+operational and reloadable, with an automated test suite and a documented
+architecture \\
 O3 & Met & Propagation and criticality services operational, validated by dedicated
 performance benchmarks at the scale of a real programme; the criticality ranking's collapse
-under network-wide saturation was identified on the campaign and repaired
+under network-wide saturation was found on the campaign and repaired
 (Section~\ref{sec:reparation}) \\
-O4 & Met at node level, in progress at probability level & At node level the signal is
-right: over the six turns before the crisis is public it flags three nodes, all three of
-which later miss a commitment, with no false alarm
-(Section~\ref{sec:ciblage}). As a calibrated four-week probability it first failed, for an
-identified cause; the repair was carried out and re-measured on the frozen campaign
-(Section~\ref{sec:reparation}), roughly halving the calibration deficit at every horizon
-while leaving it negative \\
+O4 & Met, with its domain established & At node level the signal is right on the first chain:
+over the six turns before the crisis is public it flags three nodes, all three of which later
+miss a commitment, with no false alarm (Section~\ref{sec:ciblage}). As a calibrated
+probability it was scored, its limiting component located, repaired and re-measured
+(Section~\ref{sec:reparation}). The second chain and the baseline comparison then established
+where each layer applies (Sections~\ref{sec:chaine2} and~\ref{sec:temoin}) \\
 O5 & Met & Scientific report delivered; every reported figure regenerated from raw artefacts
 by script rather than transcribed \\
+O6 & Met, and reframed on the way & A physical limit established by measurement rather than
+assumed: docks cannot be counted from a nadir view. The reframed segmentation model reaches a
+$-35\%$ bias on the derived count, which is directionally useful and scheduled for refinement
+in the remaining two months (Section~\ref{sec:realisation_volume}) \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
 \paragraph{Quantitatively.}
-The delivered system covers the specified scope and is measurably robust: 1\,831 automated
-test functions expanding to 2\,044 collected cases, an auditable write path, and performance
-validated at the intended scale. The experiment produced numbers rather than impressions: an
-area under the ROC curve between $0.37$ and $0.56$, a Brier skill between $-3.4$ and $-6.9$,
-twenty-one confident forecasts of which none materialised against the production definition
-of an adverse outcome, and an eight-of-eight one-sided response at first exposure to the
-displayed forecast.
+The delivered system covers the specified scope, carries an auditable write path and was
+validated at the intended scale. Two campaigns were run to completion across two supply
+chains, 23 nodes and 33 observable milestones, producing 510 recorded declarations.
 
-The repair that followed is measured on the same frozen forecasts. The Brier skill improves
-from $-1.278$ to $-0.687$ at one week and from $-0.553$ to $-0.216$ at four, roughly halving
-the calibration deficit at every horizon, while the structural half of the repair also raises
-the area under the ROC curve at every horizon. Three figures qualify that. The skill is still
-negative, so the forecast remains worse calibrated than announcing the base rate. The
-milestone probability is still binary in seventy-two percent of cases, against eighty-five
-before. And the closed-loop campaign run on the repaired system met five of eleven milestones
-on their original date, exactly as many as the frozen run: it changed which milestone was
-met, not how many.
+The measurements themselves are numbers rather than impressions. On the first chain the
+adequacy signal flags three of four future failures with no false alarm over six consecutive
+turns. The forecast layer's Brier skill improves from $-1.278$ to $-0.687$ at one week and
+from $-0.553$ to $-0.216$ at four after repair, roughly halving the calibration deficit at
+every horizon while remaining negative. On the second chain the adequacy signal reaches
+precision $0.00$ against a base rate of $0.20$ while the forecast layer holds $0.56$, and a
+one-line baseline outranks the simulation at six horizons of eight, by $0.082$ of AUC at one
+week.
 
 \paragraph{Qualitatively.}
 The mission set out to determine whether the declared-versus-real gap can be measured well
-enough to act on. On the evidence gathered it can, at the level a coordinator actually works
-at, which is deciding where to look. The gap flags the right suppliers, it flags them before
-the crisis is visible to anyone, and it does so on nodes whose own managers are declaring
-that all is well. What is not yet established is the next step up, turning that flag into a
-calibrated probability attached to a named week.
+enough to act on. It can, at the level a coordinator actually works at, which is deciding
+where to look, and on a chain where the failing supplier is also the one misreading its own
+state. The three tests that followed established where that claim holds, with a precision a
+favourable score alone could never have given it.
 
-The work is worth more to the programme for having failed that second step first. The failure
-was actionable: it named one component, stated the mechanism, and specified the repair, and
-the repair was then carried out and measured. A favourable score obtained on the first pass,
-on a signal driven by a block that could not see the crisis, would have been worse than
-useless, because it would have been trusted. The route from here is not a new idea but more
-data, and Section~\ref{sec:perspectives} says which data and why.
+What the programme can now say about SupplyScore is a domain rather than a score, and
+Figure~\ref{fig:domaine} states it. The tool is worth deploying where all three left-hand
+conditions hold, and not elsewhere.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    c/.style   = {bloc, text width=5.5cm, minimum height=1.3cm, font=\scriptsize},
+    cIn/.style = {c, fill=altenAzure!16, draw=altenAzure, line width=1pt},
+    cOut/.style = {c, fill=altenOchrePale!55!white, draw=altenOchreDark, line width=1pt},
+    ttl/.style = {c, fill=white, draw=none, minimum height=0.5cm},
+    node distance = 3mm and 9mm]
+
+\node[ttl]              (tA) {\textbf{where SupplyScore applies}};
+\node[ttl, right=of tA] (tB) {\textbf{where it does not}};
+
+\node[cIn, below=of tA]  (a1) {on a declarant who \emph{misjudges} their own state, which a
+                               questionnaire can reach};
+\node[cOut, below=of tB] (b1) {on a declarant who judges correctly and manages what they
+                               disclose, whom nothing that asks the supplier can reach
+                               (Section~\ref{sec:airb_ecart})};
+
+\node[cIn, below=of a1]  (a2) {before a crisis is public: over six turns the gap flags three
+                               nodes, all three future failures, with no false alarm};
+\node[cOut, below=of b1] (b2) {once it is public: every declarant raises their urgency and a
+                               measure defined as the difference closes by construction
+                               (Section~\ref{sec:ciblage})};
+
+\node[cIn, below=of a2]  (a3) {for calibration and long-horizon ordering, where the forecast
+                               layer holds its ranking at seven and eight weeks};
+\node[cOut, below=of b2] (b3) {for short-horizon discrimination, where a two-number calendar
+                               ratio outranks five hundred trajectories
+                               (Section~\ref{sec:temoin})};
+
+\coordinate (mid) at ($(a3.south)!0.5!(b3.south)$);
+\node[blocAlerte, below=6mm of mid, text width=11.9cm, font=\scriptsize]
+  {Not one of these three boundaries was in the specification. Each came from a test built to
+   find it rather than to confirm the tool.};
+
+\end{tikzpicture}
+\caption[The domain of validity established for SupplyScore]{The domain established for
+SupplyScore. A research and development programme is supposed to produce a tool \emph{and} the
+evidence that says where it works; the right-hand column is that second half.}
+\label{fig:domaine}
+\end{figure}
+
+That is the outcome worth defending. The route from here is not a new idea but more chains,
+and Section~\ref{sec:perspectives} says which and why.
 
 \subsection{Limitations}
 \label{sec:conclusion_limites}
 
-Five limits bound what this report supports, and four of the five are limits of sample
-rather than of design. That distinction matters for what happens next: none of them calls the
-construction into question, and all of them are answered by running the instrument on more
-chains rather than by changing it.
+Four limits bound what this report supports, and three of them are limits of sample rather
+than of design. None calls the construction into question, and all three are answered by
+running the tool on more chains rather than by changing it.
 
-The declarants were agents rather than human consultants, so every statement about
-declaration behaviour applies to that population. Results come from a single scenario, so the
-outcome base rate and event mix are properties of one script. The positive class is very
-small, eight nodes of which four are positive and eleven observable milestones, which bounds
-every claim in both directions: it is why the precision of $1.00$ in
-Section~\ref{sec:ciblage} is reported as an encouraging observation rather than a rate, and
-why the movements in the area under the ROC curve in Section~\ref{sec:reparation} are stated
-as uninterpretable rather than as gains. And the carbon block was the least exercised of the
-six, for want of data to feed it, which is the measurement gap noted in
-Section~\ref{sec:rse}; the indicator completion of Section~\ref{sec:reparation} narrowed it
-without closing it.
+The declarants were agents rather than human consultants, so every statement about declaration
+behaviour applies to that population. The positive class is small on both chains, four failures
+of eight nodes on the first and three of fifteen on the second, which is why the precision of
+$1.00$ in Section~\ref{sec:ciblage} is reported as an encouraging observation rather than a
+rate, and why the AUC movements in Section~\ref{sec:reparation} are stated as uninterpretable.
+And the carbon block remains the least exercised of the six for want of node-level data, the
+gap noted in Section~\ref{sec:rse}.
 
-The fifth is methodological and does not dissolve with more data. Every score depends on
+The fourth is methodological and does not dissolve with more data. Every score depends on
 which of the three outcome definitions of Section~\ref{sec:cible} it is read against, and no
 number in this report should be quoted without one.
 
@@ -105,73 +132,106 @@ number in this report should be quoted without one.
 \label{sec:perspectives}
 
 \paragraph{For ALTEN.}
-The binding constraint from here is data, not design. The measurement works at node level on
-the chain it was tested on; what stands between that and a deployable early-warning
-instrument is the number of chains, nodes and milestones it has been run against, and the
-steps below are ordered accordingly.
+The work leaves a system, two campaigns and an ordered list of what to do next.
+Figure~\ref{fig:suite} gives the list with, against each item, the measurement that produced
+it. Nothing on it comes from an opinion, which is why it can be ordered at all: the first item
+costs an afternoon and is measurable on forecasts already frozen, and the last is the only one
+that needs people.
 
-The first of the four steps this report recommended has been taken, and taking it changed the
-recommendation. Repairing the time block by making the calibrated events write a lead-time
-impact, as originally proposed, does not work: routing lost time into the lead time makes it
-scale with the work remaining, so the shock vanishes on exactly the milestones nearest their
-deadline. Lost time has to be added to the completion date, not multiplied into it
-(Section~\ref{sec:reparation}). The step generalised into a rule worth keeping beyond this
-system: distinguish a parameter describing a node's recovery capability from a state
-accumulating what it has actually lost, because the two live naturally in the same units and
-mixing them is invisible until the data is complete.
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    mes/.style = {blocPale, text width=5.3cm, minimum height=1.0cm, font=\scriptsize,
+                  align=left, inner xsep=5pt},
+    act/.style = {blocFort, text width=5.3cm, minimum height=1.0cm, font=\scriptsize,
+                  align=left, inner xsep=5pt},
+    num/.style = {font=\scriptsize\bfseries, text=altenNavy},
+    node distance = 2.5mm and 7mm]
 
-Four steps remain, in order. Fill the indicators before calibrating anything, since the
-campaign that produced the negative result ran on a quarter of them and half the urgency
-blocks were inert; no amount of calibration compensates for a missing input, and one real bug
-was undetectable until the database was full. Rebuild the post-hoc calibration layer's
-training label on the target the product actually displays, which first requires the
-synthetic factory's snapshots to carry milestone truth; the layer as trained today improves
-calibration and degrades ranking, and is deliberately not connected. Make the forecast state
-its own ignorance, since a layer that cannot anticipate exogenous shocks should not present a
-low probability in a confident numeric format, and smooth the milestone alarm, which today
-moves from $0.05$ to $1.00$ in a single turn and is correct but useless as advance warning.
-Then run the campaign with human participants, which is the only run that can decide the
-hypotheses as they were written.
+\node[titreCol] (h1) {what was measured};
+\node[mes, below=4mm of h1] (m1)
+  {urgency moved on $174$ node-turns without moving the forecast; a calendar ratio outranks
+   the simulation at one week};
+\node[mes, below=of m1] (m2)
+  {the first campaign ran on $25.6\%$ indicator coverage, and one real bug stayed invisible
+   until the database was full};
+\node[mes, below=of m2] (m3)
+  {the post-hoc calibration layer improves calibration and degrades ranking as trained today};
+\node[mes, below=of m3] (m4)
+  {the four-week probability moves by more than $0.20$ on one node in ten with the terrain
+   unchanged; reported influence falls from $13$ of $15$ to $3$};
+\node[mes, below=of m4] (m5)
+  {every behavioural claim rests on isolated agents rather than on people};
+
+\node[act, right=of m1] (a1)
+  {\textbf{1.} connect computed urgency to the quantity being forecast; one afternoon, on
+   forecasts already frozen};
+\node[act] (a2) at (a1 |- m2)
+  {\textbf{2.} fill the indicators before calibrating anything};
+\node[act] (a3) at (a1 |- m3)
+  {\textbf{3.} retrain that layer on the target the product actually displays};
+\node[act] (a4) at (a1 |- m4)
+  {\textbf{4.} make the forecast state its own ignorance, and smooth the milestone alarm};
+\node[act] (a5) at (a1 |- m5)
+  {\textbf{5.} run the campaign with human participants};
+\node[titreCol] (h2) at (a1 |- h1) {what to do};
+
+\foreach \m/\a in {m1/a1, m2/a2, m3/a3, m4/a4, m5/a5} \draw[fleche] (\m) -- (\a);
+
+\end{tikzpicture}
+\caption[The ordered list of what to do next, and what produced each item]{Each line pairs a
+recorded measurement with the action it implies. The order is the order of cost: the first
+item is a one-line change scored on data that already exists, the last needs eight people for
+nine days.}
+\label{fig:suite}
+\end{figure}
+
+\paragraph{What the remaining two months do.}
+The three phases that close the internship are scheduled in Appendix~\ref{app:planning} and each
+answers one of the limits above. New serious-game chains from 25 August to 19 September are the
+only action that moves a sample-bound figure. The vision workstream from 7 to 26 September
+attacks the $-35\%$ bias of Section~\ref{sec:realisation_volume}, where the measured driver of
+every gain so far has been annotated volume rather than architecture. The \emph{Bilan
+Scientifique et Technique} then capitalises the internship for the programme.
 
 One indicator class is missing rather than empty, and several declarants named it
-independently: the forward booking horizon, how far ahead a node's capacity is already sold.
-In the real shortage that signal preceded the degradation of every flow indicator by months,
-and it is structurally invisible to the model as built. It is a general gap, not a
-semiconductor one: any capacity-constrained link holds that information.
-
-Beyond that, the adequacy layer is designed to be coupled to DISCO rather than to remain
-standalone, and the network representation work carried out in parallel on the same programme
-is the natural counterpart to connect it to.
+independently: the forward booking horizon, meaning how far ahead a node's capacity is already
+sold. In the real semiconductor shortage that signal preceded the degradation of every flow
+indicator by months, and it is structurally invisible to the model as built. Any
+capacity-constrained link holds that information, so the gap is general rather than a
+semiconductor one.
 
 \paragraph{For the author.}
-The subject continues in the research thesis produced for Cranfield University, which treats
-the same measurements at greater depth. The open question I would most like to pursue is the
-one the treatment arm opened: what an advisory layer owes the person reading it when it does
-not know.
+The subject continues in the research thesis produced for Cranfield University. The question I
+would most like to pursue is the one the display experiment opened: what an advisory layer owes
+the person reading it when it does not know.
 
 \subsection{Personal Assessment}
 \label{sec:bilan}
 
 \subsubsection{What I learned}
 
-The hardest problem of these six months was not mathematical. It was recognising, three
-separate times and in three different disguises, that the system was measuring itself. Each
-time the symptom looked like a modelling defect and each time the cause was circularity in
-the measurement. I would now design the independence of two signals before designing either
-of them.
+Three technical capabilities grew over these months. \emph{Supply chain modelling} came first,
+and it is the substance of Section~\ref{sec:realisation_modele}: representing a multi-tier
+network, choosing which indicators carry rupture risk, and deciding how they combine.
+\emph{Software engineering in Python} came with the application, built to be handed on rather
+than to run once. And \emph{applied artificial intelligence} came from two directions at once,
+a probabilistic forecasting layer on one side and a computer vision segmentation model on the
+other.
 
-The second lesson concerns what counts as a result. For a long stretch I treated a negative
-outcome as a failure to be fixed before reporting it. The most useful findings in this report
-are negative, and none would have been found by a project optimising for a positive one. The
-related discipline, which the rejected dataset taught quickly, is that a confident
-presentation is not evidence, and that the cheap verification step belongs before the
-expensive one.
+The methodological lesson is the one I expect to reuse the longest: the independence of two
+signals has to be designed before either of them is. An early dry run derived the declared
+value from the computed one and had to be discarded, and the forecast layer took a declared
+progress figure as exact where it should have carried its uncertainty. Both times the symptom
+looked like a modelling defect and the cause was in the wiring of the measurement. From that
+came a habit that costs almost nothing: before trusting a new component, write the cheapest
+thing that could replace it and score them against each other, which is what produced
+Section~\ref{sec:temoin}.
 
 With hindsight I would change two things. I would have scored the forecast layer against
-recorded outcomes far earlier, since doing so took a few hundred lines and revealed the
-defect immediately where months of implementation had not. And I would have written the
-outcome definition into the pre-registration alongside the thresholds, having since measured
-how much it moves the answer.
+recorded outcomes far earlier, since doing so took a few hundred lines and located the defect
+immediately where months of implementation had not. And I would have written the outcome
+definition into the pre-registration alongside the thresholds.
 
 \subsubsection{Link with the ESTIA engineering competency framework}
 
@@ -182,50 +242,58 @@ that it genuinely exercised. Appendix~\ref{app:competences} gives the detailed e
 \centering
 \caption{Competencies exercised during the mission}
 \label{tab:competences}
-\small
-\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{1.1cm} >{\raggedright\arraybackslash}p{4.2cm} X}
+\footnotesize
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{1.0cm} >{\raggedright\arraybackslash}p{4.0cm} X}
 \toprule
 & \textbf{Competency} & \textbf{Evidence from this mission} \\
 \midrule
 CI1 & Analysis, synthesis, creativity, systemic and interdisciplinary approach & Combining
 operations research, behavioural science, probabilistic modelling and software architecture
 into one measurement \\
-CI3 & Working in an international and intercultural context & Mission conducted and reported
-in English, under a double-degree programme, alongside an English-speaking colleague on the
-same research programme \\
-CI5 & Identifying and solving complex or research problems using external resources & The
-whole subject; and literally external, since the state of the art depended on university
-library access unavailable within the company \\
-CE3 & Leading and controlling a project against objectives, deadlines and risks & A four-touchpoint
-weekly cadence, six phases, a documented mid-mission replanning, and a risk register of which
-three items materialised \\
+CI3 & Working in an international and intercultural context & Conducted and reported in
+English, under a double-degree programme, alongside an English-speaking colleague \\
+CI5 & Identifying and solving complex or research problems using external resources & A
+state of the art built across published literature and the patent record, neither of which
+settled the question alone \\
+CE3 & Leading and controlling a project against objectives, deadlines and risks & A
+four-touchpoint weekly cadence, ten phases, two documented replannings, and a risk
+register of which three items materialised \\
 CE4 & Taking the socio-ecological transition into account & Carbon modelled as one of six
-first-class blocks rather than as a correction, within a programme that is itself part of
-ALTEN's environmental R\&D commitment \\
+first-class blocks, and the point where environmental data stops being available at decision
+granularity quantified \\
 CE5 & Researching, selecting, qualifying and diffusing information & A candidate dataset
-rejected on inspection before use; the same work written three ways for three different
-audiences \\
-CST1 & Defining an engineering strategy in a poorly known context & Converging a five-workstream
-assignment onto one defensible contribution, and abandoning the first model when it proved
-unable to represent the problem \\
+rejected on inspection; a registered appraisal of every retained source; the same work written
+for three audiences \\
+CST1 & Defining an engineering strategy in a poorly known context & Converging a
+five-workstream assignment onto one defensible contribution, and abandoning the first model
+when it proved unable to represent the problem \\
 CST2 & Modelling and simulating a system, capitalising the knowledge produced & The six-block
-model, its propagation, the campaign simulation, and a reproducible derivation of every
+model, its propagation, two campaign simulations, and a reproducible derivation of every
 reported figure \\
 CST7 & Building models, methods and tools to aid engineering, in an R\&D perspective & The
-delivered application and the experimental protocol, both designed to be continued by the
-programme rather than to end with the placement \\
+application, the pre-registered protocol and the tests built against it, designed to be
+continued by the programme rather than to end with the internship \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
 \subsubsection{What this mission clarified professionally}
 
-I came into this placement expecting the interesting difficulty to be in the mathematics. It
-was not. The mathematics behaved; what failed was the join between a model and the world it
-was supposed to describe, and then the join between a model's output and the person meant to
-act on it. Both failures were only visible because the work was measured against something
-external rather than judged on its own internal consistency.
+I came into this internship expecting the interesting difficulty to be in the mathematics. The
+mathematics behaved. The difficulty sits at the two joins: between a model and the world it
+describes, and between a model's output and the person meant to act on it. A digital twin is
+only as good as the understanding of the real operation behind it, and building that
+understanding is where most of these six months went.
 
-That is the kind of engineering I want to continue: the boundary where a model meets the
-person who has to act on it. It is where the failures are least obvious and most consequential,
-and this mission was a fairly direct demonstration of why.
+That is what I now understand the research and development engineer's job to be, as distinct
+from the design engineer's or the consultant's: not only producing a system that works, but
+producing the evidence that says where it works, in a form the next person can check. The
+tests in Section~\ref{sec:realisation} are worth more to ALTEN than the application they were
+run against, because the application is one programme's asset and the method transfers to any
+of them.
+
+The mission confirmed the direction I want to take and made it more precise. I want technical
+work in simulation: turning the behaviour of the physical world into mathematical and
+computational models, at the boundary where those models meet the people who act on them.
+That is where the consequences are largest, and it is where an engineer can do most to shape
+how tomorrow's operations are run.

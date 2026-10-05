@@ -1,0 +1,50 @@
+/* ALTEN — spacing & layout. Derived from the shape offsets in the 2025 /
+   2026 masters. The 16:9 slide is 720 × 405 pt = 960 × 540 px. */
+:root{
+  /* ── Slide canvas ───────────────────────────────────────────── */
+  --slide-w:960px;
+  --slide-h:540px;
+  --slide-w-hd:1280px;
+  --slide-h-hd:720px;
+
+  /* ── Slide margins (measured from the masters) ───────────────── */
+  --slide-pad-x:28px;      /* title placeholder x = 21 pt */
+  --slide-pad-y:13px;      /* title placeholder y = 10 pt */
+  --slide-gutter:24px;     /* 18 pt — content left margin */
+  --slide-content-top:115px;/* 86 pt — first content row under the title */
+  --slide-col-gap:16px;    /* 12 pt between the 3/4/7-column tracks */
+  --slide-footer-y:508px;  /* 381 pt — page-number baseline row */
+
+  /* ── The left accent rule that appears on every content slide ─ */
+  --accent-bar-w:8px;      /* 6 pt */
+
+  /* ── Generic scale (4 px base) ───────────────────────────────── */
+  --space-0:0;
+  --space-1:4px;
+  --space-2:8px;
+  --space-3:12px;
+  --space-4:16px;
+  --space-5:20px;
+  --space-6:24px;
+  --space-8:32px;
+  --space-10:40px;
+  --space-12:48px;
+  --space-16:64px;
+  --space-20:80px;
+  --space-24:96px;
+
+  /* ── Radii. ALTEN is a square-cornered system: every rectangle in
+        every master is prst="rect". Keep 0 unless a source shows
+        otherwise. --radius-pill exists only for the sticker shapes. ── */
+  --radius-none:0;
+  --radius-sm:0;
+  --radius-md:0;
+  --radius-pill:999px;
+
+  /* ── Rules & strokes (EMU → px) ──────────────────────────────── */
+  --border-hairline-w:1px;   /* 9525 EMU = 0.75 pt */
+  --border-w:1.33px;         /* 12700 EMU = 1 pt */
+  --border-thick-w:2px;      /* 19050 EMU = 1.5 pt */
+  --border-heavy-w:2.67px;   /* 25400 EMU = 2 pt */
+  --rule-divider-w:4px;      /* 38100 EMU = 3 pt — the white footer rule */
+}

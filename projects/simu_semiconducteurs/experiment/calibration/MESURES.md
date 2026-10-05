@@ -1392,3 +1392,313 @@ La couche de prévision, elle, tient dans les deux cas (0,53 et 0,56).
 - Aucun choc exogène : le panneau C de la figure est dégénéré pour AIRB (la
   courbe « événement » est vide, « jalon » et « mixte » se superposent). C'est
   le scénario, pas un défaut de mesure.
+
+---
+
+## 17. AIRB, bras `predict` : ce que change le fait de MONTRER la prévision
+
+> Outils : `tour_airb.py` (`SUPPLYSCORE_BRAS`), `build_pack.py`, `_common.py`
+> (`SUPPLYSCORE_PACK_DIR`), `banc.py --pack`, `classement_noeuds.py --journal`,
+> `graphe_bras_predict.py`.
+> Figure : `docs/Thesis_Cranfield_JH_2026/Images/benchmark_predict.png`.
+
+Deuxième campagne AIRB complète — **19 tours, 15 déclarants, 285 déclarations,
+225 prévisions** — identique à celle du §16 sur un point près : la prévision est
+**affichée** au déclarant dès qu'elle existe (tour 4), et chaque déclaration
+porte en plus `influence_prediction`.
+
+Les deux bras tournent sur le **même pack** et la même vérité dérivée. Le bras
+témoin a été rejoué sur ce pack à partir de ses 285 déclarations déjà
+collectées — aucun appel LLM, donc aucune dérive de personas entre les deux
+mesures. **Ce qui diffère entre les deux bras est l'affichage, et rien d'autre.**
+
+### 17.1 Trois défauts corrigés pour que le bras soit jouable
+
+Chacun aurait rendu la campagne impossible, et aucun n'était visible en lisant
+le code :
+
+1. **La fiche ne demandait `influence_prediction` qu'à partir du tour 4**, alors
+   que `collect-tour` l'exige dès le tour 0 en bras `predict`. Les quatre
+   premiers tours étaient refusés pour un champ que la fiche n'avait jamais
+   réclamé. La section prédictive sait déjà dire « pas assez d'historique » :
+   il suffisait de ne plus la conditionner au numéro de tour.
+2. **`collecte_personas.py` supprimait le champ** en transmettant la déclaration
+   au harnais : le déclarant le remplissait, le pont ne recopiait que
+   `bipolar`/`scores_ui`/`note`. Un tour entier refusé pour une valeur pourtant
+   présente sur le disque.
+3. **`PREPARED` était codé en dur** sur `data/prepared`. Enrichir les KPI
+   imposait d'écraser le pack qui avait produit toutes les mesures antérieures.
+   `SUPPLYSCORE_PACK_DIR` permet désormais à un projet de porter plusieurs packs
+   — l'ancien gelé et rejouable, le nouveau à côté.
+
+### 17.2 Les KPI : deux blocs étaient morts, et les réparer ne change rien
+
+Mesuré sur la campagne du §16 : `u_cost` valait **0,004 sur les quinze nœuds, à
+tous les tours**, y compris ceux dont la volatilité de coût atteignait 0,31. La
+cause : le pack n'écrivait que `risk.cost_volatility`, qu'aucun bloc ne
+consomme — `u_cost` lit `cost.op_cost` contre `cost.nominal_op_cost`. Et les
+douze nœuds sains n'étaient jamais rafraîchis, donc leur coût opérationnel
+valait exactement le nominal du début à la fin : douze séries plates sur quinze.
+
+Corrigé dans `build_pack.py` : dérive de coût et de probabilité de défaillance
+sur les nœuds qui s'enlisent, bruit borné sur le coût des nœuds sains. Le
+correctif n'écrit **que** dans les blocs coût et risque — ni le lead time ni
+l'OEE, seules grandeurs qui entrent dans la santé de `verite_derivee.py`. La
+vérité jalon est donc **identique au bit près** : mêmes 5 ratés, mêmes 3 nœuds,
+aucun sort modifié. Vérifié par diff.
+
+Les blocs répondent maintenant nettement :
+
+| | compolam | titanor | harnetec | nœuds sains |
+|---|---|---|---|---|
+| `u_cost` avant | 0,004 | 0,004 | 0,004 | 0,004 |
+| `u_cost` après | **0,140** | **0,150** | **0,121** | 0,000–0,017 |
+| `u_risk` après | **0,396** | **0,635** | 0,234 | 0,110–0,142 |
+
+**Et rien ne bouge.** Score de prévision inchangé à la troisième décimale,
+classement des nœuds inchangé (0,00 / 0,00 / 0,56).
+
+> **Explication écrite ici le 20/08, et FAUSSE — conservée telle quelle.**
+> « Le noyau agrège en noisy-OR : `u_time` sature déjà à 1,000 sur les nœuds
+> qui dérivent, et ajouter de l'évidence à un nœud déjà saturé ne déplace pas
+> l'agrégat. »
+>
+> Je l'ai écrite sans la mesurer. John a objecté — « si les scores ne bougent
+> pas c'est que la prédiction ne fonctionne pas » — et il avait raison. La
+> mesure la réfute sur ses deux termes : `ur_local` **change** sur 174 des 285
+> couples (tour, nœud) entre les deux packs, et il ne sature à 1,000 que sur
+> 40 d'entre eux. L'urgence bouge ; c'est `p_issue` qui ne bouge pas —
+> identique à 1e-9 sur **151 des 154** couples comparables à h4, écart médian
+> 0,0000, écart maximal 0,0020, aucun au-delà de 0,05.
+>
+> La vraie cause est structurelle et se lit dans `supplyscore/services/forecast.py`.
+> L'AR(1) ajusté sur `ur_local` alimente `etat.x_ar`, qui n'entre que dans
+> `x_evt`, donc uniquement dans `p_impact_client`. La cible, elle, vaut
+> `issue = jalon_cum | evenement_cum`, où `jalon_cum` ne dépend que de
+> `completion` — un tirage de lead time sur la part restante du jalon — et où
+> `evenement_cum` est vide sur une chaîne sans choc exogène. **`ur_local`
+> n'atteint jamais `issue`.** Sur AIRB, `p_issue` est un modèle de délai, et
+> cinq des six blocs d'urgence lui sont décoratifs. Mesuré au §18.
+
+**Ce résultat ferme quand même l'objection du §16**, mais pour une autre raison
+que celle écrite d'abord. On pouvait croire que `hidden_risk` échouait sur AIRB
+faute de données. Non : on a rendu deux blocs fortement discriminants —
+`u_risk` passe de 0,14 à 0,64 sur titanor — et la précision au rang 3 reste
+**0,00**. Or `hidden_risk = [Ur − Ud]⁺` se calcule bien à partir de `Ur`, qui a
+bougé. C'est donc bien Ud qui sature, pas l'entrée qui manque. L'immobilité de
+`p_issue`, elle, ne dit rien de `hidden_risk` : ce sont deux chaînes de calcul
+disjointes, et les confondre était l'erreur.
+
+### 17.3 Montrer la prévision ne change pas la prévision
+
+Cible jalon, même pack, 225 prévisions par bras :
+
+| h | skill témoin | skill predict | AUC témoin | AUC predict |
+|---|---|---|---|---|
+| 1 | −1,601 | −1,592 | 0,826 | 0,826 |
+| 4 | −0,295 | −0,292 | 0,697 | 0,698 |
+| 7 | +0,044 | +0,044 | 0,667 | 0,668 |
+| 8 | +0,068 | +0,068 | 0,633 | 0,633 |
+
+Les deux courbes se superposent (panneau B). Classement des nœuds identique :
+`p_issue` 0,56, `adequation` 0,02 contre 0,00, `hidden_risk` 0,00 dans les deux.
+
+**Cela réfute une réserve que j'avais écrite moi-même** dans `tour_airb.py` :
+« montrer la prévision au déclarant ferme la boucle, et la référence est
+détruite ». Elle ne l'est pas. La prévision se calcule sur des KPI que la
+déclaration n'atteint pas ; la boucle est trop faible pour se refermer. Un bras
+`predict` est donc **scorable comme un bras témoin**, ce qui simplifie tout
+protocole futur.
+
+### 17.4 Ce qui change est ailleurs : la vigilance
+
+`influence_prediction`, 225 déclarations sur les 15 tours où la prévision est
+visible :
+
+| réponse | n | part |
+|---|---|---|
+| `confirme` | 105 | 46,7 % |
+| `aucune` | 85 | 37,8 % |
+| **`revise_a_la_hausse`** | **26** | **11,6 %** |
+| `revise_a_la_baisse` | 9 | 4,0 % |
+
+Trois motifs, tous trois visibles au panneau A :
+
+**a) Le premier contact désarme.** Au tour 4 — première fois que la prévision
+apparaît — 11 `confirme`, 2 `revise_a_la_baisse`, et **zéro hausse**. C'est le
+seul tour de la campagne sans aucune révision vers le haut. AeroStruct l'écrit :
+son lot 2 est bloqué à 0 % depuis quatre tours, ce qui *« aurait dû faire monter
+mon urgence sur la fenêtre temporelle davantage »*, mais l'analyse à 11 % *« a
+tempéré cette montée d'inquiétude »*. La prévision a **supprimé une escalade que
+le terrain justifiait**.
+
+C'est le même sens que le tour de bascule d'HÉLIOS (8 déclarants sur 8 revoient
+à la baisse ou maintiennent), obtenu ici sur une chaîne de 15 nœuds.
+
+**b) Ensuite, l'asymétrie s'inverse.** Sur l'ensemble des 15 tours visibles, les
+révisions à la hausse dépassent les baisses de **26 contre 9**, soit ×2,9. La
+raison est lisible : la prévision est mal calibrée vers le bas au début (skill
+−1,59 à h1), puis explose quand la dérive devient indéniable. Un déclarant suit
+le chiffre dans les deux sens — UsiForge au tour 12 : ses propres indicateurs
+l'invitaient à relâcher, l'outil est monté, il est monté avec lui.
+
+**L'effet mesuré n'est donc pas « la prévision endort ». C'est : la prévision
+transfère l'autorité du terrain vers le modèle.** Quand le modèle est bas et le
+terrain mauvais, elle endort ; quand le modèle est haut et le terrain bon, elle
+alarme. Le déclarant suit le nombre.
+
+**c) Puis le désengagement.** `aucune` passe de 2 au tour 4 à **12 au tour 18**,
+pendant que `confirme` tombe de 11 à 2. Aux quatre derniers tours, **73 % des
+déclarants disent que la prévision n'a rien changé**. Ils s'en expliquent, et
+c'est mesurable :
+
+| | valeur |
+|---|---|
+| |Δp| médian d'un tour à l'autre, même nœud | 0,024 |
+| |Δp| moyen | 0,088 |
+| sauts > 0,20 | **14 sur 139 (10 %)** |
+| sauts > 0,50 | 8 |
+| saut maximal | **0,93** |
+
+Une prévision qui passe de 30,4 % à 7,6 % en un tour à terrain inchangé
+(aerostruct, T7→T8), ou de 100 % à 7,4 % (harnetec, T5→T6), enseigne au
+déclarant à ne plus la regarder. HarneTec le dit au tour 6 : *« l'écart entre
+l'alerte à 100 % du mois dernier et les 7,4 % de ce tour ne m'inspire pas
+confiance »*. Voilure la rejette dès le tour 4 et six tours d'affilée.
+
+**Le désengagement est une réponse rationnelle à l'instabilité, pas de la
+négligence.** Et il est plus coûteux que le désarmement du tour 4 : au tour 18,
+quand la prévision de compolam est enfin juste et plafonne à 100 %, plus
+personne ne la lit.
+
+### 17.5 Un défaut d'affichage, trouvé par un déclarant
+
+AIRB FAL au tour 16 : le risque sur son propre jalon monte de 7,2 % à 19,6 %,
+mais l'en-tête agrégé reste étiqueté « Info », sous les seuils. Il déclare
+`confirme` — *« tant que la lecture globale de l'outil reste en zone Info […]
+je n'ai pas de raison de m'alarmer »*. **Le chiffre agrégé et son étiquette
+écrasent le chiffre spécifique**, qui avait pourtant triplé. Titanor fait
+l'inverse au tour 15 et le dit : l'outil affiche 5,8 % « Info » à 4 semaines
+alors que le mur est à 73,8 % dès la 5ᵉ. Deux déclarants sur quinze lisent sous
+l'étiquette ; les autres s'arrêtent à elle.
+
+C'est une correction d'interface, pas de modèle, et elle ne coûte rien : afficher
+le maximum sur l'horizon, pas la valeur à 4 semaines.
+
+### 17.6 Réserves
+
+- **L'effet d'affichage est mesuré sur ce que les déclarants DISENT en avoir
+  fait**, pas sur un écart de Ud entre deux bras jouant le même tour. Les deux
+  bras partagent le terrain mais pas les déclarations : leurs Ud ne sont pas
+  appariés tour à tour. Un appariement strict demanderait de faire jouer chaque
+  persona deux fois le même tour, une fois avec et une fois sans la prévision.
+- **Sept déclarants du tour 0 ont été relancés** après une coupure de session ;
+  trois l'ont été avec un message signalant que leur ligne était incomplète.
+  C'est un retour de forme (un champ manquant), pas de fond, mais il est déclaré.
+- Même réserve qu'au §16 : quinze cartes de rôle écrites par le même auteur.
+- Les tours 0 à 3 n'ont pas de prévision. `aucune` y est la réponse juste, pas
+  un pis-aller — mais ils ne comptent pas dans les 225 déclarations exposées.
+
+---
+
+## 18. Ce que la couche Monte-Carlo apporte, mesuré contre un témoin d'une ligne
+
+Le §17.2 laisse une affirmation structurelle : sur AIRB, `p_issue` ne consomme
+pas l'urgence et se réduit à un modèle de délai. Une lecture de code n'est pas
+une mesure. Ce paragraphe la teste.
+
+### 18.1 Le témoin
+
+`temoin_trivial.py`. Pour un nœud dont le prochain jalon non achevé a
+l'échéance `D` (en tours) et dont il reste la fraction `r` à produire, avec un
+lead time nominal `L` converti en tours :
+
+```
+marge(k) = (D - (t + k)) / max(r * L, eps)
+p(k)     = clip(1 - marge, 0, 1)
+```
+
+Aucun tirage, aucun paramètre ajusté, aucune calibration, aucun KPI d'urgence.
+Si la lecture du §17.2 est juste, ce prédicteur doit égaler les 500
+trajectoires Monte-Carlo.
+
+**Alignement de l'échantillon.** Le service se tait — `p_issue` à `null` —
+quand le nœud n'a plus de jalon en cours : 71 couples sur 225. Le témoin se
+tait aux mêmes. Après avoir levé deux écarts (les jalons non observables, que
+le service prévoit aussi ; le retour `0,0` au lieu de `null`), **les deux
+journaux sont d'accord sur 225/225 sur qui parle et qui se tait**, et le banc
+score exactement le même `n` et le même nombre de positifs à chaque horizon.
+Sans cet alignement le témoin marquait 210 points contre 151 à h1, et la
+comparaison n'aurait rien voulu dire.
+
+### 18.2 Le résultat
+
+Cible `jalon`, pack `prepared_v2`, vérité dérivée (5 ratés sur 22 observables).
+
+| h | n | pos | AUC Monte-Carlo | **AUC témoin** | PR-AUC MC | PR-AUC témoin | skill MC | skill témoin |
+|---|---|---|---|---|---|---|---|---|
+| 1 | 151 | 5 | 0,826 | **0,908** | 0,153 | **0,396** | −1,601 | −4,851 |
+| 2 | 147 | 9 | 0,781 | **0,848** | 0,212 | **0,261** | −0,639 | −4,289 |
+| 3 | 142 | 13 | 0,757 | **0,791** | 0,252 | **0,258** | −0,345 | −3,949 |
+| 4 | 137 | 16 | 0,697 | **0,731** | **0,257** | 0,223 | −0,295 | −3,990 |
+| 5 | 130 | 19 | 0,651 | **0,676** | **0,275** | 0,221 | −0,211 | −3,798 |
+| 6 | 123 | 22 | 0,616 | **0,624** | **0,301** | 0,237 | −0,147 | −3,486 |
+| 7 | 114 | 24 | **0,667** | 0,583 | **0,438** | 0,239 | +0,044 | −3,180 |
+| 8 | 105 | 25 | **0,633** | 0,544 | **0,460** | 0,228 | +0,068 | −2,961 |
+
+**Le témoin classe mieux que le Monte-Carlo à six horizons sur huit**, et de
+0,082 d'AUC à une semaine — l'horizon où une alerte vaut le plus. Il triple la
+PR-AUC à h1 (0,396 contre 0,153).
+
+### 18.3 L'objection de fuite, et sa levée
+
+Le témoin lit la part restante dans `trajectoire`, c'est-à-dire la variable
+d'état dont la vérité est elle-même dérivée. Elle ne regarde aucun tour futur,
+mais c'est la grandeur que le service, lui, doit estimer. L'avantage
+pourrait donc être d'information et non de modèle.
+
+Seconde variante, `--mode calendrier` : la part restante y vaut
+`1 - (t - début) / (échéance - début)`, l'avancement d'un jalon parfaitement
+sain. **Aucun KPI, aucune trajectoire, rien que le calendrier et le lead time
+nominal.** Résultat, aux mêmes 225 couples :
+
+| h | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
+|---|---|---|---|---|---|---|---|---|
+| AUC calendrier | 0,908 | 0,848 | 0,791 | 0,731 | 0,676 | 0,624 | 0,583 | 0,544 |
+| PR-AUC calendrier | 0,396 | 0,261 | 0,258 | 0,223 | 0,221 | 0,237 | 0,239 | 0,228 |
+
+**Identiques à la variante santé, à trois décimales, à tous les horizons.** La
+trajectoire n'apporte rien au classement : il vient entièrement du rapport
+« semaines qui restent / semaines qu'il faut ». L'objection tombe.
+
+### 18.4 Ce que la couche apporte donc, et ce qu'elle n'apporte pas
+
+Elle n'apporte **pas** la discrimination à court terme : un rapport de deux
+nombres la bat de h1 à h6. Elle apporte deux choses, mesurées :
+
+1. **La calibration.** Skill de Brier −1,601 contre −4,851 à h1. Le témoin est
+   grossièrement sur-confiant — il n'a aucune raison de ne pas l'être, il ne
+   sait pas produire une probabilité, seulement un ordre. C'est le travail que
+   les 500 trajectoires font réellement : transformer un ordre en une échelle.
+2. **Le classement à long horizon.** PR-AUC 0,438 et 0,460 à h7 et h8 contre
+   0,239 et 0,228 — presque le double, là où le rapport calendaire s'effondre
+   sous 0,60 d'AUC.
+
+Ce que la mesure établit, c'est la portée exacte de l'échec : **sur cette cible
+et cette chaîne, les six blocs d'urgence n'entrent pas dans `p_issue`, et la
+valeur ajoutée de la couche est une valeur de calibration, pas de détection.**
+
+### 18.5 Réserves
+
+- **Une chaîne, une cible.** Sur HÉLIOS, où des événements exogènes existent,
+  `evenement_cum` n'est pas vide et le raisonnement ne se transpose pas tel
+  quel. Ce résultat vaut pour AIRB, dont c'était le but : une chaîne sans choc.
+- **Cinq positifs à h1** sur 151 points. Un écart d'AUC de 0,082 sur cinq
+  positifs n'est pas un écart robuste ; c'est un ordre de grandeur.
+- **Le témoin n'est pas une proposition.** Il ne produit pas de probabilité
+  utilisable, seulement un ordre. Le remplacer par lui serait perdre la seule
+  chose que la couche fait bien.
+- **Le défaut est réparable et nommé** : faire entrer `x_ar` dans `jalon_cum`,
+  par exemple en modulant `completion` par l'urgence courante, est un correctif
+  d'une ligne dont l'effet se mesurerait sur ces mêmes prévisions gelées. Il
+  n'a pas été fait ici.

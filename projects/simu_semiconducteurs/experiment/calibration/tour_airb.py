@@ -42,22 +42,25 @@ NODES = ("airb_fal", "aerostruct", "voilure", "sysintegra", "propulsia", "avioni
          "atterral", "cabinova", "compolam", "usiforge", "harnetec", "hydralec",
          "titanor", "fibrelia", "translog")
 
-#: La campagne AIRB se joue ENTIEREMENT en bras temoin.
+#: Bras de la campagne, fixe pour toute sa duree : le harnais refuse de melanger
+#: deux bras sur une meme base (« un db-dir par bras »), garde-fou correct qu'il
+#: n'y a aucune raison de contourner. UN BRAS, UNE BASE, UN DOSSIER DE TRAVAIL.
 #:
-#: Deux raisons, l'une pratique et l'autre de fond. Pratique : le harnais
-#: refuse de melanger deux bras sur une meme base (« un db-dir par bras »),
-#: garde-fou correct qu'il n'y a aucune raison de contourner. De fond : montrer
-#: la prevision au declarant FERME LA BOUCLE — sa declaration cesse d'etre
-#: independante de ce qu'on cherche a scorer, et la verite de reference est
-#: detruite, exactement comme un bras C ne peut pas etre juge a la precision de
-#: ses previsions. En bras temoin les previsions sont calculees et journalisees
-#: a chaque tour, simplement jamais affichees : c'est la condition pour qu'elles
-#: restent scorables.
+#: ``control``  la prevision est calculee et journalisee a chaque tour, jamais
+#:              affichee. La declaration est donc independante de ce qu'on
+#:              score.
+#: ``predict``  la prevision est MONTREE au declarant des qu'elle existe (tour 4
+#:              ici), et chaque declaration porte en plus ``influence_prediction``.
 #:
-#: Mesurer l'effet d'AFFICHER la prevision demande une seconde campagne, sur sa
-#: propre base, avec les memes declarations rejouees — ce que fait
-#: ``rejeu_bras.py`` pour HELIOS.
-BRAS_CAMPAGNE = "control"
+#: Le second bras ne detruit pas la reference : sur AIRB le terrain KPI est pose
+#: par le scenario et ne repond ni aux declarations ni aux actions, donc la
+#: verite jalon derivee est LA MEME dans les deux bras. Ce qui change est la
+#: declaration — et c'est precisement l'effet qu'on veut mesurer.
+#:
+#: Aux tours 0 a 3 aucune prevision n'existe encore. La fiche le dit au
+#: declarant (« rien a en tirer ce tour-ci ») tout en lui demandant le champ :
+#: « aucune » est alors la reponse juste, pas un pis-aller.
+BRAS_CAMPAGNE = os.environ.get("SUPPLYSCORE_BRAS", "control")
 
 #: Corps du retour de l'application quand la coherence echoue. Ecrit tel quel
 #: dans le dossier du declarant : c'est l'outil qui parle, pas le coordinateur.
@@ -78,7 +81,12 @@ d'autant plus, pas moins.
 
 
 def env() -> dict[str, str]:
-    """Environnement du harnais : projet AIRB, horizon 8 semaines."""
+    """Environnement du harnais : projet AIRB, horizon 8 semaines.
+
+    ``SUPPLYSCORE_PACK_DIR`` est transmis tel quel s'il est pose : les deux bras
+    d'une comparaison DOIVENT tourner sur le meme pack, faute de quoi l'ecart
+    mesure melange l'effet du bras et celui du terrain.
+    """
     variables = dict(os.environ)
     variables["SUPPLYSCORE_PROJET_DIR"] = "projects/airb"
     variables["SUPPLYSCORE_HORIZON_PREVISION"] = "8"
@@ -178,8 +186,9 @@ def cloturer(travail: Path, tour: int) -> None:
     """Assemble les declarations, collecte et clot le tour."""
     arm = bras(tour)
     answers = travail / f"answers_{tour:02d}.jsonl"
+    exige = ["--exige", "influence_prediction"] if arm in ("predict", "act") else []
     print(run(travail, str(COLLECTE), str(travail / "reponses"), str(tour), str(answers),
-              "--noeuds", ",".join(NODES)).rstrip())
+              "--noeuds", ",".join(NODES), *exige).rstrip())
     collecte = run(travail, str(CLI), "collect-tour", "--arm", arm,
                    "--db-dir", str(travail / "db"), "--tour", str(tour),
                    "--answers", str(answers), "--out", str(travail / "out"))

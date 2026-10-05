@@ -1,18 +1,18 @@
 [0] Config.pm:328> INFO - This is Biber 2.21
 [0] Config.pm:331> INFO - Logfile is 'main.blg'
-[169] biber-MSWIN64:342> INFO - === 
-[246] Biber.pm:421> INFO - Reading 'main.bcf'
-[466] Biber.pm:1002> INFO - Found 115 citekeys in bib section 0
-[489] Biber.pm:4487> INFO - Processing section 0
-[502] Biber.pm:4678> INFO - Looking for bibtex file '../BST_DISCO_JH_2026/Utilities/Bibliography.bib' for section 0
-[582] bibtex.pm:1713> INFO - LaTeX decoding ...
-[912] bibtex.pm:1519> INFO - Found BibTeX data source '../BST_DISCO_JH_2026/Utilities/Bibliography.bib'
-[1768] Biber.pm:4678> INFO - Looking for bibtex file 'Utilities/Bibliography_thesis.bib' for section 0
-[1856] bibtex.pm:1713> INFO - LaTeX decoding ...
-[1892] bibtex.pm:1519> INFO - Found BibTeX data source 'Utilities/Bibliography_thesis.bib'
-[2514] UCollate.pm:68> INFO - Overriding locale 'en-US' defaults 'normalization = NFD' with 'normalization = prenormalized'
-[2514] UCollate.pm:68> INFO - Overriding locale 'en-US' defaults 'variable = shifted' with 'variable = non-ignorable'
-[2514] Biber.pm:4307> INFO - Sorting list 'nyt/global//global/global/global' of type 'entry' with template 'nyt' and locale 'en-US'
-[2515] Biber.pm:4313> INFO - No sort tailoring available for locale 'en-US'
-[2829] bbl.pm:676> INFO - Writing 'main.bbl' with encoding 'UTF-8'
-[2992] bbl.pm:779> INFO - Output to main.bbl
+[263] biber-MSWIN64:342> INFO - === 
+[409] Biber.pm:421> INFO - Reading 'main.bcf'
+[533] Biber.pm:1002> INFO - Found 113 citekeys in bib section 0
+[545] Biber.pm:4487> INFO - Processing section 0
+[569] Biber.pm:4678> INFO - Looking for bibtex file '../BST_DISCO_JH_2026/Utilities/Bibliography.bib' for section 0
+[647] bibtex.pm:1713> INFO - LaTeX decoding ...
+[788] bibtex.pm:1519> INFO - Found BibTeX data source '../BST_DISCO_JH_2026/Utilities/Bibliography.bib'
+[1241] Biber.pm:4678> INFO - Looking for bibtex file 'Utilities/Bibliography_thesis.bib' for section 0
+[1318] bibtex.pm:1713> INFO - LaTeX decoding ...
+[1347] bibtex.pm:1519> INFO - Found BibTeX data source 'Utilities/Bibliography_thesis.bib'
+[1548] UCollate.pm:68> INFO - Overriding locale 'en-US' defaults 'variable = shifted' with 'variable = non-ignorable'
+[1548] UCollate.pm:68> INFO - Overriding locale 'en-US' defaults 'normalization = NFD' with 'normalization = prenormalized'
+[1549] Biber.pm:4307> INFO - Sorting list 'nyt/global//global/global/global' of type 'entry' with template 'nyt' and locale 'en-US'
+[1549] Biber.pm:4313> INFO - No sort tailoring available for locale 'en-US'
+[1746] bbl.pm:676> INFO - Writing 'main.bbl' with encoding 'UTF-8'
+[1811] bbl.pm:779> INFO - Output to main.bbl

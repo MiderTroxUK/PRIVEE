@@ -1,185 +1,227 @@
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
 \babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\contentsline {figure}{\numberline {1}{\ignorespaces The DISCO serious game network}}{4}{figure.caption.11}%
+\babel@toc {spanish}{}\relax 
+\babel@toc {english}{}\relax 
+\contentsline {figure}{\numberline {1}{\ignorespaces From managing tasks to managing their urgency}}{1}{figure.caption.12}%
+\contentsline {figure}{\numberline {2}{\ignorespaces Where the mission sits inside ALTEN}}{2}{figure.caption.13}%
+\contentsline {figure}{\numberline {3}{\ignorespaces The DISCO serious game network}}{3}{figure.caption.14}%
 \babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
 \babel@toc {english}{}\relax 
 \babel@toc {english}{}\relax 
-\contentsline {figure}{\numberline {2}{\ignorespaces The test-and-learn iteration loop}}{13}{figure.caption.20}%
-\contentsline {figure}{\numberline {3}{\ignorespaces Phases and milestones of the mission}}{15}{figure.caption.22}%
-\contentsline {figure}{\numberline {4}{\ignorespaces Causal structure behind the six-block selection}}{20}{figure.caption.26}%
-\contentsline {figure}{\numberline {5}{\ignorespaces The pairwise comparison questionnaire and its consistency gate}}{21}{figure.caption.28}%
-\contentsline {figure}{\numberline {6}{\ignorespaces Bidirectional propagation across the supply network}}{22}{figure.caption.29}%
-\contentsline {figure}{\numberline {7}{\ignorespaces Declared and real urgency, and the two mismatch pathologies}}{22}{figure.caption.30}%
-\contentsline {figure}{\numberline {8}{\ignorespaces The weekly review page}}{23}{figure.caption.31}%
-\contentsline {figure}{\numberline {9}{\ignorespaces System architecture: single facade, audited writes, per-node persistence}}{23}{figure.caption.32}%
-\contentsline {figure}{\numberline {10}{\ignorespaces Per-node explainability: exact decomposition of both signals}}{24}{figure.caption.33}%
-\contentsline {figure}{\numberline {11}{\ignorespaces The campaign network and its per-arc coefficients}}{25}{figure.caption.34}%
-\contentsline {figure}{\numberline {12}{\ignorespaces Reliability of the four-week forecast}}{27}{figure.caption.37}%
-\contentsline {figure}{\numberline {13}{\ignorespaces Influence of the displayed forecast, by turn}}{29}{figure.caption.38}%
-\babel@toc {french}{}\relax 
+\contentsline {figure}{\numberline {4}{\ignorespaces The two declaration errors and why only one of them is silent}}{5}{figure.caption.15}%
+\contentsline {figure}{\numberline {5}{\ignorespaces The signed scope, the convergence and the two boundaries held}}{7}{figure.caption.17}%
+\contentsline {figure}{\numberline {6}{\ignorespaces The weekly cycle and how it nests inside the mission plan}}{9}{figure.caption.24}%
+\contentsline {figure}{\numberline {7}{\ignorespaces Phases and milestones of the mission}}{10}{figure.caption.26}%
+\contentsline {figure}{\numberline {8}{\ignorespaces Fifteen years of prior art, and the slot it leaves empty}}{13}{figure.caption.29}%
+\contentsline {figure}{\numberline {9}{\ignorespaces What each literature stream settles and leaves open}}{14}{figure.caption.30}%
+\contentsline {figure}{\numberline {10}{\ignorespaces Why the aggregation is an OR and not an average}}{15}{figure.caption.32}%
+\contentsline {figure}{\numberline {11}{\ignorespaces The pairwise comparison questionnaire}}{16}{figure.caption.35}%
+\contentsline {figure}{\numberline {12}{\ignorespaces Declared and real urgency, and the two mismatch pathologies}}{16}{figure.caption.36}%
+\contentsline {figure}{\numberline {13}{\ignorespaces SupplyScore: software architecture}}{17}{figure.caption.37}%
+\contentsline {figure}{\numberline {14}{\ignorespaces SupplyScore: domain model}}{17}{figure.caption.38}%
+\contentsline {figure}{\numberline {15}{\ignorespaces Per-node explainability: exact decomposition of both signals}}{18}{figure.caption.39}%
+\contentsline {figure}{\numberline {16}{\ignorespaces The first campaign network and its per-arc coefficients}}{18}{figure.caption.40}%
+\contentsline {figure}{\numberline {17}{\ignorespaces The signal's useful window, on one axis}}{20}{figure.caption.42}%
+\contentsline {figure}{\numberline {18}{\ignorespaces Reliability of the four-week forecast}}{21}{figure.caption.43}%
+\contentsline {figure}{\numberline {19}{\ignorespaces Influence of the displayed forecast, by turn}}{22}{figure.caption.44}%
+\contentsline {figure}{\numberline {20}{\ignorespaces One milestone under three definitions of truth}}{23}{figure.caption.46}%
+\contentsline {figure}{\numberline {21}{\ignorespaces Before and after repair}}{24}{figure.caption.47}%
+\contentsline {figure}{\numberline {22}{\ignorespaces The two chains and what the second one removes}}{26}{figure.caption.50}%
+\contentsline {figure}{\numberline {23}{\ignorespaces The boundary between two different declarants}}{27}{figure.caption.53}%
+\contentsline {figure}{\numberline {24}{\ignorespaces What displaying the forecast changes}}{28}{figure.caption.54}%
+\contentsline {figure}{\numberline {25}{\ignorespaces Where computed urgency goes inside the forecast}}{28}{figure.caption.55}%
+\contentsline {figure}{\numberline {26}{\ignorespaces The domain of validity established for SupplyScore}}{31}{figure.caption.63}%
+\contentsline {figure}{\numberline {27}{\ignorespaces The ordered list of what to do next, and what produced each item}}{32}{figure.caption.65}%
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
 \babel@toc {english}{}\relax 
-\babel@toc {french}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
 \babel@toc {english}{}\relax 
+\contentsline {figure}{\numberline {28}{\ignorespaces Signed authorisation of AI use}}{39}{figure.caption.70}%
+\contentsline {figure}{\numberline {29}{\ignorespaces Segmentation training: data helped, resolution did not}}{44}{figure.caption.91}%

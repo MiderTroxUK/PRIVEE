@@ -1,0 +1,175 @@
+%% ═══════════════════════════════════════════════════════════════════════════
+\section{A Worked Example, End to End}
+\label{app:worked}
+%% ═══════════════════════════════════════════════════════════════════════════
+
+Section~\ref{sec:math_framework} gives the model as equations and Section~\ref{sec:Results}
+gives it as scores on a campaign. Neither shows a single number travelling through the whole
+chain, which is what a reader needs to check that the equations mean what the prose
+says they mean. This appendix carries one node through every stage: the six blocks into a
+local urgency, that urgency along a three-node chain, the chain into a criticality ranking,
+and the result against a declaration.
+
+Every figure below is produced by the production code rather than computed by hand, using
+the same functions the campaign ran, so the example cannot drift away from the system it
+illustrates. The scenario is illustrative and is not drawn from either campaign.
+
+\subsection{Stage 1: six blocks into a local urgency}
+
+The node is a deep-tier supplier whose next milestone falls in nine days against a lead time
+distributed $\mathcal{N}(11, 3)$, whose buffers are a third consumed, whose OEE stands at
+$0.80$, and for which no node-level emissions data exists. Table~\ref{tab:worked_blocks}
+gives the resulting block values and the survival factor each contributes to
+Equation~\ref{eq:ur_local}.
+
+\begin{table}[htbp]
+\centering
+\caption[Worked example: the six blocks]{The six blocks and their survival factors, all
+weights at $\omega_m = 1$}
+\label{tab:worked_blocks}
+\small
+\begin{tabularx}{\linewidth}{@{}l c c X@{}}
+\toprule
+\textbf{Block} & \textbf{$u_m$} & \textbf{$(1-u_m)^{\omega_m}$} & \textbf{Reading} \\
+\midrule
+$u_{\text{time}}$ & $0.62$ & $0.3800$ & Probability of missing the nine-day deadline \\
+$u_{\text{cap}}$  & $0.35$ & $0.6500$ & Buffers a third consumed \\
+$u_{\text{perf}}$ & $0.20$ & $0.8000$ & $1 - \text{OEE}$, with OEE at $0.80$ \\
+$u_{\text{risk}}$ & $0.15$ & $0.8500$ & Expected unavailability over the horizon \\
+$u_{\text{cost}}$ & $0.28$ & $0.7200$ & Operating cost drifting above nominal \\
+$u_{\text{co2}}$  & absent & $1.0000$ & $\omega_m = 0$: the factor is neutral, not healthy \\
+\midrule
+\multicolumn{2}{@{}l}{Product of survivals} & $0.120931$ & \\
+\multicolumn{2}{@{}l}{$U_{r,\text{local}} = 1 - \text{product}$} & $\mathbf{0.8791}$ & \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The comparison that matters is with the aggregator the model rejects. A weighted average of
+the same five available blocks gives $0.3200$. The two answers differ by more than half the
+scale on identical inputs, and they differ because they answer different questions: the
+average asks how stressed this node is on average, the noisy-OR asks how likely it is that
+at least one mechanism ruptures. Only the second is the quantity a coordinator needs.
+
+The gap widens at the boundary. Let the deadline pass, so $u_{\text{time}} = 1$ and the node
+cannot become any later. The noisy-OR returns exactly $1.0000$, because the factor
+$(1-1) = 0$ collapses the product whatever the other blocks read. The weighted average
+returns $0.3960$, and would rank this node below a node that is mildly stressed on all six.
+That is the compensatory failure of Section~\ref{sec:model_ur} in a single pair of numbers.
+
+\subsection{Stage 2: propagation along a three-node chain}
+
+Place the node as the deepest tier of a chain $s_2 \to s_1 \to \text{customer}$, with
+upstream amplification $\beta_{s_2 s_1} = 0.70$ and $\beta_{s_1 c} = 0.50$. The two
+downstream nodes are locally calm, at $U_{r,\text{local}} = 0.30$ and $0.10$.
+Equation~\ref{eq:ur_prop} applied in topological order gives
+\begin{align*}
+    U_{r,s_2} &= 0.8791, \\
+    U_{r,s_1} &= 1 - (1 - 0.30)\bigl(1 - 0.70 \times 0.8791\bigr) = 0.7307, \\
+    U_{r,c}   &= 1 - (1 - 0.10)\bigl(1 - 0.50 \times 0.7307\bigr) = 0.4288 .
+\end{align*}
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[x=1cm, y=1cm, font=\scriptsize,
+    nd/.style = {bloc, text width=2.1cm, minimum height=1.05cm}]
+
+\node[nd, fill=altenOchrePale!55!white, draw=altenOchreDark, line width=1pt] (s2) at (1.6, 0)
+     {$s_2$\\[2pt]local $0.879$\\\textbf{prop. $0.879$}};
+\node[nd] (s1) at (6.0, 0) {$s_1$\\[2pt]local $0.300$\\\textbf{prop. $0.731$}};
+\node[nd, blocFort] (c) at (10.4, 0) {customer\\[2pt]local $0.100$\\\textbf{prop. $0.429$}};
+
+\draw[fleche, line width=1.1pt] (s2) -- node[etiquette, above] {$\beta = 0.70$} (s1);
+\draw[fleche, line width=1.1pt] (s1) -- node[etiquette, above] {$\beta = 0.50$} (c);
+
+\node[etiquette, anchor=north, text width=3.4cm] at (1.6, -0.85)
+     {six blocks, one absent\\(Table~\ref{tab:worked_blocks})};
+\node[etiquette, anchor=north, text width=3.4cm] at (6.0, -0.85)
+     {locally calm, inherits\\$0.43$ of its risk};
+\node[etiquette, anchor=north, text width=3.6cm] at (10.4, -0.85)
+     {its own indicators say\\nothing is wrong};
+
+\end{tikzpicture}
+\caption[The worked chain]{The three-node chain of Stage~2. Each box carries the node's own
+local urgency above and its propagated value below. The customer's local reading of $0.10$
+becomes $0.43$ once two tiers of upstream risk arrive, which is the whole purpose of the
+propagation.}
+\label{fig:worked_chain}
+\end{figure}
+
+A node that is locally calm at $0.10$ therefore carries a propagated urgency of $0.43$,
+entirely inherited from two tiers upstream. This is the whole purpose of the propagation: the
+customer's own indicators say nothing is wrong, and something is.
+
+The log-survival twin of Proposition~\ref{prop:logsurvival} can be checked on the same
+figures. Equation~\ref{eq:logsurvival} gives $\ell_c = 0.5601$ at the customer, and
+$1 - e^{-0.5601} = 0.4288$, which is $U_{r,c}$ to every digit shown. The twin is the same
+recurrence in another coordinate, exactly as the proposition states.
+
+\subsection{Stage 3: which node is the most critical}
+
+The criticality index of Section~\ref{sec:criticality} shocks each active node to
+$U_{r,\text{local}} = 1$ in turn and measures the rise at the customer. On this chain:
+
+\begin{table}[htbp]
+\centering
+\caption[Worked example: criticality]{Effect of the worst local shock, measured at the
+customer}
+\label{tab:worked_crit}
+\small
+\begin{tabularx}{\linewidth}{@{}l c c c X@{}}
+\toprule
+\textbf{Shocked node} & \textbf{$U_{r,\text{local}}$} & \textbf{$U_{r,c}$ after} &
+\textbf{$\Delta U_{r,c}$} & \textbf{Rank} \\
+\midrule
+$s_1$ & $0.30 \to 1.00$ & $0.5500$ & $+0.1212$ & 1st \\
+$s_2$ & $0.88 \to 1.00$ & $0.4555$ & $+0.0267$ & 2nd \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The result is worth pausing on, because it is counter-intuitive and it is correct. The most
+urgent node, $s_2$ at $0.88$, is the \emph{least} critical of the two. Two effects combine.
+Its risk is already almost entirely realised in the baseline, so forcing it to $1$ adds
+little that the customer was not already exposed to. And what it adds is damped twice, once
+by $\beta_{s_2 s_1} = 0.70$ and again by $\beta_{s_1 c} = 0.50$, while $s_1$ sits behind a
+single arc. Urgency and criticality are therefore different questions, and a coordinator who
+sorts the network by urgency alone will spend attention on the node that has least left to
+lose.
+
+Proposition~\ref{prop:saturation} can be seen on the same chain. Set every local urgency to
+$1.0$, the state the campaign reaches on nine turns of nineteen. The baseline customer
+urgency is then $1$, and shocking either node gives $\Delta U_{r,c} = +0.0000$ exactly. Both
+nodes tie at zero, the ranking carries no information, and the log-survival key of
+Proposition~\ref{prop:order} is what separates them again.
+
+\subsection{Stage 4: the declaration, and the adequacy it produces}
+
+Finally, the deep supplier's own coordinator fills the weekly questionnaire.
+Table~\ref{tab:worked_adequacy} scores two declarations against the computed
+$U_{r} = 0.8791$, using the default $\lambda_{\text{under}} = 2.25$,
+$\lambda_{\text{over}} = 1.0$ and $\alpha = 0.88$.
+
+\begin{table}[htbp]
+\centering
+\caption[Worked example: adequacy]{Two declarations against the same computed urgency}
+\label{tab:worked_adequacy}
+\small
+\begin{tabularx}{\linewidth}{@{}c c c c c X@{}}
+\toprule
+\textbf{$U_d$} & \textbf{$F$} & \textbf{$H$} & \textbf{penalty} & \textbf{$A$} &
+\textbf{Reading} \\
+\midrule
+$0.83$ & $0.0000$ & $0.0491$ & $0.1585$ & $83.6$ & A lucid coordinator, slightly optimistic \\
+$0.40$ & $0.0000$ & $0.4791$ & $1.1774$ & $22.7$ & Hidden risk of nearly half the scale \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The second row is the situation the whole instrument exists to surface. The node is at
+$0.88$ and is reported at $0.40$; nothing in the declaration is a lie, and the coordinator
+may sincerely believe it, which is Assumption~\ref{as:sincerity}. The adequacy score falls to $22.7$ and the hidden risk
+$H = 0.479$ is what a supervising view would rank on. Note also what the first row shows: at
+$U_d = 0.83$ against $U_r = 0.88$ the score is $83.6$ and not $95$, because
+Proposition~\ref{prop:adequacy}(iv) makes the curve steepest near zero. Small
+mis-declarations are penalised hard on purpose, since they are the ones still cheap to
+correct.
